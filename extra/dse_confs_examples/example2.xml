@@ -1,0 +1,15 @@
+<application name="swaptions" out_file="log.pricing.data" block="pricing">
+
+	<!-- Input parameters -->
+	<flag value="--stream_duration 20"/>
+
+	<!-- Application knobs -->
+	<parameter name="num_threads" start_value="1"      stop_value="4"                     flag="--threads"     type="int"/>
+	<parameter name="num_trials"  start_value="102400" stop_value="1024000" step="102400" flag="--trials"      type="int"/>
+
+	<!-- Metric of interest -->
+	<metric name="frequency"    field="avg_frequency"   />
+	<metric name="temperature"  field="avg_temperature" />
+	<metric name="throughput"   field="avg_throughput"  />
+	<metric name="error"        field="avg_quality"  />
+</application>
