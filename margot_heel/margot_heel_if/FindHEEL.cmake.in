@@ -15,7 +15,7 @@ set(HEEL_INSTALL_PATH @CMAKE_INSTALL_PREFIX@ )
 ## -----------------------------------------------------------------------------
 ## Check for the header files
 
-find_path (HEEL_INCLUDES argo.hpp
+find_path (HEEL_INCLUDES margot.hpp
   PATHS /usr/local/include /usr/include ${HEEL_INSTALL_PATH}/include ${HEEL_SOURCE_PATH} ${CMAKE_EXTRA_INCLUDES}
   )
 
