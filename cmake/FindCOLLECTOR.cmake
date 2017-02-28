@@ -13,13 +13,13 @@ set( COLLECTOR_ROOT $ENV{COLLECTOR_ROOT})
 ## -----------------------------------------------------------------------------
 ## Check for the header files
 
-find_path (COLLECTOR_INCLUDES antarex_collector.h
+find_path (COLLECTOR_INCLUDES collector.h
   PATHS ${COLLECTOR_ROOT}
   NO_DEFAULT_PATH
   )
 
 if (NOT COLLECTOR_INCLUDES)
-  find_path (COLLECTOR_INCLUDES include/antarex_collector.h
+  find_path (COLLECTOR_INCLUDES include/collector.h
     PATHS /usr/local /usr ${CMAKE_EXTRA_INCLUDES}
     )
 endif(NOT COLLECTOR_INCLUDES)
