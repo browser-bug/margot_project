@@ -354,4 +354,53 @@ class AsrtmTest : public CxxTest::TestSuite
 			TS_ASSERT_EQUALS(number3, 5);
 		}
 
+		void test_operating_point_removal_with_goal( void )
+		{
+			// create a manager which selects the last op in the list
+			margot::asrtm_t manager;
+			manager.add_operating_points(default_points);
+			manager.define_linear_rank(margot::RankObjective::Maximize, margot::rank_metric_t{1, 0.5f});
+			manager.configuration_applied();
+
+			// create a static goal
+			auto goal = manager.create_static_goal_metric(0, margot::ComparisonFunction::LessOrEqual, 100);
+			manager.add_metric_constraint(goal, 0, 12);
+
+			// retrieve the best parameter
+			manager.update();
+			manager.find_best_operating_point();
+			const auto number = manager.get_best_configuration()[0];
+			manager.configuration_applied();
+			TS_ASSERT_EQUALS(number, 5);
+
+
+			// remove the used configuration
+			margot::operating_points_t op_to_remove = {
+				{{5},{1,5,1}}
+			};
+			manager.remove_operating_points(op_to_remove);
+
+			// get a mew configuration
+			manager.update();
+			manager.find_best_operating_point();
+			const auto number2 = manager.get_best_configuration()[0];
+			manager.configuration_applied();
+			TS_ASSERT_EQUALS(number2, 4);
+
+
+			// add again the best configuration
+			margot::operating_points_t op_to_add = {
+				{{5},{1,5,1}}
+			};
+			manager.add_operating_points(op_to_add);
+
+
+			// get a mew configuration
+			manager.update();
+			manager.find_best_operating_point();
+			const auto number3 = manager.get_best_configuration()[0];
+			manager.configuration_applied();
+			TS_ASSERT_EQUALS(number3, 5);
+		}
+
 };
