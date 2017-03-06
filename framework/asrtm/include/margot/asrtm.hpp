@@ -940,6 +940,11 @@ namespace margot
 					 */
 					configuration_t actual_configuration;
 
+					/**
+					 * @brief states if we have removed the current Operating Point
+					 */
+					bool removed_current_operating_point;
+
 #ifdef MARGOT_LEARNING_ENABLE_STATE
 					/**
 					 * @brief this is the number of paramters explored during the DSE

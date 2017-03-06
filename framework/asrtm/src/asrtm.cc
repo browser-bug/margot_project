@@ -59,6 +59,7 @@ namespace margot
 		// set the flag on structure changed
 		structure_changed = true;
 		state_updated = false;
+		removed_current_operating_point = false;
 
 		// set the state
 		internal_state = AsrtmState::Empty;
@@ -260,6 +261,16 @@ namespace margot
 		// signal that the structure is changed
 		structure_changed = true;
 
+		// check if we have removed the current Operating Point
+		try
+		{
+			knowledge.get_operating_point(actual_configuration);
+		}
+		catch ( std::out_of_range& error )
+		{
+			removed_current_operating_point = true;
+		}
+
 		// check if we have removed the last Operating Point
 		if (knowledge.empty())
 		{
@@ -350,7 +361,7 @@ namespace margot
 				const configuration_t explored_configuration(actual_configuration.begin(), actual_configuration.begin() + explored_portion_configuration_size);
 
 				// update the explored state
-				state_updated = current_state->second.explored_state.update(explored_configuration);
+				state_updated = current_state->second.explored_state.update(explored_configuration, removed_current_operating_point);
 
 				// check if the state is observable
 				if (current_state->second.explored_state.is_observable())
@@ -379,7 +390,7 @@ namespace margot
 			{
 #endif // MARGOT_LEARNING_ENABLE_STATE
 				// update the explored state
-				state_updated = current_state->second.explored_state.update(actual_configuration);
+				state_updated = current_state->second.explored_state.update(actual_configuration, removed_current_operating_point);
 #ifdef MARGOT_LEARNING_ENABLE_STATE
 			}
 
@@ -458,6 +469,7 @@ namespace margot
 			internal_state = AsrtmState::Running;
 			actual_configuration = proposed_best_configuration;
 			current_state->second.explored_state.clear_monitors();
+			removed_current_operating_point = false;
 		}
 	}
 
