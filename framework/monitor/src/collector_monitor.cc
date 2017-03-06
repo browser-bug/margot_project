@@ -21,7 +21,7 @@
 #include <stdexcept>
 
 extern "C" {
-#include <antarex_collector.h>
+#include <collector.h>
 }
 
 
