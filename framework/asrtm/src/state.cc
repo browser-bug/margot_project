@@ -682,22 +682,25 @@ namespace margot
 			// initialze the observation error as the previous one
 			margot_value_t observation_error = constraint_it->second.previous_observation_error;
 
-			// retrieve the observed metric value
-			margot_value_t observed_value;
-			const bool has_new_information = constraint_it->second.goal->observed_value(observed_value);
-
-			// update the constraint if needed
-			if (has_new_information && !without_monitor)
+			// retrieve the observed metric value (without considering that we have removed the current OP)
+			if (!without_monitor)
 			{
-				// get the expected value
-				const margot_value_t expected_value = constraint_it->second.metric_view->extract_op_value(current_op);
+				margot_value_t observed_value;
+				const bool has_new_information = constraint_it->second.goal->observed_value(observed_value);
 
-				// avoid the zero trap ( we assume that if observed value is zero, the expected one is also zero )
-				if (observed_value != 0)
+				// update the constraint if needed
+				if (has_new_information)
 				{
-					// update the observation error
-					observation_error = expected_value / observed_value;
-					constraint_it->second.previous_observation_error = observation_error;
+					// get the expected value
+					const margot_value_t expected_value = constraint_it->second.metric_view->extract_op_value(current_op);
+
+					// avoid the zero trap ( we assume that if observed value is zero, the expected one is also zero )
+					if (observed_value != 0)
+					{
+						// update the observation error
+						observation_error = expected_value / observed_value;
+						constraint_it->second.previous_observation_error = observation_error;
+					}
 				}
 			}
 
