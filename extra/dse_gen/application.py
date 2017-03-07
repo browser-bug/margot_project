@@ -43,6 +43,7 @@ class Application:
 		- log_file    (str)   -> The name of the logfile produced from the application
 		- block       (str)   -> The name of the block involved in the DSE
 		- flags       (list)  -> The list of application-wide flags
+		- dependencies(list)  -> The list of file dependencies for the executable
 		- knob_values (dic)   -> The dictionary of the knobs to explore
 		                         key   (str)   -> knob name
 		                         value (list)  -> the list of all the values of the knob
@@ -126,6 +127,13 @@ class Application:
 			metric_name = p.get_parameter(computed_metric_xml, 'name')
 			metric_field = p.get_parameter(computed_metric_xml, 'formula')
 			self.compute[metric_name] = metric_field
+
+		# get all the metric description that should be computed
+		self.dependencies = []
+		dependencies_xml = p.get_elements(xml_root, 'dep', namespace = namespace)
+		for dependency in dependencies_xml:
+			dep_path = p.get_parameter(dependency, 'path')
+			self.dependencies.append(os.path.join(os.getcwd(), dep_path))
 
 
 

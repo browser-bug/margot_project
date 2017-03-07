@@ -79,7 +79,7 @@ class Workspace:
 		self.executable = os.path.join(self.configuration_path, os.path.basename(path_executable))
 
 
-	def setup( self, doe, dest_flags ):
+	def setup( self, doe, dest_flags, dependencies ):
 		"""
 		This method creates the common folder of the application which
 		holds all the files required to perform the DSE
@@ -104,6 +104,11 @@ class Workspace:
 
 		# copy the executable file
 		safe_copy_file(self.path_executable_origin, self.executable)
+
+		# copy the dependencies
+		for dependency in dependencies:
+			dest_path = os.path.join(self.configuration_path, os.path.basename(dependency))
+			safe_copy_file(dependency, dest_path)
 
 		# copy the op generator script file
 		current_path = os.path.split(inspect.getfile( inspect.currentframe() ))[0]
@@ -132,18 +137,25 @@ class Workspace:
 			mkdir_p(configuration.cwd)
 
 			# link the executable (requires python 3.5)
-			common_path_between_conf_and_executable = os.path.commonpath([configuration.executable, self.executable])
-			relative_path_link = os.path.relpath(configuration.executable, common_path_between_conf_and_executable)
-			poured_relative_path = os.path.split(relative_path_link)[0]
-			way_back_path = '{0}'.format(os.path.sep).join(['..' for x in poured_relative_path.split(os.path.sep)])
-			real_link_path = os.path.join(way_back_path, self.global_dir_name, os.path.basename(self.path_executable_origin))
 			try:
-				os.symlink(real_link_path, configuration.executable)
+				os.link(self.executable, configuration.executable)
 			except os.Error as why:
 				print('[SYS_ERROR] Unable to link the executable in the configuration folder')
 				print('\t-- Source : "{0}"'.format(self.executable))
 				print('\t-- Link:    "{0}"'.format(configuration.executable))
 				sys.exit(-1)
+
+			# link the dependencies
+			for dependency in dependencies:
+				try:
+					dep_name = os.path.basename(dependency)
+					os.link(dependency, os.path.join(configuration.cwd, dep_name))
+				except os.Error as why:
+					print('[SYS_ERROR] Unable to link the executable in the configuration folder')
+					print('\t-- Source : "{0}"'.format(dependency))
+					print('\t-- Link:    "{0}"'.format(os.path.join(configuration.cwd, dep_name)))
+					sys.exit(-1)
+
 
 			# generate the configuration specific makefile
 			percentage = int(float(index_configuration+1) / float(len(doe.plan))*100)

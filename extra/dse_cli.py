@@ -117,4 +117,4 @@ if __name__ == "__main__":
 
 	# ------- Generate the workspace
 	my_workspace = workspace.Workspace(path_workspace_directory, path_executable)
-	my_workspace.setup(my_doe_plan, application_flags)
+	my_workspace.setup(my_doe_plan, application_flags, my_application.dependencies)
