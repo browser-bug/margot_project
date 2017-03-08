@@ -26,11 +26,11 @@ class OperatingPointModel:
 		Return true if other_op has the same fields wrt self
 		"""
 
-		my_metrics = self.metrics.keys()
-		my_knobs = self.knobs.keys()
+		my_metrics = sorted(self.metrics.keys())
+		my_knobs = sorted(self.knobs.keys())
 
-		other_metrics = other_op.metrics.keys()
-		other_knobs = other_op.knobs.keys()
+		other_metrics = sorted(other_op.metrics.keys())
+		other_knobs = sorted(other_op.knobs.keys())
 
 		return (my_metrics == other_metrics) and (my_knobs == other_knobs)
 

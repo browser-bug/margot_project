@@ -265,9 +265,7 @@ def execute_command_xml2csv( file_path ):
 		op_utils.print_op_list_csv(op_list_model)
 
 
-def execute_command_postprocess(folder_path,
-		#list_of_feat_and_metrics,
-		dse, thresholds):
+def execute_command_postprocess_static_auto(folder_path,dse, thresholds, thrs_metr, block_name):
 	"""
 	modify a metric into a knob postprocessing the result of a DSE
 	"""
@@ -276,7 +274,30 @@ def execute_command_postprocess(folder_path,
 	thresholds_array = thresholds.split(',')
 #	print (thresholds_array)
 	thresholds_real = [float(x) for x in thresholds_array]
-	postprocess_extractor.postprocess(thresholds_real)
+	postprocess_extractor.static_autotuner_postprocess(thresholds_real, thrs_metr, block_name)
+
+def execute_command_postprocess(folder_path,dse, thresholds, aggr_metr, thrs_metr, block_name):
+	"""
+	modify a metric into a knob postprocessing the result of a DSE
+	"""
+	from margot_heel_cli import postprocess as post
+	postprocess_extractor = post.Postprocess_extraction(folder_path, dse)
+	thresholds_array = thresholds.split(',')
+#	print (thresholds_array)
+	thresholds_real = [float(x) for x in thresholds_array]
+	postprocess_extractor.postprocess(thresholds_real, aggr_metr, thrs_metr, block_name)
+
+
+def execute_command_postprocessMCS(folder_path,dse, thresholds, aggr_metr, thrs_metr, aggr_knob, block_name):
+	"""
+	modify a metric into a knob postprocessing the result of a DSE
+	"""
+	from margot_heel_cli import postprocess as post
+	postprocess_extractor = post.Postprocess_extraction(folder_path, dse)
+	thresholds_array = thresholds.split(',')
+#	print (thresholds_array)
+	thresholds_real = [float(x) for x in thresholds_array]
+	postprocess_extractor.postprocessMCS(thresholds_real, aggr_metr, thrs_metr,aggr_knob, block_name)
 
 
 
@@ -385,12 +406,34 @@ if __name__ == "__main__":
 	parser_generator = subparsers.add_parser('xml2csv', help='Convert an Operating Points list from xml to csv')
 	parser_generator.add_argument('path', metavar='OPS_XML', type=str, nargs=1, help='The path to the target xml file')
 
+# add the static postprocess command
+	parser_generator = subparsers.add_parser('static_postprocess', help='postprocesses data from a dse to obtain the static autotuning confidence for the given thresholds')
+	parser_generator.add_argument('--path', metavar='PATH', dest='folder_path', type=str,required = True , help='The path to the list of Operating Points files, in XML format')
+	parser_generator.add_argument('dse', metavar='DSE', type=str, help='file dse.xml used to guide the exploration')
+	parser_generator.add_argument('--thresholds', metavar='THR', type=str,required = True, help='comma separated array of thresholds')
+	parser_generator.add_argument('--thrs_metr', metavar='TSM', type=str, required = True,help='metric that has to be clustered in OPs')
+	parser_generator.add_argument('--block_name', metavar='BLN', type=str, required = True,help='name of the autotuned block')
+
+
 	# add the postprocess command
 	parser_generator = subparsers.add_parser('postprocess', help='postprocesses data from a dse to obtain the final oplist to be used in autotuning')
 	parser_generator.add_argument('--path', metavar='PATH', dest='folder_path', type=str,required = True , help='The path to the list of Operating Points files, in XML format')
-	#parser_generator.add_argument('--list_of_feat_and_metrics', metavar='LIST', dest='list_of_feat_and_metrics', type=str, nargs='+', help='[feat[[:thresh,]*|,]metric[:[thresh,]+|];]+, thresh values can be associated to features or metrics, the : separator is used to identify where is associated. the list can contain more than one of these postprocesses rule. will probably be changed to an xml file soon.')
 	parser_generator.add_argument('dse', metavar='DSE', type=str, help='file dse.xml used to guide the exploration')
-	parser_generator.add_argument('--thresholds', metavar='THR', type=str, help='comma separated array of thresholds')
+	parser_generator.add_argument('--thresholds', metavar='THR', type=str,required = True, help='comma separated array of thresholds')
+	parser_generator.add_argument('--aggr_metr', metavar='AGM', type=str, required = True,help='metric that has to be aggregated in OPs')
+	parser_generator.add_argument('--thrs_metr', metavar='TSM', type=str, required = True,help='metric that has to be clustered in OPs')
+	parser_generator.add_argument('--block_name', metavar='BLN', type=str, required = True,help='name of the autotuned block')
+
+	# add the postprocess command
+	parser_generator = subparsers.add_parser('postprocessMCS', help='postprocesses data from a dse to obtain the final oplist to be used in autotuning')
+	parser_generator.add_argument('--path', metavar='PATH', dest='folder_path', type=str,required = True , help='The path to the list of Operating Points files, in XML format')
+	parser_generator.add_argument('dse', metavar='DSE', type=str, help='file dse.xml used to guide the exploration')
+	parser_generator.add_argument('--thresholds', metavar='THR', type=str,required = True, help='comma separated array of thresholds')
+	parser_generator.add_argument('--aggr_metr', metavar='AGM', type=str, required = True,help='metric that has to be aggregated in OPs')
+	parser_generator.add_argument('--thrs_metr', metavar='TSM', type=str, required = True,help='metric that has to be clustered in OPs')
+	parser_generator.add_argument('--aggr_knob', metavar='AGK', type=str, required = True,help='knob that has to be aggregated in OPs, its values MUST be integer')
+	parser_generator.add_argument('--block_name', metavar='BLN', type=str, required = True,help='name of the autotuned block')
+
 
 	# add the add_column command
 	parser_generator = subparsers.add_parser('add_metric', help='Adds a new indirect metric to the Operating Points')
@@ -434,10 +477,14 @@ if __name__ == "__main__":
 	if args.command == 'plot_variable_distribution':
 		execute_command_plot_distr (args.varname, args.oplist_pattern)
 
-	if args.command == 'postprocess':
-		execute_command_postprocess(args.folder_path,
-				#args.list_of_feat_and_metrics,
-				args.dse, args.thresholds)
+	if args.command == 'static_postprocess':
+		execute_command_postprocess_static_auto(args.folder_path,args.dse, args.thresholds, args.thrs_metr, args.block_name)
 
-	if args.command == 'add_metric':
+	if args.command == 'postprocess':
+		execute_command_postprocess(args.folder_path,args.dse, args.thresholds, args.aggr_metr, args.thrs_metr, args.block_name)
+	
+	if args.command == 'postprocessMCS':
+		execute_command_postprocessMCS(args.folder_path,args.dse, args.thresholds, args.aggr_metr, args.thrs_metr, args.aggr_knob, args.block_name)
+
+if args.command == 'add_metric':
 		execute_command_add_metric(args.op_list, args.metric_name, args.formula)

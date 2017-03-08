@@ -2,6 +2,7 @@ from .parse_op import parse_ops_csv
 from .model_op_list import OperatingPointListModel
 from .model_op import OperatingPointModel
 from .op_utils import print_op_list_xml
+import math
 import os
 import xml.etree.ElementTree as ET                               # get the xml parser from python
 import re                                                        # regular expressions
@@ -274,12 +275,11 @@ class Postprocess_extraction:
 				
 
 
-	def postprocess(self, thresholds):
-		oplist = OperatingPointListModel()
+	def static_autotuner_postprocess(self, thresholds, threshold_metric, block_name):
+		print ("aaaa")
 		for item in self.plan:
 			op_list_to_postprocess = []
 			for filename in self.file_list:
-
 				temp_oplist = parse_ops_csv(os.path.join(self.folder_path, filename),',')
 				if temp_oplist == None:
 					print ("oplist not found for file:")
@@ -291,6 +291,40 @@ class Postprocess_extraction:
 
 				op=temp_oplist.get_op(temp_knob_map)
 				op_list_to_postprocess.append(op)
+
+			real_thresh = sorted (thresholds)
+			final_point_lists = {}
+			print ("knobs are:", item)
+			for thresh in real_thresh:
+				tmp = []
+				for point in op_list_to_postprocess:
+					tmp.append(point.metrics[threshold_metric])
+#				stats.percentileofscore(tmp, thresh,'weak') <= 95:
+				print('\t{0}\t{1}'.format(stats.percentileofscore(tmp, thresh,'weak'), thresh))
+			
+
+
+
+	def postprocess(self, thresholds, aggregated_metric, threshold_metric, block_name):
+		oplist = OperatingPointListModel()
+		oplist.name = block_name
+		for item in self.plan:
+			op_list_to_postprocess = []
+#			op_map_to_postprocess = {}
+			for filename in self.file_list:
+				temp_oplist = parse_ops_csv(os.path.join(self.folder_path, filename),',')
+				if temp_oplist == None:
+					print ("oplist not found for file:")
+					print (os.path.join(self.folder_path, filename))
+					sys.exit(-1)
+				temp_knob_map={}
+				for i in range (0, len(item)/2):
+					temp_knob_map[self.params_flag_translator[item[2*i]]]=item[2*i+1]
+
+				op=temp_oplist.get_op(temp_knob_map)
+				op_list_to_postprocess.append(op)
+#				op_map_to_postprocess.setdefault(temp_knob_map["num_samples"],[]).append(op)
+#					print op_map_to_postprocess
 #			print (item)
 #			for point in op_list_to_postprocess:
 #				print (point)
@@ -299,15 +333,16 @@ class Postprocess_extraction:
 		#	thresholds = [0.002, 0.0015, 0.001, 0.005, 0.01]
 			real_thresh = sorted (thresholds)
 			#print (real_thresh)
-			sorted_list = sorted(op_list_to_postprocess, key=lambda op:op.metrics['unpredictability'] )
+#			sorted_list = sorted(op_list_to_postprocess, key=lambda op:op.metrics['unpredictability'] )
+			sorted_list = sorted(op_list_to_postprocess, key=lambda op:op.metrics[aggregated_metric] )
 			final_point_lists = {}
 			for thresh in real_thresh:
 			#	print ("working with thresh ",thresh, "for item", item)
 #tudent_list = sorted(student_list, key=lambda student: student.mark)
 				wip_list = []
 				for point in sorted_list:
-					tmp =[x.metrics['error'] for x in wip_list ]
-					tmp.append(point.metrics['error'])
+					tmp =[x.metrics[threshold_metric] for x in wip_list ]
+					tmp.append(point.metrics[threshold_metric])
 					if stats.percentileofscore(tmp, thresh,'weak') <= 95:
 				#		print(stats.percentileofscore(tmp, thresh,'weak'), '         ', thresh)
 						break;
@@ -335,11 +370,124 @@ class Postprocess_extraction:
 						op.add(real_point)
 					for metric in op.metrics.keys():
 						op.avg(len (sorted_list), metric)
-					op.knobs['unpredictability'] = final_point_lists[point][-1].metrics['unpredictability']
-					del op.metrics['unpredictability']
-					op.metrics['error']=point
+					op.knobs[aggregated_metric] = final_point_lists[point][-1].metrics[aggregated_metric]
+					del op.metrics[aggregated_metric]
+					op.metrics[threshold_metric]=point
 					oplist.ops.append(op)
 		
 
 		print_op_list_xml(oplist)
+
+
+
+
+	def postprocessMCS (self, thresholds, aggregated_metric, threshold_metric, aggregation_knob, block_name):
+		oplist = OperatingPointListModel()
+		op_map_to_postprocess = {}
+		for item in self.plan:
+			for filename in self.file_list:
+				temp_oplist = parse_ops_csv(os.path.join(self.folder_path, filename),',')
+				if temp_oplist == None:
+					print ("oplist not found for file:")
+					print (os.path.join(self.folder_path, filename))
+					sys.exit(-1)
+				temp_knob_map={}
+				for i in range (0, len(item)/2):
+					temp_knob_map[self.params_flag_translator[item[2*i]]]=item[2*i+1]
+				op=temp_oplist.get_op(temp_knob_map)
+				op_map_to_postprocess.setdefault(int(temp_knob_map[aggregation_knob]),[]).append(op)
+#sort map on aggr_metric
+		for entry in op_map_to_postprocess:
+			op_map_to_postprocess[entry] = sorted (op_map_to_postprocess[entry], key = lambda op:op.metrics[aggregated_metric])
+		oplist.name = block_name
+
+#init
+		final_point_lists = {}
+		final_metric_lists = {}
+		prv_line = []
+		key_map = {}
+		for i in range (0, len(op_map_to_postprocess.keys())):
+			prv_line.append(0)
+			key_map[op_map_to_postprocess.keys()[i]]=i
+#####
+#		print (key_map)	
+#		print (sorted(op_map_to_postprocess.keys()))
+
+
+		for thresh in sorted (thresholds):
+			prv = 0
+			for point_list in sorted (op_map_to_postprocess):
+#				print ("number of samples is: ",point_list, " while error thresh is: ", thresh)
+				starting_aggr = max (prv, prv_line[key_map[point_list]])
+#				print ("starting aggr value is: ", starting_aggr, "obtained from prv: ",prv, " and prv line: ", prv_line[key_map[point_list]])
+				op_tmp_list = []
+				metric_tmp_list = []
+				debug_unpr_list = []
+				broken_from_inner = False
+#				print ("befor iteration: prv is: ",prv, "and the prv_line is: ",prv_line)
+				for point in op_map_to_postprocess[point_list]:
+#					print (point)
+					if point.metrics[aggregated_metric] >= starting_aggr:
+						op_tmp_list.append(point)
+						metric_tmp_list.append(point.metrics[threshold_metric])
+						debug_unpr_list.append(point.metrics[aggregated_metric])
+#						print ("added")
+					if len(op_tmp_list) >= 50:
+						#test, if fail exit from inner loop
+#						print ("testing: ", metric_tmp_list)
+						if stats.percentileofscore(metric_tmp_list, thresh,'weak') <= 95:
+#							print (stats.percentileofscore(metric_tmp_list, thresh,'weak')) 
+#							print (stats.percentileofscore(metric_tmp_list, thresh,'strict')) 
+#							print (stats.percentileofscore(metric_tmp_list, thresh,'rank')) 
+#							print (stats.percentileofscore(metric_tmp_list, thresh,'mean')) 
+							broken_from_inner = True
+							#remove last 1% of values in array
+							num_to_remove_float = len (op_tmp_list)*0.01
+							num_to_remove = int(math.ceil( num_to_remove_float))
+							for i in range (0, num_to_remove):
+								op_tmp_list.pop()
+							break
+				#print (op_tmp_list)
+#				print ("broken out from loop, op_tmp_list size is: ",len(op_tmp_list))
+#				if len(op_tmp_list) == 49: ### due to the fact that 50 is the lowest number to be tested, and if a failure happen the last is pop'd out
+					#fail, break
+#					continue
+				if len (op_tmp_list) > 50:
+					#ok, create op and update tmp data structures
+					final_point_lists.setdefault(point_list,[]).append(op_tmp_list)
+					final_metric_lists.setdefault(point_list,[]).append(thresh)  ##same order!
+					if (broken_from_inner):
+						prv = op_tmp_list[-1].metrics[aggregated_metric]
+#					else:
+#						print (metric_tmp_list)
+#						print (debug_unpr_list)
+					prv_line [key_map[point_list]]=op_tmp_list[-1].metrics[aggregated_metric]
+
+#				print ("********************************")
+
+
+
+		for point in final_point_lists:
+			for i in range (0, len( final_point_lists[point])):
+				#create an op that will be in the output oplist.
+				#must have the max unpredictability as knob, the target error as metric and
+				#all the other metrics have to be averaged
+				out_op = OperatingPointModel()
+				for knob in final_point_lists[point][i][0].knobs:
+					out_op.knobs[knob]=final_point_lists[point][i][0].knobs[knob]
+				for metric in final_point_lists[point][i][0].metrics:
+					out_op.metrics[metric]=0
+				for op in final_point_lists[point][i]:
+					out_op.add(op)
+				for metric in out_op.metrics.keys():
+					out_op.avg(len (final_point_lists[point][i]), metric)
+				out_op.knobs[aggregated_metric] = final_point_lists[point][i][-1].metrics[aggregated_metric]
+				del out_op.metrics[aggregated_metric]
+				out_op.metrics[threshold_metric] = final_metric_lists[point][i]
+				oplist.ops.append(out_op)
+		
+
+		print_op_list_xml(oplist)
+
+
 
