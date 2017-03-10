@@ -217,7 +217,9 @@ if __name__ == "__main__":
 			my_op_model.metrics[metric_name] = mean_value
 
 			# compute the standard deviations
-			stddev = statistics.stdev(values) / 2
+			stddev = 0
+			if (len (values) > 1):
+				stddev = statistics.stdev(values) / 2
 			if stddev != 0:
 				stddev_perc = float(int(1000 * stddev / mean_value)) / 10
 

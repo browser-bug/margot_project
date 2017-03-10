@@ -112,9 +112,29 @@ if __name__ == "__main__":
 	application_flags = generate_ops.generate_application_flags(my_application)
 
 
-	# ------- Build the DoE plan
-	my_doe_plan = doe.DoE(doe_strategy, my_application)
+	#Workspace setup:
+		#for indexfoleder #multipledoes folder setup
+			#doe setup
+			#doe makefile
+		#input_dependent makefile
+	#workspace makefile
 
-	# ------- Generate the workspace
+#al che workspace va reworkata per farla a funzioni.
+#funz 1: create_global_workspace
+#funz 2: create_input_ws
+#funz 3: doe setup and run
+
+
+
+	
 	my_workspace = workspace.Workspace(path_workspace_directory, path_executable)
-	my_workspace.setup(my_doe_plan, application_flags, my_application.dependencies)
+	my_workspace.setup(my_application.dependencies)
+	for index_folder_ID in my_application.flags.keys():
+	# ------- Build the DoE plan
+		my_doe_plan = doe.DoE(doe_strategy, my_application, index_folder_ID)
+	# ------- Generate the workspace
+		print ("DEBUG: ", my_application.dependencies)
+		my_workspace.doe_setup(my_doe_plan, application_flags, my_application.dependencies, index_folder_ID)
+	
+	my_workspace.finalize_makelists()
+

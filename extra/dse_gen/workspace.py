@@ -78,8 +78,7 @@ class Workspace:
 		self.configuration_path = os.path.join(self.working_root, self.global_dir_name)
 		self.executable = os.path.join(self.configuration_path, os.path.basename(path_executable))
 
-
-	def setup( self, doe, dest_flags, dependencies ):
+	def setup( self, dependencies):
 		"""
 		This method creates the common folder of the application which
 		holds all the files required to perform the DSE
@@ -92,11 +91,12 @@ class Workspace:
 		"""
 
 		# check if there is already a dse folder
-		if os.path.isdir(self.working_root):
-			print('[WARNING] The workspace path "{0}" exists!'.format(self.working_root))
+		if os.path.isdir(os.path.realpath(self.working_root)):
+			print('[WARNING] The workspace path "{0}" exists!'.format(path_workspace_directory))
 			print("\t-- Select a different workspace path")
 			print("\t-- Remove/Rename the target workspace path")
 			sys.exit(-1)
+
 
 		# create the main folder
 		mkdir_p(self.working_root)
@@ -113,24 +113,32 @@ class Workspace:
 		# copy the op generator script file
 		current_path = os.path.split(inspect.getfile( inspect.currentframe() ))[0]
 		py_ops_generator_path_src = os.path.join(current_path, 'generate_ops.py')
-		py_ops_generator_path_dst = os.path.join(self.configuration_path, 'generate_ops.py')
-		safe_copy_file(py_ops_generator_path_src, py_ops_generator_path_dst)
+		self.py_ops_generator_path_dst = os.path.join(self.configuration_path, 'generate_ops.py')
+		safe_copy_file(py_ops_generator_path_src, self.py_ops_generator_path_dst)
 
 		# generate a position independent path for python script
-		common_path = os.path.commonpath([self.working_root, py_ops_generator_path_dst])
-		relative_path = os.path.relpath(py_ops_generator_path_dst, common_path)
-		py_ops_generator_path_dst_rel = os.path.join('.', relative_path)
+		common_path = os.path.commonpath([self.working_root, self.py_ops_generator_path_dst])
+		relative_path = os.path.relpath(self.py_ops_generator_path_dst, common_path)
+		self.py_ops_generator_path_dst_rel = os.path.join('../..', relative_path)# must be called inside /launchpad/input/
 
 		# copy the argo gangway library
 		gangway_path = os.path.realpath(os.path.join(current_path, '..', '..', "margot_heel", "margot_heel_cli"))
 		safe_copy_dir(os.path.join(gangway_path, "margot_heel_cli"), os.path.join(self.configuration_path, 'margot_heel_cli'))
 
+		self.input_folders_list = []
+
+	def doe_setup(self, doe, dest_flags, dependencies, index_folder_ID):
+		self.index_folder_ID = str(index_folder_ID)
+		#create the index folder (for different inputs)
+		index_name = os.path.join(self.working_root, self.launchpard_dir_name,self.index_folder_ID)
+		mkdir_p(index_name)
+		self.input_folders_list.append(self.index_folder_ID)
 		# loop over the the plan and generate the single runner
 		profile_files = {}
 		for index_configuration, configuration in enumerate(doe.plan):
 
 			# set the correct folders
-			configuration.cwd = os.path.join(self.working_root, self.launchpard_dir_name, configuration.name)
+			configuration.cwd = os.path.join(self.working_root, self.launchpard_dir_name,self.index_folder_ID, configuration.name)
 			configuration.executable = os.path.join(configuration.cwd, self.exec_link_name)
 
 			# create the folder
@@ -162,9 +170,9 @@ class Workspace:
 
 			# get the path to the profile file
 			path_profile_file = makefile_generator.generate_configuration_makefile(configuration, percentage)
-			common_path = os.path.commonpath([path_profile_file, py_ops_generator_path_dst])
+			common_path = os.path.commonpath([path_profile_file, self.py_ops_generator_path_dst])
 			rebased_path_log = os.path.relpath(path_profile_file, common_path)
-			rebased_path_script = os.path.relpath(py_ops_generator_path_dst, common_path)
+			rebased_path_script = os.path.relpath(self.py_ops_generator_path_dst, common_path)
 			script_path = os.path.dirname(rebased_path_script)
 			rebased_root = '{0}'.format(os.path.sep).join(['..' for x in script_path.split(os.path.sep)])
 			profile_files[os.path.join(rebased_root, rebased_path_log)] = configuration.description
@@ -177,4 +185,8 @@ class Workspace:
 		command_flags.extend(generate_ops.generate_outfile_flag(os.path.join('.', 'oplist.conf')))
 
 		# generate the global makefile
-		makefile_generator.generate_global_makefile(doe, self.working_root, py_ops_generator_path_dst_rel, command_flags)
+		makefile_generator.generate_intermediate_makefile(doe, os.path.join(self.working_root,self.launchpard_dir_name,self.index_folder_ID), self.py_ops_generator_path_dst_rel, command_flags)
+
+
+	def finalize_makelists(self):
+		makefile_generator.generate_global_makefile(self.input_folders_list,self.working_root)

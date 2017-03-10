@@ -34,7 +34,7 @@ class DoE:
 		new_configuration.flags = flag_terms
 
 		# append the application-wide configurations
-		new_configuration.flags.extend(self.application.flags)
+		new_configuration.flags.extend(self.application.flags[self.input_params_index])
 		return new_configuration
 
 
@@ -72,7 +72,7 @@ class DoE:
 
 
 
-	def __init__(self, doe_strategy, application_model):
+	def __init__(self, doe_strategy, application_model, input_params_index):
 		"""
 		This class generates the configurations that must be profiled
 		in the Design Space Exploration according to a specific DoE
@@ -81,6 +81,7 @@ class DoE:
 		# initialize the plan
 		self.plan = []
 		self.application = application_model
+		self.input_params_index = input_params_index
 
 		# compute the doe
 		if doe_strategy == 'full-factorial':

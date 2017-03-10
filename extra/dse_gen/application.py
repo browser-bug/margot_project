@@ -77,11 +77,12 @@ class Application:
 			self.log_file = '{0}.log'.format(self.block)
 
 		# get all the flags parameters
-		self.flags = []
+		self.flags = {}
+		temp_flags = []
 		flags_xml = p.get_elements(xml_root, 'flag', namespace = namespace)
 		for flag_xml in flags_xml:
 			flag_value = p.get_parameter(flag_xml, 'value')
-			self.flags.append(flag_value)
+			temp_flags.append(flag_value)
 
 		# get all the knob description
 		self.knob_values = {}
@@ -111,6 +112,24 @@ class Application:
 				knob_values = [ x for x in values_str.split(' ') if x]
 			self.knob_values[knob_name] = knob_values
 			self.knob_flags[knob_name] = p.get_parameter(knob_xml, 'flag')
+
+		#get all the input_groups values
+		#self.input_groups = {}
+		#groups_xml = p.get_elements(xml_root, 'input_group', namespace = namespace, required = False)
+		#for index, group_xml in enumerate (groups_xml):
+		self.input_groups = {0:["-h 7","-m 45","-e /home/emanuele/AntarexIT4I/ExampleData/probability_uk2/54/Length_ff_54.csv","-p /home/emanuele/AntarexIT4I/ExampleData/probability_uk2/54/profiles"],1:["-h 23","-m 45","-e /home/emanuele/AntarexIT4I/ExampleData/probability_uk2/54/Length_ff_54.csv","-p /home/emanuele/AntarexIT4I/ExampleData/probability_uk2/54/profiles"]}
+
+		
+		print (self.input_groups)
+		print (self.input_groups[0])
+		
+		for input_key,input_value in self.input_groups.items():
+			print (input_key, input_value)
+			self.flags[input_key] = input_value
+			self.flags[input_key].extend(temp_flags)
+
+
+
 
 		# get all the observed metric description
 		self.metrics = {}
