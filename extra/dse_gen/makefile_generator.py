@@ -5,16 +5,10 @@ common_profile_name = 'profile.margot_dse'
 def generate_configuration_makefile( configuration, percentage ):
 	with open(os.path.join(configuration.cwd, 'Makefile'), 'w') as outfile:
 
-		outfile.write('profile_run:\n')
-		outfile.write('\t$(MAKE) {0} || $(MAKE) {1}_error \n'.format (common_profile_name,common_profile_name))
-		
 		outfile.write('{0}: exec\n'.format(common_profile_name))
 		outfile.write('\t@echo "[{0}%] EXEC {1}"\n'.format(percentage, configuration.name))
-		outfile.write('\t@./exec {0} > stdout.txt 2> stderr.txt\n'.format(' '.join(configuration.flags)))
+		outfile.write('\t@./exec {0} > stdout.txt 2> stderr.txt || (echo \'****** PROFILE ERROR: ****** Not able to execute the program. stderr and stdout logs are in folder $(current_dir)\'&& exit 1)\n'.format(' '.join(configuration.flags)))
 		outfile.write('\t@cp {0} {1}\n'.format(configuration.log_file, common_profile_name))
-
-		outfile.write('{0}_error:\n'.format(common_profile_name))
-		outfile.write('\t@echo \'PROFILE ERROR: not able to execute the program. stderr and stdout logs are in folder $(current_dir)\'\n')
 
 		outfile.write('mkfile_path:=$(abspath $(lastword $(MAKEFILE_LIST)))\n')
 
@@ -23,7 +17,7 @@ def generate_configuration_makefile( configuration, percentage ):
 	return os.path.join(configuration.cwd, common_profile_name)
 
 
-#deve diventare generate intermediate makefile (e il global deve essere fatto da zero)
+#creates the doe makefile. it's intermediate in the sense that the different inputs are handled at a superior level and the doe is done only on the different parameters with a given input.
 def generate_intermediate_makefile(doe, out_path, py_ops_generator, dest_flags):
 
 	# create the dependencies
@@ -36,7 +30,7 @@ def generate_intermediate_makefile(doe, out_path, py_ops_generator, dest_flags):
 		dependencies_folder.append(os.path.join('.', os.path.relpath(c.cwd, common_path)))
 
 
-	# write the global makefile
+	# write the doe makefile
 	with open(os.path.join(out_path, 'Makefile'), 'w') as outfile:
 
 		# write the global objective of the dse
@@ -44,10 +38,7 @@ def generate_intermediate_makefile(doe, out_path, py_ops_generator, dest_flags):
 		generator_flags = ' '.join(dest_flags)
 		outfile.write('\t@python3 {0} {1}\n'.format(py_ops_generator, generator_flags))
 
-		# TODO the global action to generate the oplist
-
 		outfile.write('\n\n\n')
-
 		# write the rule to compute the dependencies
 		for index_dep, dep in enumerate(dependencies_log_file):
 			outfile.write('{0}:\n'.format(dep))
@@ -56,12 +47,13 @@ def generate_intermediate_makefile(doe, out_path, py_ops_generator, dest_flags):
 
 
 # TO BE TESTED YET
-def generate_global_makefile(folder_list, out_path):
+def generate_global_makefile(folder_list, out_path,launchpad_name, outfile_name):
 	with open(os.path.join(out_path, 'Makefile'), 'w') as outfile:
 		outfile.write('dse: {0}\n'.format(' \\\n     '.join(folder_list)))
+		outfile.write('\t@cp {0}/0/{1} {1}\n\n'.format(launchpad_name, outfile_name))
 		for folder in folder_list:
 			outfile.write('{0}:\n'.format(folder))
-			outfile.write('\t@make -C launchpad/{0}\n'.format(folder))
+			outfile.write('\t@make -C {0}/{1}\n'.format(launchpad_name,folder))
 			outfile.write('\n\n')
 
 

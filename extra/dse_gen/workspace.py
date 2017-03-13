@@ -68,7 +68,7 @@ class Workspace:
 	global_dir_name = 'required_stuff'
 	launchpard_dir_name = 'launchpad'
 	exec_link_name = 'exec'
-
+	outfile_name = 'oplist.conf'
 
 	def __init__(self, path_workspace_directory, path_executable):
 
@@ -182,11 +182,11 @@ class Workspace:
 		command_flags.extend(dest_flags)
 
 		# compose the relative path between the python script and the oplist
-		command_flags.extend(generate_ops.generate_outfile_flag(os.path.join('.', 'oplist.conf')))
+		command_flags.extend(generate_ops.generate_outfile_flag(os.path.join('.', self.outfile_name)))
 
 		# generate the global makefile
 		makefile_generator.generate_intermediate_makefile(doe, os.path.join(self.working_root,self.launchpard_dir_name,self.index_folder_ID), self.py_ops_generator_path_dst_rel, command_flags)
 
 
-	def finalize_makelists(self):
-		makefile_generator.generate_global_makefile(self.input_folders_list,self.working_root)
+	def finalize_makelists(self, application_flags):
+		makefile_generator.generate_global_makefile(self.input_folders_list,self.working_root,self.launchpard_dir_name, self.outfile_name)

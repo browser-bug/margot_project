@@ -1,7 +1,7 @@
 import os
 import inspect
 import sys
-
+import itertools
 
 #################################
 ###### Import argo library
@@ -114,17 +114,55 @@ class Application:
 			self.knob_flags[knob_name] = p.get_parameter(knob_xml, 'flag')
 
 		#get all the input_groups values
-		#self.input_groups = {}
-		#groups_xml = p.get_elements(xml_root, 'input_group', namespace = namespace, required = False)
-		#for index, group_xml in enumerate (groups_xml):
-		self.input_groups = {0:["-h 7","-m 45","-e /home/emanuele/AntarexIT4I/ExampleData/probability_uk2/54/Length_ff_54.csv","-p /home/emanuele/AntarexIT4I/ExampleData/probability_uk2/54/profiles"],1:["-h 23","-m 45","-e /home/emanuele/AntarexIT4I/ExampleData/probability_uk2/54/Length_ff_54.csv","-p /home/emanuele/AntarexIT4I/ExampleData/probability_uk2/54/profiles"]}
+		self.input_groups = {}
+		groups_xml = p.get_elements(xml_root, 'input_group', namespace = namespace, required = False)
+		input_groups_list = []
+		for group_xml in groups_xml:
+			input_block_list = []
+			for input_block in group_xml:
+				data_list = []
+				data_list_out = []
+				for data in input_block:
+					item_values = []
+					item_type = p.get_parameter(data, 'type', prefixed_values = ['int', 'float', 'enum'])
+					if item_type == 'int' or item_type == 'float':
+						if item_type == 'float':
+							actual_type = float
+						else:
+							actual_type = int
+						start_value = p.get_parameter(data, 'start_value', my_target_type = actual_type)
+						stop_value = p.get_parameter(data, 'stop_value', my_target_type = actual_type)
+						step_value = p.get_parameter(data, 'step', my_target_type = actual_type)
+						index = start_value
+						while( index <= stop_value):
+							item_values.append(str(index))
+							index += step_value
+					else:
+						if item_type != 'enum':
+							print('[DEFENSIVE ERROR] This should not happen! humm... 3324231412')
+							sys.exit(-1)
+						values_str = p.get_parameter(data, 'values')
+						item_values = [ x for x in values_str.split(' ') if x]
+					temp = []
+					for value in item_values:
+						temp.append('{0} {1}'.format(p.get_parameter(data, 'flag'),value))
+					data_list.append(temp)
+				#postprocess here the data read
+				#cartesian product of block items
+				for value in itertools.product(*data_list):
+					input_block_list.append(value)
+			#and append all the blocks in the "group list"
+			input_groups_list.append(input_block_list)
 
-		
-		print (self.input_groups)
-		print (self.input_groups[0])
-		
+		#generate cartesian product of the list of input groups.
+		for index, element in enumerate (itertools.product(*input_groups_list)):
+			self.input_groups[index]=[]
+			for subelement in element:
+				self.input_groups[index].extend(subelement)
+
+		if (len(self.input_groups) == 0):
+			self.input_groups[0] = []
 		for input_key,input_value in self.input_groups.items():
-			print (input_key, input_value)
 			self.flags[input_key] = input_value
 			self.flags[input_key].extend(temp_flags)
 
