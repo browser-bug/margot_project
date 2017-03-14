@@ -42,7 +42,7 @@ def generate_intermediate_makefile(doe, out_path, py_ops_generator, dest_flags, 
 		# write the rule to compute the dependencies
 		for index_dep, dep in enumerate(dependencies_log_file):
 			outfile.write('{0}:\n'.format(dep))
-			outfile.write('\t@make -C {0}\n'.format(dependencies_folder[index_dep]))
+			outfile.write('\t@$(MAKE) -C {0}\n'.format(dependencies_folder[index_dep]))
 			outfile.write('\n\n')
 
 
@@ -53,7 +53,7 @@ def generate_global_makefile(folder_list, out_path,launchpad_name, outfile_name)
 		outfile.write('\t@cp {0}/0/{1} {1}\n\n'.format(launchpad_name, outfile_name))
 		for folder in folder_list:
 			outfile.write('{0}:\n'.format(folder))
-			outfile.write('\t@make -C {0}/{1}\n'.format(launchpad_name,folder))
+			outfile.write('\t@$(MAKE) -C {0}/{1}\n'.format(launchpad_name,folder))
 			outfile.write('\n\n')
 
 
