@@ -1,4 +1,4 @@
-from . import configuration
+from . import dse_configuration as configuration
 
 class DoE:
 	"""

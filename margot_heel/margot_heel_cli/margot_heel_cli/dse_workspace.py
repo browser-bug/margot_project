@@ -3,8 +3,8 @@ import sys
 import errno
 import shutil
 import inspect
-from . import makefile_generator
-from . import generate_ops
+from . import dse_makefile_generator as makefile_generator
+from . import dse_generate_ops as generate_ops
 
 
 #################################
@@ -112,8 +112,8 @@ class Workspace:
 
 		# copy the op generator script file
 		current_path = os.path.split(inspect.getfile( inspect.currentframe() ))[0]
-		py_ops_generator_path_src = os.path.join(current_path, 'generate_ops.py')
-		self.py_ops_generator_path_dst = os.path.join(self.configuration_path, 'generate_ops.py')
+		py_ops_generator_path_src = os.path.join(current_path, 'dse_generate_ops.py')
+		self.py_ops_generator_path_dst = os.path.join(self.configuration_path, 'dse_generate_ops.py')
 		safe_copy_file(py_ops_generator_path_src, self.py_ops_generator_path_dst)
 
 		# generate a position independent path for python script
@@ -122,7 +122,7 @@ class Workspace:
 		self.py_ops_generator_path_dst_rel = os.path.join('../..', relative_path)# must be called inside /launchpad/input/
 
 		# copy the argo gangway library
-		gangway_path = os.path.realpath(os.path.join(current_path, '..', '..', "margot_heel", "margot_heel_cli"))
+		gangway_path = os.path.realpath(os.path.join(current_path, '..'))
 		safe_copy_dir(os.path.join(gangway_path, "margot_heel_cli"), os.path.join(self.configuration_path, 'margot_heel_cli'))
 
 		self.input_folders_list = []
@@ -172,7 +172,7 @@ class Workspace:
 			percentage = int(float(index_configuration+1) / float(len(doe.plan))*100)
 
 			# get the path to the profile file
-			path_profile_file = makefile_generator.generate_configuration_makefile(configuration, percentage)
+			path_profile_file = makefile_generator.generate_configuration_makefile(configuration, percentage,int(100*(int(self.index_folder_ID)+1)/self.num_of_different_inputs))
 			common_path = os.path.commonpath([path_profile_file, self.py_ops_generator_path_dst])
 			rebased_path_log = os.path.relpath(path_profile_file, common_path)
 			rebased_path_script = os.path.relpath(self.py_ops_generator_path_dst, common_path)

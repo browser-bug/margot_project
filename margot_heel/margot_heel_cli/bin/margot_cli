@@ -46,6 +46,7 @@ except ImportError:
 		print(src_folder)
 		sys.exit(-1)
 
+from margot_heel_cli import dse_doe as doe
 
 
 
@@ -323,7 +324,29 @@ def execute_command_add_metric( file_path, metric_name, formula ):
 		# print it in csv format
 		op_utils.print_op_list_csv(op_list_model)
 
+def execute_command_generate_DSE(path_application_description, path_workspace_directory, path_executable, doe_strategy):
+	# ------- Parse the application description
+	from margot_heel_cli import dse_workspace
+	from margot_heel_cli import dse_application
+	from margot_heel_cli import dse_generate_ops
 
+	my_application = dse_application.Application(path_application_description)
+
+
+	# ------- Generate the flags for the generator that will be called later
+	application_flags = dse_generate_ops.generate_application_flags(my_application)
+
+
+	#Workspace setup:
+	my_workspace = dse_workspace.Workspace(path_workspace_directory, path_executable)
+	my_workspace.setup(my_application.dependencies, len(my_application.flags.keys()))
+	for index_folder_ID in my_application.flags.keys():
+	# ------- Build the DoE plan
+		my_doe_plan = doe.DoE(doe_strategy, my_application, index_folder_ID)
+	# ------- Generate the workspace
+		my_workspace.doe_setup(my_doe_plan, application_flags, my_application.dependencies, index_folder_ID)
+	#build the global makefile. The oplist reported is the output of the first DOE (launchpad/0 if default naming is maintained). Other oplists are in the other folders, ready for post process.
+	my_workspace.finalize_makelists(application_flags)
 
 
 
@@ -441,6 +464,12 @@ if __name__ == "__main__":
 	parser_generator.add_argument('--metric_name', metavar='NAME', dest='metric_name', type=str, required=True, help='The new name of the metric')
 	parser_generator.add_argument('--formula', metavar='FORMULA', dest='formula', type=str, required=True, help='The formula used to compute the new metric (python syntax)')
 
+	# add the generate dse command
+	parser_generator = subparsers.add_parser('generate_dse', help='Creates a dse infrastracture')
+	parser_generator.add_argument('application',metavar = 'APP',type = str,nargs = 1,help = 'The path to the application description, in XML format')
+	parser_generator.add_argument('--strategy',metavar = 'DOE',dest = 'doe',type = str,required = False,choices = doe.DoE.supported_does,default = 'full-factorial',help='The used Design Of Experiments')
+	parser_generator.add_argument('--executable',metavar = 'BIN',dest = 'executable',type = str,required = True,help='The path to the application executable')
+	parser_generator.add_argument('--workspace',metavar = 'OUT',dest = 'out_folder',type = str,required = False,default = './dse_campaign',help = 'The path to write the DSE campaign')
 
 
 
@@ -486,5 +515,9 @@ if __name__ == "__main__":
 	if args.command == 'postprocessMCS':
 		execute_command_postprocessMCS(args.folder_path,args.dse, args.thresholds, args.aggr_metr, args.thrs_metr, args.aggr_knob, args.block_name)
 
-if args.command == 'add_metric':
+	if args.command == 'add_metric':
 		execute_command_add_metric(args.op_list, args.metric_name, args.formula)
+
+	if args.command == 'generate_dse':
+		execute_command_generate_DSE(args.application[0],args.out_folder,args.executable,args.doe)
+

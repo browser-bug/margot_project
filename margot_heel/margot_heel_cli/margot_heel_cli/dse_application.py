@@ -6,27 +6,7 @@ import itertools
 #################################
 ###### Import argo library
 #################################
-try:
-	import margot_heel_cli
-except ImportError:
-
-	# Add the python scripts folder
-	src_folder = os.path.realpath(os.path.join(os.path.split(inspect.getfile( inspect.currentframe() ))[0], "..", "..", "margot_heel", "margot_heel_cli"))
-	sys.path.insert(1, src_folder)
-
-	# Import again the library
-	try:
-		import margot_heel_cli
-
-	except ImportError:
-		print('[ERROR]: Unable to find the margot_heel_cli library!')
-		print('         Possible causes:')
-		print('             - argotool is not installed as python package')
-		print('             - This file has been moved wrt the library position')
-		print(src_folder)
-		sys.exit(-1)
-
-from margot_heel_cli import parser_utility as p
+from . import parser_utility as p
 
 
 #################################
