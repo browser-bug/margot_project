@@ -78,7 +78,7 @@ class Workspace:
 		self.configuration_path = os.path.join(self.working_root, self.global_dir_name)
 		self.executable = os.path.join(self.configuration_path, os.path.basename(path_executable))
 
-	def setup( self, dependencies):
+	def setup( self, dependencies, length):
 		"""
 		This method creates the common folder of the application which
 		holds all the files required to perform the DSE
@@ -126,6 +126,9 @@ class Workspace:
 		safe_copy_dir(os.path.join(gangway_path, "margot_heel_cli"), os.path.join(self.configuration_path, 'margot_heel_cli'))
 
 		self.input_folders_list = []
+		self.num_of_different_inputs = length
+
+
 
 	def doe_setup(self, doe, dest_flags, dependencies, index_folder_ID):
 		self.index_folder_ID = str(index_folder_ID)
@@ -185,7 +188,7 @@ class Workspace:
 		command_flags.extend(generate_ops.generate_outfile_flag(os.path.join('.', self.outfile_name)))
 
 		# generate the global makefile
-		makefile_generator.generate_intermediate_makefile(doe, os.path.join(self.working_root,self.launchpard_dir_name,self.index_folder_ID), self.py_ops_generator_path_dst_rel, command_flags)
+		makefile_generator.generate_intermediate_makefile(doe, os.path.join(self.working_root,self.launchpard_dir_name,self.index_folder_ID), self.py_ops_generator_path_dst_rel, command_flags, int(100*(int(self.index_folder_ID)+1)/self.num_of_different_inputs))
 
 
 	def finalize_makelists(self, application_flags):

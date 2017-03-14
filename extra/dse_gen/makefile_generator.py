@@ -6,7 +6,7 @@ def generate_configuration_makefile( configuration, percentage ):
 	with open(os.path.join(configuration.cwd, 'Makefile'), 'w') as outfile:
 
 		outfile.write('{0}: exec\n'.format(common_profile_name))
-		outfile.write('\t@echo "[{0}%] EXEC {1}"\n'.format(percentage, configuration.name))
+		outfile.write('\t@echo "[DOE: {0}%] EXEC {1}"\n'.format(percentage, configuration.name))
 		outfile.write('\t@./exec {0} > stdout.txt 2> stderr.txt || (echo \'****** PROFILE ERROR: ****** Not able to execute the program. stderr and stdout logs are in folder $(current_dir)\'&& exit 1)\n'.format(' '.join(configuration.flags)))
 		outfile.write('\t@cp {0} {1}\n'.format(configuration.log_file, common_profile_name))
 
@@ -18,7 +18,7 @@ def generate_configuration_makefile( configuration, percentage ):
 
 
 #creates the doe makefile. it's intermediate in the sense that the different inputs are handled at a superior level and the doe is done only on the different parameters with a given input.
-def generate_intermediate_makefile(doe, out_path, py_ops_generator, dest_flags):
+def generate_intermediate_makefile(doe, out_path, py_ops_generator, dest_flags, percentage):
 
 	# create the dependencies
 	dependencies_log_file = []
@@ -36,8 +36,8 @@ def generate_intermediate_makefile(doe, out_path, py_ops_generator, dest_flags):
 		# write the global objective of the dse
 		outfile.write('dse: {0}\n'.format(' \\\n     '.join(dependencies_log_file)))
 		generator_flags = ' '.join(dest_flags)
+		outfile.write('\t@echo "[GLOBAL: {0}%] of the different input processing"\n'.format(percentage))
 		outfile.write('\t@python3 {0} {1}\n'.format(py_ops_generator, generator_flags))
-
 		outfile.write('\n\n\n')
 		# write the rule to compute the dependencies
 		for index_dep, dep in enumerate(dependencies_log_file):

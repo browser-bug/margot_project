@@ -164,7 +164,7 @@ class Application:
 			self.input_groups[0] = []
 		for input_key,input_value in self.input_groups.items():
 			self.flags[input_key] = input_value
-			self.flags[input_key].extend(temp_flags)
+			(self.flags[input_key])[0:0]=(temp_flags)
 
 
 

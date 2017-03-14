@@ -113,25 +113,13 @@ if __name__ == "__main__":
 
 
 	#Workspace setup:
-		#for indexfoleder #multipledoes folder setup
-			#doe setup
-			#doe makefile
-		#input_dependent makefile
-	#workspace makefile
-
-#al che workspace va reworkata per farla a funzioni.
-#funz 1: create_global_workspace
-#funz 2: create_input_ws
-#funz 3: doe setup and run
-
-
 	my_workspace = workspace.Workspace(path_workspace_directory, path_executable)
-	my_workspace.setup(my_application.dependencies)
+	my_workspace.setup(my_application.dependencies, len(my_application.flags.keys()))
 	for index_folder_ID in my_application.flags.keys():
 	# ------- Build the DoE plan
 		my_doe_plan = doe.DoE(doe_strategy, my_application, index_folder_ID)
 	# ------- Generate the workspace
 		my_workspace.doe_setup(my_doe_plan, application_flags, my_application.dependencies, index_folder_ID)
-	
+	#build the global makefile. The oplist reported is the output of the first DOE (launchpad/0 if default naming is maintained). Other oplists are in the other folders, ready for post process.
 	my_workspace.finalize_makelists(application_flags)
 
