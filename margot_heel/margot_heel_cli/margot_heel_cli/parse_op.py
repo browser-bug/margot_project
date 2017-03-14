@@ -101,7 +101,7 @@ def parse_ops_csv( csv_path, my_delimiter ):
 
 	# parse the content of the file
 	csvmatrix = []
-	with open(csv_path, 'rb') as csvfile:
+	with open(csv_path, 'r') as csvfile:
 		tracereader = csv.reader(csvfile, delimiter = my_delimiter)
 		for row in tracereader:
 			csvmatrix.append([x.strip() for x in row])
