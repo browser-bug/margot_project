@@ -29,7 +29,7 @@ class MonitorModel:
 		self.monitor_class = 'margot::monitor_t'
 		self.monitor_header = '<margot/monitor.hpp>'
 		self.monitor_type = 'int'
-		self.stop_method = 'push'
+		self.stop_method = ''
 		self.start_method = ''
 		self.required_start_methods = [] # the name of the required parameters
 		self.required_creation_methods = []
