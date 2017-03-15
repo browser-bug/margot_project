@@ -37,8 +37,11 @@ def parse_op( op_xml_element, namespace = ''):
 
 		# parse the name and value
 		metric_name = get_parameter(metric_xml_element, 'name')
-		metric_value = get_parameter(metric_xml_element, 'value')
-
+		try:
+			metric_value = float(get_parameter(metric_xml_element, 'value'))
+		except ValueError as err:
+			print('[ERROR] Unable to convert a value of the metric "{0}" to a float value: value = {1}'.format(metric_name, get_parameter(metric_xml_element, 'value')))
+			sys.exit(-1)
 		# add it to the metrics
 		my_op_model.metrics[metric_name] = metric_value
 
