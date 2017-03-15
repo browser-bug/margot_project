@@ -26,6 +26,7 @@ class DoE:
 		flag_terms = []
 		new_configuration.description = {}
 		for knob_index, temp_knob_name in enumerate(whole_knob_names):
+			new_configuration.knob_map[temp_knob_name] = current_configuration_values[knob_index]
 			name_terms.extend([temp_knob_name, current_configuration_values[knob_index]])
 			flag_terms.extend([self.application.knob_flags[temp_knob_name], current_configuration_values[knob_index]])
 			new_configuration.description[temp_knob_name] = current_configuration_values[knob_index]

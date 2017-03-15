@@ -19,7 +19,7 @@ class Configuration:
 		self.flags = ''
 		self.cwd = ''
 		self.log_file = ''
-
+		self.knob_map = {}
 
 	def __str__(self):
 		string = 'Configuration "{0}"\n'.format(self.name)

@@ -6,7 +6,7 @@ def generate_configuration_makefile( configuration, percentage_doe, percentage_g
 	with open(os.path.join(configuration.cwd, 'Makefile'), 'w') as outfile:
 
 		outfile.write('{0}: exec\n'.format(common_profile_name))
-		outfile.write('\t@echo "[GLOBAL:{0}, DOE: {1}%] EXEC {2}"\n'.format(percentage_global,percentage_doe, configuration.name))
+		outfile.write('\t@echo "[GLOBAL: {0}%, DOE: {1}%] EXEC {2}"\n'.format(percentage_global,percentage_doe, configuration.name))
 		outfile.write('\t@./exec {0} > stdout.txt 2> stderr.txt || (echo \'****** PROFILE ERROR: ****** Not able to execute the program. stderr and stdout logs are in folder $(current_dir)\'&& exit 1)\n'.format(' '.join(configuration.flags)))
 		outfile.write('\t@cp {0} {1}\n'.format(configuration.log_file, common_profile_name))
 
