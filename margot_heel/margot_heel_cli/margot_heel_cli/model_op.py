@@ -44,6 +44,8 @@ class OperatingPointModel:
 
 		else:
 			print ("attempt to add metrics of non similar ops: aborting")
+			print (self)
+			print (other_op)
 			sys.exit (-1)
 
 	def avg(self, num_values, key):

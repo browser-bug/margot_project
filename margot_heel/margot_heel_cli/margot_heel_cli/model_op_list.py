@@ -43,3 +43,17 @@ class OperatingPointListModel:
 					print ("oplist contains two points with the same knobs")
 					sys.exit(-1)
 		return op_to_return
+
+	def get_op_knobs_as_string (self, op):
+		knob_map = {}
+		for knob in op.knobs:
+			if (knob in self.reverse_translator.keys()):
+				knob_map[knob] = self.reverse_translator[knob][str(op.knobs[knob])]
+			else:
+				knob_map[knob] = str(op.knobs[knob])
+
+		if (len (knob_map) > 0):
+			return knob_map
+		else:
+			print ("ERROR: the op has no knobs to convert in string")
+			sys.exit(-1)

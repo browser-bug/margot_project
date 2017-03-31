@@ -255,7 +255,7 @@ def execute_command_xml2csv( file_path ):
 		op_utils.print_op_list_csv(op_list_model)
 
 
-def execute_command_postprocessMCS(dse, dse_folder, doe_strategy, thresholds, aggr_metr, thrs_metr, aggr_knob):
+def execute_command_postprocessMCS(dse, dse_folder, doe_strategy, thresholds, aggr_metr, thrs_metr, aggr_knob, confidence):
 	"""
 	modify a metric into a knob postprocessing the result of a DSE
 	"""
@@ -264,7 +264,7 @@ def execute_command_postprocessMCS(dse, dse_folder, doe_strategy, thresholds, ag
 #	print (thresholds_array)
 	thresholds_real = [float(x) for x in thresholds_array]
 	postprocess_extractor = post.Postprocessor(dse, dse_folder, doe_strategy)
-	postprocess_extractor.postprocessMCS(thresholds_real, aggr_metr, thrs_metr,aggr_knob)
+	postprocess_extractor.postprocessMCS(thresholds_real, aggr_metr, thrs_metr,aggr_knob, confidence)
 
 
 def execute_command_add_metric( file_path, metric_name, formula ):
@@ -396,15 +396,6 @@ if __name__ == "__main__":
 	parser_generator.add_argument('path', metavar='OPS_XML', type=str, nargs=1, help='The path to the target xml file')
 
 
-# add the static postprocess command
-	parser_generator = subparsers.add_parser('static_postprocess', help='postprocesses data from a dse to obtain the static autotuning confidence for the given thresholds')
-	parser_generator.add_argument('--path', metavar='PATH', dest='folder_path', type=str,required = True , help='The path to the list of Operating Points files, in XML format')
-	parser_generator.add_argument('dse', metavar='DSE', type=str, help='file dse.xml used to guide the exploration')
-	parser_generator.add_argument('--thresholds', metavar='THR', type=str,required = True, help='comma separated array of thresholds')
-	parser_generator.add_argument('--thrs_metr', metavar='TSM', type=str, required = True,help='metric that has to be clustered in OPs')
-	parser_generator.add_argument('--block_name', metavar='BLN', type=str, required = True,help='name of the autotuned block')
-
-
 	# add the postprocess command
 	parser_generator = subparsers.add_parser('postprocessMCS', help='postprocesses data from a dse to obtain the final oplist to be used in autotuning')
 	parser_generator.add_argument('--dse_folder', metavar='PATH', dest='dse_folder', type=str,required = True , help='The path to the dse folder') 
@@ -415,6 +406,7 @@ if __name__ == "__main__":
 	parser_generator.add_argument('--aggr_metr', metavar='AGM', type=str, required = True,help='metric that has to be aggregated in OPs')
 	parser_generator.add_argument('--thrs_metr', metavar='TSM', type=str, required = True,help='metric that has to be clustered in OPs')
 	parser_generator.add_argument('--aggr_knob', metavar='AGK', type=str, required = True,help='knob that has to be aggregated in OPs, its values MUST be a number')
+	parser_generator.add_argument('--confidence', metavar='CON', type=int, required = False, default = 1,help='coefficient to be applied as confidence on the error (i.e how many sigma consider), default 1')
 
 
 	# add the add_column command
@@ -466,7 +458,7 @@ if __name__ == "__main__":
 		execute_command_plot_distr (args.varname, args.oplist_pattern)
 
 	if args.command == 'postprocessMCS':
-		execute_command_postprocessMCS(args.dse, args.dse_folder, args.doe, args.thresholds, args.aggr_metr, args.thrs_metr, args.aggr_knob)
+		execute_command_postprocessMCS(args.dse, args.dse_folder, args.doe, args.thresholds, args.aggr_metr, args.thrs_metr, args.aggr_knob,args.confidence)
 
 	if args.command == 'add_metric':
 		execute_command_add_metric(args.op_list, args.metric_name, args.formula)
