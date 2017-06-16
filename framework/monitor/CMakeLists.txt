@@ -17,6 +17,7 @@ set( MONITOR_HEADERS  ${MONITOR_HDR_PATH}/margot/monitor.hpp
                       ${MONITOR_HDR_PATH}/margot/memory_monitor.hpp
                       ${MONITOR_HDR_PATH}/margot/frequency_monitor.hpp
                       ${MONITOR_HDR_PATH}/margot/energy_monitor.hpp
+                      ${MONITOR_HDR_PATH}/margot/odroid_power_monitor.hpp
                       ${CONFIG_FILE}
    )
 set( MONITOR_SOURCES  ${MONITOR_SRC_PATH}/goal
@@ -27,6 +28,7 @@ set( MONITOR_SOURCES  ${MONITOR_SRC_PATH}/goal
                       ${MONITOR_SRC_PATH}/memory_monitor
                       ${MONITOR_SRC_PATH}/frequency_monitor
                       ${MONITOR_SRC_PATH}/energy_monitor
+                      ${MONITOR_SRC_PATH}/odroid_power_monitor
    )
 
 
