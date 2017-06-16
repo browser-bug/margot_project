@@ -110,6 +110,7 @@ know_monitor_spec = [
 	'THROUGHPUT',
 	'TIME',
 	'ENERGY',
+	'ODROID_POWER',
 	'COLLECTOR'
 ]
 
@@ -250,6 +251,20 @@ def get_monitor_spec( monitor_type ):
 		my_monitor.start_method = 'start'
 
 		return my_monitor
+
+	if monitor_type.upper() == 'ODROID_POWER':
+		# create the model
+		my_monitor = MonitorModel()
+
+		# set the spec
+		my_monitor.monitor_class = 'margot::odroid_power_monitor_t'
+		my_monitor.monitor_header = '<margot/odroid_power_monitor.hpp>'
+		my_monitor.monitor_type = 'margot::odroid_power_monitor_t::value_type'
+		my_monitor.stop_method = 'stop'
+		my_monitor.start_method = 'start'
+
+		return my_monitor
+
 
 	# no known spec found
 	return None
