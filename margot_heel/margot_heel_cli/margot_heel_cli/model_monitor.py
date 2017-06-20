@@ -265,6 +265,19 @@ def get_monitor_spec( monitor_type ):
 
 		return my_monitor
 
+	if monitor_type.upper() == 'ODROID_ENERGY':
+		# create the model
+		my_monitor = MonitorModel()
+
+		# set the spec
+		my_monitor.monitor_class = 'margot::odroid_energy_monitor_t'
+		my_monitor.monitor_header = '<margot/odroid_energy_monitor.hpp>'
+		my_monitor.monitor_type = 'margot::odroid_energy_monitor_t::value_type'
+		my_monitor.stop_method = 'stop'
+		my_monitor.start_method = 'start'
+
+		return my_monitor
+
 
 	# no known spec found
 	return None
