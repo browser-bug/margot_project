@@ -37,21 +37,6 @@ namespace margot
 {
 
 	/**
-	 * @brief The available time measure
-	 *
-	 * @details
-	 * By default the time monitor measures milliseconds
-	 */
-	enum class TimeMeasure : uint8_t
-	{
-		Nanoseconds,
-		Microseconds,
-		Milliseconds,
-		Seconds
-	};
-
-
-	/**
 	 * @brief  The time monitor
 	 *
 	 * @details

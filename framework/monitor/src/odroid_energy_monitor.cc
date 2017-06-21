@@ -22,6 +22,8 @@
 
 #include <cstddef>
 #include <string>
+#include <string>
+#include <iostream>
 #include <stdexcept>
 #include <unistd.h>
 #include <memory>
@@ -41,6 +43,10 @@ namespace margot
 	inline void readBigPower(long double* power)
 	{
 		std::shared_ptr<FILE> fp(fopen("/sys/bus/i2c/drivers/INA231/2-0040/sensor_W", "r"), fclose);
+		if(fp==NULL)
+		{
+			throw std::runtime_error("[odroid_energy_monitor_t] Error: unable to open the /sys/bus/i2c/drivers/INA231/2-0040/sensor_W file (BIG)");
+		}
 		int result = ::fscanf(fp.get(), "%Lf", power);
 
 		// check if it's correct
@@ -53,6 +59,10 @@ namespace margot
 	inline void readLittlePower(long double* power)
 	{
 		std::shared_ptr<FILE> fp(fopen("/sys/bus/i2c/drivers/INA231/2-0045/sensor_W", "r"), fclose);
+		if(fp==NULL)
+		{
+			throw std::runtime_error("[odroid_energy_monitor_t] Error: unable to open the /sys/bus/i2c/drivers/INA231/2-0045/sensor_W file (LITTLE)");
+		}
 		int result = ::fscanf(fp.get(), "%Lf", power);
 
 		// check if it's correct
@@ -65,6 +75,10 @@ namespace margot
 	inline void readMemoryPower(long double* power)
 	{
 		std::shared_ptr<FILE> fp(fopen("/sys/bus/i2c/drivers/INA231/2-0041/sensor_W", "r"), fclose);
+		if(fp==NULL)
+		{
+			throw std::runtime_error("[odroid_energy_monitor_t] Error: unable to open the /sys/bus/i2c/drivers/INA231/2-0041/sensor_W file (MEM)");
+		}		
 		int result = ::fscanf(fp.get(), "%Lf", power);
 
 		// check if it's correct
@@ -77,6 +91,10 @@ namespace margot
 	inline void readGpuPower(long double* power)
 	{
 		std::shared_ptr<FILE> fp(fopen("/sys/bus/i2c/drivers/INA231/2-0044/sensor_W", "r"), fclose);
+			if(fp==NULL)
+		{
+			throw std::runtime_error("[odroid_energy_monitor_t] Error: unable to open the /sys/bus/i2c/drivers/INA231/2-0044/sensor_W file (GPU)");
+		}
 		int result = ::fscanf(fp.get(), "%Lf", power);
 
 		// check if it's correct
@@ -102,35 +120,25 @@ namespace margot
 		readGpuPower(&power_gpu);
 		readMemoryPower(&power_memory);
 		total_power = power_big + power_little + power_gpu + power_memory;
+		return total_power;
 	}
 
 	void synchronous_power_call(const uint64_t polling_time_ms, bool &started, bool &end_monitor, long double &total_energy){
 		while(end_monitor == false){
 			if (started == true)
 			{
-				total_energy += (readTotalPower()*polling_time_ms)/1000;
+				total_energy += (readTotalPower()*polling_time_ms);///1000.0; (millijoule)
 			}
 			std::this_thread::sleep_for(std::chrono::milliseconds(polling_time_ms));
 		}
 	}
 
-	odroid_energy_monitor_t::odroid_energy_monitor_t(const std::size_t window_size, const std::size_t min_size): monitor_t( window_size, min_size )
-	{
-		odroid_energy_monitor_t(100, window_size, min_size);
-	}
+	odroid_energy_monitor_t::odroid_energy_monitor_t(const std::size_t window_size, const std::size_t min_size): monitor_t(window_size, min_size){}
 
-	odroid_energy_monitor_t::odroid_energy_monitor_t(const uint64_t polling_time_ms, const std::size_t window_size, const std::size_t min_size): monitor_t( window_size, min_size )
+	odroid_energy_monitor_t::odroid_energy_monitor_t(TimeMeasure time_measure, const uint64_t polling_time_ms, const std::size_t window_size, const std::size_t min_size): monitor_t( window_size, min_size )
 	{
 		started = false;
-		end_monitor = false;
-		synchronous_thread = std::thread(synchronous_power_call, polling_time_ms, std::ref(started), std::ref(end_monitor), std::ref(total_energy));
-	
-	}
-
-	odroid_energy_monitor_t::~odroid_energy_monitor_t(void)
-	{
-		end_monitor = true;
-		synchronous_thread.join();	
+		synchronous_thread_if_p = std::shared_ptr<synchronous_thread_if>(new synchronous_thread_if(polling_time_ms));	
 	}
 
 	void odroid_energy_monitor_t::start()
@@ -141,23 +149,17 @@ namespace margot
 		}
 
 		started = true;
-		total_energy = 0;
-
-		// This is not an intervall monitor
+		synchronous_thread_if_p->start();
 	}
 
 	void odroid_energy_monitor_t::stop()
 	{
-		// get the new measure
-		
 		if (!started)
 		{
 			return;
 		}
-
 		started = false;
-		push(total_energy);
+		push(synchronous_thread_if_p->stop());
 	}
-
 
 }

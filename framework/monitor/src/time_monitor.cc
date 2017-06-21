@@ -63,7 +63,6 @@ namespace margot
 	}
 
 
-
 	time_monitor_t::time_monitor_t(TimeMeasure time_measure,
 	                               const std::size_t window_size,
 	                               const std::size_t min_size): monitor_t(window_size, min_size)

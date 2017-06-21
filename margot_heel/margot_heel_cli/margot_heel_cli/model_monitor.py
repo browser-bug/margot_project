@@ -111,6 +111,7 @@ know_monitor_spec = [
 	'TIME',
 	'ENERGY',
 	'ODROID_POWER',
+	'ODROID_ENERGY',
 	'COLLECTOR'
 ]
 
