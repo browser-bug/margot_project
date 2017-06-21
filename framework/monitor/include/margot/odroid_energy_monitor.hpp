@@ -73,7 +73,6 @@ namespace margot
 			{
 				end_monitor = true;
 				synchronous_thread.join();
-				std::cout << " thread joined " << std::endl;
 			}
 
 			void start(){
