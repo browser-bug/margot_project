@@ -70,7 +70,7 @@ class Application:
 		knobs_xml = p.get_elements(xml_root, 'parameter', namespace = namespace, required = True)
 		for knob_xml in knobs_xml:
 			knob_values = []
-			knob_type = p.get_parameter(knob_xml, 'type', prefixed_values = ['int', 'float', 'enum'])
+			knob_type = p.get_parameter(knob_xml, 'type', prefixed_values = ['int', 'float', 'enum', 'cflag'])
 			knob_name = p.get_parameter(knob_xml, 'name')
 			if knob_type == 'int' or knob_type == 'float':
 				if knob_type == 'float':
@@ -84,14 +84,48 @@ class Application:
 				while( index <= stop_value):
 					knob_values.append(str(index))
 					index += step_value
+			#build all the combination of compiler flags. they are considered on off.
+			#not sure is a good idea to insert them here, but is the only idea i had to dynamically build the dse.
+			#the flag will be passed to the CMakeLists.txt which must handle it and use the flags when compiling.
+			#this kind of dse need to call a script that wraps the compilation and execution of the program.
+			#the , is substituted by blank in the wrapper, since the make is not able to handle , while cmake wants the string as one
+			#the double dereferentiation is needed because one is lost in the wrapper, and the second in the cmake.
+			elif knob_type == 'cflag':
+				if 'cflag' not in self.knob_values:
+					#init 
+					self.knob_values['cflag'] = ['=\"', ''.join(['=\"',p.get_parameter(knob_xml, 'flag')])]
+					self.knob_flags['cflag'] = "-DC_FLAGS"
+					print (self.knob_values)
+				else:
+					tmp_values = []
+					for value in self.knob_values['cflag']:
+						print (value)
+						print ("parameter is:")
+						print (p.get_parameter(knob_xml, 'flag'))
+						tmp_values.append(value)
+						if value != '=\"':
+								tmp_values.append(','.join([value,p.get_parameter(knob_xml,'flag')]))
+						else :
+							tmp_values.append(''.join([value,p.get_parameter(knob_xml,'flag')]))
+
+					self.knob_values['cflag']=tmp_values
 			else:
 				if knob_type != 'enum':
 					print('[DEFENSIVE ERROR] This should not happens! humm... 3324231412')
 					sys.exit(-1)
 				values_str = p.get_parameter(knob_xml, 'values')
 				knob_values = [ x for x in values_str.split(' ') if x]
-			self.knob_values[knob_name] = knob_values
-			self.knob_flags[knob_name] = p.get_parameter(knob_xml, 'flag')
+			if knob_type != 'cflag':
+				self.knob_values[knob_name] = knob_values
+				self.knob_flags[knob_name] = p.get_parameter(knob_xml, 'flag')
+			print (self.knob_values)
+			
+		if 'cflag' in self.knob_values:
+			tmp_values = []
+			for value in self.knob_values['cflag']:
+				tmp_values.append(''.join([value, '\"']))
+			self.knob_values['cflag']=tmp_values
+
 
 		#get all the input_groups values
 		self.input_groups = {}
