@@ -84,6 +84,7 @@ namespace margot
 
 			case TimeMeasure::Nanoseconds:
 				time_extractor = getElapsedTimeNanoseconds;
+				break;
 
 			default:
 				throw std::logic_error("DEFENSIVE PROGRAMMING: Undefined TimeMeasure in the time monitor");
