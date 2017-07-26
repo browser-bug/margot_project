@@ -30,12 +30,13 @@ class DoE:
 			name_terms.extend([temp_knob_name, current_configuration_values[knob_index]])
 			flag_terms.extend([self.application.knob_flags[temp_knob_name], current_configuration_values[knob_index]])
 			new_configuration.description[temp_knob_name] = current_configuration_values[knob_index]
-		new_configuration.name = '_'.join(name_terms)
+		new_configuration.name = str(self.index) # '_'.join(name_terms)
 		new_configuration.log_file = self.application.log_file
 		new_configuration.flags = flag_terms
 
 		# append the application-wide configurations
 		new_configuration.flags.extend(self.application.flags[self.input_params_index])
+		self.index=self.index+1
 		return new_configuration
 
 
@@ -87,4 +88,5 @@ class DoE:
 		# compute the doe
 		if doe_strategy == 'full-factorial':
 			knob_names = sorted(application_model.knob_values.keys())
+			self.index = 0
 			self.full_factorial(knob_names, [])
