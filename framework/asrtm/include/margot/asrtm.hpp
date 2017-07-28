@@ -166,6 +166,11 @@ namespace margot
 			 * Operating Points manipulation methods
 			 ****************************************************/
 
+			inline std::size_t get_number_operating_points( void ) const
+			{
+				return manager->get_number_operating_points();
+			}
+
 			/**
 			 * @brief Remove a list of Operating Points
 			 *
@@ -678,6 +683,12 @@ namespace margot
 					/****************************************************
 					 * Operating Points manipulation methods
 					 ****************************************************/
+
+
+					inline std::size_t get_number_operating_points( void ) const
+					{
+						return knowledge.size();
+					}
 
 					/**
 					 * @brief Remove a list of Operating Points
