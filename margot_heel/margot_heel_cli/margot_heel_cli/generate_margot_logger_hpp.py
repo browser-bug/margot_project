@@ -14,6 +14,7 @@ def generate_margot_logger_hpp( output_folder ):
 #include <string>
 #include <chrono>
 #include <mutex>
+#include <unistd.h>
 
 
 /**
@@ -22,7 +23,7 @@ def generate_margot_logger_hpp( output_folder ):
  * Any changes to this file might be overwritten, thus in order to
  * perform a permanent change, please update the configuration file
  * and re-generate this file.
- */ 
+ */
 
 #define MAXIMUM_FIELD_SIZE 20
 
@@ -56,8 +57,13 @@ class Logger
                                  const Format &out_format, const T... header)
   {
     // open the file
-    out.open(file_name, std::ios::out | std::ios::trunc);
-    out_readable.open(file_name + ".readable", std::ios::out | std::ios::trunc);
+#ifdef MARGOT_LOG_USE_PID_IDENTIFIER
+    const std::string real_file_name = "margot_client_" + std::to_string(getpid()) + "_" + file_name;
+#else
+    const std::string real_file_name = file_name;
+#endif
+    out.open(real_file_name, std::ios::out | std::ios::trunc);
+    out_readable.open(real_file_name + ".readable", std::ios::out | std::ios::trunc);
     // store the format
     format = out_format;
     // write the header

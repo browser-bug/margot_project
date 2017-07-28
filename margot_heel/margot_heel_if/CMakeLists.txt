@@ -18,6 +18,22 @@ set( PROJECT_VERSION_MINOR 0 )
 #### Option section
 ################################
 
+message ( STATUS "" )
+message ( STATUS "*********************************" )
+message ( STATUS "**        CONFIG STATUS        **" )
+message ( STATUS "*********************************" )
+message ( STATUS "Install prefix..................................: ${CMAKE_INSTALL_PREFIX}" )
+
+# tell MARGOT interface to log information in a "unique" file per run
+option( LOG_USE_PID "The margot log file name includes the PID" OFF )
+if ( LOG_USE_PID )
+	set( MARGOT_EXTRA_CXXFLAGS "${MARGOT_EXTRA_CXXFLAGS} -DMARGOT_LOG_USE_PID_IDENTIFIER" )
+	message ( STATUS "Margot uniques log file names...................: ENABLED!    (-DLOG_USE_PID=OFF to disable)" )
+else ( LOG_USE_PID )
+	set( MARGOT_EXTRA_CXXFLAGS "${MARGOT_EXTRA_CXXFLAGS}" )
+	message ( STATUS "Margot uniques log file names...................: DISABLED!   (-DLOG_USE_PID=ON to enable)" )
+endif ( LOG_USE_PID )
+
 # tell the MARGOT file from the op_list ones
 file(GLOB CONF_FILES_FOUND RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}/config config/*.conf)
 list(SORT CONF_FILES_FOUND)
@@ -32,9 +48,6 @@ foreach( CONFIG_FILE IN LISTS CONF_FILES_FOUND )
 	message(STATUS "                  - ${CONFIG_FILE}")
 	list(APPEND OP_LIST_FILES_FOUND "${CMAKE_CURRENT_SOURCE_DIR}/config/${CONFIG_FILE}" )
 endforeach( CONFIG_FILE )
-
-
-
 
 
 
@@ -64,7 +77,7 @@ if(NOT CMAKE_BUILD_TYPE)
 endif(NOT CMAKE_BUILD_TYPE)
 
 # setting common c++ flags
-set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x" )
+set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${MARGOT_EXTRA_CXXFLAGS} -std=c++0x" )
 
 # setting debug flags
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall -g -O0 -fdiagnostics-color=always")
