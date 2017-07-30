@@ -2,7 +2,7 @@ import os
 import inspect
 import sys
 import itertools
-
+import csv
 #################################
 ###### Import argo library
 #################################
@@ -89,26 +89,30 @@ class Application:
 			#the flag will be passed to the CMakeLists.txt which must handle it and use the flags when compiling.
 			#this kind of dse need to call a script that wraps the compilation and execution of the program.
 			#the , is substituted by blank in the wrapper, since the make is not able to handle , while cmake wants the string as one
-			#the double dereferentiation is needed because one is lost in the wrapper, and the second in the cmake.
+			#the second array (of flags in the same order) is needed to translate to cobayn syntax
+			#IT IS IMPORTANT TO MAINTAIN THE ORDER OF THE TWO LISTS EQUAL
 			elif knob_type == 'cflag':
 				if 'cflag' not in self.knob_values:
 					#init 
 					self.knob_values['cflag'] = ['=\"', ''.join(['=\"',p.get_parameter(knob_xml, 'flag')])]
 					self.knob_flags['cflag'] = "-DC_FLAGS"
-					print (self.knob_values)
+					self.cflag_dict=[]
+					self.cflag_dict.append('X')
+					self.cflag_dict.append(p.get_parameter(knob_xml, 'flag'))
 				else:
 					tmp_values = []
+					tmp_dict = []
 					for value in self.knob_values['cflag']:
-						print (value)
-						print ("parameter is:")
-						print (p.get_parameter(knob_xml, 'flag'))
 						tmp_values.append(value)
 						if value != '=\"':
 								tmp_values.append(','.join([value,p.get_parameter(knob_xml,'flag')]))
 						else :
 							tmp_values.append(''.join([value,p.get_parameter(knob_xml,'flag')]))
-
+					for string in self.cflag_dict:
+						tmp_dict.append(','.join([string,'X']))
+						tmp_dict.append(','.join([string,p.get_parameter(knob_xml,'flag')]))
 					self.knob_values['cflag']=tmp_values
+					self.cflag_dict = tmp_dict
 			else:
 				if knob_type != 'enum':
 					print('[DEFENSIVE ERROR] This should not happens! humm... 3324231412')
@@ -118,14 +122,20 @@ class Application:
 			if knob_type != 'cflag':
 				self.knob_values[knob_name] = knob_values
 				self.knob_flags[knob_name] = p.get_parameter(knob_xml, 'flag')
-			print (self.knob_values)
 			
 		if 'cflag' in self.knob_values:
 			tmp_values = []
 			for value in self.knob_values['cflag']:
 				tmp_values.append(''.join([value, '\"']))
 			self.knob_values['cflag']=tmp_values
-
+			## this dict (which is actually not a dict when created cause order has to be maintained the same) is needed to translate from op id of the cflag directly to cobayn syntax. 
+			with open(os.path.join(os.getcwd(), "cobayn_converter.txt"),'w') as outfile:
+				temp_dict={}
+				for number, string  in enumerate(self.cflag_dict):
+					temp_dict[number]=string
+				w = csv.writer(outfile)
+				for key, val in temp_dict.items():
+					w.writerow([key,val])
 
 		#get all the input_groups values
 		self.input_groups = {}

@@ -9,6 +9,7 @@ from .op_utils import print_op_list_xml
 import os
 import math
 import scipy.stats as stats
+import csv
 
 def equal_dicts(d1, d2, ignore_keys):
 
@@ -49,7 +50,7 @@ class Postprocessor:
 		app_flags = dse_generate_ops.generate_application_flags(self.my_application)
 
 		#setup the workspace
-		my_ws = ws.Workspace(path_workspace_directory,"dummy") #executable not needed. to be tested actually.
+		my_ws = ws.Workspace(path_workspace_directory,"dummy") #executable not needed.
 
 		for index_folder_ID in self.my_application.flags.keys():
 			self.file_to_process_list.append(os.path.join(my_ws.working_root,my_ws.launchpard_dir_name,str(index_folder_ID),my_ws.outfile_name))
@@ -196,5 +197,34 @@ class Postprocessor:
 			
 		oplist.name = block_name
 		print_op_list_xml(oplist)
+
+
+
+
+	def create_cobayn_csv(self,outfile, converter_dict):
+		print (self.file_to_process_list)
+		oplist = model_op_list.OperatingPointListModel()
+		op_map_to_postprocess = {}
+		firstlist = parse_op.parse_ops_xml (self.file_to_process_list[0])
+		print (firstlist)
+		for op in firstlist.ops:
+			print (op)
+		translation_dict = {}
+		for key, val in csv.reader(open(converter_dict, 'r')):
+			translation_dict[key] = val
+		print (translation_dict)
+		#have to build groups.
+		#since i need to order on flags and get values for all dataset in an ordered way.
+		#build a dict, use cflag as key and a dict of metrics that has dataset as key. 
+		out_dict = {}
+		for op in firstlist.ops:
+			if op.knobs['cflag'] not in out_dict:
+				out_dict[op.knobs['cflag']] = {}
+				out_dict[op.knobs['cflag']][op.knobs['dataset']] = op.metrics['measured_time']
+			else:
+				out_dict[op.knobs['cflag']][op.knobs['dataset']] = op.metrics['measured_time']
+		print (out_dict)
+
+
 
 
