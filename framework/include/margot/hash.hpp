@@ -37,9 +37,9 @@ namespace margot
    *
    * This is the basic templated struct used by the margot framework to
    * request an hash value for a given object.
-   * In particular, the framwork uses the operator() to retrieve such
+   * In particular, the framework uses the operator() to retrieve such
    * value. Therefore, if you want to add an hash function for a new
-   * obeject you have to specilize this struct.
+   * object you have to specilize this struct.
    *
    * If there is no implementation available for a given object, a
    * compile time error will rise.
@@ -50,7 +50,7 @@ namespace margot
 
 
   /******************************************************************
-   *  HELPER FUNCTIONS FOR COMPUTE AN HASH VALUE
+   *  HELPER FUNCTIONS FOR COMBINE AN HASH WITH A PARTIAL VALUE
    ******************************************************************/
 
 
@@ -94,7 +94,7 @@ namespace margot
    * This struct is used to perform a compile-time recursion to find the
    * hash value of the whole container.
    *
-   * By default this struct start to compute the hash value from the last
+   * By default this struct starts to compute the hash value from the last
    * element of the container, however this behavior might be changed
    * specifying a different value for the index parameter.
    */
@@ -113,7 +113,7 @@ namespace margot
      *
      * @note
      * The container must be accessed by std::get and must be implemented a
-     * structre that compute the value of his element (e.g. T::value_type)
+     * structre that compute the value of his element.
      */
     static void compute(size_t& seed, T const& object)
     {
