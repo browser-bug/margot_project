@@ -34,31 +34,18 @@ namespace margot
 {
 
   /**
-   * @brief Definition of all the segments of an Operating Point
-   *
-   * @details
-   * While software knobs and metrics are directly part of the definition of
-   * Operating Point, input features have a more loose relation with it.
-   */
-  enum class DataOperatingPointSegments
-  {
-    SOFTWARE_KNOBS,
-    METRICS
-  };
-
-
-
-  /**
    * @brief The Operating Point, building block for the application knowledge
    *
-   * @tparam SoftwareKnobsSegmentType The type of the software knob segment @see OperatingPointSegment
-   * @tparam MetricsSegmentType The type of the metric of interest @see MetricsSegmentType
+   * @tparam SoftwareKnobsSegmentType The type of the software knob segment
+   * @tparam MetricsSegmentType The type of the metric of interest segment
+   *
+   * @see OperatingPointSegment
    *
    * @details
    * This class represents an Operating Point, which relates a configuration
    * with the perfomance of the application using that configuration.
    * This class expose a unified interface, regardless of the fact the the software knobs
-   * segment or the metrics segment are a Distribution or a known value.
+   * segment or the metrics segment implements the has_mean or has_standard_deviation traits.
    */
   template< class SoftwareKnobsSegmentType,
             class MetricsSegmentType >
@@ -73,27 +60,57 @@ namespace margot
 
     private:
 
+      /**
+       * @brief The definition of the software knobs segment
+       */
       SoftwareKnobsSegmentType software_knobs;
+
+      /**
+       * @brief The definition of the metrics segment
+       */
       MetricsSegmentType metrics;
 
     public:
 
-      using metric_value_type = decltype( typename MetricsSegmentType::mean_value_type{}
-                                          + typename MetricsSegmentType::standard_deviation_value_type {} );
-      using software_knobs_value_type = decltype( typename SoftwareKnobsSegmentType::mean_value_type{}
-                                        + typename SoftwareKnobsSegmentType::standard_deviation_value_type{} );
+      /**
+       * @brief The type of a metric field
+       *
+       * @details
+       * If the metric segment implements the has_standard_deviation trait, then the type
+       * of the field must be deducted by the type promotion of adding a mean value and a
+       * standard deviation type.
+       * If the metric segment doesn't implement the has_standard_deviation trait, then the
+       * type of the field is the one of the mean.
+       */
+      using metric_value_type = decltype( typename MetricsSegmentType::mean_type{}
+                                          + typename MetricsSegmentType::standard_deviation_type {} );
 
       /**
-       * @brief Default constructor of the class
+       * @brief The type of a software knob field
        *
-       * @param knobs [in] The software knobs segment of the Operating Point
-       * @param metrics [in] The metrics segment of the Operating Point
+       * @details
+       * If the software knob segment implements the has_standard_deviation trait, then the type
+       * of the field must be deducted by the type promotion of adding a mean value and a
+       * standard deviation type.
+       * If the software knob segment doesn't implement the has_standard_deviation trait, then the
+       * type of the field is the one of the mean.
+       */
+      using software_knobs_value_type = decltype( typename SoftwareKnobsSegmentType::mean_type{}
+                                        + typename SoftwareKnobsSegmentType::standard_deviation_type{} );
+
+      /**
+       * @brief Default constructor of the class which initialize the two segments
+       *
+       * @param [in] knobs The software knobs segment of the Operating Point
+       * @param [in] metrics The metrics segment of the Operating Point
        */
       OperatingPoint(SoftwareKnobsSegmentType knobs, MetricsSegmentType metrics):
         software_knobs(knobs), metrics(metrics) {}
 
+      /**
+       * @brief We want to avoid copying the whole Operating Point
+       */
       OperatingPoint( const OperatingPoint& other ) = delete;
-      OperatingPoint( OperatingPoint&& other ) = delete;
 
 
       /**
