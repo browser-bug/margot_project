@@ -30,59 +30,84 @@ namespace margot
 {
 
   /**
-   * @brief The simple data field of an Operating Point segment
+   * @brief The simple data field of an Operating Point segment.
    *
-   * @tparam T The type of the stored data
+   * @see OperatingPointSegment
+   *
+   * @tparam T The type of the stored data, i.e. the mean
    *
    * @details
-   * This struct represents the average value of a field of an
-   * Operating Point segment.
-   * It can represent either the vale software knob or the mean
-   * value of a metric.
+   * This struct represents the mean value of a field of an Operating Point segment.
+   * It can represent either a software knobs or the mean value of a metric which
+   * might represent as a constant value at runtime.
    *
    * @note
-   * The type T must have a true value on the trait std::is_arithmetic
+   * The type T must be arithmetic, i.e. have a true value on the trait std::is_arithmetic
    */
   template< class T >
   struct Data
   {
-    static_assert(std::is_arithmetic<T>::value, "Error: a Data template parameter must be of a arithmetic value");
-    using value_type = T;
+    static_assert(std::is_arithmetic<T>::value, "Error: in Data context, the template T must be an arithmetic type");
 
+    /**
+     * @brief The type of the mean value
+     */
+    using mean_type = T;
+
+    /**
+     * @brief Default constructor which initialize the mean value
+     *
+     * @param [in] mean The actual value of the mean
+     */
     Data( const T mean )
       : mean(mean) {}
 
+    /**
+     * @brief A constant that express the mean value
+     */
     const T mean;
   };
 
   /**
-   * @brief This struct enhance a Data struct with a standard deviation
+   * @brief This struct enhance a Data with a standard deviation
    *
-   * @tparam T The type of the stored mean
+   * @tparam T The type of the mean
    *
    * @details
-   * This struct enhance a Data struct with the information about the
-   * standard deviation of its mean.
+   * This struct represents a distribution, therefore it enhances a Data struct
+   * with the information about the standard deviation of the mean.
    * Usually, it represents a data feature or a metric of an Operating
    * Point.
    *
    * @note
-   * The type T must have a true value on the trait std::is_arithmetic.
-   * The of the standard deviation is always a floating point type, the
-   * actual type depends is define as decltype(float{} / T{}) to deal
-   * with the case when T is a floating point with greater precision
-   * with respect to float.
+   * The type T must be arithmetic, i.e. have a true value on the trait std::is_arithmetic.
    */
   template< class T >
   struct Distribution: public Data<T>
   {
-    static_assert(std::is_arithmetic<T>::value, "Error: a Distribution template parameter must be of a arithmetic value");
-    using statistics_type = decltype(float{} / T{});
 
-    Distribution( const T value, const statistics_type standard_deviation = statistics_type{} )
+    /**
+     * @brief The type of the standard deviation
+     *
+     * @details
+     * The type of the standard deviation is always a floating point type. The actual type
+     * type is defined as decltype(float{} / T{}) to force a type promotion, according to T.
+     */
+    using standard_deviation_type = decltype(float{} / T{});
+
+    /**
+     * @brief Default constructor which initialize the fields of the Distribution
+     *
+     * @param [in] value The actual value of the mean
+     * @param [in] standard_deviation The actual value of the standard deviation
+     */
+    Distribution( const T value, const standard_deviation_type standard_deviation = standard_deviation_type{} )
       : Data<T>(value), standard_deviation(standard_deviation) {}
 
-    const statistics_type standard_deviation;
+    /**
+     * @brief A constant which express the standard deviation
+     */
+    const standard_deviation_type standard_deviation;
   };
 
 
@@ -93,6 +118,11 @@ namespace margot
 
   /**
    * @brief The == operator for Data objects
+   *
+   * @param [in] lhs The left hand side of equal operation
+   * @param [in] rhs The right hand side of equal operation
+   *
+   * @return True if the two Data have the same mean
    */
   template< class T >
   inline bool operator==(const Data<T>& lhs, const Data<T>& rhs)
@@ -100,8 +130,14 @@ namespace margot
     return lhs.mean == rhs.mean;
   }
 
+
   /**
    * @brief The != operator for Data objects
+   *
+   * @param [in] lhs The left hand side of equal operation
+   * @param [in] rhs The right hand side of equal operation
+   *
+   * @return True, if not lhs == rhs
    */
   template< class T >
   inline bool operator!=(const Data<T>& lhs, const Data<T>& rhs)
@@ -109,8 +145,14 @@ namespace margot
     return !(lhs.mean == rhs.mean);
   }
 
+
   /**
    * @brief The != operator for Distribution objects
+   *
+   * @param [in] lhs The left hand side of equal operation
+   * @param [in] rhs The right hand side of equal operation
+   *
+   * @return True if the two Distribution have the same mean
    */
   template< class T >
   inline bool operator==(const Distribution<T>& lhs, const Distribution<T>& rhs)
@@ -118,8 +160,14 @@ namespace margot
     return lhs.mean == rhs.mean;
   }
 
+
   /**
    * @brief The != operator for Distribution objects
+   *
+   * @param [in] lhs The left hand side of equal operation
+   * @param [in] rhs The right hand side of equal operation
+   *
+   * @return True, if not lhs == rhs
    */
   template< class T >
   inline bool operator!=(const Distribution<T>& lhs, const Distribution<T>& rhs)
@@ -146,15 +194,15 @@ namespace margot
      * @param [in] datum the target Data object
      *
      * @details
-     * Since the Data struct enforce the type T of being
-     * an arithmetic one, we can rely on std::hash to
-     * compute its value
+     * Since the Data struct enforce the type T of being an arithmetic one,
+     * we can rely on std::hash to compute its value
      */
     std::size_t operator()( Data<T> const& datum ) const
     {
       return std::hash<T>()(datum.mean);
     }
   };
+
 
   /**
    * @brief Partial specialization of hash struct for Distribution type
@@ -170,9 +218,9 @@ namespace margot
      * @param [in] datum the target Distribution object
      *
      * @details
-     * Since the Distribution struct enforce the type T of being
-     * an arithmetic one, we can rely on std::hash to
-     * compute its value
+     * Since the Distribution struct enforce the type T of being an arithmetic one,
+     * we can rely on std::hash to compute its value. We use only the mean value
+     * to compute the hash value.
      */
     std::size_t operator()( Distribution<T> const& datum ) const
     {
@@ -188,31 +236,65 @@ namespace margot
   namespace traits
   {
 
+    /**
+     * @brief Partial specialization of the has_mean trait for Data objects
+     *
+     * @see has_mean
+     */
     template < class T >
     struct has_mean< Data<T> >
     {
-      using value_type = typename Data<T>::value_type;
+      /**
+       * @brief The type of the mean is equal to the mean_type of Data objects
+       * @see Data
+       */
+      using mean_type = typename Data<T>::mean_type;
+
+      /**
+       * @brief State that the Data object implements the has_mean traits
+       */
       static constexpr bool value = true;
     };
 
+
+    /**
+     * @brief Partial specialization of the has_mean trait for Distribution objects
+     *
+     * @see has_mean
+     */
     template < class T >
     struct has_mean< Distribution<T> >
     {
-      using value_type = typename Distribution<T>::value_type;
+      /**
+       * @brief The type of the mean is equal to the mean_type of Distribution objects
+       * @see Distribution
+       */
+      using mean_type = typename Distribution<T>::mean_type;
+
+      /**
+       * @brief State that the Distribution object implements the has_mean traits
+       */
       static constexpr bool value = true;
     };
 
-    template < class T >
-    struct has_standard_deviation< Data<T> >
-    {
-      using value_type = float;
-      static constexpr bool value = false;
-    };
-
+    /**
+     * @brief Partial specialization of the has_mean trait for Distribution objects
+     *
+     * @see has_standard_deviation
+     */
     template < class T >
     struct has_standard_deviation< Distribution<T> >
     {
-      using value_type = typename Distribution<T>::statistics_type;
+      /**
+       * @brief The type of the standard deviation is equal to the standard_deviation_type
+       * of Distribution objects.
+       * @see Distribution
+       */
+      using standard_deviation_type = typename Distribution<T>::standard_deviation_type;
+
+      /**
+       * @brief State that the Distribution object implements the has_standard_deviation traits
+       */
       static constexpr bool value = true;
     };
 
