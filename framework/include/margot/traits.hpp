@@ -37,17 +37,34 @@ namespace margot
      * @brief Used to test whether an object T has a mean
      *
      * @details
-     * This trait is meant to be used to specify if an object
-     * holds a mean value.
-     * Typically is used to characterize basic information blocks.
-     * By default the struct has a false value. If the given object
-     * has a mean value, the developer must specialize the struct
-     * with the type of the given object
+     * This trait is meant to be used to specify if an object holds a mean value.
+     * In the framework context, it is used to characterize basic information
+     * blocks.
+     * @see Data @Distribution
+     * To qualify for this trait, the object T must (a) have a public numerical attribute
+     * which is called mean and (b) define a type named mean_type
      */
     template < class T >
     struct has_mean
     {
-      using value_type = int;
+      /**
+       * @brief The type of the mean
+       *
+       * @details
+       * By default this type is meant to be as small as possible. A real object
+       * that has the trait is able to define the correct type of the mean.
+       * This dummy value does not force any type promotion in the remainder
+       * of the framework.
+       */
+      using mean_type = int;
+
+      /**
+       * @brief By default, the object T doesn't have a mean
+       *
+       * @details
+       * If an object has a mean, it must specialize this struct and explicitly set
+       * the relative attribute to a true value.
+       */
       static constexpr bool value = false;
     };
 
@@ -56,33 +73,62 @@ namespace margot
      * @brief Used to test whether an object T has a standard deviation
      *
      * @details
-     * This trait is meant to be used to specify if an object
-     * holds a standard deviation.
-     * Typically is used to characterize basic information blocks.
-     * By default the struct has a false value. If the given object
-     * has a standard deviation, the developer must specialize the
-     * struct with the type of the given object
+     * This trait is meant to be used to specify if an object holds a standard
+     * deviation value.
+     * In the framework context, it is used to characterize basic information
+     * blocks.
+     * @see Distribution
+     * To qualify for this trait, the object T must (a) have a public numerical attribute
+     * which is called standard_deviation and (b) define a type named mean_type
      */
     template < class T >
     struct has_standard_deviation
     {
-      using value_type = int;
+      /**
+       * @brief The type of the standard deviation
+       *
+       * @details
+       * By default this type is meant to be as small as possible. A real object
+       * that has the trait is able to define the correct type of the standard
+       * deviation.
+       * This dummy value does not force any type promotion in the remainder
+       * of the framework.
+       */
+      using standard_deviation_type = int;
+
+      /**
+       * @brief By default, the object T doesn't have a standard deviation
+       *
+       * @details
+       * If an object has a standard deviation, it must specialize this struct and
+       * explicitly set the relative attribute to a true value.
+       */
       static constexpr bool value = false;
     };
+
 
     /**
      * @brief Used to test wheter an object T is an Operating Point segment
      *
+     * @see OperatingPointSegment
+     *
      * @details
      * This trait is meant to be used to specify if an object implements the
      * functionality of an Operating Point segmant.
-     * By default the struct has a false value. If the given object
-     * has a standard deviation, the developer must specialize the
-     * struct with the type of the given object
+     * In the context of the framework, it is used for static checks in the
+     * definition of an Operating Point @see OperatingPoint.
      */
     template < class T >
     struct is_operating_point_segment
     {
+
+      /**
+       * @brief By default, the object T is not an Operating Point segment
+       *
+       * @details
+       * If an object might qulify for an Operating Point segment, it must specialize
+       * this struct and explicitly set the relative attribute to a true value.
+       */
       static constexpr bool value = false;
     };
 
