@@ -34,7 +34,9 @@ namespace margot
 {
 
   /**
-   * @brief This class represents a whole segment of Operating Point
+   * @brief This class represents a whole segment of the Operating Point
+   *
+   * @see OperatingPoint
    *
    * @tparam number_of_fields The number of elements in the segment
    * @tparam DataType The type of the elements of the field
@@ -44,16 +46,15 @@ namespace margot
    * the list of software knobs or the list of metrics of interest.
    *
    * This class is an enhanced std::array that takes into account that
-   * the elements of such container are object with a mean and maybe
-   * also a standard deviation.
+   * the elements of such container are object with a mean and, optionally,
+   * a standard deviation.
    *
    * The content of the array is specified in the constructor and it
    * is constant, for performance reasons.
    *
    * @note
-   * The DataType object must return true on traits::has_mean
-   * The DataType must define its type with value_type
-   * The size of field must be greater than zero
+   * The DataType object must implements the trait has_mean.
+   * The size of field must be greater than zero.
    *
    */
   template< std::size_t number_of_fields, class DataType >
@@ -63,39 +64,59 @@ namespace margot
       static_assert(traits::has_mean<DataType>::value, "Error: an Operating Point segment point must provide at least its mean value");
       static_assert(number_of_fields > 0, "Error: An Operating Point segment must hold at least one Data value");
 
-      // the container used to store the informations
+      /**
+       * @brief The type of the container used to define the segment
+       */
       using container_type =  std::array< DataType, number_of_fields >;
 
-
       /**
-       * @brief The array that contains the actual values of the field
+       * @brief The definition of the variable that contains the actual values of the segment
        */
       const container_type fields;
 
       /**
-       * @brief The computed hash of the fields
+       * @brief The pre-computed hash of the segment
        */
       const std::size_t hash;
 
     public:
 
-      using mean_value_type = typename traits::has_mean<DataType>::value_type;
-      using standard_deviation_value_type = typename traits::has_standard_deviation<DataType>::value_type;
+      /**
+       * @brief The typedef of the type of the mean value
+       *
+       * @details
+       * Since DataType implements the has_mean trait, this value is the one defined
+       * in DataType. It might be integer or a floating point.
+       */
+      using mean_type = typename traits::has_mean<DataType>::mean_type;
 
+      /**
+       * @brief The typedef of the type of the standard deviation value
+       *
+       * @details
+       * If DataType implements the has_standard_deviation trait, then this value is
+       * at least a floating point. Otherwise is forced to integer.
+       */
+      using standard_deviation_type = typename traits::has_standard_deviation<DataType>::standard_deviation_type;
+
+      /**
+       * @brief The number of fields that compose this segment of the Operating Point
+       */
       static constexpr std::size_t size = number_of_fields;
 
       /**
        * @brief Default constructor of the segment
        *
-       * @tparam T Variadic template argument to with the types of parameters
+       * @tparam T Variadic template argument that holds the type of values initialize the fields
        *
-       * @param [in] args Variadic argument that initialize the elements of the fields
+       * @param [in] args Variadic argument that initialize the elements of the field
        *
        * @details
        * This constructor initialize directly the elements of the container and computes
        * its hash value.
-       * The type of the arguments might be different, however the compiler must know how
-       * to convert them in the type of DataType::value_type.
+       * The type of the arguments (T) might be different with respect to the type of the
+       * mean (DataType::mean_type). However, the compiler must know how to convert T in
+       * DataType::value_type. Otherwise it will raise an error.
        * To compute the hash value, it takes advantage of the helper function
        * compute_hash_fixed_size_object.
        */
@@ -119,7 +140,7 @@ namespace margot
        * @return The mean value of the element
        */
       template< std::size_t index >
-      inline auto get_mean( void ) const -> typename traits::has_mean< DataType >::value_type
+      inline auto get_mean( void ) const -> typename traits::has_mean< DataType >::mean_type
       {
         return std::get<index>(fields).mean;
       }
@@ -133,11 +154,13 @@ namespace margot
        *
        * @note
        * This method takes advantage of the SFINAE approach, in particular it
-       * is used only if traits::has_mean of DataType is true
+       * is used only if traits::has_standard_deviation of DataType is true.
+       * The return type of this method is DataType::standard_deviation_type.
        */
       template< std::size_t index, class T = DataType >
       inline typename std::enable_if< traits::has_standard_deviation<T>::value,
-             typename  traits::has_standard_deviation<T>::value_type >::type get_standard_deviation( void ) const
+             typename  traits::has_standard_deviation<T>::standard_deviation_type >::type
+             get_standard_deviation( void ) const
       {
         return std::get<index>(fields).standard_deviation;
       }
@@ -147,29 +170,38 @@ namespace margot
        *
        * @tparam index The index of the target element
        *
-       * @return The value Zero
+       * @return The value Zero as a constant known at compile time
        *
        * @note
        * This method takes advantage of the SFINAE approach, in particular it
-       * is used only if traits::has_mean of DataType is false
+       * is used only if traits::has_standard_deviation of DataType is false.
+       * In this case the type of the return is an integer.
        */
       template< std::size_t index, class T = DataType >
       inline constexpr typename std::enable_if < !traits::has_standard_deviation<T>::value,
-             typename  traits::has_standard_deviation<T>::value_type >::type get_standard_deviation( void ) const
+             typename  traits::has_standard_deviation<T>::standard_deviation_type >::type
+             get_standard_deviation( void ) const
       {
-        return static_cast<typename  traits::has_standard_deviation<T>::value_type>(0);
+        return static_cast<typename  traits::has_standard_deviation<T>::standard_deviation_type>(0);
       }
 
       /**
        * @brief Get the computed hash value of the segment
        *
        * @return The computed hash value of the whole segment
+       *
+       * @details
+       * The hash value is computed in the constructor. Therefore the complexity
+       * of this function is O(1).
        */
       inline std::size_t get_hash( void ) const
       {
         return hash;
       }
 
+      /**
+       * @brief Declaration of the friend operator ==
+       */
       template< std::size_t nf, class dt>
       friend inline bool operator==(const OperatingPointSegment<nf, dt>& lhs,
                                     const OperatingPointSegment<nf, dt>& rhs);
@@ -212,7 +244,7 @@ namespace margot
    * @brief Implement the != operator between two segments
    *
    * @tparam number_of_fields The number of elements in the segment
-   * @tparam DataType The type of the elements of the fiel
+   * @tparam DataType The type of the elements of the field
    *
    * @return the negation of the value returned by the operator ==
    */
@@ -261,9 +293,17 @@ namespace margot
   namespace traits
   {
 
+    /**
+     * @brief Partial specialization of the is_operating_point_segment trait for OperatingPointSegment objects
+     *
+     * @see is_operating_point_segment
+     */
     template< std::size_t number_of_fields, class DataType >
     struct is_operating_point_segment< OperatingPointSegment<number_of_fields, DataType > >
     {
+      /**
+       * @brief State that the OperatingPointSegment object implements the is_operating_point_segment traits
+       */
       static constexpr bool value = true;
     };
 
