@@ -40,7 +40,7 @@ namespace margot
      * This trait is meant to be used to specify if an object holds a mean value.
      * In the framework context, it is used to characterize basic information
      * blocks.
-     * @see Data @Distribution
+     * @see Data @see Distribution
      * To qualify for this trait, the object T must (a) have a public numerical attribute
      * which is called mean and (b) define a type named mean_type
      */

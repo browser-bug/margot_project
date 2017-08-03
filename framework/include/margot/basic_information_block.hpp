@@ -278,7 +278,7 @@ namespace margot
     };
 
     /**
-     * @brief Partial specialization of the has_mean trait for Distribution objects
+     * @brief Partial specialization of the has_standard_deviation trait for Distribution objects
      *
      * @see has_standard_deviation
      */
