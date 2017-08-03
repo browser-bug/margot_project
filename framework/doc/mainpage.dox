@@ -1,0 +1,54 @@
+/**
+\mainpage mARGOt framework
+
+## Summary
+
+The mARGOt framework provides to an application the ability to dynamically adapt, in order to face changes in the execution environment and peak of workload. The framework exploits the information gathered during a Design Space Exploration in order to guide the selection of the best application parameters. The application can define a set constraints on its performance and a rank function that express how good is an Operating Point for the application. At Run-Time the framework senses the execution environment, by means of run-time monitors, and automatically selects the parameters that best fit the observed situation.
+
+
+## Description
+
+From the mARGOt point of view, an application is a generic software that must repeat an elaboration task over its Run-Time period. The interaction with mARGOt it's composed in three steps. During the initialization the developer must define the behavior of the application. Before every elaboration, the application retrieves from the framework the parameters that best fit the situation. The last step is to wrap the the region of code of the elaboration with profiling calls.
+
+
+### Framework requirement
+
+In order to adapt an application, the framework must predict its performance. For this purpose the application exploits information obtained at Design-Time from a Design Space Exploration. Thus the framework use the concept of Operating Point, that relate a specific parameter configuration to the profiled performance. For this reason, in order to use the framework is required to obtain a list of Operating Point.
+
+
+
+### Software organization
+
+The framework is logically divided in two main modules: the Application-Specific Run-Time Manager and the monitors infrastructure:
+
+- The monitor is the sensing module that provide several tool in order to gather Run-Time information. The structure is modular: beside the monitor provided with the framework is possible to extend the base class in order to observe an application-specific metrics. Moreover this module enables a developer to set a goal on a statistical properties of a monitor ( such as average ) and check at Run-Time if the goal is being reached, the errors and the NAP.
+
+
+- The asrtm is the decision module that is in charge to select the parameters configuration that best fit the observed situation. This module enables a developer to define the application behavior and the asrtm, according to the gathered information, select the best Operating Point. The application interact with only the asrtm, hiding the decision algorithm behind its interface. Before starting the application elaboration-loop, the developer can obtain the best parameter for the application.
+
+
+
+
+### Compiling instructions
+The building system is based on CMake. Assuming you are in the path path/to/margot/core, the default procedure is as follow:
+~~~
+:::bash
+$ mkdir build
+$ cd build
+$ cmake -DCMAKE_INSTALL_PREFIX:PATH=<path> ..
+$ make
+$ make install
+~~~
+In order to build the framework is needed gcc > 4.9. The framework is meant to be used in a Unix environment. The Application-Specific Run-Time Manger is written in standard c++, however several monitors parse the /proc metafiles.
+
+#### Building option
+The default configuration builds and installs only the framework as a static library ( together with header files). However, it is possible to change this behavior using the CMake configuration options as follows:
+
+| Option name              |  Values [default]  | Description                                                 |
+|--------------------------|--------------------|-------------------------------------------------------------|
+| WITH_TEST                |  [ON],  OFF        | Generates a simple test unit application                    |
+| GEN_DOC                  |   ON , [OFF]       | Generate the Doxygen documentation                          |
+
+
+
+*/
