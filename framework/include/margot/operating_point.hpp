@@ -72,6 +72,19 @@ namespace margot
 
     public:
 
+
+      /**
+       * @brief Explicitly set the configuration type
+       */
+      using configuration_type = SoftwareKnobsSegmentType;
+
+
+      /**
+       * @brief Explicitly set the configuration type
+       */
+      using metrics_type = MetricsSegmentType;
+
+
       /**
        * @brief The type of a metric field
        *
@@ -219,6 +232,30 @@ namespace margot
         return software_knobs.template get_mean<knob_index>() + sigma * (software_knobs.template get_standard_deviation<knob_index>());
       }
   };
+
+
+  /******************************************************************
+   *  SPECIALIZATION OF THE TRAITS STRUCTS
+   ******************************************************************/
+
+  namespace traits
+  {
+
+    /**
+     * @brief Partial specialization of the is_operating_point trait for OperatingPoint objects
+     *
+     * @see is_operating_point
+     */
+    template< class SoftwareKnobsSegmentType, class MetricsSegmentType >
+    struct is_operating_point_segment< OperatingPoint< SoftwareKnobsSegmentType, MetricsSegmentType > >
+    {
+      /**
+       * @brief State that the OperatingPoint object implements the is_operating_point traits
+       */
+      static constexpr bool value = true;
+    };
+
+  }
 
 }
 

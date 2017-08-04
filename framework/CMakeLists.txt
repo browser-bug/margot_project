@@ -9,6 +9,7 @@ set( MARGOT_HEADERS
 	${HDR_PATH}/margot/operating_point.hpp
 	${HDR_PATH}/margot/operating_point_segment.hpp
 	${HDR_PATH}/margot/traits.hpp
+	${HDR_PATH}/margot/knowledge_base.hpp
 	)
 
 

@@ -132,6 +132,31 @@ namespace margot
       static constexpr bool value = false;
     };
 
+
+    /**
+     * @brief Used to test wheter an object T is an Operating Point
+     *
+     * @see OperatingPoint
+     *
+     * @details
+     * This trait is meant to be used to specify if an object implements the
+     * functionality of an Operating Point.
+     * In the context of the framework, it is used for static checks in the
+     * definition of the application knowledge @see Knowledge.
+     */
+    template < class T >
+    struct is_operating_point
+    {
+
+      /**
+       * @brief By default, the object T is not an Operating Point
+       *
+       * @details
+       * If an object might qulify for an Operating Point, it must specialize
+       * this struct and explicitly set the relative attribute to a true value.
+       */
+      static constexpr bool value = false;
+    };
   }
 
 }
