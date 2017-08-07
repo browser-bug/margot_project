@@ -15,7 +15,7 @@ set( PROJECT_VERSION_MINOR 0 )
 
 # force the Release build if not already set
 if(NOT CMAKE_BUILD_TYPE)
-	set(CMAKE_BUILD_TYPE Release)
+	set(CMAKE_BUILD_TYPE RelWithDebInfo)
 endif(NOT CMAKE_BUILD_TYPE)
 
 # setting common c++ flags

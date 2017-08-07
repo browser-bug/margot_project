@@ -10,6 +10,9 @@ set( MARGOT_HEADERS
 	${HDR_PATH}/margot/operating_point_segment.hpp
 	${HDR_PATH}/margot/traits.hpp
 	${HDR_PATH}/margot/knowledge_base.hpp
+	${HDR_PATH}/margot/circular_buffer.hpp
+	${HDR_PATH}/margot/statistical_provider.hpp
+	${HDR_PATH}/margot/statistics.hpp
 	)
 
 
