@@ -2,7 +2,7 @@
 set( MARGOT_TEST_EXE_NAME "margot_test" )
 
 
-# the actual tests that compose the test case
+# the actual tests for the margot framework
 set( TEST_HEADER_PATH "${CMAKE_CURRENT_SOURCE_DIR}/test_cases" )
 set( TEST_CASE_FILES
 	${TEST_HEADER_PATH}/basic_objects.hpp
@@ -10,7 +10,7 @@ set( TEST_CASE_FILES
 	${TEST_HEADER_PATH}/knowledge_base.hpp
 	)
 
-# include the cxxtest directories
+# include the required directories
 include_directories( ${CXXTEST_INCLUDES} )
 include_directories( ${TEST_HEADER_PATH} )
 
@@ -21,11 +21,11 @@ add_custom_command(
 	OUTPUT ${TEST_MAIN_FILE}
 	COMMAND ${CXXTEST_BIN} --error-printer -o ${TEST_MAIN_FILE} ${TEST_CASE_FILES}
 	DEPENDS ${TEST_CASE_FILES}
-                  )
+	)
 
 # add the target to build the test case
 add_executable( ${MARGOT_TEST_EXE_NAME} ${TEST_MAIN_FILE} ${TEST_CASE_FILES} )
 
 
-# install the executable
+# install the test binary
 install( TARGETS ${MARGOT_TEST_EXE_NAME} DESTINATION bin )

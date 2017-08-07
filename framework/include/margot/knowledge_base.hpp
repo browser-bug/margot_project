@@ -87,8 +87,8 @@ namespace margot
        * (and copying or moving) shared pointer
        */
       using OperatingPointList = std::unordered_map< configuration_type,
-                                                     OperatingPointPtr,
-                                                     hash< configuration_type > >;
+            OperatingPointPtr,
+            hash< configuration_type > >;
 
 
       /******************************************************************
@@ -135,7 +135,7 @@ namespace margot
       inline OperatingPointPtr add( const OperatingPointPtr& new_operating_point )
       {
         const auto result_pair = knowledge.emplace(new_operating_point->get_knobs(),
-                                                   new_operating_point);
+                                 new_operating_point);
         return result_pair.second ? result_pair.first->second : OperatingPointPtr{};
       }
 
@@ -158,6 +158,7 @@ namespace margot
       inline OperatingPointPtr remove( const configuration_type& conf )
       {
         auto op_ref = knowledge.find(conf);
+
         if (op_ref != knowledge.end())
         {
           const auto removed_op = op_ref->second;

@@ -19,20 +19,20 @@ class KnowledgeBase : public CxxTest::TestSuite
     void setUp( void )
     {
       op_list.push_back(
-        {
-          {1, 2},
-          {margot::Distribution<float>(3, 0.1), margot::Distribution<float>(4, 0.1)}
-        });
+      {
+        {1, 2},
+        {margot::Distribution<float>(3, 0.1), margot::Distribution<float>(4, 0.1)}
+      });
       op_list.push_back(
-        {
-          {2, 3},
-          {margot::Distribution<float>(5, 0.1), margot::Distribution<float>(6, 0.1)}
-        });
+      {
+        {2, 3},
+        {margot::Distribution<float>(5, 0.1), margot::Distribution<float>(6, 0.1)}
+      });
       op_list.push_back(
-        {
-          {3, 4},
-          {margot::Distribution<float>(7, 0.1), margot::Distribution<float>(8, 0.1)}
-        });
+      {
+        {3, 4},
+        {margot::Distribution<float>(7, 0.1), margot::Distribution<float>(8, 0.1)}
+      });
     }
 
     void tearDown( void )
@@ -80,19 +80,21 @@ class KnowledgeBase : public CxxTest::TestSuite
 
       // check the sweep through the knowledge
       int counter = 0;
-      for( const auto& element : kb )
+
+      for ( const auto& element : kb )
       {
         TS_ASSERT(element.second);
         ++counter;
       }
+
       TS_ASSERT_EQUALS(counter, kb.size());
 
       // try to add the same Operating Point
       margot::Knowledge<MyOperatingPoint>::OperatingPointPtr new_op =
         margot::Knowledge<MyOperatingPoint>::OperatingPointPtr( new MyOperatingPoint(
-            {1, 2},
-            {margot::Distribution<float>(3, 0.1), margot::Distribution<float>(4, 0.1)}
-        ));
+      {1, 2},
+      {margot::Distribution<float>(3, 0.1), margot::Distribution<float>(4, 0.1)}
+            ));
       auto result = kb.add(new_op);
       TS_ASSERT(!result);
       TS_ASSERT_EQUALS(kb.size(), counter);
@@ -103,22 +105,24 @@ class KnowledgeBase : public CxxTest::TestSuite
     {
       // initialize the knowledge base
       margot::Knowledge<MyOperatingPoint> kb;
-      for( const auto& op : op_list )
+
+      for ( const auto& op : op_list )
       {
         kb.add(op);
       }
+
       TS_ASSERT_EQUALS(kb.size(), op_list.size());
 
       // try to remove an existent Operating Point
-      const auto removed_op = kb.remove({1,2});
+      const auto removed_op = kb.remove({1, 2});
       TS_ASSERT(removed_op);
       TS_ASSERT_EQUALS(removed_op->get_knob_lower_bound<0>(), 1);
-      TS_ASSERT_EQUALS(kb.size(), op_list.size()-1);
+      TS_ASSERT_EQUALS(kb.size(), op_list.size() - 1);
 
       // try to remove a non existent Operating Point
-      const auto removed_op2 = kb.remove({1,2});
+      const auto removed_op2 = kb.remove({1, 2});
       TS_ASSERT(!removed_op2);
-      TS_ASSERT_EQUALS(kb.size(), op_list.size()-1);
+      TS_ASSERT_EQUALS(kb.size(), op_list.size() - 1);
     }
 
 };

@@ -15,7 +15,7 @@ set( PROJECT_VERSION_MINOR 0 )
 
 # force the Release build if not already set
 if(NOT CMAKE_BUILD_TYPE)
-	set(CMAKE_BUILD_TYPE RelWithDebInfo)
+	set(CMAKE_BUILD_TYPE Release)
 endif(NOT CMAKE_BUILD_TYPE)
 
 # setting common c++ flags
@@ -60,7 +60,7 @@ message( STATUS "*****************************************" )
 message( STATUS "**            CONFIG STATUS            **" )
 message( STATUS "*****************************************" )
 
-# compile cxxtest
+# check if we have to generate the test application
 if ( WITH_TEST )
 	if ( HAVE_CXXTEST )
 		message( STATUS "Test application.....................: ENABLED (-DWITH_TEST=OFF to disable)" )
@@ -78,7 +78,7 @@ else ( WITH_TEST )
 endif ( WITH_TEST )
 
 
-# find cxxtest
+# check if we have to generate the doxygen documentation
 if ( GEN_DOC )
 	if ( DOXYGEN_FOUND )
 		message( STATUS "Generate documentation...............: ENABLED (-DGEN_DOC=OFF to disable)" )
@@ -94,7 +94,7 @@ else ( GEN_DOC )
 endif ( GEN_DOC )
 
 
-
+# this message is just for pretty printing
 message( STATUS "" )
 
 
