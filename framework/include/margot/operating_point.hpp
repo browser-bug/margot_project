@@ -86,6 +86,17 @@ namespace margot
 
 
       /**
+       * @brief The number of software knobs
+       */
+      static constexpr std::size_t number_of_software_knobs = SoftwareKnobsSegmentType::size;
+
+      /**
+       * @brief The number of metrics
+       */
+      static constexpr std::size_t number_of_metrics = MetricsSegmentType::size;
+
+
+      /**
        * @brief The type of a metric field
        *
        * @details
@@ -119,11 +130,6 @@ namespace margot
        */
       OperatingPoint(SoftwareKnobsSegmentType knobs, MetricsSegmentType metrics):
         software_knobs(knobs), metrics(metrics) {}
-
-      /**
-       * @brief We want to avoid copying the whole Operating Point
-       */
-      OperatingPoint( const OperatingPoint& other ) = delete;
 
 
       /**
@@ -247,7 +253,7 @@ namespace margot
      * @see is_operating_point
      */
     template< class SoftwareKnobsSegmentType, class MetricsSegmentType >
-    struct is_operating_point_segment< OperatingPoint< SoftwareKnobsSegmentType, MetricsSegmentType > >
+    struct is_operating_point< OperatingPoint< SoftwareKnobsSegmentType, MetricsSegmentType > >
     {
       /**
        * @brief State that the OperatingPoint object implements the is_operating_point traits

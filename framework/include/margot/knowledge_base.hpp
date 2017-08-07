@@ -21,7 +21,6 @@
 #define MARGOT_KNOWLEDGE_BASE_HDR
 
 #include <unordered_map>
-#include <chrono>
 #include <cassert>
 #include <memory>
 #include <cinttypes>
@@ -57,6 +56,11 @@ namespace margot
 
     public:
 
+
+      /******************************************************************
+       *  TYPE DEFINITION FOR HANDLING WITH THE APPLICATION KNOWLEDGE
+       ******************************************************************/
+
       /**
        * @brief Explicitly set the configuration type
        */
@@ -82,7 +86,9 @@ namespace margot
        * Since we need the Operating Point information elsewhere, we are storing
        * (and copying or moving) shared pointer
        */
-      using OperatingPointList = std::unordered_map< configuration_type, OperatingPointPtr >;
+      using OperatingPointList = std::unordered_map< configuration_type,
+                                                     OperatingPointPtr,
+                                                     hash< configuration_type > >;
 
 
       /******************************************************************
@@ -95,14 +101,42 @@ namespace margot
        *
        * @param [in] new_operating_point The target Operating Point
        *
-       * @note
-       * For performance reason, this method exploit the move constructor,
-       * therefore the new Operaing Point is no more valid
+       * @return A pointer to the new Operating Point
+       *
+       * @details
+       * If the insertion took place, i.e. the configuration of the new Operating
+       * Point was not in the apllication knowledge, then this method returns a
+       * pointer to the new Operating Point.
+       * If the insertion never took place, i.e. there was already an Operating Point
+       * with the same configuration of the new one, a null pointer is returned.
        */
-      inline void add( OperatingPoint&& new_operating_point )
+      inline OperatingPointPtr add( const OperatingPoint& new_operating_point )
       {
-        OperatingPointPtr new_op = OperatingPointPtr( new OperatingPoint(std::move(new_operating_point)));
-        auto new_element = knowledge.emplace(new_op->get_knobs(), new_op);
+        OperatingPointPtr new_op = OperatingPointPtr( new OperatingPoint(new_operating_point));
+        const auto result_pair = knowledge.emplace(new_op->get_knobs(), new_op);
+        return result_pair.second ? new_op : OperatingPointPtr{};
+      }
+
+
+      /**
+       * @brief Add a new Operating Point in the application knowledge
+       *
+       * @param [in] new_operating_point A pointer to the target Operating Point
+       *
+       * @return A pointer to the new Operating Point
+       *
+       * @details
+       * If the insertion took place, i.e. the configuration of the new Operating
+       * Point was not in the apllication knowledge, then this method returns a
+       * pointer to the new Operating Point.
+       * If the insertion never took place, i.e. there was already an Operating Point
+       * with the same configuration of the new one, a null pointer is returned.
+       */
+      inline OperatingPointPtr add( const OperatingPointPtr& new_operating_point )
+      {
+        const auto result_pair = knowledge.emplace(new_operating_point->get_knobs(),
+                                                   new_operating_point);
+        return result_pair.second ? result_pair.first->second : OperatingPointPtr{};
       }
 
 
@@ -111,44 +145,50 @@ namespace margot
        *
        * @param conf [in] The configuration section of the target Operating Point
        *
+       * @return A pointer to the removed Operating Point
+       *
        * @details
        * The software knob section of an Operating Point is used as unique identifier
        * of the whole Operating Point. To check if two key are equal, is used the
-       * == operator. Therefore only the mean value of each software knob is
+       * == operator. Therefore, only the mean value of each software knob is
        * considered.
+       * If we have removed an Operting Point, this method returns a pointer to
+       * the target Operating Point. Otherwise, a nullptr is returned.
        */
-      inline void remove( const configuration_type& conf )
+      inline OperatingPointPtr remove( const configuration_type& conf )
       {
         auto op_ref = knowledge.find(conf);
-        assert(op_ref != knowledge.end() && "Error: attempt to remove a non-existent Operating Point");
-        knowledge.erase(op_ref);
+        if (op_ref != knowledge.end())
+        {
+          const auto removed_op = op_ref->second;
+          knowledge.erase(op_ref);
+          return removed_op;
+        }
+        else
+        {
+          return OperatingPointPtr{};
+        }
       }
 
 
       /**
        * @brief Replace the current knowledge with a new one
        *
-       * @param new_list [in] The new Operating Point list
+       * @param new_list [in] The new Operating Point list.
        *
        * @details
-       * It replaces the current application knowledge, however it does not destroy
-       * the created view on the previous knowledge. It only updates its content.
-       * It modifies the knowledge version.
+       * This method actually swap the content of current Operating Point list
+       * with the content of the new Operating Point list.
+       * Therefore, the parameter new_list will contain the previous knowledge.
        */
-      inline void set( OperatingPointList new_list )
+      inline void set( OperatingPointList& new_list )
       {
-        knowledge.clear();
-        knowledge = std::move(new_list);
+        knowledge.swap(new_list);
       }
 
 
       /**
-       * @brief Remove all the Operating Points from the application knwoledge
-       *
-       * @details
-       * This method erase all the Operating Points from the knowledge attributes
-       * and from all the views. It does not deletes the views.
-       * It modifies the knowledge version.
+       * @brief Removes all the Operating Points from the application knwoledge
        */
       inline void clear( void )
       {
