@@ -7,6 +7,7 @@ set( TEST_HEADER_PATH "${CMAKE_CURRENT_SOURCE_DIR}/test_cases" )
 set( TEST_CASE_FILES
 	${TEST_HEADER_PATH}/basic_objects.hpp
 	${TEST_HEADER_PATH}/operating_point.hpp
+	${TEST_HEADER_PATH}/knowledge_base.hpp
 	)
 
 # include the cxxtest directories
