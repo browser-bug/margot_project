@@ -107,10 +107,91 @@ class Monitor : public CxxTest::TestSuite
       TS_ASSERT_DELTA(buffer.max(), 3, delta);
     }
 
-    void test_monitor( void )
+    void test_monitor_add1( void )
     {
-      margot::Monitor<int> my_monitor(1);
-      my_monitor.push(3);
+      margot::Monitor<int> monitor(1);
+      TS_ASSERT(monitor.empty());
+      TS_ASSERT(!monitor.full());
+
+      monitor.push(1);
+      TS_ASSERT(!monitor.empty());
+      TS_ASSERT(monitor.full());
+      TS_ASSERT_EQUALS(monitor.last(), 1);
+
+      monitor.push(2);
+      TS_ASSERT(!monitor.empty());
+      TS_ASSERT(monitor.full());
+      TS_ASSERT_EQUALS(monitor.last(), 2);
+
+      monitor.push(3);
+      TS_ASSERT(!monitor.empty());
+      TS_ASSERT(monitor.full());
+      TS_ASSERT_EQUALS(monitor.last(), 3);
+
+      monitor.clear();
+      TS_ASSERT(monitor.empty());
+      TS_ASSERT(!monitor.full());
+
+      monitor.push(1);
+      TS_ASSERT(!monitor.empty());
+      TS_ASSERT(monitor.full());
+      TS_ASSERT_EQUALS(monitor.last(), 1);
+    }
+
+    void test_monitor_add3( void )
+    {
+      margot::Monitor<int> monitor(3);
+      TS_ASSERT(monitor.empty());
+      TS_ASSERT(!monitor.full());
+
+      monitor.push(1);
+      TS_ASSERT(!monitor.empty());
+      TS_ASSERT(!monitor.full());
+      TS_ASSERT_EQUALS(monitor.last(), 1);
+
+      monitor.push(2);
+      TS_ASSERT(!monitor.empty());
+      TS_ASSERT(!monitor.full());
+      TS_ASSERT_EQUALS(monitor.last(), 2);
+
+      monitor.push(3);
+      TS_ASSERT(!monitor.empty());
+      TS_ASSERT(monitor.full());
+      TS_ASSERT_EQUALS(monitor.last(), 3);
+
+      monitor.clear();
+      TS_ASSERT(monitor.empty());
+      TS_ASSERT(!monitor.full());
+
+      monitor.push(1);
+      TS_ASSERT(!monitor.empty());
+      TS_ASSERT(!monitor.full());
+      TS_ASSERT_EQUALS(monitor.last(), 1);
+    }
+
+
+    void test_monitor_stats( void )
+    {
+      static constexpr float delta = 0.0001;
+      margot::Monitor<int> monitor(3);
+
+      monitor.push(1);
+      TS_ASSERT_DELTA(monitor.average(), 1, delta);
+      TS_ASSERT_DELTA(monitor.standard_deviation(), 0, delta);
+      TS_ASSERT_DELTA(monitor.min(), 1, delta);
+      TS_ASSERT_DELTA(monitor.max(), 1, delta);
+
+      monitor.push(2);
+      TS_ASSERT_DELTA(monitor.average(), 1.5f, delta);
+      TS_ASSERT_DELTA(monitor.standard_deviation(), 0.70711, delta);
+      TS_ASSERT_DELTA(monitor.min(), 1, delta);
+      TS_ASSERT_DELTA(monitor.max(), 2, delta);
+
+      monitor.push(3);
+      TS_ASSERT_DELTA(monitor.average(), 2, delta);
+      TS_ASSERT_DELTA(monitor.standard_deviation(), 1, delta);
+      TS_ASSERT_DELTA(monitor.min(), 1, delta);
+      TS_ASSERT_DELTA(monitor.max(), 3, delta);
     }
 
 };
