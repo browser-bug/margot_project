@@ -9,6 +9,7 @@ set( TEST_CASE_FILES
 	${TEST_HEADER_PATH}/operating_point.hpp
 	${TEST_HEADER_PATH}/knowledge_base.hpp
 	${TEST_HEADER_PATH}/monitor.hpp
+	${TEST_HEADER_PATH}/field_adaptor.hpp
 	)
 
 # include the required directories

@@ -14,6 +14,7 @@ set( MARGOT_HEADERS
 	${HDR_PATH}/margot/statistical_provider.hpp
 	${HDR_PATH}/margot/statistics.hpp
 	${HDR_PATH}/margot/enmus.hpp
+	${HDR_PATH}/margot/field_adaptor.hpp
 	)
 
 
