@@ -68,25 +68,33 @@ namespace margot
        */
       using monitor_ptr_type = std::shared_ptr< statistical_provider_type >;
 
-
       /**
-       * @brief Default constructor
+       * @brief Explicit definition of the statistical type
+       *
+       * @details
+       * The idea is to use the statistical_t type. However, if the stored elements
+       * have higher precision, then it must use the latter type.
        */
-      Monitor( void )
-      {
-        buffer.reset();
-      }
+      using statistical_type = typename statistical_provider_type::statistical_type;
 
 
       /**
-       * @brief Initalize the monitor
+       * @brief Constructor of the monitor
        *
        * @param [in] size The number of elements stored in the CircularBuffer
+       *
+       * @details
+       * This method allocates the CircularBuffer. By default, its size is 1.
        */
-      Monitor( const std::size_t size )
+      Monitor( const std::size_t size = 1)
       {
         buffer.reset( new statistical_provider_type(size));
       }
+
+
+      /******************************************************************
+       *  FORWARD METHODS TO ALTER THE CIRCULAR BUFFER
+       ******************************************************************/
 
 
       /**
@@ -96,9 +104,125 @@ namespace margot
        */
       inline void push( const T new_value )
       {
-        assert(buffer && "Error: attempt to push a value in an empty monitor");
         buffer->push(new_value);
       }
+
+
+      /**
+       * @brief Clear the monitor from all the observed values
+       *
+       * @details
+       * This method calls the clear method of the underlying container, therefore
+       * it changes the size of the monitor
+       */
+      inline void clear( void )
+      {
+        buffer->clear();
+      }
+
+
+      /******************************************************************
+       *  FORWARD OF UTILITY METHODS
+       ******************************************************************/
+
+
+      /**
+       * @brief Test whether the monitor is empty
+       *
+       * @return True, if the monitor is empty, i.e. it has no elements
+       */
+      inline bool empty( void ) const
+      {
+        return buffer->empty();
+      }
+
+
+      /**
+       * @brief Test whether the monitor is full
+       *
+       * @return True, if the size of the monitor is equal to the maximum number of elements
+       */
+      inline bool full( void ) const
+      {
+        return buffer->full();
+      }
+
+
+      /**
+       * @brief Retrieve the last element of the monitor
+       *
+       * @return The last element observed by the monitor
+       */
+      inline T last( void ) const
+      {
+        return buffer->last();
+      }
+
+
+      /**
+       * @brief Retrieve the number of observations
+       *
+       * @return The size of the buffer
+       */
+      inline std::size_t size( void ) const
+      {
+        return buffer->size();
+      }
+
+
+      /******************************************************************
+       *  FORWARD OF THE METHODS TO EXTRACT STATISTICAL INFORMATION
+       ******************************************************************/
+
+
+      /**
+       * @brief Retrive the average of the observation window
+       *
+       * @return The average value of the monitor
+       */
+      inline statistical_type average( void )
+      {
+        return buffer->average();
+      }
+
+
+      /**
+       * @brief Retrive the standard deviation of the observation window
+       *
+       * @return The standard deviation value of the monitor
+       */
+      inline statistical_type standard_deviation( void )
+      {
+        return buffer->standard_deviation();
+      }
+
+
+      /**
+       * @brief Retrive the maximum element of the observation window
+       *
+       * @return The value of the maximum element of the monitor
+       */
+      inline statistical_type max( void )
+      {
+        return buffer->max();
+      }
+
+
+      /**
+       * @brief Retrive the minimum element of the CircularBuffer
+       *
+       * @return The value of the minimum element of the monitor
+       */
+      inline statistical_type min( void )
+      {
+        return buffer->min();
+      }
+
+
+      /******************************************************************
+       *  INTEGRATION METHODS WITH THE FRAMEWORK
+       ******************************************************************/
+
 
       /**
        * @brief Retrieve a pointer to the CircularBuffer
