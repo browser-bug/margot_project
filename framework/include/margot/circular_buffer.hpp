@@ -174,6 +174,19 @@ namespace margot
       }
 
 
+      /**
+       * @brief Retrieve the number of observations
+       *
+       * @return The size of the container
+       */
+      inline std::size_t size( void ) const
+      {
+        std::lock_guard<std::mutex> lock(buffer_mutex);
+        return buffer.size();
+      }
+
+
+
     protected:
 
 
@@ -204,16 +217,6 @@ namespace margot
         return buffer.cend();
       }
 
-
-      /**
-       * @brief Retrieve the number of observations
-       *
-       * @return The size of the container
-       */
-      inline std::size_t size( void ) const
-      {
-        return buffer.size();
-      }
 
       /**
        * @brief The unfolded circular buffer
