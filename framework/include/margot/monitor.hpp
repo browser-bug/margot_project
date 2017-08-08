@@ -202,7 +202,7 @@ namespace margot
        *
        * @return The value of the maximum element of the monitor
        */
-      inline statistical_type max( void )
+      inline T max( void )
       {
         return buffer->max();
       }
@@ -213,7 +213,7 @@ namespace margot
        *
        * @return The value of the minimum element of the monitor
        */
-      inline statistical_type min( void )
+      inline T min( void )
       {
         return buffer->min();
       }
@@ -236,7 +236,6 @@ namespace margot
        */
       inline monitor_ptr_type get_buffer( void ) const
       {
-        assert(buffer && "Error: attempt to retrieve the circular buffer of an empty monitor");
         return buffer;
       }
 

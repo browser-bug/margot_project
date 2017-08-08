@@ -57,10 +57,21 @@ namespace margot
        * @brief Explicit definition of the statistical type
        *
        * @details
-       * The idea is to use the statistical_t type. However, if the stored elements
-       * have higher precision, then it must use the latter type.
+       * The idea is to use the statistical_t type for computing the average value
+       * or the standard deviation value. However, if the stored elements have
+       * higher precision, then we must use the latter type.
        */
       using statistical_type = decltype( statistical_t{} / T{} );
+
+
+      /**
+       * @brief Explicit defition of the value stored in the CircularBuffer
+       *
+       * @details
+       * This type is used to by the methods whose find the minimum or the
+       * maximum value between the observed ones.
+       */
+      using value_type = typename CircularBuffer<T>::value_type;
 
 
       /**
@@ -72,8 +83,8 @@ namespace margot
       {
         previous_average = statistical_type{0};
         previous_stddev = statistical_type{0};
-        previous_min = statistical_type{0};
-        previous_min = statistical_type{0};
+        previous_min = value_type{0};
+        previous_min = value_type{0};
       }
 
 
@@ -121,7 +132,7 @@ namespace margot
        * We have chosen to promote the type of the returned element to the
        * statistical_type, to have a uniform interface.
        */
-      inline statistical_type max( void )
+      inline value_type max( void )
       {
         std::lock_guard<std::mutex> lock(CircularBuffer< T >::buffer_mutex);
         return compute_max();
@@ -139,7 +150,7 @@ namespace margot
        * We have chosen to promote the type of the returned element to the
        * statistical_type, to have a uniform interface.
        */
-      inline statistical_type min( void )
+      inline value_type min( void )
       {
         std::lock_guard<std::mutex> lock(CircularBuffer< T >::buffer_mutex);
         return compute_min();
@@ -198,14 +209,14 @@ namespace margot
        * in the container. For performance reason, we check that the
        * container must hold at least one value only if the macro NDEBUG is not defined.
        */
-      inline statistical_type compute_max( void )
+      inline value_type compute_max( void )
       {
         assert(CircularBuffer< T >::buffer.size() > 0
                && "Attempt to get the maximum element from an empty buffer");
 
         if (max_computed_time < CircularBuffer< T >::last_change)
         {
-          previous_max = static_cast<statistical_type>(margot::max(CircularBuffer< T >::buffer));
+          previous_max = margot::max(CircularBuffer< T >::buffer);
           max_computed_time = CircularBuffer<T>::last_change;
         }
 
@@ -219,14 +230,14 @@ namespace margot
        * in the container. For performance reason, we check that the
        * container must hold at least one value only if the macro NDEBUG is not defined.
        */
-      inline statistical_type compute_min( void )
+      inline value_type compute_min( void )
       {
         assert(CircularBuffer< T >::buffer.size() > 0
                && "Attempt to get the minimum element from an empty buffer");
 
         if (min_computed_time < CircularBuffer< T >::last_change)
         {
-          previous_min = static_cast<statistical_type>(margot::min(CircularBuffer< T >::buffer));
+          previous_min = margot::min(CircularBuffer< T >::buffer);
           min_computed_time = CircularBuffer<T>::last_change;
         }
 
@@ -243,8 +254,8 @@ namespace margot
       // precomputed values
       statistical_type previous_average;
       statistical_type previous_stddev;
-      statistical_type previous_max;
-      statistical_type previous_min;
+      value_type previous_max;
+      value_type previous_min;
   };
 
 }

@@ -41,9 +41,8 @@ namespace margot
    *
    * @details
    * This class represents the application knowledge as a list of Operating
-   * Points. Since it is not possible to have an order for them, this class
-   * also manage views over them to sort the konwledge according to a certain
-   * criteria.
+   * Points. Each Operating Point is uniquely identified by the mean value
+   * of its software knob.
    */
   template< class OperatingPoint >
   class Knowledge

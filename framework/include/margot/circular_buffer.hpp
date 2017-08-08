@@ -197,28 +197,6 @@ namespace margot
 
 
       /**
-       * @brief Retrieve a reference to the begin of the container
-       *
-       * @return A const interator to the beginning of the container
-       */
-      inline typename container_type::const_iterator cbegin( void ) const
-      {
-        return buffer.cbegin();
-      }
-
-
-      /**
-       * @brief Retrieve a reference to the end of the container
-       *
-       * @return A const iterator to the ending of the container
-       */
-      inline typename container_type::const_iterator cend( void ) const
-      {
-        return buffer.cend();
-      }
-
-
-      /**
        * @brief The unfolded circular buffer
        */
       container_type buffer;
