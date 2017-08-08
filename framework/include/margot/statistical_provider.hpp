@@ -20,10 +20,12 @@
 #include <chrono>
 #include <cstddef>
 #include <cassert>
+#include <memory>
 
 
 #include "margot/circular_buffer.hpp"
 #include "margot/statistics.hpp"
+#include "margot/enums.hpp"
 
 #ifndef MARGOT_STATISTICAL_PROVIDER_HDR
 #define MARGOT_STATISTICAL_PROVIDER_HDR
@@ -257,6 +259,191 @@ namespace margot
       value_type previous_max;
       value_type previous_min;
   };
+
+
+  /******************************************************************
+   *  HELPER FUNCTIONS FOR A STATISTICAL PROVIDER POINTER
+   ******************************************************************/
+
+
+  /**
+   * @brief Helper struct, to retrieve a statistical property
+   *
+   * @tparam T The type of the observed elements
+   * @tparam dg The target DataFunctions
+   * @tparam statistical_t The minimum type used to compute statistical values
+   *
+   * @see DataFunctions
+   * @see StatisticalProvider
+   *
+   * @details
+   * This struct represents a unified interface to extract a statistical property
+   * over a StatisticalProvider. For example, it states the concept of "i am
+   * interest on the average value between the observed data".
+   * This struct takes advantage of partial specialization to select the correct
+   * method from the ones exposed by the StatisticalProvider class. Since this class
+   * represents the general case, you should never be able to use this struct.
+   */
+  template< typename T, DataFunctions df, typename statistical_t = float  >
+  struct monitor_utils
+  {
+
+    /**
+     * @brief The type of the target statistical property
+     *
+     * @details
+     * Since this is the general case, this type is never used, therefore it is
+     * arbitrarily set to int.
+     */
+    using value_type = int;
+
+    /**
+     * @brief Retrive the value of the target statistical property
+     *
+     * @param [in] buffer A shared pointer to the target StatisticalProvider
+     *
+     * @details
+     * Since this struct represents the general case, you should never use this
+     * method. To enforce this behavior, it always trigger an assertion to
+     * terminate the process.
+     */
+    inline static value_type get( const std::shared_ptr< StatisticalProvider<T, statistical_t> >& buffer)
+    {
+      assert(false && "Error: unable to extract the required data function from a monitor");
+      return value_type{};
+    }
+
+  };
+
+
+  /**
+   * @brief Specialization of the helper struct, to retrieve the average value
+   *
+   * @tparam T The type of the observed elements
+   * @tparam statistical_t The minimum type used to compute statistical values
+   *
+   * @see op_utils
+   */
+  template< typename T, typename statistical_t >
+  struct monitor_utils< T, DataFunctions::AVERAGE, statistical_t >
+  {
+
+    /**
+     * @brief The type of the average value, which is equal to StatisticalProvider<T, statistical_t>::statistical_type
+     */
+    using value_type = typename StatisticalProvider<T, statistical_t>::statistical_type;
+
+    /**
+     * @brief Retrive the average value of target StatisticalProvider
+     *
+     * @param [in] buffer A shared pointer to the target StatisticalProvider
+     *
+     * @return The average value
+     */
+    inline static value_type get( const std::shared_ptr< StatisticalProvider<T, statistical_t> >& buffer)
+    {
+      return buffer->average();
+    }
+
+  };
+
+
+  /**
+   * @brief Specialization of the helper struct, to retrieve the average value
+   *
+   * @tparam T The type of the observed elements
+   * @tparam statistical_t The minimum type used to compute statistical values
+   *
+   * @see op_utils
+   */
+  template< typename T, typename statistical_t >
+  struct monitor_utils< T, DataFunctions::STANDARD_DEVATION, statistical_t >
+  {
+
+    /**
+     * @brief The type of the standard devation value, which is equal to StatisticalProvider<T, statistical_t>::statistical_type
+     */
+    using value_type = typename StatisticalProvider<T, statistical_t>::statistical_type;
+
+    /**
+     * @brief Retrive the standard deviation value of target StatisticalProvider
+     *
+     * @param [in] buffer A shared pointer to the target StatisticalProvider
+     *
+     * @return The standard deviation value
+     */
+    inline static value_type get( const std::shared_ptr< StatisticalProvider<T, statistical_t> >& buffer)
+    {
+      return buffer->standard_deviation();
+    }
+
+  };
+
+
+  /**
+   * @brief Specialization of the helper struct, to retrieve the maximum element
+   *
+   * @tparam T The type of the observed elements
+   * @tparam statistical_t The minimum type used to compute statistical values
+   *
+   * @see op_utils
+   */
+  template< typename T, typename statistical_t >
+  struct monitor_utils< T, DataFunctions::MAXIMUM, statistical_t >
+  {
+
+    /**
+     * @brief The type of the maximum value, which is equal to StatisticalProvider<T, statistical_t>::value_type
+     */
+    using value_type = typename StatisticalProvider<T, statistical_t>::value_type;
+
+    /**
+     * @brief Retrive the maximum element observed in the CircularBuffer
+     *
+     * @param [in] buffer A shared pointer to the target StatisticalProvider
+     *
+     * @return The value of the maximum element observed in the CircularBuffer
+     */
+    inline static value_type get( const std::shared_ptr< StatisticalProvider<T, statistical_t> >& buffer)
+    {
+      return buffer->max();
+    }
+
+  };
+
+
+  /**
+   * @brief Specialization of the helper struct, to retrieve the minumum element
+   *
+   * @tparam T The type of the observed elements
+   * @tparam statistical_t The minimum type used to compute statistical values
+   *
+   * @see op_utils
+   */
+  template< typename T, typename statistical_t >
+  struct monitor_utils< T, DataFunctions::MINIMUM, statistical_t >
+  {
+
+    /**
+     * @brief The type of the maximum value, which is equal to StatisticalProvider<T, statistical_t>::value_type
+     */
+    using value_type = typename StatisticalProvider<T, statistical_t>::value_type;
+
+    /**
+     * @brief Retrive the maximum element observed in the CircularBuffer
+     *
+     * @param [in] buffer A shared pointer to the target StatisticalProvider
+     *
+     * @return The value of the maximum element observed in the CircularBuffer
+     */
+    inline static value_type get( const std::shared_ptr< StatisticalProvider<T, statistical_t> >& buffer)
+    {
+      return buffer->min();
+    }
+
+  };
+
+
 
 }
 

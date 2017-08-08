@@ -23,11 +23,13 @@
 #include <cstddef>
 #include <type_traits>
 #include <memory>
+#include <cassert>
 
 
 #include "margot/traits.hpp"
 #include "margot/basic_information_block.hpp"
 #include "margot/operating_point_segment.hpp"
+#include "margot/enums.hpp"
 
 
 namespace margot
@@ -262,6 +264,239 @@ namespace margot
     };
 
   }
+
+
+  /******************************************************************
+   *  HELPER FUNCTIONS FOR AN OPERATING POINT POINTER
+   ******************************************************************/
+
+
+  /**
+   * @brief Helper struct, to retrieve a field of the Operating Point
+   *
+   * @tparam OperatingPoint The type of the target Operating Point
+   * @tparam target_segment The segment of interest of the Operating Point
+   * @tparam target_bound Tells if we are interested on the lower or upper bound of the field
+   *
+   * @see OperatingPointSegments
+   * @see BoundType
+   * @see OperatingPoint
+   *
+   * @details
+   * This struct represents a unified interface to extract the value of a field of
+   * the Operating Point. For example, it express the concept of "i am interested on
+   * the lower bound of a metric".
+   * This struct takes advantage of partial specialization to select the correct
+   * method from the ones exposed by the OperatingPoint class. Since this class
+   * represents the general case, you should never be able to use this struct.
+   */
+  template< class OperatingPoint, OperatingPointSegments target_segment, BoundType target_bound >
+  struct op_utils
+  {
+
+    static_assert(traits::is_operating_point<OperatingPoint>::value,
+                  "Error: the getter handles object with is_operating_point trait");
+
+    /**
+     * @brief The type of the target field
+     *
+     * @details
+     * Since this is the general case, this type is never used, therefore it is
+     * arbitrarily set to int.
+     */
+    using value_type = int;
+
+    /**
+     * @brief Retrive the value of the target field
+     *
+     * @tparam field_index The index of the field
+     * @tparam sigma The number of times the standard deviation is taken into account
+     *
+     * @param [in] op A shared pointer to the target OperatingPoint
+     *
+     * @details
+     * Since this struct represents the general case, you should never use this
+     * method. To enforce this behavior, it always trigger an assertion to
+     * terminate the process.
+     */
+    template< std::size_t field_index, int sigma >
+    inline static value_type get( const std::shared_ptr< OperatingPoint >& op )
+    {
+      assert(false && "Error: unable to extract the target value from the Operating Point");
+      return value_type{};
+    }
+  };
+
+
+  /**
+   * @brief Specialization of the helper struct, to retrieve the lower bound of a metric
+   *
+   * @tparam OperatingPoint The type of the target Operating Point
+   *
+   * @see op_utils
+   */
+  template< class OperatingPoint >
+  struct op_utils< OperatingPoint, OperatingPointSegments::METRICS, BoundType::LOWER >
+  {
+
+    static_assert(traits::is_operating_point<OperatingPoint>::value,
+                  "Error: the getter handles object with is_operating_point trait");
+
+    /**
+     * @brief The type of the target field, which is equal to OperatingPoint::metric_value_type
+     */
+    using value_type = typename OperatingPoint::metric_value_type;
+
+    /**
+     * @brief Retrive the value of the lower bound of the target metric
+     *
+     * @tparam field_index The index of the target metric
+     * @tparam sigma The number of times the standard deviation is taken into account
+     *
+     * @param [in] op A shared pointer to the target OperatingPoint
+     *
+     * @return The value of the lower bound of the target metric, in the target OperatingPoint
+     *
+     * @details
+     * This specialization express the concept of "get the lower bound value of the metric
+     * with index field_index", in the context of the target OperatingPoint.
+     * Where The lower bound is defined as the average value of the metric minus sigma
+     * times its standard deviation.
+     */
+    template< std::size_t field_index, int sigma >
+    inline static value_type get( const std::shared_ptr< OperatingPoint >& op )
+    {
+      return op->template get_metric_lower_bound<field_index, sigma>();
+    }
+  };
+
+
+  /**
+   * @brief Specialization of the helper struct, to retrieve the upper bound of a metric
+   *
+   * @tparam OperatingPoint The type of the target Operating Point
+   *
+   * @see op_utils
+   */
+  template< class OperatingPoint >
+  struct op_utils< OperatingPoint, OperatingPointSegments::METRICS, BoundType::UPPER >
+  {
+    static_assert(traits::is_operating_point<OperatingPoint>::value,
+                  "Error: the getter handles object with is_operating_point trait");
+
+    /**
+     * @brief The type of the target field, which is equal to OperatingPoint::metric_value_type
+     */
+    using value_type = typename OperatingPoint::metric_value_type;
+
+    /**
+     * @brief Retrive the value of the upper bound of the target metric
+     *
+     * @tparam field_index The index of the target metric
+     * @tparam sigma The number of times the standard deviation is taken into account
+     *
+     * @param [in] op A shared pointer to the target OperatingPoint
+     *
+     * @return The value of the upper bound of the target metric, in the target OperatingPoint
+     *
+     * @details
+     * This specialization express the concept of "get the upper bound value of the metric
+     * with index field_index", in the context of the target OperatingPoint.
+     * Where The upper bound is defined as the average value of the metric plus sigma
+     * times its standard deviation.
+     */
+    template< std::size_t field_index, int sigma >
+    inline static value_type get( const std::shared_ptr< OperatingPoint >& op )
+    {
+      return op->template get_metric_upper_bound<field_index, sigma>();
+    }
+  };
+
+
+  /**
+   * @brief Specialization of the helper struct, to retrieve the lower bound of a software knob
+   *
+   * @tparam OperatingPoint The type of the target Operating Point
+   *
+   * @see op_utils
+   */
+  template< class OperatingPoint >
+  struct op_utils< OperatingPoint, OperatingPointSegments::SOFTWARE_KNOBS, BoundType::LOWER >
+  {
+
+    static_assert(traits::is_operating_point<OperatingPoint>::value,
+                  "Error: the getter handles object with is_operating_point trait");
+
+    /**
+     * @brief The type of the target field, which is equal to OperatingPoint::software_knobs_value_type
+     */
+    using value_type = typename OperatingPoint::software_knobs_value_type;
+
+    /**
+     * @brief Retrive the value of the lower bound of the target software knob
+     *
+     * @tparam field_index The index of the target software knob
+     * @tparam sigma The number of times the standard deviation is taken into account
+     *
+     * @param [in] op A shared pointer to the target OperatingPoint
+     *
+     * @return The value of the lower bound of the target software knob, in the target OperatingPoint
+     *
+     * @details
+     * This specialization express the concept of "get the lower bound value of the software knob
+     * with index field_index", in the context of the target OperatingPoint.
+     * Where The lower bound is defined as the average value of the knob minus sigma
+     * times its standard deviation.
+     */
+    template< std::size_t field_index, int sigma >
+    inline static value_type get( const std::shared_ptr< OperatingPoint >& op )
+    {
+      return op->template get_knob_lower_bound<field_index, sigma>();
+    }
+  };
+
+
+  /**
+   * @brief Specialization of the helper struct, to retrieve the upper bound of a software knob
+   *
+   * @tparam OperatingPoint The type of the target Operating Point
+   *
+   * @see op_utils
+   */
+  template< class OperatingPoint >
+  struct op_utils< OperatingPoint, OperatingPointSegments::SOFTWARE_KNOBS, BoundType::UPPER >
+  {
+
+    static_assert(traits::is_operating_point<OperatingPoint>::value,
+                  "Error: the getter handles object with is_operating_point trait");
+
+    /**
+     * @brief The type of the target field, which is equal to OperatingPoint::software_knobs_value_type
+     */
+    using value_type = typename OperatingPoint::software_knobs_value_type;
+
+    /**
+     * @brief Retrive the value of the upper bound of the target software knob
+     *
+     * @tparam field_index The index of the target software knob
+     * @tparam sigma The number of times the standard deviation is taken into account
+     *
+     * @param [in] op A shared pointer to the target OperatingPoint
+     *
+     * @return The value of the upper bound of the target software knob, in the target OperatingPoint
+     *
+     * @details
+     * This specialization express the concept of "get the upper bound value of the software knob
+     * with index field_index", in the context of the target OperatingPoint.
+     * Where The upper bound is defined as the average value of the knob plus sigma
+     * times its standard deviation.
+     */
+    template< std::size_t field_index, int sigma >
+    inline static value_type get( const std::shared_ptr< OperatingPoint >& op )
+    {
+      return op->template get_knob_upper_bound<field_index, sigma>();
+    }
+  };
 
 }
 

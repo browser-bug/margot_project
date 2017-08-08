@@ -194,4 +194,34 @@ class Monitor : public CxxTest::TestSuite
       TS_ASSERT_DELTA(monitor.max(), 3, delta);
     }
 
+    void test_monitor_stats_struct( void )
+    {
+      static constexpr float delta = 0.0001;
+      margot::Monitor<int, float> monitor(3);
+      const auto buffer = monitor.get_buffer();
+
+      using avg_extractor = margot::monitor_utils<int, margot::DataFunctions::AVERAGE, float>;
+      using stddev_extractor = margot::monitor_utils<int, margot::DataFunctions::STANDARD_DEVATION, float>;
+      using max_extractor = margot::monitor_utils<int, margot::DataFunctions::MAXIMUM, float>;
+      using min_extractor = margot::monitor_utils<int, margot::DataFunctions::MINIMUM, float>;
+
+      monitor.push(1);
+      TS_ASSERT_DELTA(avg_extractor::get(buffer), 1, delta);
+      TS_ASSERT_DELTA(stddev_extractor::get(buffer), 0, delta);
+      TS_ASSERT_DELTA(max_extractor::get(buffer), 1, delta);
+      TS_ASSERT_DELTA(min_extractor::get(buffer), 1, delta);
+
+      monitor.push(2);
+      TS_ASSERT_DELTA(avg_extractor::get(buffer), 1.5f, delta);
+      TS_ASSERT_DELTA(stddev_extractor::get(buffer), 0.70711, delta);
+      TS_ASSERT_DELTA(max_extractor::get(buffer), 2, delta);
+      TS_ASSERT_DELTA(min_extractor::get(buffer), 1, delta);
+
+      monitor.push(3);
+      TS_ASSERT_DELTA(avg_extractor::get(buffer), 2, delta);
+      TS_ASSERT_DELTA(stddev_extractor::get(buffer), 1, delta);
+      TS_ASSERT_DELTA(max_extractor::get(buffer), 3, delta);
+      TS_ASSERT_DELTA(min_extractor::get(buffer), 1, delta);
+    }
+
 };
