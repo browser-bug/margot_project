@@ -48,6 +48,14 @@ namespace margot
    * integrate with the Application-Specific RunTime Manger. A monitor should
    * implement only the function that gather a measure and push the observed
    * value in the CircularBuffer.
+   * However, this class is meant to be used as a stand alone monitor, in fact
+   * it forward several utility methods and it is possible to extract statistical
+   * properties over the observations.
+   *
+   * @note
+   * If a statistical properties is extracted from an empty monitor, then the
+   * implementation returns the default value of the the type of the target
+   * statistical property
    */
   template< typename T, typename statistics_t = float >
   class Monitor

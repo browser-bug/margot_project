@@ -107,6 +107,28 @@ namespace margot
 
 
       /**
+       * @brief Retrive the average of the observation window
+       *
+       * @param [out] is_valid Indicate if the target value is valid
+       *
+       * @return The average value of the container
+       *
+       * @details
+       * If the CircularBuffer is not changed since the last time that we have
+       * computed the average, than we might use the previous value.
+       * This version of the method also set a boolean according to the validity
+       * of the returned statistical property.
+       * A statistical property is valid if the CircularBuffer is full.
+       */
+      inline statistical_type average( bool& is_valid )
+      {
+        std::lock_guard<std::mutex> lock(CircularBuffer< T >::buffer_mutex);
+        is_valid = CircularBuffer< T >::valid();
+        return compute_average();
+      }
+
+
+      /**
        * @brief Retrive the standard deviation of the observation window
        *
        * @return The standard deviation value of the container
@@ -124,6 +146,29 @@ namespace margot
 
 
       /**
+       * @brief Retrive the standard deviation of the observation window
+       *
+       * @param [out] is_valid Indicate if the target value is valid
+       *
+       * @return The standard deviation value of the container
+       *
+       * @details
+       * If the CircularBuffer is not changed since the last time that we have
+       * computed the average, than we might use the previous value.
+       * To compute the standard devation, we must compute also the average value.
+       * This version of the method also set a boolean according to the validity
+       * of the returned statistical property.
+       * A statistical property is valid if the CircularBuffer is full.
+       */
+      inline statistical_type standard_deviation( bool& is_valid )
+      {
+        std::lock_guard<std::mutex> lock(CircularBuffer< T >::buffer_mutex);
+        is_valid = CircularBuffer< T >::valid();
+        return compute_standard_deviation();
+      }
+
+
+      /**
        * @brief Retrive the maximum element of the CircularBuffer
        *
        * @return The value of the maximum element of the container
@@ -131,12 +176,32 @@ namespace margot
        * @details
        * If the CircularBuffer is not changed since the last time that we have
        * computed the average, than we might use the previous value.
-       * We have chosen to promote the type of the returned element to the
-       * statistical_type, to have a uniform interface.
        */
       inline value_type max( void )
       {
         std::lock_guard<std::mutex> lock(CircularBuffer< T >::buffer_mutex);
+        return compute_max();
+      }
+
+
+      /**
+       * @brief Retrive the maximum element of the CircularBuffer
+       *
+       * @param [out] is_valid Indicate if the target value is valid
+       *
+       * @return The value of the maximum element of the container
+       *
+       * @details
+       * If the CircularBuffer is not changed since the last time that we have
+       * computed the average, than we might use the previous value.
+       * This version of the method also set a boolean according to the validity
+       * of the returned statistical property.
+       * A statistical property is valid if the CircularBuffer is full.
+       */
+      inline value_type max( bool& is_valid )
+      {
+        std::lock_guard<std::mutex> lock(CircularBuffer< T >::buffer_mutex);
+        is_valid = CircularBuffer< T >::valid();
         return compute_max();
       }
 
@@ -149,8 +214,6 @@ namespace margot
        * @details
        * If the CircularBuffer is not changed since the last time that we have
        * computed the average, than we might use the previous value.
-       * We have chosen to promote the type of the returned element to the
-       * statistical_type, to have a uniform interface.
        */
       inline value_type min( void )
       {
@@ -159,24 +222,47 @@ namespace margot
       }
 
 
+      /**
+       * @brief Retrive the minimum element of the CircularBuffer
+       *
+       * @param [out] is_valid Indicate if the target value is valid
+       *
+       * @return The value of the minimum element of the container
+       *
+       * @details
+       * If the CircularBuffer is not changed since the last time that we have
+       * computed the average, than we might use the previous value.
+       * This version of the method also set a boolean according to the validity
+       * of the returned statistical property.
+       * A statistical property is valid if the CircularBuffer is full.
+       */
+      inline value_type min( bool& is_valid )
+      {
+        std::lock_guard<std::mutex> lock(CircularBuffer< T >::buffer_mutex);
+        is_valid = CircularBuffer< T >::valid();
+        return compute_min();
+      }
+
+
     private:
 
       /**
        * @details
-       * This methods compute the actual average of the container. For performance
-       * reason we check that the container must hold at least one value only
-       * if the macro NDEBUG is not defined.
+       * This methods compute the actual average of the container. In case the
+       * buffer is empty, it returns the default value of statistical_type.
        */
       inline statistical_type compute_average( void )
       {
-        assert(CircularBuffer< T >::buffer.size() > 0
-               && "Attempt to get the average from an empty buffer");
+        if (CircularBuffer< T >::buffer.empty())
+        {
+          return statistical_type{};
+        }
 
         if (average_computed_time < CircularBuffer< T >::last_change)
         {
           previous_average = margot::average< typename CircularBuffer<T>::container_type,
           statistical_type >(CircularBuffer< T >::buffer);
-          average_computed_time = CircularBuffer<T>::last_change;
+          average_computed_time = CircularBuffer< T >::last_change;
         }
 
         return previous_average;
@@ -185,14 +271,16 @@ namespace margot
 
       /**
        * @details
-       * This methods compute the actual standaed deviation value of the elements
-       * in the container. For performance reason, we check that the
-       * container must hold at least one value only if the macro NDEBUG is not defined.
+       * This methods compute the actual standard deviation value of the elements
+       * in the container. In case the buffer is empty, it returns the default
+       * value of statistical_type.
        */
       inline statistical_type compute_standard_deviation( void )
       {
-        assert(CircularBuffer< T >::buffer.size() > 0
-               && "Attempt to get the standard deviation from an empty buffer");
+        if (CircularBuffer< T >::buffer.empty())
+        {
+          return statistical_type{};
+        }
 
         if (stddev_computed_time < CircularBuffer< T >::last_change)
         {
@@ -208,13 +296,15 @@ namespace margot
       /**
        * @details
        * This methods compute the actual value of the maximum element between the elements
-       * in the container. For performance reason, we check that the
-       * container must hold at least one value only if the macro NDEBUG is not defined.
+       * in the container. In case the buffer is empty, it returns the default
+       * value of value_type.
        */
       inline value_type compute_max( void )
       {
-        assert(CircularBuffer< T >::buffer.size() > 0
-               && "Attempt to get the maximum element from an empty buffer");
+        if (CircularBuffer< T >::buffer.empty())
+        {
+          return value_type{};
+        }
 
         if (max_computed_time < CircularBuffer< T >::last_change)
         {
@@ -229,13 +319,15 @@ namespace margot
       /**
        * @details
        * This methods compute the actual value of the minimum element between the elements
-       * in the container. For performance reason, we check that the
-       * container must hold at least one value only if the macro NDEBUG is not defined.
+       * in the container. In case the buffer is empty, it returns the default
+       * value of value_type.
        */
       inline value_type compute_min( void )
       {
-        assert(CircularBuffer< T >::buffer.size() > 0
-               && "Attempt to get the minimum element from an empty buffer");
+        if (CircularBuffer< T >::buffer.empty())
+        {
+          return value_type{};
+        }
 
         if (min_computed_time < CircularBuffer< T >::last_change)
         {
@@ -301,13 +393,15 @@ namespace margot
      * @brief Retrive the value of the target statistical property
      *
      * @param [in] buffer A shared pointer to the target StatisticalProvider
+     * @param [out] is_valid Indicate if the target statistical property is valid
      *
      * @details
      * Since this struct represents the general case, you should never use this
      * method. To enforce this behavior, it always trigger an assertion to
      * terminate the process.
      */
-    inline static value_type get( const std::shared_ptr< StatisticalProvider<T, statistical_t> >& buffer)
+    inline static value_type get( const std::shared_ptr< StatisticalProvider<T, statistical_t> >& buffer,
+                                  bool& is_valid)
     {
       assert(false && "Error: unable to extract the required data function from a monitor");
       return value_type{};
@@ -337,12 +431,14 @@ namespace margot
      * @brief Retrive the average value of target StatisticalProvider
      *
      * @param [in] buffer A shared pointer to the target StatisticalProvider
+     * @param [out] is_valid Indicate if the target statistical property is valid
      *
      * @return The average value
      */
-    inline static value_type get( const std::shared_ptr< StatisticalProvider<T, statistical_t> >& buffer)
+    inline static value_type get( const std::shared_ptr< StatisticalProvider<T, statistical_t> >& buffer,
+                                  bool& is_valid)
     {
-      return buffer->average();
+      return buffer->average(is_valid);
     }
 
   };
@@ -369,12 +465,14 @@ namespace margot
      * @brief Retrive the standard deviation value of target StatisticalProvider
      *
      * @param [in] buffer A shared pointer to the target StatisticalProvider
+     * @param [out] is_valid Indicate if the target statistical property is valid
      *
      * @return The standard deviation value
      */
-    inline static value_type get( const std::shared_ptr< StatisticalProvider<T, statistical_t> >& buffer)
+    inline static value_type get( const std::shared_ptr< StatisticalProvider<T, statistical_t> >& buffer,
+                                  bool& is_valid)
     {
-      return buffer->standard_deviation();
+      return buffer->standard_deviation(is_valid);
     }
 
   };
@@ -401,12 +499,14 @@ namespace margot
      * @brief Retrive the maximum element observed in the CircularBuffer
      *
      * @param [in] buffer A shared pointer to the target StatisticalProvider
+     * @param [out] is_valid Indicate if the target statistical property is valid
      *
      * @return The value of the maximum element observed in the CircularBuffer
      */
-    inline static value_type get( const std::shared_ptr< StatisticalProvider<T, statistical_t> >& buffer)
+    inline static value_type get( const std::shared_ptr< StatisticalProvider<T, statistical_t> >& buffer,
+                                  bool& is_valid)
     {
-      return buffer->max();
+      return buffer->max(is_valid);
     }
 
   };
@@ -433,12 +533,14 @@ namespace margot
      * @brief Retrive the maximum element observed in the CircularBuffer
      *
      * @param [in] buffer A shared pointer to the target StatisticalProvider
+     * @param [out] is_valid Indicate if the target statistical property is valid
      *
      * @return The value of the maximum element observed in the CircularBuffer
      */
-    inline static value_type get( const std::shared_ptr< StatisticalProvider<T, statistical_t> >& buffer)
+    inline static value_type get( const std::shared_ptr< StatisticalProvider<T, statistical_t> >& buffer,
+                                  bool& is_valid)
     {
-      return buffer->min();
+      return buffer->min(is_valid);
     }
 
   };

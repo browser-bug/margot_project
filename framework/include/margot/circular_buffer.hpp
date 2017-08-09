@@ -189,6 +189,21 @@ namespace margot
 
     protected:
 
+      /**
+       * @brief Test whether is possible to extract information from the buffer
+       *
+       * @return True, if the circular buffer is valid
+       *
+       * @details
+       * If it is possible to extract meaningffull statistical properties from
+       * the buffer, then it is valid.
+       * In the currrent implementation, the buffer is valid if it is full.
+       */
+      inline bool valid( void ) const
+      {
+        return buffer.size() == maximum_number_element;
+      }
+
 
       /**
        * @brief Definition of the time point

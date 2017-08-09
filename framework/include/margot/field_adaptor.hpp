@@ -81,16 +81,22 @@ namespace margot
         // way we are sure that it uses a valid object to extract
         // the data function.
         auto buffer = monitor.get_buffer();
-        compute = [buffer] ( const OperatingPointPtr & op)
+        compute = [buffer] ( const OperatingPointPtr & op, bool & coefficient_is_valid)
         {
-          // get the upper and lower bound from the current Operating Point
+          // try to extract a valid measure from the monitor
+          const auto observed_value = monitor_utils<T, df, statistical_t>::get(buffer, coefficient_is_valid);
+
+          // if the measure is not valid we cannot draw any conclusion on the coefficient
+          if (!coefficient_is_valid)
+          {
+            return static_cast< coefficient_type >(1);
+          }
+
+          // otherwise, get the upper and lower bound from the current Operating Point
           // the upper bound is average + standard devation
           // the lower bound is average - standard deviation
           const auto expected_upper_bound = op_upper_bound_extractor::template get< target_field_index, 1>(op);
           const auto expected_lower_bound = op_lower_bound_extractor::template get< target_field_index, 1>(op);
-
-          // get the observed value from the monitors
-          const auto observed_value = monitor_utils<T, df, statistical_t>::get(buffer);
 
           // check if the observed value is outside the expected range of values
           if ((observed_value > expected_upper_bound) || (observed_value < expected_lower_bound))
@@ -123,11 +129,19 @@ namespace margot
 
       void evaluate_error(const OperatingPointPtr& op )
       {
-        error_window[next_element++] = compute(op);
+        // get the value and the validity of the new error coefficient
+        bool is_valid = false;
+        const auto new_coefficient = compute(op, is_valid);
 
-        if (next_element == inertia)
+        // if the new coefficient is valid, put it in the buffer
+        if (is_valid)
         {
-          next_element = 0;
+          error_window[next_element++] = new_coefficient;
+
+          if (next_element == inertia)
+          {
+            next_element = 0;
+          }
         }
       }
 
@@ -142,7 +156,7 @@ namespace margot
       std::array<coefficient_type, inertia> error_window;
 
 
-      std::function<coefficient_type(const OperatingPointPtr& )> compute;
+      std::function<coefficient_type(const OperatingPointPtr&, bool& )> compute;
 
       std::size_t next_element;
 
