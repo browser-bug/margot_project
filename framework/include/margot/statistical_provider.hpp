@@ -377,37 +377,7 @@ namespace margot
    * represents the general case, you should never be able to use this struct.
    */
   template< typename T, DataFunctions df, typename statistical_t = float  >
-  struct monitor_utils
-  {
-
-    /**
-     * @brief The type of the target statistical property
-     *
-     * @details
-     * Since this is the general case, this type is never used, therefore it is
-     * arbitrarily set to int.
-     */
-    using value_type = int;
-
-    /**
-     * @brief Retrive the value of the target statistical property
-     *
-     * @param [in] buffer A shared pointer to the target StatisticalProvider
-     * @param [out] is_valid Indicate if the target statistical property is valid
-     *
-     * @details
-     * Since this struct represents the general case, you should never use this
-     * method. To enforce this behavior, it always trigger an assertion to
-     * terminate the process.
-     */
-    inline static value_type get( const std::shared_ptr< StatisticalProvider<T, statistical_t> >& buffer,
-                                  bool& is_valid)
-    {
-      assert(false && "Error: unable to extract the required data function from a monitor");
-      return value_type{};
-    }
-
-  };
+  struct monitor_utils;
 
 
   /**

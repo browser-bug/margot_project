@@ -291,41 +291,7 @@ namespace margot
    * represents the general case, you should never be able to use this struct.
    */
   template< class OperatingPoint, OperatingPointSegments target_segment, BoundType target_bound >
-  struct op_utils
-  {
-
-    static_assert(traits::is_operating_point<OperatingPoint>::value,
-                  "Error: the getter handles object with is_operating_point trait");
-
-    /**
-     * @brief The type of the target field
-     *
-     * @details
-     * Since this is the general case, this type is never used, therefore it is
-     * arbitrarily set to int.
-     */
-    using value_type = int;
-
-    /**
-     * @brief Retrive the value of the target field
-     *
-     * @tparam field_index The index of the field
-     * @tparam sigma The number of times the standard deviation is taken into account
-     *
-     * @param [in] op A shared pointer to the target OperatingPoint
-     *
-     * @details
-     * Since this struct represents the general case, you should never use this
-     * method. To enforce this behavior, it always trigger an assertion to
-     * terminate the process.
-     */
-    template< std::size_t field_index, int sigma >
-    inline static value_type get( const std::shared_ptr< OperatingPoint >& op )
-    {
-      assert(false && "Error: unable to extract the target value from the Operating Point");
-      return value_type{};
-    }
-  };
+  struct op_utils;
 
 
   /**
