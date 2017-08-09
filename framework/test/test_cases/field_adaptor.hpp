@@ -37,8 +37,8 @@ class FieldAdaptor : public CxxTest::TestSuite
       margot::Monitor<float> monitor;
 
       // create the field adaptor
-      std::shared_ptr<margot::FieldAdaptorInterface<MyOperatingPoint, float>> interface;
-      interface.reset( new margot::FieldAdaptor<MyOperatingPoint,
+      std::shared_ptr<margot::FieldAdaptor<MyOperatingPoint, float>> interface;
+      interface.reset( new margot::OneSigmaAdaptor<MyOperatingPoint,
                        margot::OperatingPointSegments::METRICS,
                        1, // index of metric
                        margot::DataFunctions::AVERAGE,

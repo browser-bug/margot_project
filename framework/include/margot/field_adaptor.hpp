@@ -33,45 +33,136 @@
 namespace margot
 {
 
+
+  /**
+   * @brief Compute an error coefficient of the knowledge base
+   *
+   * @tparam OperatingPoint The type of the target Operating Point
+   * @tparam coefficient_type The type of the generated error coefficient
+   *
+   * @details
+   * This class computes an error coefficient on the average value of a field
+   * of the Operating Point as the ration between the expected mean value of
+   * the target field and mean value observed at run-time.
+   * This class is virtual, which means that it is independet on the actual
+   * field and method to compute this coefficient
+   */
   template< class OperatingPoint, typename coefficient_type = float >
-  class FieldAdaptorInterface
+  class FieldAdaptor
   {
+
     public:
+
+
+      /**
+       * @brief Explicit defition of pointer to the Operating Point
+       */
       using OperatingPointPtr = std::shared_ptr< OperatingPoint >;
 
+
+      /**
+       * @brief Compute the new coefficient error
+       *
+       * @param [in] op The pointer to the Operating Point used by the application
+       *
+       * @details
+       * This method aims at evaluating the expected behavior of the current
+       * Operating Point, relate it with runtime information to compute the
+       * error coefficient.
+       */
       virtual void evaluate_error( const OperatingPointPtr& op ) = 0;
 
+
+      /**
+       * @brief Retrive the current coefficient error
+       *
+       * @return The value of the actual coefficient error
+       *
+       * @details
+       * This method only retrieves the value of the precomputed coefficient error.
+       * For performance reason, it should be as lightweight as possible.
+       */
       virtual coefficient_type get_error_coefficient( void ) = 0;
 
-      virtual ~FieldAdaptorInterface( void ) {}
+
+      /**
+       * @brief Virtual destructor for the interface
+       */
+      virtual ~FieldAdaptor( void ) {}
 
   };
 
 
+  /**
+   * @brief The implementation of FieldAdaptor, standard deviation aware
+   *
+   * @tparam OperatingPoint The type of the target Operating Point
+   * @tparam target_segment The value of the target segment of the Operating Point
+   * @tparam target_field_index The index value of the target field in the target segment
+   * @tparam df The target data function to extract from the monitor
+   * @tparam inertia The size of the underlying circular buffer
+   * @tparam coefficient_type The type of the generated error coefficient
+   *
+   * @details
+   * This class implements two features to keep as stable as possible the adaptation of
+   * the knowledge base.
+   * On one hand, it takes into account the standard deviation of the target field. In
+   * particular, if statistical property is between one sigma from the average, then
+   * this error is considered noise. Therefore the error coefficient is set to 1.
+   * On the other hand, it uses a circular buffer to average any spykes in the of the
+   * error coefficient. But, higher inertia, slower reaction.
+   */
   template< class OperatingPoint,
             OperatingPointSegments target_segment,
             std::size_t target_field_index,
             DataFunctions df,
             std::size_t inertia,
             typename coefficient_type = float >
-  class FieldAdaptor: public FieldAdaptorInterface<OperatingPoint, coefficient_type>
+  class OneSigmaAdaptor: public FieldAdaptor<OperatingPoint, coefficient_type>
   {
 
       // statically check the template argument
       static_assert(traits::is_operating_point<OperatingPoint>::value,
                     "Error: the knowledge base handles object with is_operating_point trait");
 
-
     public:
 
+      /**
+       * @brief aliasing of the util struct that extracts an upper bound of the target field
+       */
       using op_upper_bound_extractor = op_utils<OperatingPoint, target_segment, BoundType::UPPER>;
+
+
+      /**
+       *  @brief aliasing of the util struct that extracts a lower bound of the target field
+       */
       using op_lower_bound_extractor = op_utils<OperatingPoint, target_segment, BoundType::LOWER>;
 
+
+      /**
+       * @brief Explicit definition to a pointer of the Operating Point
+       */
       using OperatingPointPtr = std::shared_ptr< OperatingPoint >;
 
 
+      /**
+       * @brief Defualt constructor of the class
+       *
+       * @tparam T The type of the elements stored in the monitor
+       * @tparam statistical_t The minimum type used to compute statistical informations
+       *
+       * @param [in] monitor The monitor used to obtain runtime information
+       *
+       * @details
+       * This class initialize all the internal attributes. In particular it fills
+       * the circular buffer with the ones, which means that it assumes that the
+       * application knowledge fits the execution environment.
+       * Then it generates the function that actually computes the coefficient
+       * error.
+       */
       template< class T, typename statistical_t >
-      FieldAdaptor( const Monitor<T, statistical_t>& monitor ): next_element(0)
+      OneSigmaAdaptor( const Monitor<T, statistical_t>& monitor )
+        : average_coefficient_error(static_cast<coefficient_type>(1)),next_element(0)
       {
         // initialize the array
         error_window.fill(static_cast<coefficient_type>(1));
@@ -127,6 +218,17 @@ namespace margot
       }
 
 
+      /**
+       * @brief This method generates the coefficient error
+       *
+       * @param [in] op A pointer to the Operating Point actually used by the application
+       *
+       * @details
+       * This method generates the coefficient error and, if it is valid, push it in
+       * the circular buffer. Otherwise the value is discarded.
+       * In the former case, it computes also the average value of the coefficient
+       * error across the circular buffer.
+       */
       void evaluate_error(const OperatingPointPtr& op )
       {
         // get the value and the validity of the new error coefficient
@@ -136,34 +238,58 @@ namespace margot
         // if the new coefficient is valid, put it in the buffer
         if (is_valid)
         {
-          error_window[next_element++] = new_coefficient;
 
+          // insert the new value in the circular buffer
+          error_window[next_element++] = new_coefficient;
           if (next_element == inertia)
           {
             next_element = 0;
           }
+
+          // compute the new average
+          average_coefficient_error = average(error_window);
+
         }
       }
 
+
+      /**
+       * @brief Retrieve the coefficient error
+       *
+       * @return The value of the coefficient error
+       */
       coefficient_type get_error_coefficient( void )
       {
-        return average(error_window);
+        return average_coefficient_error;
       }
 
     private:
 
 
+      /**
+       * @brief The circular buffer, whose size is fixed at compile time
+       */
       std::array<coefficient_type, inertia> error_window;
 
 
+      /**
+       * @brief The precomputed coefficient error average
+       */
+      coefficient_type average_coefficient_error;
+
+
+      /**
+       * @brief A pointer to the function that computes the coefficient error
+       */
       std::function<coefficient_type(const OperatingPointPtr&, bool& )> compute;
 
+
+      /**
+       * @brief Utility attribute that holds the index to the element to be overwritten
+       */
       std::size_t next_element;
 
   };
-
-
-
 
 }
 
