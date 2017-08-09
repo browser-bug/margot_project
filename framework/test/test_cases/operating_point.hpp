@@ -184,4 +184,21 @@ class OperatingPoint : public CxxTest::TestSuite
       TS_ASSERT_DELTA(m2_lb2, 4.2, float_epsilon);
     }
 
+
+    void test_enumerator_methods( void )
+    {
+      using MetricsType = margot::OperatingPointSegment< 2, margot::Distribution<float> >;
+      using KnobsType = margot::OperatingPointSegment< 2, margot::Data<int> >;
+      using OperatingPointType = margot::OperatingPoint<KnobsType, MetricsType>;
+
+      static_assert(margot::op_field_enumerator< OperatingPointType, margot::OperatingPointSegments::SOFTWARE_KNOBS, 0>::get() == 0,
+                    "Error: unable to assign a correct id to target the Operating Point field");
+      static_assert(margot::op_field_enumerator< OperatingPointType, margot::OperatingPointSegments::SOFTWARE_KNOBS, 1>::get() == 1,
+                    "Error: unable to assign a correct id to target the Operating Point field");
+      static_assert(margot::op_field_enumerator< OperatingPointType, margot::OperatingPointSegments::METRICS, 0>::get() == 2,
+                    "Error: unable to assign a correct id to target the Operating Point field");
+      static_assert(margot::op_field_enumerator< OperatingPointType, margot::OperatingPointSegments::METRICS, 1>::get() == 3,
+                    "Error: unable to assign a correct id to target the Operating Point field");
+    }
+
 };

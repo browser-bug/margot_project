@@ -464,6 +464,80 @@ namespace margot
     }
   };
 
+
+  /**
+   * @brief Helper struct, to enumerate the fields of the Operating Points
+   *
+   * @tparam OperatingPoint The type of the target Operating Point
+   * @tparam target_segment The target segment of the Operating Point
+   * @tparam field_index The index of the target field of the target segment
+   *
+   * @details
+   * An Operating Point is composed by the software knobs segment and the metrics of interest.
+   * The index of a field is related to its segment. This struct provides a global enumration
+   * of all the Operating Point fields, regardless of their segment.
+   * In particular it consider the software knobs segment before the metrics of interest segment.
+   * This struct takes advantage of partial specialization to compute at compile time the global
+   * index for the target field.Since this struct represents the general case, you should never
+   * be able to use this struct.
+   */
+  template< class OperatingPoint, OperatingPointSegments target_segment, std::size_t field_index >
+  struct op_field_enumerator;
+
+
+  /**
+   * @brief Specialization of the helper struct, to retrieve the global index of a metric
+   *
+   * @tparam OperatingPoint The type of the target Operating Point
+   * @tparam field_index The index of the target metric
+   *
+   * @see op_field_enumerator
+   */
+  template< class OperatingPoint, std::size_t field_index >
+  struct op_field_enumerator< OperatingPoint, OperatingPointSegments::METRICS, field_index >
+  {
+
+    static_assert(traits::is_operating_point<OperatingPoint>::value,
+                  "Error: the identificators handles object with is_operating_point trait");
+
+    /**
+     * @brief Retrive the global index of the target metric
+     *
+     * @return The global index, as a compile time constant
+     */
+    static constexpr std::size_t get( void )
+    {
+      return OperatingPoint::number_of_software_knobs + field_index;
+    }
+  };
+
+
+  /**
+   * @brief Specialization of the helper struct, to retrieve the global index of a software knob
+   *
+   * @tparam OperatingPoint The type of the target Operating Point
+   * @tparam field_index The index of the target software knob
+   *
+   * @see op_field_enumerator
+   */
+  template< class OperatingPoint, std::size_t field_index >
+  struct op_field_enumerator< OperatingPoint, OperatingPointSegments::SOFTWARE_KNOBS, field_index >
+  {
+
+    static_assert(traits::is_operating_point<OperatingPoint>::value,
+                  "Error: the identificators handles object with is_operating_point trait");
+
+    /**
+     * @brief Retrive the global index of the target software knob
+     *
+     * @return The global index, as a compile time constant
+     */
+    static constexpr std::size_t get( void )
+    {
+      return field_index;
+    }
+  };
+
 }
 
 #endif // MARGOT_OPERATING_POINT_HDR
