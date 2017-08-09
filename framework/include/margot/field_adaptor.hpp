@@ -99,7 +99,6 @@ namespace margot
    * @tparam OperatingPoint The type of the target Operating Point
    * @tparam target_segment The value of the target segment of the Operating Point
    * @tparam target_field_index The index value of the target field in the target segment
-   * @tparam df The target data function to extract from the monitor
    * @tparam inertia The size of the underlying circular buffer
    * @tparam coefficient_type The type of the generated error coefficient
    *
@@ -115,7 +114,6 @@ namespace margot
   template< class OperatingPoint,
             OperatingPointSegments target_segment,
             std::size_t target_field_index,
-            DataFunctions df,
             std::size_t inertia,
             typename coefficient_type = float >
   class OneSigmaAdaptor: public FieldAdaptor<OperatingPoint, coefficient_type>
@@ -161,14 +159,14 @@ namespace margot
        * error.
        *
        * @warning
-       * There is a numerical issue everytime the target statistical property is zero,
+       * There is a numerical issue everytime the observed average of the monitor is zero,
        * because it will trigger a division by zero exception. To avoid this issue we
        * add the number one to the numerator and denominator. This might generate a
        * distorsion on the error coefficient, but it should be ok.
        */
       template< class T, typename statistical_t >
       OneSigmaAdaptor( const Monitor<T, statistical_t>& monitor )
-        : average_coefficient_error(static_cast<coefficient_type>(1)),next_element(0)
+        : average_coefficient_error(static_cast<coefficient_type>(1)), next_element(0)
       {
         // initialize the array
         error_window.fill(static_cast<coefficient_type>(1));
@@ -180,8 +178,8 @@ namespace margot
         auto buffer = monitor.get_buffer();
         compute = [buffer] ( const OperatingPointPtr & op, bool & coefficient_is_valid)
         {
-          // try to extract a valid measure from the monitor
-          const auto observed_value = monitor_utils<T, df, statistical_t>::get(buffer, coefficient_is_valid);
+          // try to extract a valid average from the monitor
+          const auto observed_value = monitor_utils<T, DataFunctions::AVERAGE, statistical_t>::get(buffer, coefficient_is_valid);
 
           // if the measure is not valid we cannot draw any conclusion on the coefficient
           if (!coefficient_is_valid)
@@ -251,6 +249,7 @@ namespace margot
 
           // insert the new value in the circular buffer
           error_window[next_element++] = new_coefficient;
+
           if (next_element == inertia)
           {
             next_element = 0;

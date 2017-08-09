@@ -41,7 +41,6 @@ class FieldAdaptor : public CxxTest::TestSuite
       interface.reset( new margot::OneSigmaAdaptor<MyOperatingPoint,
                        margot::OperatingPointSegments::METRICS,
                        1, // index of metric
-                       margot::DataFunctions::AVERAGE,
                        1, // inertia of the adaptor
                        float>(monitor));
 
