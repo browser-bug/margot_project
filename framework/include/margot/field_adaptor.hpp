@@ -159,6 +159,12 @@ namespace margot
        * application knowledge fits the execution environment.
        * Then it generates the function that actually computes the coefficient
        * error.
+       *
+       * @warning
+       * There is a numerical issue everytime the target statistical property is zero,
+       * because it will trigger a division by zero exception. To avoid this issue we
+       * add the number one to the numerator and denominator. This might generate a
+       * distorsion on the error coefficient, but it should be ok.
        */
       template< class T, typename statistical_t >
       OneSigmaAdaptor( const Monitor<T, statistical_t>& monitor )
@@ -202,8 +208,12 @@ namespace margot
             * decltype(observed_value) {} * float{} );
 
             // compute the coefficient error required to adapt the knowledge base
-            const division_type error = static_cast<division_type>(expected_average_value)
-                                        / static_cast<division_type>(observed_value);
+            // NB: there is a numerical issue if we observe the value zero (division by zero)
+            //     in this case we should add one to both numbers. This would lead to
+            //     a wrong coefficient.
+            const division_type padding = static_cast<division_type>(observed_value != 0 ? 0 : 1);
+            const division_type error = (static_cast<division_type>(expected_average_value) + padding)
+                                        / (static_cast<division_type>(observed_value) + padding);
 
             // after the division, downcasting is ok. For the error coefficient,
             // the float precision is ok.
