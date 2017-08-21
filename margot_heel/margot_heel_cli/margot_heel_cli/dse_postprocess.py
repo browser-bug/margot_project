@@ -211,7 +211,7 @@ class Postprocessor:
 			print (op)
 		translation_dict = {}
 		for key, val in csv.reader(open(converter_dict, 'r')):
-			translation_dict[key] = val
+			translation_dict[int(key)] = val
 		print (translation_dict)
 		#have to build groups.
 		#since i need to order on flags and get values for all dataset in an ordered way.
@@ -220,11 +220,30 @@ class Postprocessor:
 		for op in firstlist.ops:
 			if op.knobs['cflag'] not in out_dict:
 				out_dict[op.knobs['cflag']] = {}
-				out_dict[op.knobs['cflag']][op.knobs['dataset']] = op.metrics['measured_time']
+				out_dict[op.knobs['cflag']][op.knobs['dataset']] = op.metrics['measured_time']* op.metrics['measured_energy']
 			else:
-				out_dict[op.knobs['cflag']][op.knobs['dataset']] = op.metrics['measured_time']
+				out_dict[op.knobs['cflag']][op.knobs['dataset']] = op.metrics['measured_time']* op.metrics['measured_energy']
 		print (out_dict)
+		w = csv.writer(open(outfile, "w"))
+		element_to_write= []
+		trans_keys = sorted (translation_dict.keys())
+		lastkey = trans_keys.pop()
+		element_to_write.extend(translation_dict[lastkey].split(","))
+		print (lastkey)	
+		for key in sorted(out_dict[0].keys()):
+			element_to_write.append("dataset{0}".format(key))
 
-
+		print (element_to_write)
+		w.writerow(element_to_write)
+		for key,value in out_dict.items():
+			print (key, value)
+			tmp_list = []
+			for key2 in sorted(value.keys()):
+				#w.writerow([key, key2, value2])##key -> flag dict, key2 -> posizione value2 ->valore. 1 riga per ogni dict.
+				tmp_list.append(value[key2])
+			element_to_write = []
+			element_to_write.extend((translation_dict[key]).split(","))
+			element_to_write.extend( tmp_list )
+			w.writerow(element_to_write)
 
 

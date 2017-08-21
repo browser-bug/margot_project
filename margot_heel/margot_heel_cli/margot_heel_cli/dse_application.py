@@ -94,8 +94,8 @@ class Application:
 			elif knob_type == 'cflag':
 				if 'cflag' not in self.knob_values:
 					#init 
-					self.knob_values['cflag'] = ['=\"', ''.join(['=\"',p.get_parameter(knob_xml, 'flag')])]
-					self.knob_flags['cflag'] = "-DC_FLAGS"
+					self.knob_values['cflag'] = ['\"', ''.join(['\"',p.get_parameter(knob_xml, 'flag')])]
+					self.knob_flags['cflag'] = "-DC_FLAGS="
 					self.cflag_dict=[]
 					self.cflag_dict.append('X')
 					self.cflag_dict.append(p.get_parameter(knob_xml, 'flag'))
@@ -104,7 +104,7 @@ class Application:
 					tmp_dict = []
 					for value in self.knob_values['cflag']:
 						tmp_values.append(value)
-						if value != '=\"':
+						if value != '\"':
 								tmp_values.append(','.join([value,p.get_parameter(knob_xml,'flag')]))
 						else :
 							tmp_values.append(''.join([value,p.get_parameter(knob_xml,'flag')]))
