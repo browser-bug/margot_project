@@ -84,6 +84,21 @@ namespace margot
   };
 
 
+  enum class RankObjective
+  {
+    MAXIMIZE,
+    MINIMIZE
+  };
+
+
+  enum class FieldComposer
+  {
+    GEOMETRIC,
+    LINEAR,
+    SIMPLE
+  };
+
+
 }
 
 #endif // MARGOT_ENUMS_HDR

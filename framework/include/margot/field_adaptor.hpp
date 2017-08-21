@@ -99,7 +99,7 @@ namespace margot
    * @tparam OperatingPoint The type of the target Operating Point
    * @tparam target_segment The value of the target segment of the Operating Point
    * @tparam target_field_index The index value of the target field in the target segment
-   * @tparam inertia The size of the underlying circular buffer
+   * @tparam inertia The size of the buffer used to average the error coefficient
    * @tparam coefficient_type The type of the generated error coefficient
    *
    * @details
@@ -128,13 +128,19 @@ namespace margot
       /**
        * @brief aliasing of the util struct that extracts an upper bound of the target field
        */
-      using op_upper_bound_extractor = op_utils<OperatingPoint, target_segment, BoundType::UPPER>;
+      using op_upper_bound_extractor = op_utils<OperatingPoint, target_segment, BoundType::UPPER, target_field_index, 1>;
 
 
       /**
        *  @brief aliasing of the util struct that extracts a lower bound of the target field
        */
-      using op_lower_bound_extractor = op_utils<OperatingPoint, target_segment, BoundType::LOWER>;
+      using op_lower_bound_extractor = op_utils<OperatingPoint, target_segment, BoundType::LOWER, target_field_index, 1>;
+
+
+      /**
+       *  @brief aliasing of the util struct that extracts the mean of the target field of the Operating Point
+       */
+      using op_mean_extractor = op_utils<OperatingPoint, target_segment, BoundType::LOWER, target_field_index, 0>;
 
 
       /**
@@ -190,14 +196,14 @@ namespace margot
           // otherwise, get the upper and lower bound from the current Operating Point
           // the upper bound is average + standard devation
           // the lower bound is average - standard deviation
-          const auto expected_upper_bound = op_upper_bound_extractor::template get< target_field_index, 1>(op);
-          const auto expected_lower_bound = op_lower_bound_extractor::template get< target_field_index, 1>(op);
+          const auto expected_upper_bound = op_upper_bound_extractor::get(op);
+          const auto expected_lower_bound = op_lower_bound_extractor::get(op);
 
           // check if the observed value is outside the expected range of values
           if ((observed_value > expected_upper_bound) || (observed_value < expected_lower_bound))
           {
             // retrieve the expected average value from the current Operating Point
-            const auto expected_average_value = op_upper_bound_extractor::template get< target_field_index, 0>(op);
+            const auto expected_average_value = op_mean_extractor::get(op);
 
             // at this point the expected average value and the observed value
             // might be of integer type. We must promote them at least to float,

@@ -133,54 +133,54 @@ class OperatingPoint : public CxxTest::TestSuite
       // check software knobs
       const auto k1_avg = margot::op_utils<OperatingPointType,
                  margot::OperatingPointSegments::SOFTWARE_KNOBS,
-                 margot::BoundType::LOWER>::get<0, 0>(op);
+                 margot::BoundType::LOWER, 0, 0>::get(op);
       TS_ASSERT_EQUALS(k1_avg, 1);
       const auto k1_lb1 = margot::op_utils<OperatingPointType,
                  margot::OperatingPointSegments::SOFTWARE_KNOBS,
-                 margot::BoundType::LOWER>::get<0, 1>(op);
+                 margot::BoundType::LOWER, 0, 1>::get(op);
       TS_ASSERT_EQUALS(k1_lb1, 1);
       const auto k1_lb2 = margot::op_utils<OperatingPointType,
                  margot::OperatingPointSegments::SOFTWARE_KNOBS,
-                 margot::BoundType::LOWER>::get<0, 2>(op);
+                 margot::BoundType::LOWER, 0, 2>::get(op);
       TS_ASSERT_EQUALS(k1_lb2, 1);
       const auto k2_avg = margot::op_utils<OperatingPointType,
                  margot::OperatingPointSegments::SOFTWARE_KNOBS,
-                 margot::BoundType::UPPER>::get<1, 0>(op);
+                 margot::BoundType::UPPER, 1, 0>::get(op);
       TS_ASSERT_EQUALS(k2_avg, 2);
       const auto k2_lb1 = margot::op_utils<OperatingPointType,
                  margot::OperatingPointSegments::SOFTWARE_KNOBS,
-                 margot::BoundType::UPPER>::get<1, 1>(op);
+                 margot::BoundType::UPPER, 1, 1>::get(op);
       TS_ASSERT_EQUALS(k2_lb1, 2);
       const auto k2_lb2 = margot::op_utils<OperatingPointType,
                  margot::OperatingPointSegments::SOFTWARE_KNOBS,
-                 margot::BoundType::UPPER>::get<1, 2>(op);
+                 margot::BoundType::UPPER, 1, 2>::get(op);
       TS_ASSERT_EQUALS(k2_lb2, 2);
 
 
       // check metrics
       const auto m1_avg = margot::op_utils<OperatingPointType,
                  margot::OperatingPointSegments::METRICS,
-                 margot::BoundType::LOWER>::get<0, 0>(op);
+                 margot::BoundType::LOWER, 0, 0>::get(op);
       TS_ASSERT_DELTA(m1_avg, 3, float_epsilon);
       const auto m1_lb1 = margot::op_utils<OperatingPointType,
                  margot::OperatingPointSegments::METRICS,
-                 margot::BoundType::LOWER>::get<0, 1>(op);
+                 margot::BoundType::LOWER, 0, 1>::get(op);
       TS_ASSERT_DELTA(m1_lb1, 2.9, float_epsilon);
       const auto m1_lb2 = margot::op_utils<OperatingPointType,
                  margot::OperatingPointSegments::METRICS,
-                 margot::BoundType::LOWER>::get<0, 2>(op);
+                 margot::BoundType::LOWER, 0, 2>::get(op);
       TS_ASSERT_DELTA(m1_lb2, 2.8, float_epsilon);
       const auto m2_avg = margot::op_utils<OperatingPointType,
                  margot::OperatingPointSegments::METRICS,
-                 margot::BoundType::UPPER>::get<1, 0>(op);
+                 margot::BoundType::UPPER, 1, 0>::get(op);
       TS_ASSERT_DELTA(m2_avg, 4, float_epsilon);
       const auto m2_lb1 = margot::op_utils<OperatingPointType,
                  margot::OperatingPointSegments::METRICS,
-                 margot::BoundType::UPPER>::get<1, 1>(op);
+                 margot::BoundType::UPPER, 1, 1>::get(op);
       TS_ASSERT_DELTA(m2_lb1, 4.1, float_epsilon);
       const auto m2_lb2 = margot::op_utils<OperatingPointType,
                  margot::OperatingPointSegments::METRICS,
-                 margot::BoundType::UPPER>::get<1, 2>(op);
+                 margot::BoundType::UPPER, 1, 2>::get(op);
       TS_ASSERT_DELTA(m2_lb2, 4.2, float_epsilon);
     }
 

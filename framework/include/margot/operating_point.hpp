@@ -277,6 +277,8 @@ namespace margot
    * @tparam OperatingPoint The type of the target Operating Point
    * @tparam target_segment The segment of interest of the Operating Point
    * @tparam target_bound Tells if we are interested on the lower or upper bound of the field
+   * @tparam field_index The index of the target metric
+   * @tparam sigma The number of times the standard deviation is taken into account
    *
    * @see OperatingPointSegments
    * @see BoundType
@@ -290,7 +292,7 @@ namespace margot
    * method from the ones exposed by the OperatingPoint class. Since this class
    * represents the general case, you should never be able to use this struct.
    */
-  template< class OperatingPoint, OperatingPointSegments target_segment, BoundType target_bound >
+  template< class OperatingPoint, OperatingPointSegments target_segment, BoundType target_bound, std::size_t field_index, int sigma >
   struct op_utils;
 
 
@@ -298,11 +300,13 @@ namespace margot
    * @brief Specialization of the helper struct, to retrieve the lower bound of a metric
    *
    * @tparam OperatingPoint The type of the target Operating Point
+   * @tparam field_index The index of the target metric
+   * @tparam sigma The number of times the standard deviation is taken into account
    *
    * @see op_utils
    */
-  template< class OperatingPoint >
-  struct op_utils< OperatingPoint, OperatingPointSegments::METRICS, BoundType::LOWER >
+  template< class OperatingPoint, std::size_t field_index, int sigma >
+  struct op_utils< OperatingPoint, OperatingPointSegments::METRICS, BoundType::LOWER, field_index, sigma >
   {
 
     static_assert(traits::is_operating_point<OperatingPoint>::value,
@@ -316,9 +320,6 @@ namespace margot
     /**
      * @brief Retrive the value of the lower bound of the target metric
      *
-     * @tparam field_index The index of the target metric
-     * @tparam sigma The number of times the standard deviation is taken into account
-     *
      * @param [in] op A shared pointer to the target OperatingPoint
      *
      * @return The value of the lower bound of the target metric, in the target OperatingPoint
@@ -329,7 +330,6 @@ namespace margot
      * Where The lower bound is defined as the average value of the metric minus sigma
      * times its standard deviation.
      */
-    template< std::size_t field_index, int sigma >
     inline static value_type get( const std::shared_ptr< OperatingPoint >& op )
     {
       return op->template get_metric_lower_bound<field_index, sigma>();
@@ -341,11 +341,13 @@ namespace margot
    * @brief Specialization of the helper struct, to retrieve the upper bound of a metric
    *
    * @tparam OperatingPoint The type of the target Operating Point
+   * @tparam field_index The index of the target metric
+   * @tparam sigma The number of times the standard deviation is taken into account
    *
    * @see op_utils
    */
-  template< class OperatingPoint >
-  struct op_utils< OperatingPoint, OperatingPointSegments::METRICS, BoundType::UPPER >
+  template< class OperatingPoint, std::size_t field_index, int sigma >
+  struct op_utils< OperatingPoint, OperatingPointSegments::METRICS, BoundType::UPPER, field_index, sigma >
   {
     static_assert(traits::is_operating_point<OperatingPoint>::value,
                   "Error: the getter handles object with is_operating_point trait");
@@ -358,9 +360,6 @@ namespace margot
     /**
      * @brief Retrive the value of the upper bound of the target metric
      *
-     * @tparam field_index The index of the target metric
-     * @tparam sigma The number of times the standard deviation is taken into account
-     *
      * @param [in] op A shared pointer to the target OperatingPoint
      *
      * @return The value of the upper bound of the target metric, in the target OperatingPoint
@@ -371,7 +370,6 @@ namespace margot
      * Where The upper bound is defined as the average value of the metric plus sigma
      * times its standard deviation.
      */
-    template< std::size_t field_index, int sigma >
     inline static value_type get( const std::shared_ptr< OperatingPoint >& op )
     {
       return op->template get_metric_upper_bound<field_index, sigma>();
@@ -383,11 +381,13 @@ namespace margot
    * @brief Specialization of the helper struct, to retrieve the lower bound of a software knob
    *
    * @tparam OperatingPoint The type of the target Operating Point
+   * @tparam field_index The index of the target metric
+   * @tparam sigma The number of times the standard deviation is taken into account
    *
    * @see op_utils
    */
-  template< class OperatingPoint >
-  struct op_utils< OperatingPoint, OperatingPointSegments::SOFTWARE_KNOBS, BoundType::LOWER >
+  template< class OperatingPoint, std::size_t field_index, int sigma >
+  struct op_utils< OperatingPoint, OperatingPointSegments::SOFTWARE_KNOBS, BoundType::LOWER, field_index, sigma >
   {
 
     static_assert(traits::is_operating_point<OperatingPoint>::value,
@@ -401,9 +401,6 @@ namespace margot
     /**
      * @brief Retrive the value of the lower bound of the target software knob
      *
-     * @tparam field_index The index of the target software knob
-     * @tparam sigma The number of times the standard deviation is taken into account
-     *
      * @param [in] op A shared pointer to the target OperatingPoint
      *
      * @return The value of the lower bound of the target software knob, in the target OperatingPoint
@@ -414,7 +411,6 @@ namespace margot
      * Where The lower bound is defined as the average value of the knob minus sigma
      * times its standard deviation.
      */
-    template< std::size_t field_index, int sigma >
     inline static value_type get( const std::shared_ptr< OperatingPoint >& op )
     {
       return op->template get_knob_lower_bound<field_index, sigma>();
@@ -426,11 +422,13 @@ namespace margot
    * @brief Specialization of the helper struct, to retrieve the upper bound of a software knob
    *
    * @tparam OperatingPoint The type of the target Operating Point
+   * @tparam field_index The index of the target metric
+   * @tparam sigma The number of times the standard deviation is taken into account
    *
    * @see op_utils
    */
-  template< class OperatingPoint >
-  struct op_utils< OperatingPoint, OperatingPointSegments::SOFTWARE_KNOBS, BoundType::UPPER >
+  template< class OperatingPoint, std::size_t field_index, int sigma >
+  struct op_utils< OperatingPoint, OperatingPointSegments::SOFTWARE_KNOBS, BoundType::UPPER, field_index, sigma >
   {
 
     static_assert(traits::is_operating_point<OperatingPoint>::value,
@@ -444,9 +442,6 @@ namespace margot
     /**
      * @brief Retrive the value of the upper bound of the target software knob
      *
-     * @tparam field_index The index of the target software knob
-     * @tparam sigma The number of times the standard deviation is taken into account
-     *
      * @param [in] op A shared pointer to the target OperatingPoint
      *
      * @return The value of the upper bound of the target software knob, in the target OperatingPoint
@@ -457,7 +452,6 @@ namespace margot
      * Where The upper bound is defined as the average value of the knob plus sigma
      * times its standard deviation.
      */
-    template< std::size_t field_index, int sigma >
     inline static value_type get( const std::shared_ptr< OperatingPoint >& op )
     {
       return op->template get_knob_upper_bound<field_index, sigma>();
