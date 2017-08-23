@@ -23,6 +23,7 @@
 #include <cstddef>
 #include <memory>
 #include <array>
+#include <functional>
 
 #include "margot/operating_point.hpp"
 #include "margot/enums.hpp"
