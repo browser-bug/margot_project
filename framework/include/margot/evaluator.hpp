@@ -182,7 +182,7 @@ namespace margot
        *
        * @return The value of the target field extracted from the Operating Point
        */
-      inline static value_type evaluate(const OperatingPointPtr& target_op)
+      inline static value_type evaluate(const OperatingPointPtr& target_op, const Field = 1)
       {
         return value_extractor::get(target_op);
       }
