@@ -239,7 +239,54 @@ namespace margot
                       "Error: Index out of bound accessing the software knob segment");
         return software_knobs.template get_mean<knob_index>() + sigma * (software_knobs.template get_standard_deviation<knob_index>());
       }
+
+
+      /**
+       * @brief Declaration of the friend operator ==
+       */
+      template< class knobs_t, class metrics_t >
+      friend inline bool operator==(const OperatingPoint<knobs_t, metrics_t>& lhs,
+                                    const OperatingPoint<knobs_t, metrics_t>& rhs);
   };
+
+
+
+  /******************************************************************
+   *  SPECIALIZED OPERATORS FOR THE PREVIOUS CLASS
+   ******************************************************************/
+
+
+  /**
+   * @brief Implement the == operator between two Operating Points
+   *
+   * @tparam knobs_t The type of the Software knobs segments
+   * @tparam metrics_t The type of the Metrics segments
+   *
+   * @return True, if two Operating Point have the seme Software Knobs segments
+   *
+   * @see OperatingPointSegment
+   */
+  template< class knobs_t, class metrics_t >
+  inline bool operator==(const OperatingPoint<knobs_t, metrics_t>& lhs,
+                         const OperatingPoint<knobs_t, metrics_t>& rhs)
+  {
+    return lhs.software_knobs == rhs.software_knobs;
+  }
+
+  /**
+   * @brief Implement the != operator between two Operating Points
+   *
+   * @tparam knobs_t The type of the Software knobs segments
+   * @tparam metrics_t The type of the Metrics segments
+   *
+   * @return the negation of the value returned by the operator ==
+   */
+  template< class knobs_t, class metrics_t >
+  inline bool operator!=(const OperatingPoint<knobs_t, metrics_t>& lhs,
+                         const OperatingPoint<knobs_t, metrics_t>& rhs)
+  {
+    return !(lhs == rhs);
+  }
 
 
   /******************************************************************
