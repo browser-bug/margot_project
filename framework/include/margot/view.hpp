@@ -346,13 +346,16 @@ namespace margot
       }
 
 
-    private:
+    protected:
 
 
       /**
        * @brief A lambda used to evaluate an Operating Point
        */
       std::function<value_type(const OperatingPointPtr&)> evaluate;
+
+
+    private:
 
 
       /**

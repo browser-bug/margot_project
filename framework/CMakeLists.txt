@@ -19,6 +19,7 @@ set( MARGOT_HEADERS
 	${HDR_PATH}/margot/evaluator.hpp
 	${HDR_PATH}/margot/view.hpp
 	${HDR_PATH}/margot/monitor.hpp
+	${HDR_PATH}/margot/rank.hpp
 	)
 
 
