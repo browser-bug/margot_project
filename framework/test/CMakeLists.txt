@@ -13,6 +13,7 @@ set( TEST_CASE_FILES
 	${TEST_HEADER_PATH}/knowledge_adaptor.hpp
 	${TEST_HEADER_PATH}/evaluator.hpp
 	${TEST_HEADER_PATH}/view.hpp
+	${TEST_HEADER_PATH}/rank.hpp
 	)
 
 # include the required directories
