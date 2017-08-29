@@ -220,9 +220,9 @@ class Postprocessor:
 		for op in firstlist.ops:
 			if op.knobs['cflag'] not in out_dict:
 				out_dict[op.knobs['cflag']] = {}
-				out_dict[op.knobs['cflag']][op.knobs['dataset']] = op.metrics['measured_time']* op.metrics['measured_energy']
+				out_dict[op.knobs['cflag']][op.knobs['dataset']] = op.metrics['measured_time']#* op.metrics['measured_energy']
 			else:
-				out_dict[op.knobs['cflag']][op.knobs['dataset']] = op.metrics['measured_time']* op.metrics['measured_energy']
+				out_dict[op.knobs['cflag']][op.knobs['dataset']] = op.metrics['measured_time']#* op.metrics['measured_energy']
 		print (out_dict)
 		w = csv.writer(open(outfile, "w"))
 		element_to_write= []
