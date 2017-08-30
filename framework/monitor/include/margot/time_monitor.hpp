@@ -23,7 +23,7 @@
 
 #include <chrono>
 #include <cstdint>
-
+#include <functional>
 
 #include "margot/config.hpp"
 #include "margot/monitor.hpp"
