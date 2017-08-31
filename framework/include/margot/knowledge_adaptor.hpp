@@ -133,6 +133,20 @@ namespace margot
         return adaptors[op_field_enumerator< OperatingPoint, target_segment, target_field_index>::get()];
       }
 
+
+      /**
+       * @brief Removes all the references to runtime information.
+       *
+       * @details
+       * This methods resets all the adaptors previously used. The effect of this method is to
+       * delete all the references to the Monitor and the circular buffer used to compute the
+       * error coefficients as well.
+       */
+      inline void clear( void )
+      {
+        adaptors.fill(nullptr);
+      }
+
     private:
 
       /**
