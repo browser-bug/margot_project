@@ -24,6 +24,7 @@
 #include <cassert>
 #include <memory>
 #include <cinttypes>
+#include <vector>
 
 
 #include "margot/operating_point.hpp"
@@ -88,6 +89,12 @@ namespace margot
       using OperatingPointList = std::unordered_map< configuration_type,
             OperatingPointPtr,
             hash< configuration_type > >;
+
+
+      /**
+       * @brief Explicit definition of a stream of Operating Points
+       */
+      using OPStream = std::vector< OperatingPointPtr >;
 
 
       /******************************************************************
@@ -199,6 +206,25 @@ namespace margot
       /******************************************************************
        *  UTILITY METHODS FOR THE APPLICATION KNOWLEDGE
        ******************************************************************/
+
+
+      /**
+       * @brief Retrive the knowledge base a stream of Operating Points
+       *
+       * @return The knowledge base, as OPStream of Operating Points pointers
+       */
+      inline OPStream to_stream( void ) const
+      {
+        OPStream result;
+        result.reserve( knowledge.size() );
+
+        for ( const auto& op_pair : knowledge )
+        {
+          result.emplace_back(op_pair.second);
+        }
+
+        return result;
+      }
 
 
       /**
