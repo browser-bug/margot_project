@@ -61,7 +61,7 @@ namespace margot
    * This enum states all the comparison functions supported by
    * the mARGOt framework.
    */
-  enum class ComparisonFunction
+  enum class ComparisonFunctions
   {
     GREATER,
     GREATER_OR_EQUAL,
