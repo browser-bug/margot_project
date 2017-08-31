@@ -318,28 +318,40 @@ namespace margot
        * @param [in] a The first value which identifies the slice
        * @param [in] b The last value which identifies the slice
        *
-       * @return A OPStream that contains all the Operating Points between (a,b)
+       * @return A OPStream that contains all the Operating Points between [a,b)
        *
        * @details
-       * This method is used to retrieve a slice of the Operating Points which have
-       * an evaluated value between a and b, extremes included.
+       * This method aims at selecting a subset of the Operating Point in the view
+       * that evaluate from value a (included) to value b (excluded).
+       * If the value a is equal to value b, this method returns an empty slice.
+       * If the value a is lower than the value b, this method retrieves all the
+       * Operating Points from a (a included) to the one before b.
+       * If the value a is grater than the value b, this method retrieves all the
+       * Operating Points from the one that follows b to a (a included).
        */
       OPStream range( const value_type a, const value_type b ) const
       {
-        // make sure to get min and max value right
-        const value_type min = std::min(a, b);
-        const value_type max = std::max(a, b);
-
-        // select the correct subset of the knowledge
-        const auto start_it = sorted_knowledge.lower_bound(min);
-        const auto stop_it = sorted_knowledge.upper_bound(max);
-
-        // copy the target slice of Operating Points
         OPStream result;
 
-        for ( auto it = start_it; it != stop_it; ++it )
+        if ( a > b )
         {
-          result.emplace_back(it->second);
+          auto it = sorted_knowledge.upper_bound(b);
+          const auto end_it = sorted_knowledge.upper_bound(a);
+
+          for ( ; it != end_it; ++it )
+          {
+            result.emplace_back(it->second);
+          }
+        }
+        else if ( a < b )
+        {
+          auto it = sorted_knowledge.lower_bound(a);
+          const auto end_it = sorted_knowledge.lower_bound(b);
+
+          for ( ; it != end_it; ++it )
+          {
+            result.emplace_back(it->second);
+          }
         }
 
         return result;
