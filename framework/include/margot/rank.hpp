@@ -103,6 +103,12 @@ namespace margot
 
 
       /**
+       * @brief Removes all the Operating Points from the Rank
+       */
+      virtual void clear( void ) = 0;
+
+
+      /**
        * @brief Retrieves the best Operating Point from the rank
        *
        * @return A shared pointer to the best Operating Point from the rank
@@ -132,7 +138,7 @@ namespace margot
        *
        * @return A OPStream of the valid Operating Points
        */
-      virtual OPStream get( void ) const = 0;
+      virtual OPStream to_stream( void ) const = 0;
 
 
       /**
@@ -326,6 +332,16 @@ namespace margot
         }
       }
 
+      /**
+       * @brief Implementation of the RankInterface clear method
+       *
+       * @see RankInterface
+       */
+      void clear( void )
+      {
+        MyView::clear();
+      }
+
 
       /**
        * @brief Implementation of the RankInterface best method
@@ -369,11 +385,11 @@ namespace margot
 
 
       /**
-       * @brief Implementation of the RankInterface best method
+       * @brief Implementation of the RankInterface to_stream method
        *
        * @see RankInterface
        */
-      OPStream get( void ) const
+      OPStream to_stream( void ) const
       {
         return MyView::range();
       }
