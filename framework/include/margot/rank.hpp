@@ -25,6 +25,7 @@
 #include <functional>
 #include <algorithm>
 #include <iostream>
+#include <vector>
 
 
 #include "margot/operating_point.hpp"
@@ -74,7 +75,7 @@ namespace margot
        * This container is used as interface from the other component to find
        * the best OperatingPoint from the container
        */
-      using OPStream = std::deque< OperatingPointPtr >;
+      using OPStream = std::vector< OperatingPointPtr >;
 
 
       /**
@@ -286,7 +287,7 @@ namespace margot
        * This container is used as interface from the other component to find
        * the best OperatingPoint from the container
        */
-      using OPStream = std::deque< OperatingPointPtr >;
+      using OPStream = std::vector< OperatingPointPtr >;
 
 
       /**

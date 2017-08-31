@@ -24,7 +24,7 @@
 
 #include <map>
 #include <memory>
-#include <deque>
+#include <vector>
 #include <functional>
 #include <cstddef>
 #include <cassert>
@@ -106,7 +106,7 @@ namespace margot
        * This container is used as interface from the other component of the framework
        * to select slices of Operating Point.
        */
-      using OPStream = std::deque< OperatingPointPtr >;
+      using OPStream = std::vector< OperatingPointPtr >;
 
 
       /**
