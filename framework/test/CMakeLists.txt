@@ -14,6 +14,7 @@ set( TEST_CASE_FILES
 	${TEST_HEADER_PATH}/evaluator.hpp
 	${TEST_HEADER_PATH}/view.hpp
 	${TEST_HEADER_PATH}/rank.hpp
+	${TEST_HEADER_PATH}/goal.hpp
 	)
 
 # include the required directories
