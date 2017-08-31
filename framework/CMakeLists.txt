@@ -21,6 +21,7 @@ set( MARGOT_HEADERS
 	${HDR_PATH}/margot/monitor.hpp
 	${HDR_PATH}/margot/rank.hpp
 	${HDR_PATH}/margot/goal.hpp
+	${HDR_PATH}/margot/constraint.hpp
 	)
 
 
