@@ -22,6 +22,7 @@ set( MARGOT_HEADERS
 	${HDR_PATH}/margot/rank.hpp
 	${HDR_PATH}/margot/goal.hpp
 	${HDR_PATH}/margot/constraint.hpp
+	${HDR_PATH}/margot/state.hpp
 	)
 
 
