@@ -18,8 +18,8 @@
  */
 
 
-#ifndef MARGOT_STATE_HPP
-#define MARGOT_STATE_HPP
+#ifndef MARGOT_STATE_HDR
+#define MARGOT_STATE_HDR
 
 #include <cstddef>
 #include <memory>
@@ -530,4 +530,4 @@ namespace margot
 
 }
 
-#endif // MARGOT_STATE_HPP
+#endif // MARGOT_STATE_HDR

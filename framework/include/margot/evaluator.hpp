@@ -18,8 +18,8 @@
  */
 
 
-#ifndef MARGOT_EVALUATOR_HEADER
-#define MARGOT_EVALUATOR_HEADER
+#ifndef MARGOT_EVALUATOR_HDR
+#define MARGOT_EVALUATOR_HDR
 
 #include <cstddef>
 #include <functional>
@@ -568,4 +568,4 @@ namespace margot
 }
 
 
-#endif // MARGOT_EVALUATOR_HEADER
+#endif // MARGOT_EVALUATOR_HDR

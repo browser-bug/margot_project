@@ -17,8 +17,8 @@
  * USA
  */
 
-#ifndef MARGOT_MONITOR_HPP
-#define MARGOT_MONITOR_HPP
+#ifndef MARGOT_MONITOR_HDR
+#define MARGOT_MONITOR_HDR
 
 #include <memory>
 #include <cstddef>
@@ -259,4 +259,4 @@ namespace margot
 
 }
 
-#endif // MARGOT_MONITOR_HPP
+#endif // MARGOT_MONITOR_HDR
