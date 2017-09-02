@@ -331,12 +331,83 @@ namespace margot
 
 
       /******************************************************************
-       *  METHODS TO ACTUALLY SOLVE THE OPTIMIZATION PROBLEM
+       *  METHOD TO ACTUALLY SOLVE THE OPTIMIZATION PROBLEM
        ******************************************************************/
+
+
+      OperatingPointPtr get_best_operating_point( void )
+      {
+        // first update the internal structure to see if there are differences
+        update();
+
+        // check if we can avoid to solve again the problem
+        if (!problem_is_changed)
+        {
+          return best_operating_point_found;
+        }
+
+        // ok, something is changed, we have to actually solve the problem.
+        // But, the new solution will be the best one until something change.
+        problem_is_changed = false;
+
+        // try with the best according to the rank
+        OperatingPointPtr best_op = rank->best();
+
+        if (best_op)
+        {
+          best_operating_point_found = best_op;
+          return best_operating_point_found; // the actual valid best op
+        }
+
+
+        // in this case, either there are no Operating Points, or all of them are invalid
+
+        // make sure that we have some constraints, otherwise we have no Operating Points
+        if (constraints.empty())
+        {
+          best_operating_point_found = best_op;
+          return best_operating_point_found; // a nullptr
+        }
+
+        // ok, let's start relaxing constraints
+        auto constraint_pair_it = constraints.end();
+        const auto first_constraint_pair_it = constraints.begin();
+
+        for ( constraint_pair_it = std::prev(constraint_pair_it); constraint_pair_it != first_constraint_pair_it;
+              constraint_pair_it = std::prev(constraint_pair_it) )
+        {
+          // get the ops closest to the constraint
+          OPStream best_ops = constraint_pair_it->second->get_closest();
+
+          // if we have found some ops, we can work with them
+          if (!best_ops.empty())
+          {
+            best_operating_point_found = get_best_from_stream(best_ops, constraint_pair_it );
+            return best_operating_point_found; // the actual invalid best op
+          }
+        }
+
+        // if we have reached this point, we have to rely on the first constraint
+        OPStream best_ops = first_constraint_pair_it->second->get_closest();
+
+        // if we have found some ops, we can work with them
+        if (!best_ops.empty())
+        {
+          best_operating_point_found = get_best_from_stream(best_ops, first_constraint_pair_it );
+          return best_operating_point_found; // the actual invalid best op
+        }
+
+        // if have reached this point, there are no Operating Points
+        best_operating_point_found = OperatingPointPtr{};
+        return best_operating_point_found;
+      }
+
+
+
+    private:
 
       void update( void )
       {
-
         // get a reference to the first constraint
         const auto first_constraint_pair_it = constraints.begin();
         const auto end_constraint_pair_it = constraints.end();
@@ -413,75 +484,7 @@ namespace margot
         }
       }
 
-
-      OperatingPointPtr get_best_operating_point( void )
-      {
-        // check if we can avoid to solve again the problem
-        if (!problem_is_changed)
-        {
-          return best_operating_point_found;
-        }
-
-        // ok, something is changed, we have to actually solve the problem.
-        // But, the new solution will be the best one until something change.
-        problem_is_changed = false;
-
-        // try with the best according to the rank
-        OperatingPointPtr best_op = rank->best();
-
-        if (best_op)
-        {
-          best_operating_point_found = best_op;
-          return best_operating_point_found; // the actual valid best op
-        }
-
-        // in this case, either there are no Operating Points, or all of them are invalid
-
-        // make sure that we have some constraints, otherwise we have no Operating Points
-        if (constraints.empty())
-        {
-          best_operating_point_found = best_op;
-          return best_operating_point_found; // a nullptr
-        }
-
-        // ok, let's start relaxing constraints
-        auto constraint_pair_it = constraints.end();
-        const auto first_constraint_pair_it = constraints.begin();
-
-        for ( constraint_pair_it = std::prev(constraint_pair_it); constraint_pair_it != first_constraint_pair_it;
-              constraint_pair_it = std::prev(constraint_pair_it) )
-        {
-          // get the ops closest to the constraint
-          OPStream best_ops = constraint_pair_it->second->get_closest();
-
-          // if we have found some ops, we can work with them
-          if (!best_ops.empty())
-          {
-            best_operating_point_found = get_best_from_stream(best_ops, constraint_pair_it );
-            return best_operating_point_found; // the actual invalid best op
-          }
-        }
-
-        // if we have reached this point, we have to rely on the first constraint
-        OPStream best_ops = first_constraint_pair_it->second->get_closest();
-
-        // if we have found some ops, we can work with them
-        if (!best_ops.empty())
-        {
-          best_operating_point_found = get_best_from_stream(best_ops, first_constraint_pair_it );
-          return best_operating_point_found; // the actual invalid best op
-        }
-
-        // if have reached this point, there are no Operating Points
-        best_operating_point_found = OperatingPointPtr{};
-        return best_operating_point_found;
-      }
-
-
-
-    private:
-
-      OperatingPointPtr get_best_from_stream( OPStream& input_ops, typename ConstraintStack::iterator& constraint_it ) const
+      OperatingPointPtr get_best_from_stream( OPStream& input_ops, const typename ConstraintStack::iterator& constraint_it ) const
       {
         // if there is only one Operating Point it's good
         if (input_ops.size() == 1)
