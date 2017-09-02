@@ -135,6 +135,31 @@ namespace margot
 
 
       /**
+       * @brief Update the runtime information according to the current Operating Point
+       *
+       * @param [in] current_op Shared pointer to the Operating Point used by the application
+       *
+       * @detials
+       * This method updates all the registered field adaptor taking into account runtime information.
+       * In order to compute the correct value, we must be sure that the application is using the
+       * Operating Point specified in the parameter
+       */
+      void evaluate_error( const OperatingPointPtr& current_op )
+      {
+        // loop over all the adaptors
+        for ( auto& adaptor : adaptors)
+        {
+          // if it is associated any runtime information
+          if (adaptor)
+          {
+            // update the coefficient error
+            adaptor->evaluate_error(current_op);
+          }
+        }
+      }
+
+
+      /**
        * @brief Removes all the references to runtime information.
        *
        * @details
