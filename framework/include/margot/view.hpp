@@ -318,40 +318,28 @@ namespace margot
        * @param [in] a The first value which identifies the slice
        * @param [in] b The last value which identifies the slice
        *
-       * @return A OPStream that contains all the Operating Points between [a,b)
+       * @return A OPStream that contains all the Operating Points from a to b
        *
        * @details
        * This method aims at selecting a subset of the Operating Point in the view
-       * that evaluate from value a (included) to value b (excluded).
-       * If the value a is equal to value b, this method returns an empty slice.
-       * If the value a is lower than the value b, this method retrieves all the
-       * Operating Points from a (a included) to the one before b.
-       * If the value a is grater than the value b, this method retrieves all the
-       * Operating Points from the one that follows b to a (a included).
+       * that evaluate from value a (included) to value b (included).
        */
       OPStream range( const value_type a, const value_type b ) const
       {
         OPStream result;
 
-        if ( a > b )
-        {
-          auto it = sorted_knowledge.upper_bound(b);
-          const auto end_it = sorted_knowledge.upper_bound(a);
+        // make sure to find the minimum and maximum value
+        const value_type min = std::min(a, b);
+        const value_type max = std::max(a, b);
 
-          for ( ; it != end_it; ++it )
-          {
-            result.emplace_back(it->second);
-          }
-        }
-        else if ( a < b )
-        {
-          auto it = sorted_knowledge.lower_bound(a);
-          const auto end_it = sorted_knowledge.lower_bound(b);
+        // get the iterators that defines the slice of Operating Points
+        const auto start_it = sorted_knowledge.lower_bound(min);
+        const auto stop_it = sorted_knowledge.upper_bound(max);
 
-          for ( ; it != end_it; ++it )
-          {
-            result.emplace_back(it->second);
-          }
+        // populte the stream of Operating Points
+        for ( auto it = start_it; it != stop_it; ++it )
+        {
+          result.emplace_back(it->second);
         }
 
         return result;
