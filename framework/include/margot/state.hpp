@@ -238,7 +238,7 @@ namespace margot
        *  UTILITY METHODS TO UPDATE THE APPLICATION KNWOLEDGE
        ******************************************************************/
 
-      void add_operating_points( OPStream& new_ops )
+      void add_operating_points( const OPStream& new_ops )
       {
         // update the constraints view
         for ( auto& constraint_pair : constraints )
@@ -252,15 +252,16 @@ namespace margot
 
         // filter them throught the constraints
         OPStream ops_to_add;
+        OPStream new_ops_shrinkable = new_ops;
 
         for ( auto& constraint_pair : constraints )
         {
-          ops_to_add.swap(new_ops);
-          constraint_pair.second->filter_add( ops_to_add, new_ops );
+          ops_to_add.swap(new_ops_shrinkable);
+          constraint_pair.second->filter_add( ops_to_add, new_ops_shrinkable );
         }
 
         // add them to the rank
-        rank->add(new_ops);
+        rank->add(new_ops_shrinkable);
 
         // we have to solve again the optimization problem
         problem_is_changed = true;
