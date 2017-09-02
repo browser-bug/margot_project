@@ -94,10 +94,8 @@ namespace margot
 
       static constexpr ComparisonFunctions comparison_function = cf;
 
-      Goal( void ): goal_value(nullptr)
-      {}
 
-      Goal( const T goal_value ): goal_value(new T{goal_value})
+      Goal( const T goal_value = T{} ): goal_value(new T{goal_value})
       {}
 
 
