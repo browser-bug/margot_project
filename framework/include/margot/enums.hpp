@@ -84,6 +84,13 @@ namespace margot
   };
 
 
+  /**
+   * @brief Used to select the direction of the objective function
+   *
+   * @details
+   * This enum is used to select if we want to maximize or minimize
+   * the objective function, i.e. the rank.
+   */
   enum class RankObjective
   {
     MAXIMIZE,
@@ -91,6 +98,15 @@ namespace margot
   };
 
 
+  /**
+   * @brief Used to indicate how to compose the objective function
+   *
+   * @details
+   * This enum is used to select how to compose the fields of the
+   * objective function.
+   *
+   * @see Rank
+   */
   enum class FieldComposer
   {
     GEOMETRIC,
