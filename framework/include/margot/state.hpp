@@ -73,9 +73,9 @@ namespace margot
         // we are just interested in one field that, for sure, is available: the first software knob
         using dummy_field = OPField< OperatingPointSegments::SOFTWARE_KNOBS, BoundType::LOWER, 0, 0>;
 
-        // create a dummy rank, just as to have a definition of best
-        // and to hove a container for all the Operating Points
-        rank.reset( new Rank< OperatingPoint, RankObjective::MAXIMIZE, FieldComposer::SIMPLE, dummy_field >( 1.0f ) );
+        // create a dummy rank, just to have a definition of best
+        // and to have a container for all the Operating Points
+        rank.reset( new Rank< OperatingPoint, RankObjective::MINIMIZE, FieldComposer::SIMPLE, dummy_field >( 1.0f ) );
       }
 
 
@@ -162,9 +162,10 @@ namespace margot
         // search for the constraint
         const auto constraint_it = constraints.find(priority);
 
-        // if it exists, remove it
+        // get the reference to the end of the constraint stack
         const auto end_it = constraints.end();
 
+        // check if the constraint exists
         if ( constraint_it != end_it )
         {
           // get all the Operating Point blocked from the constraint
@@ -174,9 +175,10 @@ namespace margot
           if (!available_ops.empty())
           {
             // insert them to the lower priority constraints
+            OPStream ops_to_add;
+
             for ( auto it = std::next(constraint_it); it != end_it; ++it )
             {
-              OPStream ops_to_add;
               ops_to_add.swap(available_ops);
               it->second->filter_add(ops_to_add, available_ops);
             }
@@ -364,11 +366,14 @@ namespace margot
             if (!ops_to_be_removed.empty())
             {
               // make a copy of the Operating Points to be removed
+              // because we need to remove them later from lower priority constraints
               ops_to_be_removed_for_real = ops_to_be_removed;
 
               // now we are able to block them in the current constraint
               OPStream remainder_ops;
               it->second->filter_add(ops_to_be_removed, remainder_ops);
+
+              // this is because we know for sure that the current constraint blocks that Operating Points
               assert(remainder_ops.empty() && "Error: on the update something went wrong, internal error");
 
               // now we have to remove them from lower constraints
