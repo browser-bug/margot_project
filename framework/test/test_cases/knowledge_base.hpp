@@ -114,13 +114,13 @@ class KnowledgeBase : public CxxTest::TestSuite
       TS_ASSERT_EQUALS(kb.size(), op_list.size());
 
       // try to remove an existent Operating Point
-      const auto removed_op = kb.remove({1, 2});
+      const auto removed_op = kb.remove(software_knob_geometry{1, 2});
       TS_ASSERT(removed_op);
       TS_ASSERT_EQUALS(removed_op->get_knob_lower_bound<0>(), 1);
       TS_ASSERT_EQUALS(kb.size(), op_list.size() - 1);
 
       // try to remove a non existent Operating Point
-      const auto removed_op2 = kb.remove({1, 2});
+      const auto removed_op2 = kb.remove(software_knob_geometry{1, 2});
       TS_ASSERT(!removed_op2);
       TS_ASSERT_EQUALS(kb.size(), op_list.size() - 1);
     }

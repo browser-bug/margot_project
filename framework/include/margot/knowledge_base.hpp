@@ -179,6 +179,76 @@ namespace margot
 
 
       /**
+       * @brief Removes an Operating Point from the application knowledge
+       *
+       * @param op [in] The target OperatingPoint
+       *
+       * @return A pointer to the removed Operating Point
+       *
+       * @details
+       * The software knob section of an Operating Point is used as unique identifier
+       * of the whole Operating Point. To check if two key are equal, is used the
+       * == operator. Therefore, only the mean value of each software knob is
+       * considered.
+       * The metric section of the target OperatingPoint is not used.
+       * If we have removed an Operting Point, this method returns a pointer to
+       * the target Operating Point. Otherwise, a nullptr is returned.
+       */
+      inline OperatingPointPtr remove( const OperatingPoint& op )
+      {
+        auto conf = op.get_knobs();
+
+        auto op_ref = knowledge.find(conf);
+
+        if (op_ref != knowledge.end())
+        {
+          const auto removed_op = op_ref->second;
+          knowledge.erase(op_ref);
+          return removed_op;
+        }
+        else
+        {
+          return OperatingPointPtr{};
+        }
+      }
+
+
+      /**
+       * @brief Removes an Operating Point from the application knowledge
+       *
+       * @param op [in] A shared pointer to the target OperatingPoint
+       *
+       * @return A pointer to the removed Operating Point
+       *
+       * @details
+       * The software knob section of an Operating Point is used as unique identifier
+       * of the whole Operating Point. To check if two key are equal, is used the
+       * == operator. Therefore, only the mean value of each software knob is
+       * considered.
+       * The metric section of the target OperatingPoint is not used.
+       * If we have removed an Operting Point, this method returns a pointer to
+       * the target Operating Point. Otherwise, a nullptr is returned.
+       */
+      inline OperatingPointPtr remove( const OperatingPointPtr& op )
+      {
+        auto conf = op->get_knobs();
+
+        auto op_ref = knowledge.find(conf);
+
+        if (op_ref != knowledge.end())
+        {
+          const auto removed_op = op_ref->second;
+          knowledge.erase(op_ref);
+          return removed_op;
+        }
+        else
+        {
+          return OperatingPointPtr{};
+        }
+      }
+
+
+      /**
        * @brief Replace the current knowledge with a new one
        *
        * @param new_list [in] The new Operating Point list.
