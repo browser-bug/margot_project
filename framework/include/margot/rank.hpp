@@ -30,6 +30,7 @@
 
 #include "margot/operating_point.hpp"
 #include "margot/view.hpp"
+#include "margot/knowledge_base.hpp"
 
 namespace margot
 {
@@ -65,7 +66,7 @@ namespace margot
       /**
        * @brief Explicit definition to an Operating Point pointer
        */
-      using OperatingPointPtr = std::shared_ptr<OperatingPoint>;
+      using OperatingPointPtr = typename Knowledge<OperatingPoint>::OperatingPointPtr;
 
 
       /**
@@ -75,7 +76,7 @@ namespace margot
        * This container is used as interface from the other component to find
        * the best OperatingPoint from the container
        */
-      using OPStream = std::vector< OperatingPointPtr >;
+      using OPStream = typename Knowledge<OperatingPoint>::OPStream;
 
 
       /**
@@ -284,7 +285,8 @@ namespace margot
       /**
        * @brief Explicit definition to an Operating Point pointer
        */
-      using OperatingPointPtr = std::shared_ptr<OperatingPoint>;
+      using OperatingPointPtr = typename RankInterface<OperatingPoint>::OperatingPointPtr;
+
 
       /**
        * @brief Definition of the stream of Operating Point
@@ -293,7 +295,7 @@ namespace margot
        * This container is used as interface from the other component to find
        * the best OperatingPoint from the container
        */
-      using OPStream = std::vector< OperatingPointPtr >;
+      using OPStream = typename RankInterface<OperatingPoint>::OPStream;
 
 
       /**

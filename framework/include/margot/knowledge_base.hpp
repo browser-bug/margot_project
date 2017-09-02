@@ -92,7 +92,11 @@ namespace margot
 
 
       /**
-       * @brief Explicit definition of a stream of Operating Points
+       * @brief Definition of the stream of Operating Point
+       *
+       * @details
+       * This container is used as interface from the other component of the framework
+       * to select slices of Operating Point.
        */
       using OPStream = std::vector< OperatingPointPtr >;
 

@@ -50,13 +50,17 @@ namespace margot
       /**
        * @brief Explicit definition to an Operating Point pointer
        */
-      using OperatingPointPtr = std::shared_ptr< OperatingPoint >;
+      using OperatingPointPtr = typename Knowledge<OperatingPoint>::OperatingPointPtr;
 
 
       /**
        * @brief Definition of the stream of Operating Point
+       *
+       * @details
+       * This container is used as interface from the other component to find
+       * the best OperatingPoint from the container
        */
-      using OPStream = std::vector< OperatingPointPtr >;
+      using OPStream = typename Knowledge<OperatingPoint>::OPStream;
 
 
       using ConstraintPtr = std::shared_ptr< ConstraintHandler< OperatingPoint, error_coef_type > >;

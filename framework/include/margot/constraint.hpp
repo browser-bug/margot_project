@@ -49,13 +49,17 @@ namespace margot
       /**
        * @brief Explicit definition to an Operating Point pointer
        */
-      using OperatingPointPtr = std::shared_ptr< OperatingPoint >;
+      using OperatingPointPtr = typename Knowledge<OperatingPoint>::OperatingPointPtr;
 
 
       /**
        * @brief Definition of the stream of Operating Point
+       *
+       * @details
+       * This container is used as interface from the other component to find
+       * the best OperatingPoint from the container
        */
-      using OPStream = std::vector< OperatingPointPtr >;
+      using OPStream = typename Knowledge<OperatingPoint>::OPStream;
 
 
       /******************************************************************
@@ -177,13 +181,17 @@ namespace margot
       /**
        * @brief Explicit definition to an Operating Point pointer
        */
-      using OperatingPointPtr = std::shared_ptr< OperatingPoint >;
+      using OperatingPointPtr = typename ConstraintHandler<OperatingPoint>::OperatingPointPtr;
 
 
       /**
        * @brief Definition of the stream of Operating Point
+       *
+       * @details
+       * This container is used as interface from the other component to find
+       * the best OperatingPoint from the container
        */
-      using OPStream = std::vector< OperatingPointPtr >;
+      using OPStream = typename ConstraintHandler<OperatingPoint>::OPStream;
 
       using ConstraintField = OPField< segment, helper::constraint<ConstraintGoal::comparison_function>::get_bound(), field_index, sigma, int >;
       using MyView = View< OperatingPoint, FieldComposer::SIMPLE, ConstraintField >;

@@ -28,6 +28,7 @@
 #include "margot/traits.hpp"
 #include "margot/enums.hpp"
 #include "margot/field_adaptor.hpp"
+#include "margot/knowledge_base.hpp"
 
 namespace margot
 {
@@ -60,7 +61,7 @@ namespace margot
       /**
        * @brief Explicit definition to an Operating Point pointer
        */
-      using OperatingPointPtr = std::shared_ptr<OperatingPoint>;
+      using OperatingPointPtr = typename Knowledge<OperatingPoint>::OperatingPointPtr;
 
 
       /**

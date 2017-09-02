@@ -30,6 +30,7 @@
 #include "margot/monitor.hpp"
 #include "margot/traits.hpp"
 #include "margot/statistics.hpp"
+#include "margot/knowledge_base.hpp"
 
 namespace margot
 {
@@ -56,9 +57,9 @@ namespace margot
 
 
       /**
-       * @brief Explicit defition of pointer to the Operating Point
+       * @brief Explicit definition to an Operating Point pointer
        */
-      using OperatingPointPtr = std::shared_ptr< OperatingPoint >;
+      using OperatingPointPtr = typename Knowledge<OperatingPoint>::OperatingPointPtr;
 
 
       /**
@@ -145,9 +146,9 @@ namespace margot
 
 
       /**
-       * @brief Explicit definition to a pointer of the Operating Point
+       * @brief Explicit definition to an Operating Point pointer
        */
-      using OperatingPointPtr = std::shared_ptr< OperatingPoint >;
+      using OperatingPointPtr = typename FieldAdaptor<OperatingPoint>::OperatingPointPtr;
 
 
       /**

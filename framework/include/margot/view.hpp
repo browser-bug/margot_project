@@ -78,7 +78,7 @@ namespace margot
       /**
        * @brief Explicit definition of a pointer to the Operating Point
        */
-      using OperatingPointPtr = std::shared_ptr<OperatingPoint>;
+      using OperatingPointPtr = typename Knowledge<OperatingPoint>::OperatingPointPtr;
 
 
       /**
@@ -106,7 +106,7 @@ namespace margot
        * This container is used as interface from the other component of the framework
        * to select slices of Operating Point.
        */
-      using OPStream = std::vector< OperatingPointPtr >;
+      using OPStream = typename Knowledge<OperatingPoint>::OPStream;
 
 
       /**
