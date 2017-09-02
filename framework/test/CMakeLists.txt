@@ -16,6 +16,7 @@ set( TEST_CASE_FILES
 	${TEST_HEADER_PATH}/rank.hpp
 	${TEST_HEADER_PATH}/goal.hpp
 	${TEST_HEADER_PATH}/constraint.hpp
+	${TEST_HEADER_PATH}/asrtm.hpp
 	)
 
 # include the required directories
