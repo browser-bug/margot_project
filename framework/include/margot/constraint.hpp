@@ -305,13 +305,13 @@ namespace margot
         OPStream best_ops;
 
         // assuming that the first OP of the container is the one of the best ones
-        auto op_it = blocked_ops.cbegin();
+        auto op_it = ops.cbegin();
         view_type best_op_value = knowledge_view.evaluate_op(*op_it);
         bool best_op_is_valid = target_goal.template check< view_type, value_type >(best_op_value, last_check_value);
         best_ops.emplace_back(*op_it);
 
         // loop over the other OPs and make sure to get the best ones
-        const auto end_it = blocked_ops.cend();
+        const auto end_it = ops.cend();
 
         for ( ++op_it ; op_it != end_it; ++op_it )
         {
@@ -489,14 +489,14 @@ namespace margot
         // compute the final goal value
         const value_type final_goal_value = target_goal.get() * coef;
 
-        // otherwise, get the Operating Point involved in the change
-        auto diff_stream = knowledge_view.range(final_goal_value, last_check_value);
-
-        // if there are no differences, return
-        if (diff_stream.empty())
+        // if they have the same value, quit, nothing is changed
+        if ( final_goal_value == last_check_value )
         {
           return;
         }
+
+        // otherwise, get the Operating Point involved in the change
+        auto diff_stream = knowledge_view.range( last_check_value, final_goal_value );
 
         // otherwise, check if it is going worst
         if (target_goal.template check<value_type, value_type >(final_goal_value, last_check_value))
@@ -504,7 +504,14 @@ namespace margot
           // we need to invalidate the ops in the range, but we don't know if they
           // are blocked by an upper constraint, so we can only signal that we
           // we are going to invalidate the Operating Points.
-          diff_stream.swap(invalidated_ops);
+          // Moreover, we have to make sure to signal only the not valid ones.
+          for ( const auto& op : diff_stream )
+          {
+            if ( !target_goal.template check<view_type, value_type >(knowledge_view.evaluate_op(op), final_goal_value) )
+            {
+              invalidated_ops.emplace_back(op);
+            }
+          }
         }
         else // it is going better
         {
@@ -516,9 +523,14 @@ namespace margot
 
             if (elem_it != blocked_ops.end())
             {
-              // then we must release it
-              validated_ops.emplace_back(op);
-              blocked_ops.erase(elem_it);
+              // We are blocking the Operating Point, but we must be sure that the target Operating Point
+              // is actually valid
+              if (target_goal.template check<view_type, value_type >(knowledge_view.evaluate_op(op), final_goal_value))
+              {
+                // then we must release it
+                validated_ops.emplace_back(op);
+                blocked_ops.erase(elem_it);
+              }
             }
 
             // if we are not blocking them, then we don't have to do nothing
