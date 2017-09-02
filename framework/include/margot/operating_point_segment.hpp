@@ -82,6 +82,11 @@ namespace margot
     public:
 
       /**
+       * @brief Definition of type of elements stored in the underlying container
+       */
+      using value_type = DataType;
+
+      /**
        * @brief The typedef of the type of the mean value
        *
        * @details
