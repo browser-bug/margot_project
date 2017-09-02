@@ -1,4 +1,4 @@
-/* core/rank.hpp
+/* core/constraint.hpp
  * Copyright (C) 2017 Davide Gadioli
  *
  * This library is free software; you can redistribute it and/or
@@ -36,15 +36,34 @@
 namespace margot
 {
 
-
+  /**
+   * @brief Interface of a generic Constraint
+   *
+   * @tparam OperatingPoint The type which defines the Operating Point characteristics
+   * @tparam error_coef_type The type used to compute the error coefficient of the application knowledge
+   *
+   * @details
+   * This class aims at representing a constraint of the constrained multi-objective optimization
+   * problem solved by a state.
+   * This interface hides all the details of the constraint, providing a common interface for the
+   * state to handle the Operating Points.
+   *
+   * A constraint act as a filter, storing all the Operating Points that are not valid for the
+   * current contraint, but are valid for the higher priority constraints.
+   * To efficiently adapt to changes on the goal value or to react promptly to changes in the execution
+   * environment, a constraint exploit a View of the Operating Point, which sort the application
+   * knowledge according to target field of the constraint.
+   */
   template< class OperatingPoint, typename error_coef_type = float >
   class ConstraintHandler
   {
+
       // statically check the template argument
       static_assert(traits::is_operating_point<OperatingPoint>::value,
                     "Error: the Constraint handles object with is_operating_point trait");
 
     public:
+
 
       /**
        * @brief Explicit definition to an Operating Point pointer
@@ -62,57 +81,243 @@ namespace margot
       using OPStream = typename Knowledge<OperatingPoint>::OPStream;
 
 
+
+
       /******************************************************************
        *  METHODS TO UPDATE THE APPLICATION KNOWLEDGE
        ******************************************************************/
 
 
+      /**
+       * @brief Add the target Operating Point to the View of the constraint
+       *
+       * @param [in] new_op A shared pointer which represent the new Operating Point
+       *
+       * @details
+       * This method change only the view of the constraint, it has no effect on
+       * the Operating Point blocked by the constraint.
+       * This method is meant to be used when the application add a new Operating
+       * Point in the AS-RTM.
+       */
       virtual void add( const OperatingPointPtr& new_op ) = 0;
 
+
+      /**
+       * @brief Remove the target Operating Point from the constraint
+       *
+       * @param [in] op A shared pointer to the Operating Point to remove
+       *
+       * @details
+       * This method removes the target Operating Point from the view and from
+       * the Operating Point blocked by this constraint (if present).
+       * This method is meant to be used when the application remove an Operating
+       * Point from the AS-RTM.
+       */
       virtual void remove(const OperatingPointPtr& op ) = 0;
 
+
+      /**
+       * @brief Set the Operating Points in the view of the Constraint
+       *
+       * @param [in] The application knowledge
+       *
+       * @details
+       * This method removes all the current Operating Point of the view (if any)
+       * and insert all the Operating Point of the knowledge base.
+       * This method do not affect the Operating Point blocked by the constraint.
+       * This method is meant to after the creation of a Constraint, to initialize
+       * its view.
+       */
       virtual void set( const Knowledge<OperatingPoint>& application_knowledge ) = 0;
+
+
+
 
       /******************************************************************
        *  METHODS TO SET THE RUNTIME INFORMATION
        ******************************************************************/
 
+
+      /**
+       * @brief Update the runtime information provider of the constraint
+       *
+       * @param [in] runtime_information The knowledge runtime information provider
+       *
+       * @details
+       * This method is meant to be used by the AS-RTM every time the application
+       * add a new information provider or removes all the information providers.
+       */
       virtual void set_field_adaptor( const KnowledgeAdaptor< OperatingPoint, error_coef_type >& runtime_information ) = 0;
+
+
 
 
       /******************************************************************
        *  METHODS TO EVALUATE A STREAM OF OPERATING POINTS
        ******************************************************************/
 
+
+      /**
+       * @brief Get the closest Operating Points to the constraint goal
+       *
+       * @return A OPStream with all the closest Operating Points (if any)
+       *
+       * @details
+       * This method returns an OPStream with all the Operating Point blocked
+       * by this contraint, which are the closest to achive the goal of this
+       * constraints.
+       */
       virtual OPStream get_closest( void ) const = 0;
 
+
+      /**
+       * @brief Prune the input stream of Operating Points, according to the constraint's goal
+       *
+       * @param [in] ops The OPStream of the Operating Points to evaluate
+       *
+       * @return An OPStream pruned of the sub-optimal Operating Points
+       *
+       * @details
+       * A constraints express a binary decision: either an Operating Point achieve the
+       * constraint's goal or it doesn't.
+       * This method aims at pruning the input stream of Operating Point, removing all
+       * the sub-optimal Operating Point.
+       * In particular, if there is at least one Operating Point, in the input stream,
+       * that achieves the constraint's goal, then this method removes all the Operating
+       * Points that don't achieve the constraint's goal. Otherwise, if no Operating
+       * Point of the input stream achieves the constraint's goal, this method removes
+       * all the Operating Points but the ones that are closer to achive the constraint's goal.
+       */
       virtual OPStream narrow( const OPStream& ops ) const = 0;
 
+
+      /**
+       * @brief Retrieves all the Operating Points blocked by the constraint
+       *
+       * @return An OPStream with all the Operating Points blocked by the constraint
+       */
       virtual OPStream to_stream( void ) const = 0;
 
+
+      /**
+       * @brief Append to input stream, all the Operating Points blocked by the constraint
+       *
+       * @param [in/out] ops The OPStream of all the Operating Points blocked up to the current constraint
+       *
+       * @details
+       * This method takes as input an OPStream which contains all the Operting Point blocked
+       * by lower priority constraints and append to it, all the Operating Points blocked
+       * by the current constraint.
+       */
       virtual void append_to( OPStream& ops ) const = 0;
 
+
+      /**
+       * @brief Removes from the input stream, all the Operating Points blocked by this constraint
+       *
+       * @param [in] input The OPStream of the Operating Points to evaluate
+       * @param [out] output The input OPStream pruned of the blocked Operating Points
+       *
+       * @details
+       * For each Operating Point in the input stream, this method checks if we are blocking
+       * them. If the latter statement is false, we store them in the output stream.
+       * In other word, this method removes from the input stream, all the Operating Points
+       * blocked by the current constraint.
+       *
+       * @note
+       * The output stream is cleared before evaluating the input stream.
+       */
       virtual void remove_blocked_ops_from( OPStream& input, OPStream& output ) const = 0;
+
+
 
 
       /******************************************************************
        *  METHODS TO MANAGE THE BLOCKED OPS
        ******************************************************************/
 
+
+      /**
+       * @brief Removes all the Operating Points, blocked by this constraint
+       *
+       * @details
+       * This method clear the internal container used to store all the blocked
+       * Operating Points by this constraint.
+       */
       virtual void clear( void ) = 0;
 
 
+      /**
+       * @brief Evaluate the input stream to block the Operating Points
+       *
+       * @param [in] input The OPStream to evaluate
+       * @param [out] blocked All the Operating Points blocked by the constraint
+       *
+       * @details
+       * This method evaluates all the Operating Points in the input stream and
+       * stores to the blocked stream all the Operating Points that don't achieve
+       * this constraint's goal. It does the opposite of filter_add.
+       * All the blocked Operating Points are also stored in the internal container
+       * that keep tracks of the blocked Operating Points.
+       */
       virtual void filter_initialize( OPStream& input, OPStream& blocked ) = 0;
 
 
+      /**
+       * @brief Evaluate the input stream to block the Operating Points
+       *
+       * @param [in] input The OPStream to evaluate
+       * @param [out] output All the Operating Points not blocked by the constraint
+       *
+       * @details
+       * This method evaluates all the Operating Points in the input stream and
+       * stores to the output stream all the Operating Points that achieves
+       * this constraint's goal. It does the opposite of filter_initialize.
+       * All the blocked Operating Points are also stored in the internal container
+       * that keep tracks of the blocked Operating Points.
+       */
       virtual void filter_add( OPStream& input, OPStream& output ) = 0;
 
 
+      /**
+       * @brief Evaluate the input stream to unblock the Operating Points
+       *
+       * @param [in] input The OPStream to evaluate
+       * @param [out] output All the Operating Points not blocked by the constraint
+       *
+       * @details
+       * For each Operating Point in the input stream, this constraint checks if
+       * it is blocking them, i.e. if the Operating Point is in the internal container
+       * that keeps track of the blocked Operating Points.
+       * If the latter statement is true, then this method remove the target Operting Point
+       * from the internal container of the blocked ones. Otherwise, store the Operting
+       * Point in the output OPstream.
+       */
       virtual void filter_remove( OPStream& input, OPStream& output ) = 0;
 
 
+      /**
+       * @brief The method used to dynamically react to changes.
+       *
+       * @param [out] invalidated_ops An OPStream with all the Operating Points that are no more valid
+       * @param [in] validated_ops An OPStream with all the Operating Points that are become valid
+       *
+       * @details
+       * This method takes into account changes in the goal value and changes from the field adaptor,
+       * observed by the related monitor (if any).
+       * If the situation is going worst, the method stores in the invalidated_ops stream all the
+       * Operating Point that doesn't achive the constraint's goal anymore, therefore they should be
+       * blocked by the constraint (if they are valid for the higher priority constraint).
+       * If the situation is going better, this method removes from the internal container of the
+       * blocked Operating Points the ones that are become valid and store them to the validated_ops
+       * stream.
+       */
       virtual void update( OPStream& invalidated_ops, OPStream& validated_ops ) = 0;
 
+
+      /**
+       * @brief Virtual decustructor of the interface
+       */
       virtual ~ConstraintHandler( void )
       {}
 
