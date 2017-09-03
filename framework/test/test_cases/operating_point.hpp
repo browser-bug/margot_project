@@ -128,7 +128,7 @@ class OperatingPoint : public CxxTest::TestSuite
       op.reset(new OperatingPointType(
       {1, 2},
       {margot::Distribution<float>(3, 0.1), margot::Distribution<float>(4, 0.1)}
-               ));
+      ));
 
       // check software knobs
       const auto k1_avg = margot::op_utils<OperatingPointType,

@@ -94,7 +94,7 @@ class KnowledgeBase : public CxxTest::TestSuite
         margot::Knowledge<MyOperatingPoint>::OperatingPointPtr( new MyOperatingPoint(
       {1, 2},
       {margot::Distribution<float>(3, 0.1), margot::Distribution<float>(4, 0.1)}
-            ));
+      ));
       auto result = kb.add(new_op);
       TS_ASSERT(!result);
       TS_ASSERT_EQUALS(kb.size(), counter);
