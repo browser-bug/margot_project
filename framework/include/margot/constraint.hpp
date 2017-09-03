@@ -202,7 +202,7 @@ namespace margot
       /**
        * @brief Append to input stream, all the Operating Points blocked by the constraint
        *
-       * @param [in/out] ops The OPStream of all the Operating Points blocked up to the current constraint
+       * @param [in,out] ops The OPStream of all the Operating Points blocked up to the current constraint
        *
        * @details
        * This method takes as input an OPStream which contains all the Operting Point blocked
@@ -778,7 +778,7 @@ namespace margot
       /**
        * @brief Implementation of the ConstraintHandler "append_to" method
        *
-       * @param [in/out] ops The OPStream of all the Operating Points blocked up to the current constraint
+       * @param [in,out] ops The OPStream of all the Operating Points blocked up to the current constraint
        *
        * @see ConstraintHandler
        */
@@ -853,7 +853,7 @@ namespace margot
         blocked.clear();
 
         // block all the invalid Operating Points;
-        for ( auto&& op : input )
+        for ( auto && op : input )
         {
           if ( !target_goal.template check<view_type, value_type >(knowledge_view.evaluate_op(op), last_check_value) )
           {
@@ -878,7 +878,7 @@ namespace margot
         output.clear();
 
         // block all the invalid Operating Points;
-        for ( auto&& op : input )
+        for ( auto && op : input )
         {
           if ( target_goal.template check<view_type, value_type >(knowledge_view.evaluate_op(op), last_check_value) )
           {
@@ -906,7 +906,7 @@ namespace margot
         output.clear();
 
         // remove all the input Operating Points
-        for ( auto&& op : input )
+        for ( auto && op : input )
         {
           const auto elem_it = blocked_ops.find(op);
 
@@ -1023,10 +1023,12 @@ namespace margot
        */
       MyView knowledge_view;
 
+
       /**
        * @brief All the Operating Point blocked by this constraint
        */
       Container blocked_ops;
+
 
       /**
        * @brief The pointer to the runtime information provider, related to the target field
