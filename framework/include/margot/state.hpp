@@ -17,7 +17,6 @@
  * USA
  */
 
-
 #ifndef MARGOT_STATE_HDR
 #define MARGOT_STATE_HDR
 
@@ -38,9 +37,42 @@
 namespace margot
 {
 
+
+  /**
+   * @brief This class represents a constrained multi-objective optimization problem
+   *
+   * @tparam OperatingPoint The type which defines the Operating Point characteristics
+   * @tparam priority_type The type used to represents the priority of a constraint
+   * @tparam error_coef_type The type used to compute the error coefficient of the application knowledge
+   *
+   * @details
+   * This class is the core of the mARGOt framework since it aims at solving the optimization problem,
+   * which is formulated as follows:
+   *
+   *         minimize/minimize f(OperatingPoint)
+   *
+   *           s.t.     c1(OperatingPoint) § goal1
+   *                    c2(OperatingPoint) § goal2
+   *                          ...            ...
+   *
+   * Where f(OperatingPoint) represents the objective funcion to maxime or minimize, cn extracts a numeric
+   * value from an Operating Point and goaln is the goal to achieve to satisfy the n-th constraint.
+   * This class provides all the required methods to alter the formulation of the problem, to alter the
+   * application knowledge, to take into account runtime information and to solve it.
+   *
+   * From the implementation points of ciew, a state uses constraints to filter all the Operating Point in
+   * the application knowledge. In particular, each constraint keeps track internally of all the Operating
+   * Point valid for higher priority constraints, but not valid for the considered constraint.
+   * If an Operating Point is valid for all the constraints, it is inserted in the rank container, which
+   * evaluate all the valid Operating Point according to the objective function.
+   *
+   * This class has two main task: keep a consistent representation of the problem and select the most
+   * suitable configuration in an efficient way.
+   */
   template< class OperatingPoint, typename priority_type = int, typename error_coef_type = float >
   class State
   {
+
       // statically check the template argument
       static_assert(traits::is_operating_point<OperatingPoint>::value,
                     "Error: the State handles object with is_operating_point trait");
@@ -63,15 +95,32 @@ namespace margot
       using OPStream = typename Knowledge<OperatingPoint>::OPStream;
 
 
+      /**
+       * @brief Definition of a pointer to a generic constraint
+       */
       using ConstraintPtr = std::shared_ptr< ConstraintHandler< OperatingPoint, error_coef_type > >;
 
 
+      /**
+       * @brief Definitionof a pointer to the rank interface
+       */
       using RankPtr = std::shared_ptr< RankInterface< OperatingPoint > >;
 
 
+      /**
+       * @brief Aliasing of the structure used to store the set of constraint
+       */
       using ConstraintStack = std::map< priority_type, ConstraintPtr >;
 
 
+      /**
+       * @brief Default constructor
+       *
+       * @details
+       * By default a state defines the objective function to minimize the average value of
+       * the first software knob. We have chosen this definition because we are sure that the
+       * Operating Point will have at least one software knob.
+       */
       State( void ): problem_is_changed(true)
       {
         // we are just interested in one field that, for sure, is available: the first software knob
@@ -83,11 +132,37 @@ namespace margot
       }
 
 
+
+
       /******************************************************************
        *  CONSTRAINTS MANAGEMENT
        ******************************************************************/
 
 
+      /**
+       * @brief Add a constraint in the optimization problem
+       *
+       * @tparam segment The enumerator value of the target segment of the Operating Point
+       * @tparam field_index The index of the target field within the target segment
+       * @tparam sigma The confidence of the constraints, i.e. the number of times the standard deviation is taken into account
+       * @tparam ConstraintGoal The type of the constraint's goal
+       *
+       * @param [in] goal_value The goal that represents the constraint
+       * @param [in] priority The priority of the new constraint
+       * @param [in] kb The knowledge base of the application
+       * @param [in] adaptor The runtime information provider
+       *
+       * @see State
+       *
+       * @details
+       * This method insert and initialize a new constraint in the optimization problem. To initialize
+       * the constraint we have to populate the view of the constraint using the application knowledge,
+       * update the internal structure of the Operating Points and set the field adaptor for the constraint.
+       * Adding a constraint is not a cheap operation. It is better to do so in the "initialization" of the
+       * application, for performance reason.
+       * The priority is used as unique identifier for a constraint. If we are adding a constraint with the
+       * same priority of a previous one, the former will overwrite the latter
+       */
       template< OperatingPointSegments segment, std::size_t field_index, int sigma, class ConstraintGoal >
       void add_constraint( const ConstraintGoal& goal_value,
                            const priority_type priority,
@@ -161,6 +236,18 @@ namespace margot
       }
 
 
+      /**
+       * @brief Remove a constraint from the optimization problem
+       *
+       * @param [in] priority The priority of the target constraint to remove
+       *
+       * @see State
+       *
+       * @details
+       * This method remove a constraint from the optimization problem and change the
+       * internal structure according to the Operating Points blocked by the target
+       * constraint. This may be a not cheap operation.
+       */
       void remove_constraint( const priority_type priority )
       {
         // search for the constraint
@@ -203,13 +290,26 @@ namespace margot
 
 
 
-
-
       /******************************************************************
        *  RANK MANAGEMENT
        ******************************************************************/
 
 
+      /**
+       * @brief Set the rank of the active state, i.e. its objective function
+       *
+       * @tparam objective Enumerator to tell if we want to maximize or minimize the objective function
+       * @tparam composer Enumerator to select the way the objective function is composed
+       * @tparam ...Fields The list of fields that compose the objective function
+       *
+       * @param [in] ...values The coefficients of each field that compose the objective function
+       *
+       * @see Rank
+       *
+       * @details
+       * This method store in a stream all the valid Operating Points, replace the previous rank
+       * function and insert again the valid Operating Points.
+       */
       template< RankObjective objective, FieldComposer composer, class ...Fields >
       void set_rank( Fields ...values )
       {
@@ -238,6 +338,17 @@ namespace margot
        *  UTILITY METHODS TO UPDATE THE APPLICATION KNWOLEDGE
        ******************************************************************/
 
+
+      /**
+       * @brief Add a stream of Operating Points in the state
+       *
+       * @param [in] new_ops A OPStream containing the new Operating Points
+       *
+       * @details
+       * This methods at first update the view of all the constraint that compose
+       * the optimization problem. In a second step evaluates all the new Operating
+       * Points.
+       */
       void add_operating_points( const OPStream& new_ops )
       {
         // update the constraints view
@@ -268,6 +379,15 @@ namespace margot
       }
 
 
+      /**
+       * @brief Remove a stream of Operating Points
+       *
+       * @param [in] ops A OPStream with all the Operating Points to remove
+       *
+       * @details
+       * This methods removes the Operating Points from the constraints internal container of
+       * the blocked Operating Points and from the constraints views.
+       */
       void remove_operating_points( const OPStream& ops )
       {
         // update the constraints view
@@ -288,6 +408,16 @@ namespace margot
       }
 
 
+      /**
+       * @brief Initialize the constraint with a new knowledge base
+       *
+       * @param [in] kb The application knowledge
+       *
+       * @details
+       * This method sets all the Operating Point points in the knowledge base
+       * in the views of all the contraints and then filter all the Operating Points
+       * through the list of constraints and the rank.
+       */
       void set_knowledge_base( const Knowledge<OperatingPoint>& kb )
       {
         // set the views and clear the blocked ops from all the constraints
@@ -320,6 +450,11 @@ namespace margot
       }
 
 
+      /**
+       * @brief Update all the constraints with new runtime information providers
+       *
+       * @param [in] adaptor The new runtime information provider
+       */
       void set_knowledge_adaptor( const KnowledgeAdaptor<OperatingPoint, error_coef_type>& adaptor )
       {
         // set the adaptor for the constraint
@@ -340,6 +475,20 @@ namespace margot
        ******************************************************************/
 
 
+      /**
+       * @brief This method solve the optimization problem
+       *
+       * @return The OperatinPointPtr which represents the most suitable configuration
+       *
+       * @details
+       * At first this method update each constraint to see if there are changes in the
+       * goal values or in the execution environment.
+       * Then finds the best Operating Point according to the application requirements.
+       *
+       * Internally, it uses memoization-like mechanism in order to avoid any computation
+       * if the situation is not changed from the last time we have found the most suitable
+       * configuration.
+       */
       OperatingPointPtr get_best_operating_point( void )
       {
         // first update the internal structure to see if there are differences
@@ -408,9 +557,12 @@ namespace margot
       }
 
 
-
     private:
 
+
+      /**
+       * @brief Updates all the constraints in the optimization problem
+       */
       void update( void )
       {
         // get a reference to the first constraint
@@ -489,6 +641,19 @@ namespace margot
         }
       }
 
+
+      /**
+       * @brief Find the most suitable configuration from a stream of Operating Point
+       *
+       * @param [in] input_ops The OPStream of Operating Point to evaluate
+       * @param [in] constraint_it The iterator of the relaxed constraint
+       *
+       * @details
+       * If there are no valid Operating Points, we start to relax the contraints, starting with the ones
+       * with low priority. Once we found a constraint that is blocking some Operating Points, we get
+       * the closest ones to achieve its goal.
+       * From these Operating Points, this methods find the most suitable one.
+       */
       OperatingPointPtr get_best_from_stream( OPStream& input_ops, const typename ConstraintStack::iterator& constraint_it ) const
       {
         // if there is only one Operating Point it's good
@@ -519,13 +684,29 @@ namespace margot
         return rank->best(input_ops);
       }
 
+
+      /**
+       * @brief The list of constraint of the optimization problem
+       */
       ConstraintStack constraints;
 
-      bool problem_is_changed;
-      OperatingPointPtr best_operating_point_found;
 
+      /**
+       * @brief The objective function of the optimization problem
+       */
       RankPtr rank;
 
+
+      /**
+       * @brief Varable, used to keep track of changes in the state
+       */
+      bool problem_is_changed;
+
+
+      /**
+       * @brief Pointer to the most suitable Operating Point found
+       */
+      OperatingPointPtr best_operating_point_found;
 
   };
 
