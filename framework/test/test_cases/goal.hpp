@@ -29,22 +29,22 @@ class Goal : public CxxTest::TestSuite
     void test_check_data_functions(void)
     {
       margot::Goal<int, margot::ComparisonFunctions::GREATER_OR_EQUAL> mygoal(2);
-      margot::Monitor<float> monitor;
+      margot::Monitor<float, float> monitor;
 
-      TS_ASSERT((!mygoal.check<float, margot::DataFunctions::AVERAGE>(monitor)));
+      TS_ASSERT((!mygoal.check<float, float, margot::DataFunctions::AVERAGE>(monitor)));
 
       monitor.push(2);
-      TS_ASSERT((mygoal.check<float, margot::DataFunctions::AVERAGE>(monitor)));
+      TS_ASSERT((mygoal.check<float, float, margot::DataFunctions::AVERAGE>(monitor)));
 
       monitor.push(2.5);
-      TS_ASSERT_DELTA((mygoal.relative_error<float, margot::DataFunctions::AVERAGE>(monitor)), 0, 0.001);
+      TS_ASSERT_DELTA((mygoal.relative_error<float, float, margot::DataFunctions::AVERAGE>(monitor)), 0, 0.001);
       monitor.push(1);
-      TS_ASSERT_DELTA((mygoal.relative_error<float, margot::DataFunctions::AVERAGE>(monitor)), 0.5, 0.001);
+      TS_ASSERT_DELTA((mygoal.relative_error<float, float, margot::DataFunctions::AVERAGE>(monitor)), 0.5, 0.001);
 
       monitor.push(2.5);
-      TS_ASSERT_DELTA((mygoal.absolute_error<float, margot::DataFunctions::AVERAGE>(monitor)), 0, 0.001);
+      TS_ASSERT_DELTA((mygoal.absolute_error<float, float, margot::DataFunctions::AVERAGE>(monitor)), 0, 0.001);
       monitor.push(1);
-      TS_ASSERT_DELTA((mygoal.absolute_error<float, margot::DataFunctions::AVERAGE>(monitor)), 1.0, 0.001);
+      TS_ASSERT_DELTA((mygoal.absolute_error<float, float, margot::DataFunctions::AVERAGE>(monitor)), 1.0, 0.001);
 
     }
 
