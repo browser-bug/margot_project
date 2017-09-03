@@ -119,7 +119,7 @@ namespace margot
       /**
        * @brief Set the Operating Points in the view of the Constraint
        *
-       * @param [in] The application knowledge
+       * @param [in] application_knowledge The application knowledge
        *
        * @details
        * This method removes all the current Operating Point of the view (if any)
@@ -326,48 +326,133 @@ namespace margot
 
   namespace helper
   {
+
+
+    /**
+     * @brief helper struct, to retrieve the correct bound value, from the comparison function
+     *
+     * @tparam cf The enumerator that represents the target comparison function
+     *
+     * @details
+     * A constraint represents a property that the most suitable configuration must achieve.
+     * It involves a comparison function (e.g. greater than or less than), a numerical value
+     * and a confidence, expressed in terms of how many time the standard deviation is kept
+     * into account.
+     * This struct provides a global interface that selects automatically the correct bound
+     * for evaluating an Operating Point, given the target comparison function. For example,
+     * if the comparison function is greater than, then the constraint must use a lower bound.
+     * This struct takes advantage of partial specialization to select the correct bound.
+     * Since this struct represents the general case, you should never be able to use this
+     * struct.
+     */
     template< ComparisonFunctions cf >
     struct constraint;
 
+
+    /**
+     * @brief Specialization of the helper struct, for the "grater" comparison function
+     *
+     * @see helper::constraint
+     */
     template< >
     struct constraint< ComparisonFunctions::GREATER >
     {
+
+      /**
+       * @brief Retrieves the correct bound for the "greater" comparison function
+       *
+       * @return The enumerator BoundType::LOWER as constexpr value
+       */
       inline static constexpr BoundType get_bound( void )
       {
         return BoundType::LOWER;
       }
     };
 
+
+    /**
+     * @brief Specialization of the helper struct, for the "grater or equal" comparison function
+     *
+     * @see helper::constraint
+     */
     template< >
     struct constraint< ComparisonFunctions::GREATER_OR_EQUAL >
     {
+
+      /**
+       * @brief Retrieves the correct bound for the "grater or equal" comparison function
+       *
+       * @return The enumerator BoundType::LOWER as constexpr value
+       */
       inline static constexpr BoundType get_bound( void )
       {
         return BoundType::LOWER;
       }
     };
 
+
+    /**
+     * @brief Specialization of the helper struct, for the "less" comparison function
+     *
+     * @see helper::constraint
+     */
     template< >
     struct constraint< ComparisonFunctions::LESS >
     {
+
+      /**
+       * @brief Retrieves the correct bound for the "less" comparison function
+       *
+       * @return The enumerator BoundType::UPPER as constexpr value
+       */
       inline static constexpr BoundType get_bound( void )
       {
         return BoundType::UPPER;
       }
     };
 
+
+    /**
+     * @brief Specialization of the helper struct, for the "less or equal" comparison function
+     *
+     * @see helper::constraint
+     */
     template< >
     struct constraint< ComparisonFunctions::LESS_OR_EQUAL >
     {
+
+      /**
+       * @brief Retrieves the correct bound for the "less or equal" comparison function
+       *
+       * @return The enumerator BoundType::UPPER as constexpr value
+       */
       inline static constexpr BoundType get_bound( void )
       {
         return BoundType::UPPER;
       }
     };
-  }
+
+  } // namespace helper
 
 
 
+  /**
+   * @brief Implementation of the ConstraintHandler interface
+   *
+   * @tparam OperatingPoint The type which defines the Operating Point characteristics
+   * @tparam segment The target segment of the Operating Point
+   * @tparam field_index The index of the target field within the target segment of the Operating Point
+   * @tparam sigma Number of times the standard deviation of the field must kept into account
+   * @tparam ConstraintGoal The type of the target goal, related to the constraint
+   * @tparam error_coef_type The type used to compute the error coefficient of the application knowledge
+   *
+   * @see ConstraintHandler
+   *
+   * @details
+   * This class is an implementation of a generic constraint, represented by the interface ConstraintHandler.
+   * While the interface expose toward the framework all the methods to manage Operating Point, this class
+   * actually uses all the information required to evaluate the constraint.
+   */
   template< class OperatingPoint,
             OperatingPointSegments segment,
             std::size_t field_index,
@@ -398,22 +483,60 @@ namespace margot
        */
       using OPStream = typename ConstraintHandler<OperatingPoint>::OPStream;
 
+
+      /**
+       * @brief Definition of the field related to this constraint
+       */
       using ConstraintField = OPField< segment, helper::constraint<ConstraintGoal::comparison_function>::get_bound(), field_index, sigma, int >;
+
+
+      /**
+       * @brief Definition of the view on the Operating Point, used by this constraint
+       */
       using MyView = View< OperatingPoint, FieldComposer::SIMPLE, ConstraintField >;
 
+
+      /**
+       * @brief The container used to store the Operating Points blocked by this constraint
+       */
       using Container = std::unordered_set< OperatingPointPtr >;
 
+
+      /**
+       * @brief Pointer of the runtime information provider for the target field of the Operating Point
+       */
       using MyFieldAdaptor = typename KnowledgeAdaptor< OperatingPoint, error_coef_type >::FieldAdaptorPtr;
 
 
+      /**
+       * @brief Aliasing of the type of the values stored in the view
+       */
       using view_type = typename MyView::value_type;
 
+
+      /**
+       * @brief Aliasing of the type of the goal value
+       */
       using goal_value_type = typename ConstraintGoal::value_type;
 
+
+      /**
+       * @brief The actual type of the goal value, once it is been adjusted by runtime information
+       */
       using value_type = decltype( error_coef_type{} * goal_value_type{});
 
 
-
+      /**
+       * @brief Default construcor which initialize the goal
+       *
+       * @param [in] goal_value The Goal which represents the constraint
+       *
+       * @details
+       * The constructor makes a copy of the target Goal. Every time the user will change the goal
+       * value, the constraint automatically reacts to that change.
+       * The trivial constructor in not available, because for implementation reason there must
+       * always be a Goal which might validate an Operating Point.
+       */
       Constraint( const ConstraintGoal& goal_value )
       {
         // populate the view (the number in the constructor is meaningless for the constraint ), if any
@@ -425,16 +548,33 @@ namespace margot
       }
 
 
+
+
       /******************************************************************
        *  METHODS TO UPDATE THE APPLICATION KNOWLEDGE
        ******************************************************************/
 
 
+      /**
+       * @brief Implementation of the ConstraintHandler "add" method
+       *
+       * @param [in] new_op A shared pointer which represent the new Operating Point
+       *
+       * @see ConstraintHandler
+       */
       void add( const OperatingPointPtr& new_op )
       {
         knowledge_view.add(new_op);
       }
 
+
+      /**
+       * @brief Implementation of the ConstraintHandler "remove" method
+       *
+       * @param [in] op  A shared pointer to the Operating Point to remove
+       *
+       * @see ConstraintHandler
+       */
       void remove(const OperatingPointPtr& op )
       {
         knowledge_view.remove( op );
@@ -442,26 +582,54 @@ namespace margot
       }
 
 
+      /**
+       * @brief Implementation of the ConstraintHandler "set" method
+       *
+       * @param [in] application_knowledge The application knowledge
+       *
+       * @see ConstraintHandler
+       */
       void set( const Knowledge<OperatingPoint>& application_knowledge )
       {
         knowledge_view.clear();
         knowledge_view.add(application_knowledge.begin(), application_knowledge.end());
       }
 
+
+
+
       /******************************************************************
        *  METHODS TO SET THE RUNTIME INFORMATION
        ******************************************************************/
 
+
+      /**
+       * @brief Implementation of the ConstraintHandler "set_field_adaptor" method
+       *
+       * @param [in] runtime_information The knowledge runtime information provider
+       *
+       * @see ConstraintHandler
+       */
       void set_field_adaptor( const KnowledgeAdaptor< OperatingPoint, error_coef_type >& runtime_information )
       {
         knowledge_adaptor = runtime_information.template get_field_adaptor<segment, field_index>();
       }
 
 
+
+
       /******************************************************************
        *  METHODS TO EVALUATE A STREAM OF OPERATING POINTS
        ******************************************************************/
 
+
+      /**
+       * @brief Implementation of the ConstraintHandler "get_closest" method
+       *
+       * @return A OPStream with all the closest Operating Points (if any)
+       *
+       * @see ConstraintHandler
+       */
       OPStream get_closest( void ) const
       {
         // if this constraint do not block ant op, we shall return an empty stream
@@ -506,6 +674,16 @@ namespace margot
         return closest_ops;
       }
 
+
+      /**
+       * @brief Implementation of the ConstraintHandler "narrow" method
+       *
+       * @param [in] ops The OPStream of the Operating Points to evaluate
+       *
+       * @return An OPStream pruned of the sub-optimal Operating Points
+       *
+       * @see ConstraintHandler
+       */
       OPStream narrow( const OPStream& ops ) const
       {
         // if the stream is empty, we shall return an empty stream
@@ -567,6 +745,14 @@ namespace margot
         return best_ops;
       }
 
+
+      /**
+       * @brief Implementation of the ConstraintHandler "to_stream" method
+       *
+       * @return An OPStream with all the Operating Points blocked by the constraint
+       *
+       * @see ConstraintHandler
+       */
       OPStream to_stream( void ) const
       {
         // if we don't block any Operating Point
@@ -589,6 +775,13 @@ namespace margot
       }
 
 
+      /**
+       * @brief Implementation of the ConstraintHandler "append_to" method
+       *
+       * @param [in/out] ops The OPStream of all the Operating Points blocked up to the current constraint
+       *
+       * @see ConstraintHandler
+       */
       void append_to( OPStream& ops ) const
       {
         for ( const auto& op : blocked_ops )
@@ -598,6 +791,14 @@ namespace margot
       }
 
 
+      /**
+       * @brief Implementation of the ConstraintHandler "remove_blocked_ops_from" method
+       *
+       * @param [in] input The OPStream of the Operating Points to evaluate
+       * @param [out] output The input OPStream pruned of the blocked Operating Points
+       *
+       * @see ConstraintHandler
+       */
       void remove_blocked_ops_from( OPStream& input, OPStream& output ) const
       {
         // make sure that the output stream is empty
@@ -620,16 +821,32 @@ namespace margot
       }
 
 
+
+
       /******************************************************************
        *  METHODS TO MANAGE THE BLOCKED OPS
        ******************************************************************/
 
+
+      /**
+       * @brief Implementation of the ConstraintHandler "clear" method
+       *
+       * @see ConstraintHandler
+       */
       void clear( void )
       {
         blocked_ops.clear();
       }
 
 
+      /**
+       * @brief Implementation of the ConstraintHandler "filter_initialize" method
+       *
+       * @param [in] input The OPStream to evaluate
+       * @param [out] blocked All the Operating Points blocked by the constraint
+       *
+       * @see ConstraintHandler
+       */
       void filter_initialize( OPStream& input, OPStream& blocked )
       {
         // make sure that the output stream is empty
@@ -647,6 +864,14 @@ namespace margot
       }
 
 
+      /**
+       * @brief Implementation of the ConstraintHandler "filter_add" method
+       *
+       * @param [in] input The OPStream to evaluate
+       * @param [out] output All the Operating Points not blocked by the constraint
+       *
+       * @see ConstraintHandler
+       */
       void filter_add( OPStream& input, OPStream& output )
       {
         // make sure that the output stream is empty
@@ -667,6 +892,14 @@ namespace margot
       }
 
 
+      /**
+       * @brief Implementation of the ConstraintHandler "filter_remove" method
+       *
+       * @param [in] input The OPStream to evaluate
+       * @param [out] output All the Operating Points not blocked by the constraint
+       *
+       * @see ConstraintHandler
+       */
       void filter_remove( OPStream& input, OPStream& output )
       {
         // make sure that the output stream is empty
@@ -689,6 +922,14 @@ namespace margot
       }
 
 
+      /**
+       * @brief Implementation of the ConstraintHandler "update" method
+       *
+       * @param [out] invalidated_ops An OPStream with all the Operating Points that are no more valid
+       * @param [in] validated_ops An OPStream with all the Operating Points that are become valid
+       *
+       * @see ConstraintHandler
+       */
       void update( OPStream& invalidated_ops, OPStream& validated_ops )
       {
         // make sure that the output streams are empty
@@ -760,20 +1001,39 @@ namespace margot
 
     private:
 
+
+      /**
+       * @brief The reference goal for the constraint
+       */
       ConstraintGoal target_goal;
+
+
+      /**
+       * @brief The last value used to update the constraint
+       *
+       * @details
+       * This value takes into account the information provided by the runtime
+       * information provider.
+       */
       value_type last_check_value;
 
 
+      /**
+       * @brief The sorted view over the application knowledge
+       */
       MyView knowledge_view;
 
+      /**
+       * @brief All the Operating Point blocked by this constraint
+       */
       Container blocked_ops;
 
+      /**
+       * @brief The pointer to the runtime information provider, related to the target field
+       */
       MyFieldAdaptor knowledge_adaptor;
 
-
   };
-
-
 
 }
 
