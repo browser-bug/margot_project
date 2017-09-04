@@ -113,6 +113,22 @@ namespace margot
     SIMPLE
   };
 
+
+  /**
+   * @brief Used to indicate the unit of measure for times interval
+   *
+   * @details
+   * This enum is used in the application monitor, to select the granularity
+   * of the measurements
+   */
+  enum class TimeUnit
+  {
+    NANOSECONDS,
+    MICROSECONDS,
+    MILLISECONDS,
+    SECONDS
+  };
+
 }
 
 #endif // MARGOT_ENUMS_HDR

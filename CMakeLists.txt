@@ -36,6 +36,8 @@ set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -march=native -mtune=nat
 #### Option section
 ################################
 
+option( LIB_STATIC "Build a static version of the library" ON)
+
 option( WITH_TEST "Build a test unit application" ON )
 if ( WITH_TEST )
 	list (APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/framework/test/cmake")
@@ -47,6 +49,23 @@ if ( GEN_DOC )
 	find_package( Doxygen )
 endif ( GEN_DOC )
 
+option( USE_COLLECTOR_MONITOR "Build the collector monitor" OFF )
+if ( USE_COLLECTOR_MONITOR )
+	list (APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/framework/cmake")
+	find_package( COLLECTOR )
+endif ( USE_COLLECTOR_MONITOR )
+
+option( USE_PAPI_MONITOR "Build the PAPI monitor" ON )
+if ( USE_PAPI_MONITOR )
+	list (APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/framework/cmake")
+	find_package( PAPI )
+endif( USE_PAPI_MONITOR )
+
+option( USE_TEMPERATURE_MONITOR "Build the temperature monitor" ON )
+if ( USE_TEMPERATURE_MONITOR )
+	list (APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/framework/cmake")
+	find_package( SENSORS )
+endif( USE_TEMPERATURE_MONITOR )
 
 
 
@@ -59,6 +78,15 @@ message( STATUS "" )
 message( STATUS "*****************************************" )
 message( STATUS "**            CONFIG STATUS            **" )
 message( STATUS "*****************************************" )
+
+
+# check if we must compile the library in a static way
+if ( LIB_STATIC )
+	message( STATUS "Build library........................: STATIC (-DLIB_STATIC=OFF for dynamic)" )
+else ( LIB_STATIC )
+	message( STATUS "Build library........................: DYNAMIC (-DLIB_STATIC=ON for static)" )
+endif ( LIB_STATIC )
+
 
 # check if we have to generate the test application
 if ( WITH_TEST )
@@ -94,6 +122,60 @@ else ( GEN_DOC )
 endif ( GEN_DOC )
 
 
+# check if we can compile the collector monitor
+if ( USE_COLLECTOR_MONITOR )
+	if ( HAVE_COLLECTOR )
+		message( STATUS "Using collector monitor..............: ENABLED (-DUSE_COLLECTOR_MONITOR=OFF to disable)" )
+	else ( HAVE_COLLECTOR )
+		message( SEND_ERROR "Using collector monitor..............: COLLECTOR not found!" )
+		message( "    POSSIBLE SOLUTIONS:")
+		message( "    1) Install collector system-wide")
+		message( "    2) Export collector root path in COLECTOR_ROOT")
+		message( "       environmental variable (current value = \"$ENV{COLLECTOR_ROOT}\")")
+		message( "    3) Disable the option with -DUSE_COLLECTOR_MONITOR=OFF\n\n\n")
+		return()
+	endif ( HAVE_COLLECTOR)
+else ( USE_COLLECTOR_MONITOR )
+	message( STATUS "Using collector monitor..............: DISABLED (-DUSE_COLLECTOR_MONITOR=ON to enable)" )
+endif ( USE_COLLECTOR_MONITOR )
+
+
+# check if we can compile the collector monitor
+if ( USE_PAPI_MONITOR )
+	if ( HAVE_PAPI )
+		message( STATUS "Using papi monitor...................: ENABLED (-DUSE_PAPI_MONITOR=OFF to disable)" )
+	else ( HAVE_PAPI )
+		message( SEND_ERROR "Using papi monitor...................: PAPI not found!" )
+		message( "    POSSIBLE SOLUTIONS:")
+		message( "    1) Install papi system-wide")
+		message( "    2) Export papi root path in PAPI_ROOT")
+		message( "       environmental variable (current value = \"$ENV{PAPI_ROOT}\")")
+		message( "    3) Disable the option with -DUSE_PAPI_MONITOR=OFF\n\n\n")
+		return()
+	endif ( HAVE_PAPI)
+else ( USE_PAPI_MONITOR )
+	message( STATUS "Using papi monitor...................: DISABLED (-DUSE_PAPI_MONITOR=ON to enable)" )
+endif ( USE_PAPI_MONITOR )
+
+
+# check if we can compile the collector monitor
+if ( USE_TEMPERATURE_MONITOR )
+	if ( HAVE_SENSORS )
+		message( STATUS "Using temperature monitor............: ENABLED (-DUSE_TEMPERATURE_MONITOR=OFF to disable)" )
+	else ( HAVE_SENSORS )
+		message( SEND_ERROR "Using temperature monitor............: SENSORS not found!" )
+		message( "    POSSIBLE SOLUTIONS:")
+		message( "    1) Install sensors system-wide")
+		message( "    2) Export sensors root path in SENSORS_ROOT")
+		message( "       environmental variable (current value = \"$ENV{SENSORS_ROOT}\")")
+		message( "    3) Disable the option with -DUSE_TEMPERATURE_MONITOR=OFF\n\n\n")
+		return()
+	endif ( HAVE_SENSORS)
+else ( USE_TEMPERATURE_MONITOR )
+	message( STATUS "Using temperature monitor............: DISABLED (-DUSE_TEMPERATURE_MONITOR=ON to enable)" )
+endif ( USE_TEMPERATURE_MONITOR )
+
+
 # this message is just for pretty printing
 message( STATUS "" )
 
@@ -113,3 +195,12 @@ file( WRITE ${AUTOCOMPLETE_FILE_NAME} "-I${PROJECT_SOURCE_DIR}/framework/include
 if ( WITH_TEST )
 	file( APPEND ${AUTOCOMPLETE_FILE_NAME} "-I${CXXTEST_INCLUDES}" )
 endif ( WITH_TEST )
+if ( HAVE_COLLECTOR )
+	file( APPEND ${AUTOCOMPLETE_FILE_NAME} "-I${COLLECTOR_INCLUDES}" )
+endif ( HAVE_COLLECTOR )
+if ( HAVE_PAPI )
+	file( APPEND ${AUTOCOMPLETE_FILE_NAME} "-I${PAPI_INCLUDES}" )
+endif ( HAVE_PAPI )
+if ( HAVE_SENSORS )
+	file( APPEND ${AUTOCOMPLETE_FILE_NAME} "-I${SENSORS_INCLUDES}" )
+endif ( HAVE_SENSORS )
