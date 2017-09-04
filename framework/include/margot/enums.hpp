@@ -23,7 +23,6 @@
 namespace margot
 {
 
-
   /**
    * @brief Used to select the Operating Point segment of interest
    *
@@ -113,7 +112,6 @@ namespace margot
     LINEAR,
     SIMPLE
   };
-
 
 }
 

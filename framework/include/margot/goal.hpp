@@ -1,4 +1,4 @@
-/* core/rank.hpp
+/* core/goal.hpp
  * Copyright (C) 2017 Davide Gadioli
  *
  * This library is free software; you can redistribute it and/or
@@ -20,22 +20,18 @@
 #ifndef MARGOT_GOAL_HDR
 #define MARGOT_GOAL_HDR
 
-
 #include <memory>
 #include <algorithm>
 #include <cassert>
 
-
 #include "margot/enums.hpp"
 #include "margot/monitor.hpp"
-
 
 namespace margot
 {
 
   namespace helper
   {
-
 
     /**
      * @brief helper struct, to compare two numbers accorfing to the comparison function
@@ -63,6 +59,7 @@ namespace margot
     struct goal< ComparisonFunctions::GREATER >
     {
 
+
       /**
        * @brief Test wether value is grater than goal
        *
@@ -80,6 +77,7 @@ namespace margot
         using promotion_type = decltype(T{} + Y{});
         return static_cast<promotion_type>(value) > static_cast<promotion_type>(goal);
       }
+
     };
 
 
@@ -91,6 +89,7 @@ namespace margot
     template< >
     struct goal< ComparisonFunctions::GREATER_OR_EQUAL >
     {
+
 
       /**
        * @brief Test wether value is grater or equal than goal
@@ -109,6 +108,7 @@ namespace margot
         using promotion_type = decltype(T{} + Y{});
         return static_cast<promotion_type>(value) >= static_cast<promotion_type>(goal);
       }
+
     };
 
 
@@ -120,6 +120,7 @@ namespace margot
     template< >
     struct goal< ComparisonFunctions::LESS >
     {
+
 
       /**
        * @brief Test wether value is less than goal
@@ -138,6 +139,7 @@ namespace margot
         using promotion_type = decltype(T{} + Y{});
         return static_cast<promotion_type>(value) < static_cast<promotion_type>(goal);
       }
+
     };
 
 
@@ -149,6 +151,7 @@ namespace margot
     template< >
     struct goal< ComparisonFunctions::LESS_OR_EQUAL >
     {
+
 
       /**
        * @brief Test wether value is less or equal than goal
@@ -167,8 +170,10 @@ namespace margot
         using promotion_type = decltype(T{} + Y{});
         return static_cast<promotion_type>(value) <= static_cast<promotion_type>(goal);
       }
+
     };
-  }
+
+  } // namespace helper
 
 
   /**
@@ -189,7 +194,9 @@ namespace margot
   class Goal
   {
 
+
     public:
+
 
       /**
        * @brief Aliasing of the type used to express the goal value

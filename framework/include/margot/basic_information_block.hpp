@@ -16,6 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301
  * USA
  */
+
 #ifndef MARGOT_BASIC_INFORMATION_BLOCK_HDR
 #define MARGOT_BASIC_INFORMATION_BLOCK_HDR
 
@@ -24,7 +25,6 @@
 
 #include "margot/hash.hpp"
 #include "margot/traits.hpp"
-
 
 namespace margot
 {
@@ -47,12 +47,17 @@ namespace margot
   template< class T >
   struct Data
   {
+
+
     static_assert(std::is_arithmetic<T>::value, "Error: in Data context, the template T must be an arithmetic type");
+
+
 
     /**
      * @brief The type of the mean value
      */
     using mean_type = T;
+
 
     /**
      * @brief Default constructor which initialize the mean value
@@ -62,11 +67,14 @@ namespace margot
     Data( const T mean )
       : mean(mean) {}
 
+
     /**
      * @brief A constant that express the mean value
      */
     const T mean;
+
   };
+
 
   /**
    * @brief This struct enhance a Data with a standard deviation
@@ -86,6 +94,7 @@ namespace margot
   struct Distribution: public Data<T>
   {
 
+
     /**
      * @brief The type of the standard deviation
      *
@@ -94,6 +103,7 @@ namespace margot
      * type is defined as decltype(float{} / T{}) to force a type promotion, according to T.
      */
     using standard_deviation_type = decltype(float{} / T{});
+
 
     /**
      * @brief Default constructor which initialize the fields of the Distribution
@@ -104,17 +114,21 @@ namespace margot
     Distribution( const T value, const standard_deviation_type standard_deviation = standard_deviation_type{} )
       : Data<T>(value), standard_deviation(standard_deviation) {}
 
+
     /**
      * @brief A constant which express the standard deviation
      */
     const standard_deviation_type standard_deviation;
+
   };
+
 
 
 
   /******************************************************************
    *  SPECIALIZED OPERATORS FOR THE PREVIOUS STRUCTS
    ******************************************************************/
+
 
   /**
    * @brief The == operator for Data objects
@@ -176,9 +190,12 @@ namespace margot
   }
 
 
+
+
   /******************************************************************
    *  SPECIALIZATION OF THE HASH STRUCT
    ******************************************************************/
+
 
   /**
    * @brief Partial specialization of hash struct for Data type
@@ -188,6 +205,8 @@ namespace margot
   template< class T >
   struct hash< Data<T> >
   {
+
+
     /**
      * @brief call operator that computes the hash value
      *
@@ -201,6 +220,7 @@ namespace margot
     {
       return std::hash<T>()(datum.mean);
     }
+
   };
 
 
@@ -212,6 +232,8 @@ namespace margot
   template< class T >
   struct hash< Distribution<T> >
   {
+
+
     /**
      * @brief call operator that computes the hash value
      *
@@ -226,12 +248,16 @@ namespace margot
     {
       return std::hash<T>()(datum.mean);
     }
+
   };
+
+
 
 
   /******************************************************************
    *  SPECIALIZATION OF THE TRAITS STRUCTS
    ******************************************************************/
+
 
   namespace traits
   {
@@ -244,16 +270,21 @@ namespace margot
     template < class T >
     struct has_mean< Data<T> >
     {
+
+
       /**
        * @brief The type of the mean is equal to the mean_type of Data objects
        * @see Data
        */
       using mean_type = typename Data<T>::mean_type;
 
+
+
       /**
        * @brief State that the Data object implements the has_mean traits
        */
       static constexpr bool value = true;
+
     };
 
 
@@ -265,17 +296,22 @@ namespace margot
     template < class T >
     struct has_mean< Distribution<T> >
     {
+
+
       /**
        * @brief The type of the mean is equal to the mean_type of Distribution objects
        * @see Distribution
        */
       using mean_type = typename Distribution<T>::mean_type;
 
+
       /**
        * @brief State that the Distribution object implements the has_mean traits
        */
       static constexpr bool value = true;
+
     };
+
 
     /**
      * @brief Partial specialization of the has_standard_deviation trait for Distribution objects
@@ -285,6 +321,8 @@ namespace margot
     template < class T >
     struct has_standard_deviation< Distribution<T> >
     {
+
+
       /**
        * @brief The type of the standard deviation is equal to the standard_deviation_type
        * of Distribution objects.
@@ -292,10 +330,12 @@ namespace margot
        */
       using standard_deviation_type = typename Distribution<T>::standard_deviation_type;
 
+
       /**
        * @brief State that the Distribution object implements the has_standard_deviation traits
        */
       static constexpr bool value = true;
+
     };
 
   }

@@ -19,18 +19,15 @@
 #ifndef MARGOT_OPERATING_POINT_HDR
 #define MARGOT_OPERATING_POINT_HDR
 
-
 #include <cstddef>
 #include <type_traits>
 #include <memory>
 #include <cassert>
 
-
 #include "margot/traits.hpp"
 #include "margot/basic_information_block.hpp"
 #include "margot/operating_point_segment.hpp"
 #include "margot/enums.hpp"
-
 
 namespace margot
 {
@@ -54,23 +51,28 @@ namespace margot
   class OperatingPoint
   {
 
+
       // statically check if the classes have the proper traits
       static_assert(traits::is_operating_point_segment<SoftwareKnobsSegmentType>::value,
                     "Error: the software knob segment is not a valid Operating Point segment");
       static_assert(traits::is_operating_point_segment<MetricsSegmentType>::value,
                     "Error: the metric segment is not a valid Operating Point segment");
 
+
     private:
+
 
       /**
        * @brief The definition of the software knobs segment
        */
       SoftwareKnobsSegmentType software_knobs;
 
+
       /**
        * @brief The definition of the metrics segment
        */
       MetricsSegmentType metrics;
+
 
     public:
 
@@ -92,6 +94,7 @@ namespace margot
        */
       static constexpr std::size_t number_of_software_knobs = SoftwareKnobsSegmentType::size;
 
+
       /**
        * @brief The number of metrics
        */
@@ -111,6 +114,7 @@ namespace margot
       using metric_value_type = decltype( typename MetricsSegmentType::mean_type{}
                                           + typename MetricsSegmentType::standard_deviation_type {} );
 
+
       /**
        * @brief The type of a software knob field
        *
@@ -123,6 +127,7 @@ namespace margot
        */
       using software_knobs_value_type = decltype( typename SoftwareKnobsSegmentType::mean_type{}
                                         + typename SoftwareKnobsSegmentType::standard_deviation_type{} );
+
 
       /**
        * @brief Default constructor of the class which initialize the two segments
@@ -143,6 +148,7 @@ namespace margot
       {
         return software_knobs;
       }
+
 
       /**
        * @brief Retrives a lower bound on the value of the target metric
@@ -168,6 +174,7 @@ namespace margot
         return metrics.template get_mean<metric_index>() - sigma * (metrics.template get_standard_deviation<metric_index>());
       }
 
+
       /**
        * @brief Retrives a upper bound on the value of the target metric
        *
@@ -192,6 +199,7 @@ namespace margot
         return metrics.template get_mean<metric_index>() + sigma * (metrics.template get_standard_deviation<metric_index>());
       }
 
+
       /**
        * @brief Retrives a lower bound on the value of the target knob
        *
@@ -215,6 +223,7 @@ namespace margot
                       "Error: Index out of bound accessing the software knob segment");
         return software_knobs.template get_mean<knob_index>() - sigma * (software_knobs.template get_standard_deviation<knob_index>());
       }
+
 
       /**
        * @brief Retrives a upper bound on the value of the target knob
@@ -247,7 +256,9 @@ namespace margot
       template< class knobs_t, class metrics_t >
       friend inline bool operator==(const OperatingPoint<knobs_t, metrics_t>& lhs,
                                     const OperatingPoint<knobs_t, metrics_t>& rhs);
+
   };
+
 
 
 
@@ -273,6 +284,7 @@ namespace margot
     return lhs.software_knobs == rhs.software_knobs;
   }
 
+
   /**
    * @brief Implement the != operator between two Operating Points
    *
@@ -289,9 +301,12 @@ namespace margot
   }
 
 
+
+
   /******************************************************************
    *  SPECIALIZATION OF THE TRAITS STRUCTS
    ******************************************************************/
+
 
   namespace traits
   {
@@ -304,13 +319,18 @@ namespace margot
     template< class SoftwareKnobsSegmentType, class MetricsSegmentType >
     struct is_operating_point< OperatingPoint< SoftwareKnobsSegmentType, MetricsSegmentType > >
     {
+
+
       /**
        * @brief State that the OperatingPoint object implements the is_operating_point traits
        */
       static constexpr bool value = true;
+
     };
 
   }
+
+
 
 
   /******************************************************************
@@ -356,13 +376,16 @@ namespace margot
   struct op_utils< OperatingPoint, OperatingPointSegments::METRICS, BoundType::LOWER, field_index, sigma >
   {
 
+
     static_assert(traits::is_operating_point<OperatingPoint>::value,
                   "Error: the getter handles object with is_operating_point trait");
+
 
     /**
      * @brief The type of the target field, which is equal to OperatingPoint::metric_value_type
      */
     using value_type = typename OperatingPoint::metric_value_type;
+
 
     /**
      * @brief Retrive the value of the lower bound of the target metric
@@ -381,6 +404,7 @@ namespace margot
     {
       return op->template get_metric_lower_bound<field_index, sigma>();
     }
+
   };
 
 
@@ -396,13 +420,17 @@ namespace margot
   template< class OperatingPoint, std::size_t field_index, int sigma >
   struct op_utils< OperatingPoint, OperatingPointSegments::METRICS, BoundType::UPPER, field_index, sigma >
   {
+
+
     static_assert(traits::is_operating_point<OperatingPoint>::value,
                   "Error: the getter handles object with is_operating_point trait");
+
 
     /**
      * @brief The type of the target field, which is equal to OperatingPoint::metric_value_type
      */
     using value_type = typename OperatingPoint::metric_value_type;
+
 
     /**
      * @brief Retrive the value of the upper bound of the target metric
@@ -421,6 +449,7 @@ namespace margot
     {
       return op->template get_metric_upper_bound<field_index, sigma>();
     }
+
   };
 
 
@@ -437,13 +466,16 @@ namespace margot
   struct op_utils< OperatingPoint, OperatingPointSegments::SOFTWARE_KNOBS, BoundType::LOWER, field_index, sigma >
   {
 
+
     static_assert(traits::is_operating_point<OperatingPoint>::value,
                   "Error: the getter handles object with is_operating_point trait");
+
 
     /**
      * @brief The type of the target field, which is equal to OperatingPoint::software_knobs_value_type
      */
     using value_type = typename OperatingPoint::software_knobs_value_type;
+
 
     /**
      * @brief Retrive the value of the lower bound of the target software knob
@@ -462,6 +494,7 @@ namespace margot
     {
       return op->template get_knob_lower_bound<field_index, sigma>();
     }
+
   };
 
 
@@ -478,13 +511,16 @@ namespace margot
   struct op_utils< OperatingPoint, OperatingPointSegments::SOFTWARE_KNOBS, BoundType::UPPER, field_index, sigma >
   {
 
+
     static_assert(traits::is_operating_point<OperatingPoint>::value,
                   "Error: the getter handles object with is_operating_point trait");
+
 
     /**
      * @brief The type of the target field, which is equal to OperatingPoint::software_knobs_value_type
      */
     using value_type = typename OperatingPoint::software_knobs_value_type;
+
 
     /**
      * @brief Retrive the value of the upper bound of the target software knob
@@ -503,6 +539,7 @@ namespace margot
     {
       return op->template get_knob_upper_bound<field_index, sigma>();
     }
+
   };
 
 
@@ -538,8 +575,10 @@ namespace margot
   struct op_field_enumerator< OperatingPoint, OperatingPointSegments::METRICS, field_index >
   {
 
+
     static_assert(traits::is_operating_point<OperatingPoint>::value,
                   "Error: the identificators handles object with is_operating_point trait");
+
 
     /**
      * @brief Retrive the global index of the target metric
@@ -550,6 +589,7 @@ namespace margot
     {
       return OperatingPoint::number_of_software_knobs + field_index;
     }
+
   };
 
 
@@ -565,8 +605,10 @@ namespace margot
   struct op_field_enumerator< OperatingPoint, OperatingPointSegments::SOFTWARE_KNOBS, field_index >
   {
 
+
     static_assert(traits::is_operating_point<OperatingPoint>::value,
                   "Error: the identificators handles object with is_operating_point trait");
+
 
     /**
      * @brief Retrive the global index of the target software knob
@@ -577,6 +619,7 @@ namespace margot
     {
       return field_index;
     }
+
   };
 
 }

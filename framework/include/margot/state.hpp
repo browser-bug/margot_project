@@ -37,7 +37,6 @@
 namespace margot
 {
 
-
   /**
    * @brief This class represents a constrained multi-objective optimization problem
    *
@@ -73,11 +72,14 @@ namespace margot
   class State
   {
 
+
       // statically check the template argument
       static_assert(traits::is_operating_point<OperatingPoint>::value,
                     "Error: the State handles object with is_operating_point trait");
 
+
     public:
+
 
       /**
        * @brief Explicit definition to an Operating Point pointer
@@ -232,7 +234,6 @@ namespace margot
 
         // remove the blocked OPs also from the rank
         rank->remove(filtered_ops);
-
       }
 
 
@@ -512,7 +513,6 @@ namespace margot
           best_operating_point_found = best_op;
           return best_operating_point_found; // the actual valid best op
         }
-
 
         // in this case, either there are no Operating Points, or all of them are invalid
 

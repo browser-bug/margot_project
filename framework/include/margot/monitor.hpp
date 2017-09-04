@@ -24,9 +24,7 @@
 #include <cstddef>
 #include <cassert>
 
-
 #include "margot/statistical_provider.hpp"
-
 
 namespace margot
 {
@@ -76,6 +74,7 @@ namespace margot
        */
       using monitor_ptr_type = std::shared_ptr< statistical_provider_type >;
 
+
       /**
        * @brief Explicit definition of the statistical type
        *
@@ -98,6 +97,8 @@ namespace margot
       {
         buffer.reset( new statistical_provider_type(size));
       }
+
+
 
 
       /******************************************************************
@@ -127,6 +128,8 @@ namespace margot
       {
         buffer->clear();
       }
+
+
 
 
       /******************************************************************
@@ -178,6 +181,8 @@ namespace margot
       }
 
 
+
+
       /******************************************************************
        *  FORWARD OF THE METHODS TO EXTRACT STATISTICAL INFORMATION
        ******************************************************************/
@@ -227,6 +232,8 @@ namespace margot
       }
 
 
+
+
       /******************************************************************
        *  INTEGRATION METHODS WITH THE FRAMEWORK
        ******************************************************************/
@@ -255,6 +262,7 @@ namespace margot
        * @brief The pointer to the CircularBuffer
        */
       monitor_ptr_type buffer;
+
   };
 
 }

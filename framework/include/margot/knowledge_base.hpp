@@ -26,7 +26,6 @@
 #include <cinttypes>
 #include <vector>
 
-
 #include "margot/operating_point.hpp"
 #include "margot/traits.hpp"
 
@@ -49,6 +48,7 @@ namespace margot
   class Knowledge
   {
 
+
       // statically check the template argument
       static_assert(traits::is_operating_point<OperatingPoint>::value,
                     "Error: the knowledge base handles object with is_operating_point trait");
@@ -57,24 +57,30 @@ namespace margot
     public:
 
 
+
+
       /******************************************************************
        *  TYPE DEFINITION FOR HANDLING WITH THE APPLICATION KNOWLEDGE
        ******************************************************************/
+
 
       /**
        * @brief Explicitly set the configuration type
        */
       using configuration_type = typename OperatingPoint::configuration_type;
 
+
       /**
        * @brief Explicitly set the configuration type
        */
       using metrics_type = typename OperatingPoint::metrics_type;
 
+
       /**
        * @brief The definition of a pointer to the actual Operating Points
        */
       using OperatingPointPtr = std::shared_ptr< OperatingPoint >;
+
 
       /**
        * @brief The container of the application knowledge
@@ -99,6 +105,8 @@ namespace margot
        * to select slices of Operating Point.
        */
       using OPStream = std::vector< OperatingPointPtr >;
+
+
 
 
       /******************************************************************
@@ -277,6 +285,8 @@ namespace margot
       }
 
 
+
+
       /******************************************************************
        *  UTILITY METHODS FOR THE APPLICATION KNOWLEDGE
        ******************************************************************/
@@ -347,6 +357,7 @@ namespace margot
 
     private:
 
+
       /**
        * @brief The application knowledge
        */
@@ -354,9 +365,6 @@ namespace margot
 
   };
 
-
-
 }
-
 
 #endif // MARGOT_OPERATING_POINT_CONTAINERS_HDR

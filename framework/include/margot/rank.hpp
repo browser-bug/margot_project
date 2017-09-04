@@ -27,14 +27,12 @@
 #include <iostream>
 #include <vector>
 
-
 #include "margot/operating_point.hpp"
 #include "margot/view.hpp"
 #include "margot/knowledge_base.hpp"
 
 namespace margot
 {
-
 
   /**
    * @brief The interface of the actual Rank implementation
@@ -54,6 +52,7 @@ namespace margot
   template< class OperatingPoint >
   class RankInterface
   {
+
 
       // statically check the template argument
       static_assert(traits::is_operating_point<OperatingPoint>::value,
@@ -150,6 +149,8 @@ namespace margot
   };
 
 
+
+
   /******************************************************************
    *  HELPER STRUCT TO HANDLE THE RANK OBJECTIVE
    ******************************************************************/
@@ -188,6 +189,7 @@ namespace margot
   struct rank_compare<T, RankObjective::MAXIMIZE>
   {
 
+
     /**
      * @brief Check whether the lhs value is better than the rhs value
      *
@@ -215,6 +217,7 @@ namespace margot
   struct rank_compare<T, RankObjective::MINIMIZE>
   {
 
+
     /**
      * @brief Check whether the lhs value is better than the rhs value
      *
@@ -229,6 +232,8 @@ namespace margot
     }
 
   };
+
+
 
 
   /******************************************************************
@@ -255,6 +260,7 @@ namespace margot
   template< class OperatingPoint, RankObjective objective, FieldComposer composer, class ...Fields >
   class Rank: public View< OperatingPoint, composer, Fields... >, public RankInterface<OperatingPoint>
   {
+
 
       // statically check the template argument
       static_assert(traits::is_operating_point<OperatingPoint>::value,
@@ -334,6 +340,7 @@ namespace margot
         }
       }
 
+
       /**
        * @brief Implementation of the RankInterface clear method
        *
@@ -398,8 +405,6 @@ namespace margot
 
   };
 
-
 }
-
 
 #endif // MARGOT_RANK_HDR

@@ -22,7 +22,6 @@
 #include <cassert>
 #include <memory>
 
-
 #include "margot/circular_buffer.hpp"
 #include "margot/statistics.hpp"
 #include "margot/enums.hpp"
@@ -50,10 +49,14 @@ namespace margot
   template< typename T, typename statistical_t = float >
   class StatisticalProvider: public CircularBuffer< T >
   {
+
+
       // This class requires an arithmetic value
       static_assert(std::is_arithmetic<T>::value, "Error: in the statistical provider context, the template T must be an arithmetic type");
 
+
     public:
+
 
       /**
        * @brief Explicit definition of the statistical type
@@ -246,6 +249,7 @@ namespace margot
 
     private:
 
+
       /**
        * @details
        * This methods compute the actual average of the container. In case the
@@ -345,11 +349,13 @@ namespace margot
       typename CircularBuffer< T >::time_point_type max_computed_time;
       typename CircularBuffer< T >::time_point_type min_computed_time;
 
+
       // precomputed values
       statistical_type previous_average;
       statistical_type previous_stddev;
       value_type previous_max;
       value_type previous_min;
+
   };
 
 
@@ -392,10 +398,12 @@ namespace margot
   struct monitor_utils< T, DataFunctions::AVERAGE, statistical_t >
   {
 
+
     /**
      * @brief The type of the average value, which is equal to StatisticalProvider<T, statistical_t>::statistical_type
      */
     using value_type = typename StatisticalProvider<T, statistical_t>::statistical_type;
+
 
     /**
      * @brief Retrive the average value of target StatisticalProvider
@@ -426,10 +434,12 @@ namespace margot
   struct monitor_utils< T, DataFunctions::STANDARD_DEVATION, statistical_t >
   {
 
+
     /**
      * @brief The type of the standard devation value, which is equal to StatisticalProvider<T, statistical_t>::statistical_type
      */
     using value_type = typename StatisticalProvider<T, statistical_t>::statistical_type;
+
 
     /**
      * @brief Retrive the standard deviation value of target StatisticalProvider
@@ -460,10 +470,12 @@ namespace margot
   struct monitor_utils< T, DataFunctions::MAXIMUM, statistical_t >
   {
 
+
     /**
      * @brief The type of the maximum value, which is equal to StatisticalProvider<T, statistical_t>::value_type
      */
     using value_type = typename StatisticalProvider<T, statistical_t>::value_type;
+
 
     /**
      * @brief Retrive the maximum element observed in the CircularBuffer
@@ -494,10 +506,12 @@ namespace margot
   struct monitor_utils< T, DataFunctions::MINIMUM, statistical_t >
   {
 
+
     /**
      * @brief The type of the maximum value, which is equal to StatisticalProvider<T, statistical_t>::value_type
      */
     using value_type = typename StatisticalProvider<T, statistical_t>::value_type;
+
 
     /**
      * @brief Retrive the maximum element observed in the CircularBuffer
@@ -514,8 +528,6 @@ namespace margot
     }
 
   };
-
-
 
 }
 

@@ -58,9 +58,11 @@ namespace margot
   class ConstraintHandler
   {
 
+
       // statically check the template argument
       static_assert(traits::is_operating_point<OperatingPoint>::value,
                     "Error: the Constraint handles object with is_operating_point trait");
+
 
     public:
 
@@ -323,10 +325,8 @@ namespace margot
 
   };
 
-
   namespace helper
   {
-
 
     /**
      * @brief helper struct, to retrieve the correct bound value, from the comparison function
@@ -358,6 +358,7 @@ namespace margot
     struct constraint< ComparisonFunctions::GREATER >
     {
 
+
       /**
        * @brief Retrieves the correct bound for the "greater" comparison function
        *
@@ -367,6 +368,7 @@ namespace margot
       {
         return BoundType::LOWER;
       }
+
     };
 
 
@@ -379,6 +381,7 @@ namespace margot
     struct constraint< ComparisonFunctions::GREATER_OR_EQUAL >
     {
 
+
       /**
        * @brief Retrieves the correct bound for the "grater or equal" comparison function
        *
@@ -388,6 +391,7 @@ namespace margot
       {
         return BoundType::LOWER;
       }
+
     };
 
 
@@ -400,6 +404,7 @@ namespace margot
     struct constraint< ComparisonFunctions::LESS >
     {
 
+
       /**
        * @brief Retrieves the correct bound for the "less" comparison function
        *
@@ -409,6 +414,7 @@ namespace margot
       {
         return BoundType::UPPER;
       }
+
     };
 
 
@@ -421,6 +427,7 @@ namespace margot
     struct constraint< ComparisonFunctions::LESS_OR_EQUAL >
     {
 
+
       /**
        * @brief Retrieves the correct bound for the "less or equal" comparison function
        *
@@ -430,10 +437,10 @@ namespace margot
       {
         return BoundType::UPPER;
       }
+
     };
 
   } // namespace helper
-
 
 
   /**
@@ -462,11 +469,14 @@ namespace margot
   class Constraint: public ConstraintHandler< OperatingPoint, error_coef_type >
   {
 
+
       // statically check the template argument
       static_assert(traits::is_operating_point<OperatingPoint>::value,
                     "Error: the Constraint handles object with is_operating_point trait");
 
+
     public:
+
 
       /**
        * @brief Explicit definition to an Operating Point pointer

@@ -1,4 +1,4 @@
-/* core/view
+/* core/view.hpp
  * Copyright (C) 2017 Davide Gadioli
  *
  * This library is free software; you can redistribute it and/or
@@ -17,10 +17,8 @@
  * USA
  */
 
-
 #ifndef MARGOT_VIEW_HDR
 #define MARGOT_VIEW_HDR
-
 
 #include <map>
 #include <memory>
@@ -30,11 +28,9 @@
 #include <cassert>
 #include <algorithm>
 
-
 #include "margot/operating_point.hpp"
 #include "margot/evaluator.hpp"
 #include "margot/knowledge_base.hpp"
-
 
 namespace margot
 {
@@ -61,6 +57,7 @@ namespace margot
   class View
   {
 
+
       /**
        * @brief Explicit definition of the Operating Point list
        */
@@ -74,6 +71,7 @@ namespace margot
 
 
     public:
+
 
       /**
        * @brief Explicit definition of a pointer to the Operating Point
@@ -140,6 +138,8 @@ namespace margot
           return ViewEvaluator::evaluate(target_op, values...);
         };
       }
+
+
 
 
       /******************************************************************
@@ -217,6 +217,8 @@ namespace margot
       }
 
 
+
+
       /******************************************************************
        *  UTILITY METHODS
        ******************************************************************/
@@ -255,6 +257,8 @@ namespace margot
       {
         return evaluate(target_op);
       }
+
+
 
 
       /******************************************************************
@@ -362,8 +366,8 @@ namespace margot
        * @brief The container, used to store all the Operating Point of the view
        */
       Container sorted_knowledge;
-  };
 
+  };
 
 }
 

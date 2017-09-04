@@ -35,7 +35,6 @@
 namespace margot
 {
 
-
   /**
    * @brief Compute an error coefficient of the knowledge base
    *
@@ -52,6 +51,7 @@ namespace margot
   template< class OperatingPoint, typename coefficient_type = float >
   class FieldAdaptor
   {
+
 
     public:
 
@@ -121,11 +121,14 @@ namespace margot
   class OneSigmaAdaptor: public FieldAdaptor<OperatingPoint, coefficient_type>
   {
 
+
       // statically check the template argument
       static_assert(traits::is_operating_point<OperatingPoint>::value,
                     "Error: the knowledge base handles object with is_operating_point trait");
 
+
     public:
+
 
       /**
        * @brief aliasing of the util struct that extracts an upper bound of the target field
@@ -279,6 +282,7 @@ namespace margot
       {
         return average_coefficient_error;
       }
+
 
     private:
 

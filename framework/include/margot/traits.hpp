@@ -47,6 +47,8 @@ namespace margot
     template < class T >
     struct has_mean
     {
+
+
       /**
        * @brief The type of the mean
        *
@@ -58,6 +60,7 @@ namespace margot
        */
       using mean_type = int;
 
+
       /**
        * @brief By default, the object T doesn't have a mean
        *
@@ -66,6 +69,7 @@ namespace margot
        * the relative attribute to a true value.
        */
       static constexpr bool value = false;
+
     };
 
 
@@ -84,6 +88,8 @@ namespace margot
     template < class T >
     struct has_standard_deviation
     {
+
+
       /**
        * @brief The type of the standard deviation
        *
@@ -96,6 +102,8 @@ namespace margot
        */
       using standard_deviation_type = int;
 
+
+
       /**
        * @brief By default, the object T doesn't have a standard deviation
        *
@@ -104,6 +112,7 @@ namespace margot
        * explicitly set the relative attribute to a true value.
        */
       static constexpr bool value = false;
+
     };
 
 
@@ -122,6 +131,7 @@ namespace margot
     struct is_operating_point_segment
     {
 
+
       /**
        * @brief By default, the object T is not an Operating Point segment
        *
@@ -130,6 +140,7 @@ namespace margot
        * this struct and explicitly set the relative attribute to a true value.
        */
       static constexpr bool value = false;
+
     };
 
 
@@ -148,6 +159,7 @@ namespace margot
     struct is_operating_point
     {
 
+
       /**
        * @brief By default, the object T is not an Operating Point
        *
@@ -156,11 +168,11 @@ namespace margot
        * this struct and explicitly set the relative attribute to a true value.
        */
       static constexpr bool value = false;
+
     };
+
   }
 
 }
-
-
 
 #endif // MARGOT_TRAITS_HDR

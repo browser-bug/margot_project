@@ -1,4 +1,4 @@
-/* core/evaluator
+/* core/evaluator.hpp
  * Copyright (C) 2017 Davide Gadioli
  *
  * This library is free software; you can redistribute it and/or
@@ -16,7 +16,6 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301
  * USA
  */
-
 
 #ifndef MARGOT_EVALUATOR_HDR
 #define MARGOT_EVALUATOR_HDR
@@ -124,6 +123,8 @@ namespace margot
   class Evaluator;
 
 
+
+
   /******************************************************************
    *  SPECIALIZATION OF THE EVALUATOR FOR SINGLE FIELD
    ******************************************************************/
@@ -148,11 +149,14 @@ namespace margot
   class Evaluator< OperatingPoint, FieldComposer::SIMPLE, Field >
   {
 
+
       // statically check the template argument
       static_assert(traits::is_operating_point<OperatingPoint>::value,
                     "Error: the evaluator handles object with is_operating_point trait");
 
+
     public:
+
 
       /**
        * @brief Explicit definition to an Operating Point pointer
@@ -191,6 +195,8 @@ namespace margot
   };
 
 
+
+
   /******************************************************************
    *  SPECIALIZATION OF THE EVALUATOR FOR LINEAR COMPOSITION
    ******************************************************************/
@@ -219,9 +225,11 @@ namespace margot
   class Evaluator< OperatingPoint, FieldComposer::LINEAR, Field, Fields... >
   {
 
+
       // statically check the template argument
       static_assert(traits::is_operating_point<OperatingPoint>::value,
                     "Error: the evaluator handles object with is_operating_point trait");
+
 
     public:
 
@@ -316,9 +324,11 @@ namespace margot
   class Evaluator< OperatingPoint, FieldComposer::LINEAR, Field >
   {
 
+
       // statically check the template argument
       static_assert(traits::is_operating_point<OperatingPoint>::value,
                     "Error: the evaluator handles object with is_operating_point trait");
+
 
     public:
 
@@ -378,6 +388,8 @@ namespace margot
   };
 
 
+
+
   /******************************************************************
    *  SPECIALIZATION OF THE EVALUATOR FOR GEOMETRIC COMPOSITION
    ******************************************************************/
@@ -406,11 +418,14 @@ namespace margot
   class Evaluator< OperatingPoint, FieldComposer::GEOMETRIC, Field, Fields... >
   {
 
+
       // statically check the template argument
       static_assert(traits::is_operating_point<OperatingPoint>::value,
                     "Error: the evaluator handles object with is_operating_point trait");
 
+
     public:
+
 
       /**
        * @brief Explicit defintion of a pointer to the Operating Point
@@ -503,11 +518,14 @@ namespace margot
   class Evaluator< OperatingPoint, FieldComposer::GEOMETRIC, Field >
   {
 
+
       // statically check the template argument
       static_assert(traits::is_operating_point<OperatingPoint>::value,
                     "Error: the evaluator handles object with is_operating_point trait");
 
+
     public:
+
 
       /**
        * @brief Explicit defintion of a pointer to the Operating Point
@@ -564,8 +582,6 @@ namespace margot
 
   };
 
-
 }
-
 
 #endif // MARGOT_EVALUATOR_HDR

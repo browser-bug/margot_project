@@ -51,9 +51,11 @@ namespace margot
   class KnowledgeAdaptor
   {
 
+
       // statically check the template argument
       static_assert(traits::is_operating_point<OperatingPoint>::value,
                     "Error: the knowledge adaptor handles object with is_operating_point trait");
+
 
     public:
 
@@ -173,7 +175,9 @@ namespace margot
         adaptors.fill(nullptr);
       }
 
+
     private:
+
 
       /**
        * @brief The actual container of the adaptors
@@ -181,7 +185,6 @@ namespace margot
       Container adaptors;
 
   };
-
 
 }
 

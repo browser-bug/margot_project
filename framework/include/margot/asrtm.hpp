@@ -20,7 +20,6 @@
 #ifndef MARGOT_ASRTM_HDR
 #define MARGOT_ASRTM_HDR
 
-
 #include <memory>
 #include <string>
 #include <map>
@@ -30,7 +29,6 @@
 #include <mutex>
 #include <functional>
 
-
 #include "margot/operating_point.hpp"
 #include "margot/knowledge_base.hpp"
 #include "margot/knowledge_adaptor.hpp"
@@ -38,10 +36,8 @@
 #include "margot/state.hpp"
 
 
-
 namespace margot
 {
-
 
   /**
    * @brief The Application-Specific RunTime Manger implementation
@@ -69,6 +65,7 @@ namespace margot
   class Asrtm
   {
 
+
       /**
        * @brief Internal state of the AS-RTM
        *
@@ -80,6 +77,7 @@ namespace margot
       enum class ApplicationStatus
       {
 
+
         /**
          * @details
          * In this state, the application has retrieved a different configuration with respect the
@@ -87,6 +85,7 @@ namespace margot
          * the new configuration or the previous one (it has an undefined behavior).
          */
         UNDEFINED,
+
 
         /**
          * @details
@@ -726,6 +725,7 @@ namespace margot
 
     private:
 
+
       /**
        * @brief The whole application knowledge
        */
@@ -770,14 +770,8 @@ namespace margot
        * @brief The internal state of the AS-RTM
        */
       ApplicationStatus status;
+
   };
-
-
-
-
-
-
-
 
 }
 

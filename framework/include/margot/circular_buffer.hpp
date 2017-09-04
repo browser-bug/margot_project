@@ -16,6 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301
  * USA
  */
+
 #ifndef MARGOT_CIRCULAR_BUFFER_HDR
 #define MARGOT_CIRCULAR_BUFFER_HDR
 
@@ -26,9 +27,9 @@
 #include <mutex>
 #include <cassert>
 
-
 namespace margot
 {
+
 
   /**
    * @brief A circular buffer that stores the last n observations
@@ -44,6 +45,7 @@ namespace margot
   template< typename T >
   class CircularBuffer
   {
+
 
     public:
 
@@ -76,6 +78,8 @@ namespace margot
         buffer.reserve(size);
         last_change = std::chrono::steady_clock::now();
       }
+
+
 
 
       /******************************************************************
@@ -128,9 +132,12 @@ namespace margot
       }
 
 
+
+
       /******************************************************************
        *  UTILITY METHODS FOR THE CIRCULAR BUFFER
        ******************************************************************/
+
 
       /**
        * @brief Test whether the container is empty
@@ -186,8 +193,8 @@ namespace margot
       }
 
 
-
     protected:
+
 
       /**
        * @brief Test whether is possible to extract information from the buffer
@@ -216,10 +223,12 @@ namespace margot
        */
       container_type buffer;
 
+
       /**
       * @brief The timestamp of the last modification
       */
       std::chrono::steady_clock::time_point last_change;
+
 
       /**
        * @brief The mutex used to protect the access to the buffer
@@ -235,13 +244,13 @@ namespace margot
        */
       std::size_t next_element;
 
+
       /**
        * @brief The maximum number of elements in the container
        */
       const std::size_t maximum_number_element;
 
   };
-
 
 }
 

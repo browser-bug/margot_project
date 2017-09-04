@@ -23,12 +23,9 @@
 #include <type_traits>
 #include <array>
 
-
 #include "margot/basic_information_block.hpp"
 #include "margot/traits.hpp"
 #include "margot/hash.hpp"
-
-
 
 namespace margot
 {
@@ -60,14 +57,18 @@ namespace margot
   template< std::size_t number_of_fields, class DataType >
   class OperatingPointSegment
   {
+
+
       // static check for the properties of the templates
       static_assert(traits::has_mean<DataType>::value, "Error: an Operating Point segment point must provide at least its mean value");
       static_assert(number_of_fields > 0, "Error: An Operating Point segment must hold at least one Data value");
+
 
       /**
        * @brief The type of the container used to define the segment
        */
       using container_type =  std::array< DataType, number_of_fields >;
+
 
       /**
        * @brief The definition of the variable that contains the actual values of the segment
@@ -79,12 +80,16 @@ namespace margot
        */
       const std::size_t hash;
 
+
+
     public:
+
 
       /**
        * @brief Definition of type of elements stored in the underlying container
        */
       using value_type = DataType;
+
 
       /**
        * @brief The typedef of the type of the mean value
@@ -95,6 +100,7 @@ namespace margot
        */
       using mean_type = typename traits::has_mean<DataType>::mean_type;
 
+
       /**
        * @brief The typedef of the type of the standard deviation value
        *
@@ -104,10 +110,12 @@ namespace margot
        */
       using standard_deviation_type = typename traits::has_standard_deviation<DataType>::standard_deviation_type;
 
+
       /**
        * @brief The number of fields that compose this segment of the Operating Point
        */
       static constexpr std::size_t size = number_of_fields;
+
 
       /**
        * @brief Default constructor of the segment
@@ -133,9 +141,8 @@ namespace margot
           args...
         }
       }), hash(compute_hash_fixed_size_object< container_type, number_of_fields >(fields))
-      {
+      {}
 
-      }
 
       /**
        * @brief Get the mean value of a given element of the field
@@ -149,6 +156,7 @@ namespace margot
       {
         return std::get<index>(fields).mean;
       }
+
 
       /**
        * @brief Get the standard deviation of a given element of the field
@@ -170,6 +178,7 @@ namespace margot
         return std::get<index>(fields).standard_deviation;
       }
 
+
       /**
        * @brief Get the standard deviation of a given element of the field
        *
@@ -190,6 +199,7 @@ namespace margot
         return static_cast<typename  traits::has_standard_deviation<T>::standard_deviation_type>(0);
       }
 
+
       /**
        * @brief Get the computed hash value of the segment
        *
@@ -204,13 +214,16 @@ namespace margot
         return hash;
       }
 
+
       /**
        * @brief Declaration of the friend operator ==
        */
       template< std::size_t nf, class dt>
       friend inline bool operator==(const OperatingPointSegment<nf, dt>& lhs,
                                     const OperatingPointSegment<nf, dt>& rhs);
+
   };
+
 
 
 
@@ -245,6 +258,7 @@ namespace margot
     return lhs.fields == rhs.fields;
   }
 
+
   /**
    * @brief Implement the != operator between two segments
    *
@@ -261,9 +275,12 @@ namespace margot
   }
 
 
+
+
   /******************************************************************
    *  SPECIALIZATION OF THE HASH STRUCT
    ******************************************************************/
+
 
   /**
    * @brief Partial specialization of hash struct for Data type
@@ -274,6 +291,8 @@ namespace margot
   template< std::size_t number_of_fields, class DataType>
   struct hash< OperatingPointSegment< number_of_fields, DataType > >
   {
+
+
     /**
      * @brief call operator that computes the hash value
      *
@@ -288,15 +307,20 @@ namespace margot
     {
       return segment.get_hash();
     }
+
   };
+
+
 
 
   /******************************************************************
    *  SPECIALIZATION OF THE TRAITS STRUCTS
    ******************************************************************/
 
+
   namespace traits
   {
+
 
     /**
      * @brief Partial specialization of the is_operating_point_segment trait for OperatingPointSegment objects

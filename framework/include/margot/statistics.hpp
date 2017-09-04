@@ -30,7 +30,6 @@
 namespace margot
 {
 
-
   /**
    * @brief Compute the average of the elements in a container
    *
@@ -134,8 +133,6 @@ namespace margot
   {
     return *std::min_element(c.cbegin(), c.cend());
   }
-
-
 
 }
 

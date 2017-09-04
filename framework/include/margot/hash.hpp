@@ -20,10 +20,8 @@
 #ifndef MARGOT_HASH_HDR
 #define MARGOT_HASH_HDR
 
-
 #include <cstddef>
 #include <functional>
-
 
 namespace margot
 {
@@ -54,7 +52,6 @@ namespace margot
    ******************************************************************/
 
 
-
   /**
    * @brief Add the hash value of an object T to a partial hash
    *
@@ -75,6 +72,7 @@ namespace margot
   {
     seed ^= hash<T>()(v) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
   }
+
 
 
 
@@ -101,6 +99,8 @@ namespace margot
   template < class T, std::size_t object_size, std::size_t index =  object_size - 1 >
   struct HashFixedSizeObject
   {
+
+
     /**
      * @brief Combine the hash value of the index-th element of the container
      *
@@ -120,7 +120,9 @@ namespace margot
       HashFixedSizeObject < T, object_size, index - 1 >::compute(seed, object);
       hash_combine(seed, std::get<index>(object));
     }
+
   };
+
 
   /**
    * @brief Computes the last hash value of a static sized object
@@ -137,6 +139,8 @@ namespace margot
   template< class T, std::size_t object_size>
   struct HashFixedSizeObject<T, object_size, 0>
   {
+
+
     /**
      * @brief Combine the hash value of the first element of the container
      *
@@ -155,6 +159,7 @@ namespace margot
     {
       hash_combine(seed, std::get<0>(object));
     }
+
   };
 
 
@@ -182,7 +187,6 @@ namespace margot
     HashFixedSizeObject< T, object_size >::compute(seed, object);
     return seed;
   }
-
 
 }
 
