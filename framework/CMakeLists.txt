@@ -61,6 +61,7 @@ set( MARGOT_SOURCES
 if ( USE_COLLECTOR_MONITOR )
 	list( APPEND MARGOT_HEADERS "${HDR_PATH}/margot/collector_monitor.hpp")
 	list( APPEND MARGOT_SOURCES "${SRC_PATH}/collector_monitor.cc")
+	list( APPEND MARGOT_DEPS_INCLUDE_DIRECTORIES "${COLLECTOR_INCLUDES}")
 	include_directories( COLLECTOR_INCLUDES )
 endif ( USE_COLLECTOR_MONITOR )
 
@@ -69,6 +70,7 @@ endif ( USE_COLLECTOR_MONITOR )
 if ( USE_PAPI_MONITOR )
 	list( APPEND MARGOT_HEADERS "${HDR_PATH}/margot/papi_monitor.hpp")
 	list( APPEND MARGOT_SOURCES "${SRC_PATH}/papi_monitor.cc")
+	list( APPEND MARGOT_DEPS_INCLUDE_DIRECTORIES "${PAPI_INCLUDES}")
 	include_directories( PAPI_INCLUDES )
 endif ( USE_PAPI_MONITOR )
 
@@ -77,6 +79,7 @@ endif ( USE_PAPI_MONITOR )
 if ( USE_TEMPERATURE_MONITOR )
 	list( APPEND MARGOT_HEADERS "${HDR_PATH}/margot/temperature_monitor.hpp")
 	list( APPEND MARGOT_SOURCES "${SRC_PATH}/temperature_monitor.cc")
+	list( APPEND MARGOT_DEPS_INCLUDE_DIRECTORIES "${SENSORS_INCLUDES}")
 	include_directories( SENSORS_INCLUDES )
 endif ( USE_TEMPERATURE_MONITOR )
 
@@ -123,6 +126,8 @@ install( FILES ${MARGOT_HEADERS} DESTINATION include/margot )
 ################################
 #### Build additional stuff
 ################################
+
+add_subdirectory( config )
 
 if ( WITH_TEST )
 	add_subdirectory( test )
