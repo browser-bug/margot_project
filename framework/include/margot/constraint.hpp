@@ -863,7 +863,7 @@ namespace margot
         blocked.clear();
 
         // block all the invalid Operating Points;
-        for ( auto && op : input )
+        for ( auto&& op : input )
         {
           if ( !target_goal.template check<view_type, value_type >(knowledge_view.evaluate_op(op), last_check_value) )
           {
@@ -888,7 +888,7 @@ namespace margot
         output.clear();
 
         // block all the invalid Operating Points;
-        for ( auto && op : input )
+        for ( auto&& op : input )
         {
           if ( target_goal.template check<view_type, value_type >(knowledge_view.evaluate_op(op), last_check_value) )
           {
@@ -916,7 +916,7 @@ namespace margot
         output.clear();
 
         // remove all the input Operating Points
-        for ( auto && op : input )
+        for ( auto&& op : input )
         {
           const auto elem_it = blocked_ops.find(op);
 

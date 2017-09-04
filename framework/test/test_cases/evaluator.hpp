@@ -23,7 +23,7 @@ class Evaluator : public CxxTest::TestSuite
       op.reset(new OperatingPointType(
       {1, 2},
       {margot::Distribution<float>(3, 0.1), margot::Distribution<float>(4, 0.1)}
-      ));
+               ));
 
       // create an evaluator for the first knob simple value
       using first_knob_avg = margot::OPField<margot::OperatingPointSegments::SOFTWARE_KNOBS, margot::BoundType::LOWER, 0, 0>;

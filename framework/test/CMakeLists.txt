@@ -36,5 +36,10 @@ add_custom_command(
 add_executable( ${MARGOT_TEST_EXE_NAME} ${TEST_MAIN_FILE} ${TEST_CASE_FILES} )
 
 
+# link the margot library
+target_link_libraries( ${MARGOT_TEST_EXE_NAME} ${MARGOT_LIB_NAME} )
+target_link_libraries( ${MARGOT_TEST_EXE_NAME} ${MARGOT_LINK_DEPENDENCIES} )
+
+
 # install the test binary
 install( TARGETS ${MARGOT_TEST_EXE_NAME} DESTINATION bin )
