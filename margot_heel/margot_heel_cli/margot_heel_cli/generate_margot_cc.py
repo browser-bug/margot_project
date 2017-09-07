@@ -193,6 +193,21 @@ def generate_block_body( block_model, op_lists, cc ):
   cc.write('\t\t\tif (!manager.is_application_knowledge_empty())\n')
   cc.write('\t\t\t{\n')
 
+
+  # if we have ops it's easythen print the stuff
+  things_to_print = list(software_knobs_printers)
+  things_to_print.extend(metrics_printers)
+  things_to_print.extend(goal_printers)
+  things_to_print.extend(monitor_printers)
+  string_to_print = ',\n\t\t\t\t\t'.join(things_to_print)
+  cc.write('\t\t\t\tfile_logger.write(')
+  cc.write('{0});\n'.format(string_to_print))
+
+
+  cc.write('\t\t\t}\n')
+  cc.write('\t\t\telse\n')
+  cc.write('\t\t\t{\n')
+
   # if we have no ops, we must made up the expected stuff
   software_knobs_printers_alternative = ['"N/A"' for x in software_knobs_printers]
   metrics_printers_alternative = ['"N/A"' for x in metrics_printers]
@@ -206,18 +221,6 @@ def generate_block_body( block_model, op_lists, cc ):
   cc.write('\t\t\t\tfile_logger.write(')
   cc.write('{0});\n'.format(string_to_print))
 
-  cc.write('\t\t\t}\n')
-  cc.write('\t\t\telse\n')
-  cc.write('\t\t\t{\n')
-
-  # if we have ops it's easythen print the stuff
-  things_to_print = list(software_knobs_printers)
-  things_to_print.extend(metrics_printers)
-  things_to_print.extend(goal_printers)
-  things_to_print.extend(monitor_printers)
-  string_to_print = ',\n\t\t\t\t\t'.join(things_to_print)
-  cc.write('\t\t\t\tfile_logger.write(')
-  cc.write('{0});\n'.format(string_to_print))
 
 
   cc.write('\t\t\t}\n')
@@ -232,13 +235,9 @@ def generate_block_body( block_model, op_lists, cc ):
   cc.write('\t\t\tif (!manager.is_application_knowledge_empty())\n')
   cc.write('\t\t\t{\n')
 
-  # if we have no ops, we must made up the expected stuff
-  software_knobs_printers_alternative = ['"N/A"' for x in software_knobs_printers]
-  metrics_printers_alternative = ['"N/A"' for x in metrics_printers]
-
   # then print the stuff
-  things_to_print = list(software_knobs_printers_alternative)
-  things_to_print.extend(metrics_printers_alternative)
+  things_to_print = list(software_knobs_printers)
+  things_to_print.extend(metrics_printers)
   things_to_print.extend(goal_printers)
   things_to_print.extend(monitor_printers)
 
@@ -264,9 +263,14 @@ def generate_block_body( block_model, op_lists, cc ):
   cc.write('\t\t\telse\n')
   cc.write('\t\t\t{\n')
 
+
+  # if we have no ops, we must made up the expected stuff
+  software_knobs_printers_alternative = ['"N/A"' for x in software_knobs_printers]
+  metrics_printers_alternative = ['"N/A"' for x in metrics_printers]
+
   # then print the stuff
-  things_to_print = list(software_knobs_printers)
-  things_to_print.extend(metrics_printers)
+  things_to_print = list(software_knobs_printers_alternative)
+  things_to_print.extend(metrics_printers_alternative)
   things_to_print.extend(goal_printers)
   things_to_print.extend(monitor_printers)
 
@@ -276,7 +280,7 @@ def generate_block_body( block_model, op_lists, cc ):
   endl_indexes.append( endl_indexes[-1] + len(goal_printers))
   endl_indexes.append( endl_indexes[-1] + len(monitor_printers))
 
-   # write the print statement
+  # write the print statement
   composed_elements = []
   for index, content in enumerate(things_to_print):
     if index in endl_indexes:
