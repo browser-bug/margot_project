@@ -567,6 +567,8 @@ namespace margot
       /**
        * @brief Retrieve the most suitable configuration for the application
        *
+       * @param [out] configuration_changed If true, the new configuration is different wrt the previous one
+       *
        * @return The most suitable configuration for the application
        *
        * @details
@@ -580,7 +582,7 @@ namespace margot
        * If the are no states or no Operating Point, calling this method is
        * considered undefined behavior.
        */
-      configuration_type get_best_configuration( void )
+      configuration_type get_best_configuration( bool* configuration_changed = nullptr )
       {
         // lock the manger mutex, to ensure a consistent global state
         std::lock_guard< std::mutex > lock(manger_mutex);
@@ -588,7 +590,19 @@ namespace margot
 
         if (proposed_best_configuration != application_configuration)
         {
+          if (configuration_changed != nullptr)
+          {
+            *configuration_changed = true;
+          }
+
           status = ApplicationStatus::UNDEFINED;
+        }
+        else
+        {
+          if (configuration_changed != nullptr)
+          {
+            *configuration_changed = false;
+          }
         }
 
         return proposed_best_configuration->get_knobs();
