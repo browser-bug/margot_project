@@ -121,6 +121,20 @@ class Asrtm : public CxxTest::TestSuite
       //manager.get_best_configuration();
     }
 
+    void test_utility_get( void )
+    {
+      margot::Asrtm<MyOperatingPoint> manager;
+      manager.add_operating_points(op_list_5);
+      manager.create_new_state("default");
+      manager.change_active_state("default");
+      manager.find_best_configuration();
+      manager.get_best_configuration();
+      manager.configuration_applied();
+
+      TS_ASSERT_EQUALS((manager.get_mean<margot::OperatingPointSegments::SOFTWARE_KNOBS, 0>()), 3)
+      TS_ASSERT_EQUALS((manager.get_mean<margot::OperatingPointSegments::METRICS, 0>()), 1)
+    }
+
 
 
 

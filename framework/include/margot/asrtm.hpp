@@ -638,6 +638,32 @@ namespace margot
       }
 
 
+      /**
+       * @brief Retrieves the mean value of a field of the current Operating Point
+       *
+       * @tparam segment The target segment of the Operating Point
+       * @tparam field The index of the target field wihin the segment
+       * @tparam T The type of the return value
+       *
+       * @return The mean value of the requested field
+       *
+       * @details
+       * This method evaluates the last Operating Point used by the application,
+       * not a possible new one, found by the autotuner.
+       * The idea is that this method retrieves the expected value of the target field
+       *
+       * @note
+       * Using this method without Operating Point causes undefined behavior
+       */
+      template< OperatingPointSegments segment, std::size_t field, class T = float >
+      inline T get_mean( void ) const
+      {
+        assert(proposed_best_configuration && "Error: AS-RTM attempt to retrieve information from an empty state");
+        return static_cast<T>(Evaluator< OperatingPoint, FieldComposer::SIMPLE,
+                              OPField< segment, BoundType::LOWER, field, 0> >::evaluate(application_configuration));
+      }
+
+
 
 
       /******************************************************************
