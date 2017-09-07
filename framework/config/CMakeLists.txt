@@ -29,4 +29,11 @@ configure_file(
   @ONLY
   )
 
+# store a copy also in the margot heel cmake folder
+configure_file(
+  "${CMAKE_CURRENT_SOURCE_DIR}/FindMARGOT.cmake.in"
+  "${PROJECT_SOURCE_DIR}/margot_heel/margot_heel_if/cmake/FindMARGOT.cmake"
+  @ONLY
+  )
+
 install( FILES "${PROJECT_BINARY_DIR}/finders/FindMARGOT.cmake" DESTINATION lib/cmake )

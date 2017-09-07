@@ -1,0 +1,468 @@
+#!/bin/env python
+
+
+
+
+#################################
+###### Import system packages
+#################################
+from __future__ import print_function
+import argparse                          # processing the input
+import os.path as path                   # handling the paths
+import inspect                           # getting the path of this script
+import os                                # for creating the path
+import errno                             # for checking before creating a path
+import sys                               # for exiting the script
+
+
+
+
+
+
+
+#################################
+###### Import margot library
+#################################
+try:
+  import margot_heel_cli
+except ImportError:
+
+  # Add the python scripts folder
+  src_folder = os.path.realpath(os.path.join(os.path.split(inspect.getfile( inspect.currentframe() ))[0], ".."))
+  if not os.path.isdir(os.path.join(src_folder, 'margot_heel_cli')):
+    src_folder = os.path.realpath(os.path.join(os.path.split(inspect.getfile( inspect.currentframe() ))[0], "margot_heel_cli"))
+  if src_folder not in sys.path:
+    sys.path.insert(1, src_folder)
+
+  # Import again the library
+  try:
+    import margot_heel_cli
+
+  except ImportError:
+    print('[ERROR]: Unable to find the margot_heel_cli library!')
+    print('         Possible causes:')
+    print('             - argotool is not installed as python package')
+    print('             - This file has been moved wrt the library position')
+    print(src_folder)
+    sys.exit(-1)
+
+from margot_heel_cli import dse_doe as doe
+
+
+
+
+def execute_command_generate( path_margot_file, paths_op_list, path_out_dir ):
+  """
+  Generates the high-level MARGOT library
+  """
+
+  # import the parser
+  from margot_heel_cli import parser as p
+
+  # parse the xml files
+  parser = p.Parser()
+  print('[INFO] Parsing all the managed blocks of the application')
+  parser.parse_margot(path_margot_file)
+  print('[INFO] Managed blocks parsing done!')
+  print('[INFO] Parsing all the list of Operating Points')
+  parser.parse_ops(paths_op_list)
+  print('[INFO] Operating Points list parsing done!')
+
+  # postprocess the data
+  print('[INFO] Start the input validation')
+  parser.postprocess()
+  print('[INFO] Parsing Done!')
+
+  # retrieves the parsed information
+  block_models = parser.block_models
+  oplists = parser.ops
+
+  # import the generator
+  from margot_heel_cli import generator as g
+
+  # generate the source files
+  print('[INFO] Generating the source code')
+  g.generate_source_files(block_models, oplists, path_out_dir)
+  print('[INFO] Done!')
+  print('[INFO] All Done! No errors!')
+
+
+def execute_command_plot( paths_op_list, x_metric, y_metric, color_metric ):
+  """
+  Generates the high-level MARGOT library
+  """
+
+  # import the parser
+  from margot_heel_cli import parser as p
+
+  # parse the xml files
+  parser = p.Parser()
+  parser.parse_ops(paths_op_list)
+
+  # retrieves the parsed information
+  oplist = parser.ops[parser.ops.keys()[0]]
+
+  # import the generator
+  from margot_heel_cli.op_utils import plot_op_list
+
+  # generate the source files
+  plot_op_list( oplist, x_metric, y_metric, color_metric )
+
+
+def execute_command_unify_oplists( sources, params, avgfields ):
+  """
+  unifies more oplists into an single one, averaging or summing the metrics
+  """
+
+  # import the parser
+  from margot_heel_cli import parser as p
+  parser = p.Parser()
+  parser.parse_multi_app(sources[0],avgfields,params)
+  from margot_heel_cli.op_utils import print_op_list_xml
+  print_op_list_xml(parser.ops)
+
+
+def execute_command_plot_distr(varname ,oplist_pattern):
+  """
+  unifies more oplists into an single one, averaging or summing the metrics
+  """
+
+  # import the parser
+  from margot_heel_cli import parser as p
+  parser = p.Parser()
+  #multilist reading
+  #explore the current folder and grab all the files with a given nam
+  plotdic = parser.process_folder_lists(varname,oplist_pattern)
+  #plot the list
+  from margot_heel_cli.op_utils import print_distribution
+  print_distribution(plotdic)
+
+
+def execute_command_pareto( paths_op_list, true_fields, false_fields ):
+  """
+  Perform a Pareto fileter on the target list of Operating Points
+  """
+
+  # import the parser
+  from margot_heel_cli import parser as p
+
+  # parse the xml files
+  parser = p.Parser()
+  parser.parse_ops(paths_op_list)
+
+  # retrieves the parsed information
+  oplist = parser.ops[parser.ops.keys()[0]]
+
+  # build the directions
+  directions = {}
+  if true_fields:
+    fields = true_fields.split(',')
+    for true_field in fields:
+      directions[true_field] = True
+  if false_fields:
+    fields = false_fields.split(',')
+    for false_field in fields:
+      directions[false_field] = False
+
+  # import the op utils
+  from margot_heel_cli.op_utils import pareto_filter, print_op_list_xml
+
+  # apply the filter
+  filetered_list = pareto_filter(oplist, directions)
+
+  # print the result
+  print_op_list_xml(filetered_list)
+
+
+def execute_command_2dplot( traces, x_metric, y_metric, common_x_field, delimiter ):
+  """
+  Generate a gnuplot script that draws a 2d plot of several traces
+  """
+  from margot_heel_cli import model_trace                # to model a trace
+  from margot_heel_cli import model_experiment           # to model an experiment
+  from margot_heel_cli import plot_2dtraces              # for the 2d plot
+
+  # split the y metrics
+  y_metrics = y_metric.split(',')
+
+  # initialize the experiment
+  experiment_model = model_experiment.ExperimentModel()
+
+  # parse all the traces
+  for trace in traces:
+    trace_model = model_trace.TraceModel(trace, delimiter)
+    experiment_model.experiments.append(trace_model)
+
+  # set the field mask
+  experiment_model.field_mask = [x_metric]
+  experiment_model.field_mask.extend(y_metrics)
+
+  # optionally set if there should be a common metric
+  if common_x_field:
+    experiment_model.common_normalized_metrics = [x_metric]
+
+  # generate the data
+  data, header = experiment_model.generate_data()
+
+  # print the data
+  plot_2dtraces.plot2dtraces(data, header)
+
+
+def execute_command_sum( path_trace, column_name, delimiter ):
+  """
+  Perform the sum of a column in a trace and prints the result
+  """
+  from margot_heel_cli import model_trace                # to model a trace
+
+  # parse the trace file
+  trace_model = model_trace.TraceModel(path_trace, delimiter)
+
+  # print the column value
+  print(trace_model.sum_column(column_name))
+
+
+def execute_command_csv2xml( file_path, delimiter ):
+  """
+  Parse an Operating Point list, as a csv, and print the xml on the stdout
+  """
+  from margot_heel_cli import parse_op                  # to create the OP model
+  from margot_heel_cli import op_utils
+
+  # loop in all the csv files
+  for single_file_path in file_path:
+
+    # create the model
+    op_list_model = parse_op.parse_ops_csv(single_file_path, delimiter)
+
+    # print it in xml format
+    op_utils.print_op_list_xml(op_list_model)
+
+
+def execute_command_xml2csv( file_path ):
+  """
+  Parse an Operating Point list, as an xml, and print the csv on the stdout
+  """
+  from margot_heel_cli import parse_op                  # to create the OP model
+  from margot_heel_cli import op_utils
+
+  # loop in all the csv files
+  for single_file_path in file_path:
+
+    # create the model
+    op_list_model = parse_op.parse_ops_xml(single_file_path)
+
+    # print it in csv format
+    op_utils.print_op_list_csv(op_list_model)
+
+
+def execute_command_postprocessMCS(dse, dse_folder, doe_strategy, thresholds, aggr_metr, thrs_metr, aggr_knob, confidence):
+  """
+  modify a metric into a knob postprocessing the result of a DSE
+  """
+  from margot_heel_cli import dse_postprocess as post
+  thresholds_array = thresholds.split(',')
+#	print (thresholds_array)
+  thresholds_real = [float(x) for x in thresholds_array]
+  postprocess_extractor = post.Postprocessor(dse, dse_folder, doe_strategy)
+  postprocess_extractor.postprocessMCS(thresholds_real, aggr_metr, thrs_metr,aggr_knob, confidence)
+
+
+def execute_command_add_metric( file_path, metric_name, formula ):
+  """
+  Parse an Operating Point list, as an xml, and print the csv on the stdout
+  """
+  from margot_heel_cli import parse_op                  # to create the OP model
+  from margot_heel_cli import op_utils
+
+  # loop in all the csv files
+  for single_file_path in file_path:
+
+    # create the model
+    op_list_model = parse_op.parse_ops_xml(single_file_path)
+
+    # add the metric
+    op_utils.add_metric(op_list_model, metric_name, formula)
+
+    # print it in csv format
+    op_utils.print_op_list_csv(op_list_model)
+
+
+def execute_command_generate_DSE(path_application_description, path_workspace_directory, path_executable, doe_strategy):
+  # ------- Parse the application description
+  from margot_heel_cli import dse_workspace
+  from margot_heel_cli import dse_application
+  from margot_heel_cli import dse_generate_ops
+
+  my_application = dse_application.Application(path_application_description)
+
+
+  # ------- Generate the flags for the generator that will be called later
+  application_flags = dse_generate_ops.generate_application_flags(my_application)
+
+
+  #Workspace setup:
+  my_workspace = dse_workspace.Workspace(path_workspace_directory, path_executable)
+  my_workspace.setup(my_application.dependencies, len(my_application.flags.keys()))
+  for index_folder_ID in my_application.flags.keys():
+  # ------- Build the DoE plan
+    my_doe_plan = doe.DoE(doe_strategy, my_application, index_folder_ID)
+  # ------- Generate the workspace
+    my_workspace.doe_setup(my_doe_plan, application_flags, my_application.dependencies, index_folder_ID)
+  #build the global makefile. The oplist reported is the output of the first DOE (launchpad/0 if default naming is maintained). Other oplists are in the other folders, ready for post process.
+  my_workspace.finalize_makelists(application_flags)
+
+
+
+
+
+
+
+
+
+
+
+if __name__ == "__main__":
+
+
+  # ------- Create the argument parser for the application
+
+  # create the main argument parser
+  arg_parser = argparse.ArgumentParser(description='Utility script that generates an high-level application-specific adaptation API in C++ (plus a simple C interface)')
+  arg_parser.add_argument('--version', action='version', version='mARGOt cli 1.0', help='Print the version of the tools and exit')
+
+
+  # ------- List all the module operations
+  subparsers = arg_parser.add_subparsers(dest='command', help='The available operations')
+
+  # add the margot-gen command
+  parser_generator = subparsers.add_parser('generate', help='Generates the high-level interface as a cmake based library (it depends on the framework)')
+  parser_generator.add_argument('op_list', metavar='OPS', type=str, nargs='*', help='The path to the list of Operating Points files, in XML format')
+  parser_generator.add_argument('--margot', metavar='MARGOT', dest='margot', type=str, nargs='?', help='The path to the MARGOT configuration file, in XML format')
+  parser_generator.add_argument('--out', metavar='DEST', dest='dst', type=str, default='./out', required=False, help='The output path of this utility program')
+
+
+  # add the margot-plot command
+  parser_generator = subparsers.add_parser('plotOPs', help='Generates a gnuplot script to display the list of Operating Points in a svg image')
+  parser_generator.add_argument('op_list', metavar='OPS', type=str, nargs=1, help='The path to the list of Operating Points file, in XML format')
+  parser_generator.add_argument('--x_field', metavar='X', dest='x_metric', type=str, nargs='?', required=True, help='The name of the field on the x-axis')
+  parser_generator.add_argument('--y_field', metavar='Y', dest='y_metric', type=str, nargs='?', required=True, help='The name of the field on the y-axis')
+  parser_generator.add_argument('--c_field', metavar='C', dest='color_metric', type=str, nargs='?', required=False, default='', help='The name of the field on the color palette')
+
+
+  # add the merge command
+  parser_generator = subparsers.add_parser('unify_oplists', help='unifies the output of parallel runs of an application')
+  parser_generator.add_argument('sources', metavar='OPS', type=str, nargs=1, help='The path to the list of the execution tracks file, in XML format')
+  parser_generator.add_argument('--params', metavar='P', dest='params', type=str, nargs='?', required=True, help='path to the list of params used in the executions, ids must be compatible with execution track file. XML format')
+  parser_generator.add_argument('--avgfields', metavar='AF', dest='avgfields', type=str, nargs='?', required=True, help='The name of the metrics that have to be averaged (default all are added). comma separated')
+
+
+  # add the plot distr command
+  parser_generator = subparsers.add_parser('plot_variable_distribution', help='plot a distribution of the given variable value among a list of different eexecution oplists. the oplists MUST have a single point. This function is used for parallel runs of applications')
+  parser_generator.add_argument('--oplist_pattern', metavar='O', dest='oplist_pattern', type=str, nargs='?', required=True, help='pattern of the oplists file names')
+  parser_generator.add_argument('--varname', metavar='V', dest='varname', type=str, nargs='?', required=True, help='name of the variable to evaluate. must be a metric of the oplists.')
+
+
+  # add the margot-pareto command
+  parser_generator = subparsers.add_parser('pareto', help='Apply a Pareto filter to a target list of Operating Points')
+  parser_generator.add_argument('op_list', metavar='OPS', type=str, nargs=1, help='The path to the list of Operating Points file, in XML format')
+  parser_generator.add_argument('--high_better', metavar='H', dest='true_fields', type=str, nargs='?', required=False, help='The name of the fields where an higher value is better (coma separated)')
+  parser_generator.add_argument('--low_better', metavar='L', dest='false_fields', type=str, nargs='?', required=False, help='The name of the fields where a lower value is better (coma separated)')
+
+
+  # add the summ command
+  parser_generator = subparsers.add_parser('sum', help='Sum a column of the log file and print the result')
+  parser_generator.add_argument('log_file', metavar='LOG', type=str, help='The path trace of the application')
+  parser_generator.add_argument('--col', metavar='COL', dest='col', type=str, required=True, help='The name of the target column')
+  parser_generator.add_argument('--delimiter', metavar='DEL', dest='delimiter', type=str, required=False, default=' ', help='The delimiter character')
+
+
+  # add the plot 2d command
+  parser_generator = subparsers.add_parser('plot2dexperiment', help='Generate a gnuplot script of a 2D plot collecting different traces of an experiment')
+  parser_generator.add_argument('trace', metavar='TRACE', type=str, nargs='+', help='The path to the target traces of the experiment')
+  parser_generator.add_argument('--x_field', metavar='XFIELD', dest='xfield', type=str, required=True, help='The name of the target field for the x axis')
+  parser_generator.add_argument('--y_field', metavar='YFIELD', dest='yfield', type=str, required=True, help='The name of the target fields for the y axis (coma separated)')
+  parser_generator.add_argument('--remove_x_offset', metavar='OFFSET', dest='remove_offset', type=bool, required=False, default=False, help='If true, it means that x field should be common between all the traces and starts with 0, i.e. if the x field is the timestamp')
+  parser_generator.add_argument('--delimiter', metavar='DEL', dest='delimiter', type=str, required=False, default=' ', help='The delimiter character for the traces')
+
+
+  # add the convert OP (csv2xml) command
+  parser_generator = subparsers.add_parser('csv2xml', help='Convert an Operating Points list from csv to xml')
+  parser_generator.add_argument('path', metavar='OPS_CSV', type=str, nargs=1, help='The path to the target csv file')
+  parser_generator.add_argument('--delimiter', metavar='DEL', dest='delimiter', type=str, required=False, default=' ', help='The delimiter character for the csv')
+
+
+  # add the convert OP (xml2csv) command
+  parser_generator = subparsers.add_parser('xml2csv', help='Convert an Operating Points list from xml to csv')
+  parser_generator.add_argument('path', metavar='OPS_XML', type=str, nargs=1, help='The path to the target xml file')
+
+
+  # add the postprocess command
+  parser_generator = subparsers.add_parser('postprocessMCS', help='postprocesses data from a dse to obtain the final oplist to be used in autotuning')
+  parser_generator.add_argument('--dse_folder', metavar='PATH', dest='dse_folder', type=str,required = True , help='The path to the dse folder') 
+#			list of Operating Points files, in XML format')
+  parser_generator.add_argument('dse', metavar='DSE', type=str, help='file dse.xml used to guide the exploration')
+  parser_generator.add_argument('--strategy',metavar = 'DOE',dest = 'doe',type = str,required = False,choices = doe.DoE.supported_does,default = 'full-factorial',help='The used Design Of Experiments')
+  parser_generator.add_argument('--thresholds', metavar='THR', type=str,required = True, help='comma separated array of thresholds')
+  parser_generator.add_argument('--aggr_metr', metavar='AGM', type=str, required = True,help='metric that has to be aggregated in OPs')
+  parser_generator.add_argument('--thrs_metr', metavar='TSM', type=str, required = True,help='metric that has to be clustered in OPs')
+  parser_generator.add_argument('--aggr_knob', metavar='AGK', type=str, required = True,help='knob that has to be aggregated in OPs, its values MUST be a number')
+  parser_generator.add_argument('--confidence', metavar='CON', type=int, required = False, default = 1,help='coefficient to be applied as confidence on the error (i.e how many sigma consider), default 1')
+
+
+  # add the add_column command
+  parser_generator = subparsers.add_parser('add_metric', help='Adds a new indirect metric to the Operating Points')
+  parser_generator.add_argument('op_list', metavar='OPS', type=str, nargs=1, help='The path to the list of Operating Points file, in XML format')
+  parser_generator.add_argument('--metric_name', metavar='NAME', dest='metric_name', type=str, required=True, help='The new name of the metric')
+  parser_generator.add_argument('--formula', metavar='FORMULA', dest='formula', type=str, required=True, help='The formula used to compute the new metric (python syntax)')
+
+  # add the generate dse command
+  parser_generator = subparsers.add_parser('generate_dse', help='Creates a dse infrastracture')
+  parser_generator.add_argument('application',metavar = 'APP',type = str,nargs = 1,help = 'The path to the application description, in XML format')
+  parser_generator.add_argument('--strategy',metavar = 'DOE',dest = 'doe',type = str,required = False,choices = doe.DoE.supported_does,default = 'full-factorial',help='The used Design Of Experiments')
+  parser_generator.add_argument('--executable',metavar = 'BIN',dest = 'executable',type = str,required = True,help='The path to the application executable')
+  parser_generator.add_argument('--workspace',metavar = 'OUT',dest = 'out_folder',type = str,required = False,default = './dse_campaign',help = 'The path to write the DSE campaign')
+
+
+
+  # ------- Parse the argument
+  args = arg_parser.parse_args()
+
+
+
+  # ------- Execute the command
+  if args.command == 'generate':
+    execute_command_generate(args.margot, args.op_list, args.dst)
+
+  if args.command == 'plotOPs':
+    execute_command_plot(args.op_list, args.x_metric, args.y_metric, args.color_metric)
+
+  if args.command == 'pareto':
+    execute_command_pareto( args.op_list, args.true_fields, args.false_fields )
+
+  if args.command == 'sum':
+    execute_command_sum(args.log_file, args.col, args.delimiter)
+
+  if args.command == 'plot2dexperiment':
+    execute_command_2dplot(args.trace, args.xfield, args.yfield, args.remove_offset, args.delimiter)
+
+  if args.command == 'csv2xml':
+    execute_command_csv2xml(args.path, args.delimiter)
+
+  if args.command == 'xml2csv':
+    execute_command_xml2csv(args.path)
+
+  if args.command == 'unify_oplists':
+    execute_command_unify_oplists (args.sources, args.params, args.avgfields)
+
+  if args.command == 'plot_variable_distribution':
+    execute_command_plot_distr (args.varname, args.oplist_pattern)
+
+  if args.command == 'postprocessMCS':
+    execute_command_postprocessMCS(args.dse, args.dse_folder, args.doe, args.thresholds, args.aggr_metr, args.thrs_metr, args.aggr_knob,args.confidence)
+
+  if args.command == 'add_metric':
+    execute_command_add_metric(args.op_list, args.metric_name, args.formula)
+
+  if args.command == 'generate_dse':
+    execute_command_generate_DSE(args.application[0],args.out_folder,args.executable,args.doe)
+

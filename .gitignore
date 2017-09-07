@@ -1,2 +1,4 @@
 build/
+margot_heel/margot_heel_if/cmake/
 .clang_complete
+*.pyc
