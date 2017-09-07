@@ -79,7 +79,7 @@ namespace margot
        * @brief Explicit definition of the statistical type
        *
        * @details
-       * The idea is to use the statistical_t type. However, if the stored elements
+       * The idea is to use the statistics_t type. However, if the stored elements
        * have higher precision, then it must use the latter type.
        */
       using statistical_type = typename statistical_provider_type::statistical_type;
