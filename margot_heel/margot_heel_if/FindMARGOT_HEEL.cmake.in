@@ -25,7 +25,7 @@ find_path (MARGOT_HEEL_HEADERS margot.hpp
 find_path (MARGOT_HEEL_HEADERS margot.hpp)
 
 # add the paths for the dependecies
-set( MARGOT_INCLUDES ${MARGOT_HEEL_HEADERS} ${MARGOT_DEPS_HEADERS} )
+set( MARGOT_HEEL_INCLUDES ${MARGOT_HEEL_HEADERS} ${MARGOT_DEPS_HEADERS} )
 
 
 ## -----------------------------------------------------------------------------

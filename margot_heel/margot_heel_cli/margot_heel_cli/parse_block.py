@@ -4,7 +4,6 @@ from .parse_monitor import parse_monitor
 from .parse_goal import parse_goal
 from .parse_knob import parse_knob
 from .parse_state import parse_state
-from .parse_learn_model import parse_learn_model
 from .parse_adaptors import parse_adaptor
 from .parse_metrics import parse_metric
 from . import model_block
