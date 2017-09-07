@@ -9,4 +9,4 @@ Name: mARGOt Framework
 Description: Enhance an application with an adaption layer
 Version: @PROJECT_VERSION_MAJOR@.@PROJECT_VERSION_MINOR@
 Libs:  "-L${libdir} -l@MARGOT_LIB_NAME@ @MARGOT_LINK_DEPENDENCIES_STR@"
-Cflags: "-I@MARGOT_DEPS_INCLUDE_DIRECTORIES_STR@ -I${includedir}"
+Cflags: "-I${includedir} -I@HDR_PATH@ -I@MARGOT_DEPS_INCLUDE_DIRECTORIES_STR@"
