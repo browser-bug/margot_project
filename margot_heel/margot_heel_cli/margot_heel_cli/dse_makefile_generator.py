@@ -1,4 +1,5 @@
 import os
+import pickle
 
 common_profile_name = 'profile.margot_dse'
 
@@ -29,15 +30,19 @@ def generate_intermediate_makefile(doe, out_path, py_ops_generator, dest_flags, 
 		dependencies_log_file.append(os.path.join('.', os.path.relpath(log_file_path, common_path)))
 		dependencies_folder.append(os.path.join('.', os.path.relpath(c.cwd, common_path)))
 
+	with open(os.path.join(out_path, 'doe.pkl'), 'wb') as outfile:
+		pickle.dump(dest_flags, outfile, pickle.HIGHEST_PROTOCOL)
+
 
 	# write the doe makefile
 	with open(os.path.join(out_path, 'Makefile'), 'w') as outfile:
 
 		# write the global objective of the dse
 		outfile.write('dse: {0}\n'.format(' \\\n     '.join(dependencies_log_file)))
-		generator_flags = ' '.join(dest_flags)
+#		generator_flags = ' '.join(dest_flags)
 		outfile.write('\t@echo "[GLOBAL: {0}%] of the different input processing"\n'.format(percentage))
-		outfile.write('\t@python3 {0} {1}\n'.format(py_ops_generator, generator_flags))
+#		outfile.write('\t@python3 {0} {1}\n'.format(py_ops_generator, generator_flags))
+		outfile.write('\t@python3 {0} --data {1}\n'.format(py_ops_generator, os.path.join(out_path, 'doe.pkl')))
 		outfile.write('\n\n\n')
 		# write the rule to compute the dependencies
 		for index_dep, dep in enumerate(dependencies_log_file):

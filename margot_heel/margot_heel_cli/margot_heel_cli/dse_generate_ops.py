@@ -11,14 +11,14 @@ import os                                # for creating the path
 import errno                             # for checking before creating a path
 import sys                               # for exiting the script
 import statistics                        # for trace analysis
-
+import pickle                            # for read the doe file
 
 
 
 def generate_application_flags(application_model):
 
 	# the container of the flags for this application
-	command_flags = []
+	command_flags = {}
 
 	# prepare the translators for the non numeric values
 	knob_names = sorted(application_model.knob_values.keys())
@@ -39,23 +39,23 @@ def generate_application_flags(application_model):
 			for counter, value in enumerate(sorted_values):
 				translator[knob_name][value] = counter
 				reverse_translator[knob_name][counter] = value
-	command_flags.extend(['--translator', '"{0}"'.format(str(translator))])
-	command_flags.extend(['--reverse_translator', '"{0}"'.format(str(reverse_translator))])
+	command_flags.update({'translator':translator})   #extend(['--translator', '"{0}"'.format(str(translator))])
+	command_flags.update({'reverse_translator':reverse_translator})    #extend(['--reverse_translator', '"{0}"'.format(str(reverse_translator))])
 
 	# prepare the flags for the remainder of the application fields
-	command_flags.extend(['--added_metrics', '"{0}"'.format(str(application_model.compute))])
-	command_flags.extend(['--observed_metrics', '"{0}"'.format(str(application_model.metrics))])
-	command_flags.extend(['--block_name', application_model.block])
+	command_flags.update({'added_metrics':application_model.compute})  #extend(['--added_metrics', '"{0}"'.format(str(application_model.compute))])
+	command_flags.update({'observed_metrics':application_model.metrics})  #extend(['--observed_metrics', '"{0}"'.format(str(application_model.metrics))])
+	command_flags.update({'block_name':application_model.block})  #extend(['--block_name', application_model.block])
 
 	return command_flags
 
 
 def generate_profile_flags(profile_files):
-	return ['--doe', '"{0}"'.format(profile_files)]
+	return {'doe':profile_files}
 
 
 def generate_outfile_flag(output_file):
-	return ['--outfile', output_file]
+	return {'outfile':output_file}
 
 
 
@@ -97,81 +97,90 @@ if __name__ == "__main__":
 	                        help = 'Print the version of the tools and exit')
 
 	# create the parser arguments
-	arg_parser.add_argument('--translator',
-	                        metavar = 'TR',
-	                        dest = 'translator_str',
-	                        type = str,
-	                        required = False,
-	                        default = "translator = {}",
-	                        help='The representation of the translator for the op list')
-	arg_parser.add_argument('--reverse_translator',
-	                        metavar = 'RTR',
-	                        dest = 'reverse_translator_str',
-	                        type = str,
-	                        required = False,
-	                        default = "reverse_translator = {}",
-	                        help='The representation of the reverse_translator for the op list')
-	arg_parser.add_argument('--added_metrics',
-	                        metavar = 'CMs',
-	                        dest = 'added_metrics',
-	                        type = str,
-	                        required = False,
-	                        default = {},
-	                        help = 'The description of the metric that should be derived from the observed ones')
-	arg_parser.add_argument('--block_name',
-	                        metavar = 'BLOCK',
-	                        dest = 'block_name',
-	                        type = str,
-	                        required = False,
-	                        default = 'elaboration',
-	                        help = 'The name of the target block')
-	arg_parser.add_argument('--doe',
-	                        metavar = 'DOE',
-	                        dest = 'doe',
-	                        type = str,
-	                        required = False,
-	                        default = '{}',
-	                        help = 'The description of the DoE to reconstruct the Operating Point')
-	arg_parser.add_argument('--observed_metrics',
-	                        metavar = 'OBS',
-	                        dest = 'metrics',
-	                        type = str,
-	                        required = False,
-	                        default = '{}',
-	                        help = 'The description of the profiled metrics')
-	arg_parser.add_argument('--outfile',
-	                        metavar = 'OUT',
-	                        dest = 'out_file',
+	arg_parser.add_argument('--data',
+	                        metavar = 'DA',
+	                        dest = 'data_filename',
 	                        type = str,
 	                        required = True,
-	                        default = 'oplist.conf',
-	                        help = 'The filename of the generated Operating Points list')
-
-
-
+	                        default = "",
+	                        help='The pickle file with the doe dictionaty')
+#	arg_parser.add_argument('--translator',
+#	                        metavar = 'TR',
+#	                        dest = 'translator_str',
+#	                        type = str,
+#	                        required = False,
+#	                        default = "translator = {}",
+#	                        help='The representation of the translator for the op list')
+#	arg_parser.add_argument('--reverse_translator',
+	#                        metavar = 'RTR',
+	#                        dest = 'reverse_translator_str',
+	#                        type = str,
+	#                        required = False,
+	#                        default = "reverse_translator = {}",
+	#                        help='The representation of the reverse_translator for the op list')
+	#arg_parser.add_argument('--added_metrics',
+	#                        metavar = 'CMs',
+	#                        dest = 'added_metrics',
+	#                        type = str,
+	#                        required = False,
+	#                        default = {},
+	#                        help = 'The description of the metric that should be derived from the observed ones')
+	#arg_parser.add_argument('--block_name',
+	#                        metavar = 'BLOCK',
+	#                        dest = 'block_name',
+	#                        type = str,
+	#                        required = False,
+	#                        default = 'elaboration',
+	#                        help = 'The name of the target block')
+	#arg_parser.add_argument('--doe',
+	#                        metavar = 'DOE',
+	#                        dest = 'doe',
+	#                        type = str,
+	#                        required = False,
+	#                        default = '{}',
+	#                        help = 'The description of the DoE to reconstruct the Operating Point')
+	#arg_parser.add_argument('--observed_metrics',
+	#                        metavar = 'OBS',
+	#                        dest = 'metrics',
+	#                        type = str,
+	#                        required = False,
+	#                        default = '{}',
+	#                        help = 'The description of the profiled metrics')
+	#arg_parser.add_argument('--outfile',
+	#                        metavar = 'OUT',
+	#                        dest = 'out_file',
+	#                        type = str,
+	#                        required = True,
+	#                        default = 'oplist.conf',
+	#                        help = 'The filename of the generated Operating Points list')
+    
+    
+    
 	# ------- Parse the arguments
 	args = arg_parser.parse_args()
-
+	
+	with open (args.data_filename, 'rb') as f:
+		dse_data = pickle.load(f)
 
 	# ------- Build the oplist model
 	from margot_heel_cli import model_op_list
 	from margot_heel_cli import model_op
 	my_op_list_model = model_op_list.OperatingPointListModel()
-	my_op_list_model.name = args.block_name
+	my_op_list_model.name = dse_data['block_name']
 
 
 	# ------- Populate the fields translator
-	my_op_list_model.translator = eval(args.translator_str)
-	my_op_list_model.reverse_translator = eval(args.reverse_translator_str)
+	my_op_list_model.translator = dse_data['translator']
+	my_op_list_model.reverse_translator = dse_data['reverse_translator']
 
 	# ------- Get the metrics that should be completed
-	metric_to_add = eval(args.added_metrics)
+	metric_to_add = dse_data['added_metrics']
 
 	# ------- Compose the Operating Point List
 	this_file_path = os.path.realpath(os.path.join(os.path.split(inspect.getfile( inspect.currentframe() ))[0]))
 	from margot_heel_cli import model_trace
 	from margot_heel_cli import op_utils
-	doe_plan = eval(args.doe)
+	doe_plan = dse_data['doe']
 	print('**************************************************')
 	print('************        DSE REPORT        ************')
 	print('**************************************************')
@@ -205,7 +214,8 @@ if __name__ == "__main__":
 
 		# add the metric values
 		my_trace_model = model_trace.TraceModel(trace_file_path)
-		profile_metric_description = eval(args.metrics)
+		profile_metric_description = dse_data['observed_metrics']
+
 		print('\t-- Profiled information:')
 		for metric_name in profile_metric_description:
 
@@ -243,5 +253,5 @@ if __name__ == "__main__":
 
 	# print the list of Operating Points
 	from contextlib import redirect_stdout
-	with open(args.out_file, 'w') as f, redirect_stdout(f):
+	with open(dse_data['outfile'], 'w') as f, redirect_stdout(f):
 		op_utils.print_op_list_xml(my_op_list_model)

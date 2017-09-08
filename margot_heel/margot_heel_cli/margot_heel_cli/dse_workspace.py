@@ -181,11 +181,11 @@ class Workspace:
 			profile_files[os.path.join(rebased_root, rebased_path_log)] = configuration.description
 
 		# compose the flags for the python script that generates the Operating Points list
-		command_flags = generate_ops.generate_profile_flags(profile_files)
-		command_flags.extend(dest_flags)
-
+		command_flags = {}
+		command_flags.update(dest_flags)
+		command_flags.update(generate_ops.generate_profile_flags(profile_files))
 		# compose the relative path between the python script and the oplist
-		command_flags.extend(generate_ops.generate_outfile_flag(os.path.join('.', self.outfile_name)))
+		command_flags.update(generate_ops.generate_outfile_flag(os.path.join('.', self.outfile_name)))
 
 		# generate the global makefile
 		makefile_generator.generate_intermediate_makefile(doe, os.path.join(self.working_root,self.launchpard_dir_name,self.index_folder_ID), self.py_ops_generator_path_dst_rel, command_flags, int(100*(int(self.index_folder_ID)+1)/self.num_of_different_inputs))
