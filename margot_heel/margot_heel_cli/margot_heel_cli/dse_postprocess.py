@@ -213,7 +213,7 @@ class Postprocessor:
 						sys.exit(1)
 					#print (list_of_correct_points)
 					for op in list_of_correct_points:
-						print (op)
+						#print (op)
 						out_op.add(op)
 					for metric in out_op.metrics.keys():
 						#print ("++++****")
