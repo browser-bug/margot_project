@@ -123,7 +123,7 @@ install( FILES ${MARGOT_HEADERS} DESTINATION include/margot )
 
 
 # install the margot cli stuff
-install( FILES ${PROJECT_SOURCE_DIR}/margot_heel/margot_heel_cli/bin/argo_cli DESTINATION bin )
+install( FILES ${PROJECT_SOURCE_DIR}/margot_heel/margot_heel_cli/bin/margot_cli DESTINATION bin )
 install( DIRECTORY ${PROJECT_SOURCE_DIR}/margot_heel/margot_heel_cli/margot_heel_cli DESTINATION bin )
 
 
