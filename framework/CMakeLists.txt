@@ -38,6 +38,7 @@ set( MARGOT_HEADERS
 	${HDR_PATH}/margot/system_cpu_usage_monitor.hpp
 	${HDR_PATH}/margot/throughput_monitor.hpp
 	${HDR_PATH}/margot/time_monitor.hpp
+	${HDR_PATH}/margot/da_asrtm.hpp
 	)
 include_directories( ${HDR_PATH} )
 

@@ -48,7 +48,8 @@ namespace margot
    * @tparam error_coef_type The type used to compute the error coefficient of the application knowledge
    *
    * @details
-   * This class represent the interface of the mARGOt dynamic autotuner toward the appplication.
+   * This class represent the interface of the mARGOt dynamic autotuner toward the appplication, in case of
+   * omogenous input, with few abrut changes.
    * In particular it aims at:
    * 1) Handling the knowledge of the application (as an Operating Point list)
    * 2) Adapting the knowledge of the application according to the runtime information coming from the monitors
@@ -760,6 +761,68 @@ namespace margot
         assert( current_optimizer != application_optimizers.end()
                 && "Error: AS-RTM attempt to set the Rank when there is no active state");
         current_optimizer->second.template set_rank< objective, composer, Fields... > ( values... );
+      }
+
+
+
+
+      /******************************************************************
+       *  UTILITY FUNCTION FOR THE DATA-AWARE AS-RTM
+       ******************************************************************/
+
+
+      /**
+       * @brief Create a clone of the current AS-RTM, without copying the application knowledge
+       *
+       * @return The created sibling object
+       *
+       * @details
+       * This method is used by the Data-Aware AS-RTM to create a new feature cluster as a copy
+       * of previous AS-RTM, but without any information about the application knowledge, since it
+       * is the only characteristic not shared between feature clusters.
+       */
+      inline Asrtm<OperatingPoint, state_id_type, priority_type, error_coef_type> get_sibling( void ) const
+      {
+        // create a new Application-Specific Run-Time Manager
+        Asrtm<OperatingPoint, state_id_type, priority_type, error_coef_type> cloned_manager;
+
+        // assign the state map and the current optimization state
+        cloned_manager.application_optimizers(application_optimizers);
+
+        // set the reference pointer to the current state
+        cloned_manager.current_optimizer = cloned_manager.application_optimizers.begin();
+        for( auto it = application_optimizers.begin(); it != application_optimizers.end(); ++it)
+        {
+          if (it == current_optimizer)
+          {
+            break;
+          }
+          else
+          {
+            ++cloned_manager.current_optimizer;
+          }
+        }
+
+        // copy the runtime information provider
+        cloned_manager.runtime_information = runtime_information;
+
+        // copy the monitor handlers
+        cloned_manager.monitor_handlers = monitor_handlers;
+      }
+
+
+      /**
+       * @brief A soft reset of the AS-RTM
+       *
+       * @details
+       * This method forces this AS-RTM to notify the application that a new configuration
+       * has been found. It is used by the Data-Aware AS-RTM when the application switch to
+       * a different feature cluster
+       */
+      inline void restore_from_data_feature_switch( void )
+      {
+        status = ApplicationStatus::UNDEFINED;
+        application_configuration.reset();
       }
 
 
