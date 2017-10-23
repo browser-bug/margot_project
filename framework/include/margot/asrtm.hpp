@@ -407,7 +407,7 @@ namespace margot
        *  - if compiled in release mode, it will lead to an undefined behavior for any
        *    any attempt to use a method which affect the current state.
        */
-      void change_active_state( const state_id_type& state_id )
+      inline void change_active_state( const state_id_type& state_id )
       {
         // lock the manger mutex, to ensure a consistent global state
         std::lock_guard< std::mutex > lock(manger_mutex);
