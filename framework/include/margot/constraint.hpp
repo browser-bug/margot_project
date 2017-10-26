@@ -86,6 +86,33 @@ namespace margot
       using OPStream = typename Knowledge<OperatingPoint>::OPStream;
 
 
+      /*
+       * @brief Definition of pointer to this constraint interface
+       */
+      using ConstraintHandlerPtr = std::shared_ptr< ConstraintHandler<OperatingPoint,error_coef_type> >;
+
+
+
+
+      /******************************************************************
+       *  METHODS TO INTERACT WITH THE DATA-AWARE AS-RTM
+       ******************************************************************/
+
+
+       /**
+        * @brief Creates a pseudo-copy of the underlying constraint
+        *
+        * @return A shared pointer to the sibling constraint
+        *
+        * @details
+        * This method creates a copy of the actual constraint, which have the
+        * same features, but it lacks any relation with the managed OPs and with
+        * the runtime information provider.
+        * This method is used to interact with the Data-Aware AS-RTM.
+        */
+       virtual ConstraintHandlerPtr create_sibling( void ) const = 0;
+
+
 
 
       /******************************************************************
@@ -486,6 +513,11 @@ namespace margot
 
     public:
 
+      /**
+       * @brief Explicit definition of the sibling constraint pointer
+       */
+      using SiblingConstraintPtr = typename ConstraintHandler< OperatingPoint, error_coef_type >::ConstraintHandlerPtr;
+
 
       /**
        * @brief Explicit definition to an Operating Point pointer
@@ -564,6 +596,29 @@ namespace margot
         // set the goal values
         target_goal = goal_value;
         last_check_value = static_cast<value_type>(target_goal.get());
+      }
+
+
+
+
+      /******************************************************************
+       *  METHODS TO INTERACT WITH THE DATA-AWARE AS-RTM
+       ******************************************************************/
+
+
+      /**
+       * @brief Creates a pseudo-copy of the underlying constraint
+       *
+       * @return A shared pointer to the sibling constraint
+       *
+       * @details
+       * This method creates a copy of the actual constraint, which have the
+       * same features, but it lacks any relation with the managed OPs.
+       * This method is used to interact with the Data-Aware AS-RTM.
+       */
+      SiblingConstraintPtr create_sibling( void ) const
+      {
+        return SiblingConstraintPtr{ new Constraint<OperatingPoint,segment,field_index,sigma,ConstraintGoal,error_coef_type>(target_goal)};
       }
 
 

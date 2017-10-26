@@ -165,6 +165,28 @@ namespace margot
 
 
       /**
+       * @brief Clear all the observation from the monitors
+       *
+       * @details
+       * This method is used to reset the state of all the field adaptor available,
+       * i.e. fill their buffer with the value 1. Typically it is used to clone an
+       * Asrtm for a new feature cluster
+       */
+      inline void reset( void )
+      {
+        for ( auto& adaptor : adaptors)
+        {
+          // if it is associated any runtime information
+          if (adaptor)
+          {
+            // reset the observations
+            adaptor->clear_observations();
+          }
+        }
+      }
+
+
+      /**
        * @brief Removes all the references to runtime information.
        *
        * @details

@@ -170,6 +170,74 @@ namespace margot
       }
 
 
+      /**
+       * @brief Copy constructor
+       *
+       * @param [in] other The source object to be copied from
+       */
+      Asrtm( const Asrtm& other )
+      {
+        // it is safe to copy-construct the container
+        knowledge = Knowledge<OperatingPoint>(other.knowledge);
+        runtime_information = KnowledgeAdaptor<OperatingPoint, error_coef_type>(other.runtime_information);
+        monitor_handlers = MonitorHandlers(other.monitor_handlers);
+        application_optimizers = StateMap(other.application_optimizers);
+
+        // but extra care should be placed for the iterator of the current state
+        current_optimizer = application_optimizers.begin();
+        for( auto it = other.application_optimizers.begin(); it != other.application_optimizers.end(); ++it)
+        {
+          if (it == other.current_optimizer)
+          {
+            break;
+          }
+          else
+          {
+            ++current_optimizer;
+          }
+        }
+
+        // it is safe to copy-construct the status and pointers to Operating Points
+        application_configuration = other.application_configuration;
+        proposed_best_configuration = other.proposed_best_configuration;
+        status = other.status;
+      }
+
+
+      /**
+       * @brief Move constructor
+       *
+       * @param [in] other The source object to be copied from
+       */
+       Asrtm( Asrtm&& other )
+       {
+         // it is safe to copy-construct the container
+         knowledge = std::move(Knowledge<OperatingPoint>(other.knowledge));
+         runtime_information = std::move(KnowledgeAdaptor<OperatingPoint, error_coef_type>(other.runtime_information));
+         monitor_handlers = std::move(MonitorHandlers(other.monitor_handlers));
+         application_optimizers = std::move(StateMap(other.application_optimizers));
+
+         // but extra care should be placed for the iterator of the current state
+         current_optimizer = application_optimizers.begin();
+         for( auto it = other.application_optimizers.begin(); it != other.application_optimizers.end(); ++it)
+         {
+           if (it == other.current_optimizer)
+           {
+             break;
+           }
+           else
+           {
+             ++current_optimizer;
+           }
+         }
+
+         // it is safe to copy-construct the status and pointers to Operating Points
+         application_configuration = other.application_configuration;
+         proposed_best_configuration = other.proposed_best_configuration;
+         status = other.status;
+       }
+
+
 
 
       /******************************************************************
@@ -661,7 +729,7 @@ namespace margot
       template< OperatingPointSegments segment, std::size_t field, class T = float >
       inline T get_mean( void ) const
       {
-        assert(proposed_best_configuration && "Error: AS-RTM attempt to retrieve information from an empty state");
+        assert(application_configuration && "Error: AS-RTM attempt to retrieve information from an empty state");
         return static_cast<T>(Evaluator< OperatingPoint, FieldComposer::SIMPLE,
                               OPField< segment, BoundType::LOWER, field, 0> >::evaluate(application_configuration));
       }
@@ -774,42 +842,45 @@ namespace margot
 
 
       /**
-       * @brief Create a clone of the current AS-RTM, without copying the application knowledge
+       * @brief Create a pseudo-copy of the current AS-RTM
        *
        * @return The created sibling object
        *
        * @details
        * This method is used by the Data-Aware AS-RTM to create a new feature cluster as a copy
-       * of previous AS-RTM, but without any information about the application knowledge, since it
-       * is the only characteristic not shared between feature clusters.
+       * of this AS-RTM, but without any information about the application knowledge.
+       * Moreover, they must be independent, without sharing any data-structure.
        */
-      inline Asrtm<OperatingPoint, state_id_type, priority_type, error_coef_type> get_sibling( void ) const
+      inline Asrtm<OperatingPoint, state_id_type, priority_type, error_coef_type> create_sibling( void ) const
       {
         // create a new Application-Specific Run-Time Manager
         Asrtm<OperatingPoint, state_id_type, priority_type, error_coef_type> cloned_manager;
 
-        // assign the state map and the current optimization state
-        cloned_manager.application_optimizers(application_optimizers);
 
-        // set the reference pointer to the current state
-        cloned_manager.current_optimizer = cloned_manager.application_optimizers.begin();
-        for( auto it = application_optimizers.begin(); it != application_optimizers.end(); ++it)
+        // replicate the state structure
+        for( const auto& state : application_optimizers )
         {
-          if (it == current_optimizer)
+          // insert the optimization problem
+          const auto result = cloned_manager.application_optimizers.emplace(state.first, state.second.create_sibling());
+
+          // check if it is the current state
+          if (state.first == result.first->first)
           {
-            break;
-          }
-          else
-          {
-            ++cloned_manager.current_optimizer;
+            assert(result.second && "Error: something went wrong on creating the AS-RTM sibling");
+            cloned_manager.current_optimizer = result.first;
           }
         }
 
         // copy the runtime information provider
         cloned_manager.runtime_information = runtime_information;
 
+        // reset their values
+        cloned_manager.runtime_information.reset();
+
         // copy the monitor handlers
         cloned_manager.monitor_handlers = monitor_handlers;
+
+        return cloned_manager;
       }
 
 

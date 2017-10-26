@@ -89,6 +89,16 @@ namespace margot
 
 
       /**
+       * @brief Reset the field adaptor to the initial state
+       *
+       * @details
+       * This method reset the field adaptor as in the istant of creation, i.e.
+       * it sets all the error coefficients in the buffer to 1.
+       */
+      virtual void clear_observations( void ) = 0;
+
+
+      /**
        * @brief Retrieves a string which represent the status of the adaptor
        *
        * @details
@@ -292,6 +302,19 @@ namespace margot
       coefficient_type get_error_coefficient( void ) const
       {
         return average_coefficient_error;
+      }
+
+
+      /**
+       * @brief Reset the field adaptor to the initial state
+       *
+       * @details
+       * This method reset the field adaptor as in the istant of creation, i.e.
+       * it sets all the error coefficients in the buffer to 1.
+       */
+      void clear_observations( void )
+      {
+        error_window.fill(static_cast<coefficient_type>(1));
       }
 
 

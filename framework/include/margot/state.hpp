@@ -140,6 +140,45 @@ namespace margot
 
 
       /******************************************************************
+       *  METHODS TO INTERACT WITH THE DATA-AWARE AS-RTM
+       ******************************************************************/
+
+
+      /**
+       * @brief Creates a pseudo-copy of the state
+       *
+       * @return A State object with the same optimization problem
+       *
+       * @details
+       * This method creates a state, which is independent with respect to the
+       * current one, but has the same optimization problem structure.
+       * Since this state will manage different Operating Points, it does not
+       * copy any of them, from this state.
+       */
+      State create_sibling( void ) const
+      {
+        // declare the cloned state
+        State sibling;
+
+        // set the rank function as this state
+        sibling.rank = rank->create_sibling();
+
+
+        // replicate the constraint structure
+        for( const auto& constraint_pair : constraints )
+        {
+          sibling.constraints.emplace(constraint_pair.first, constraint_pair.second->create_sibling());
+        }
+
+
+        // return the created sibling
+        return sibling;
+      }
+
+
+
+
+      /******************************************************************
        *  CONSTRAINTS MANAGEMENT
        ******************************************************************/
 

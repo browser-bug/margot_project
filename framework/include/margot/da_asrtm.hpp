@@ -160,7 +160,7 @@ namespace margot
         if (first_cluster != managers.end())
         {
           // emplace the new asrtm (if it's actually new)
-          managers.emplace(key, first_cluster->get_sibling());
+          managers.emplace(key, first_cluster->second.create_sibling());
         }
         else
         {
@@ -195,11 +195,17 @@ namespace margot
         // get the lower bound cluster
         const auto low_cluster = managers.lower_bound(key);
 
+        // take a copy of the previous active state
+        const auto previous_active_manager = active_manager;
+
         // if it is the final one, go back
         active_manager = low_cluster != managers.end() ? low_cluster : std::prev(low_cluster);
 
-        // reset the information about the current Operating Point
-        active_manager->second.restore_from_data_feature_switch();
+        // reset the information about the current Operating Point (if we change the active manager)
+        if (previous_active_manager != active_manager)
+        {
+          active_manager->second.restore_from_data_feature_switch();
+        }
       }
 
 
@@ -431,7 +437,7 @@ namespace margot
         // loop over the available AS-RTM
         for( auto& asrtm_pair : managers )
         {
-          // create a new state
+          // switch to a new state
           asrtm_pair.second.change_active_state(state_id);
         }
       }

@@ -81,6 +81,25 @@ namespace margot
       using OPStream = typename Knowledge<OperatingPoint>::OPStream;
 
 
+      /*
+       * @brief Definition of pointer to this rank interface
+       */
+      using RankInterfacePtr = std::shared_ptr< RankInterface<OperatingPoint> >;
+
+
+      /**
+       * @brief Creates a pseudo-copy of the underlying rank
+       *
+       * @return A shared pointer to the sibling rank
+       *
+       * @details
+       * This method creates a copy of the actual rank, which have the
+       * same features, but it lacks any relation with the managed OPs.
+       * This method is used to interact with the Data-Aware AS-RTM.
+       */
+      virtual RankInterfacePtr create_sibling( void ) const = 0;
+
+
       /**
        * @brief Add a stream of Operating Points to the rank
        *
@@ -314,12 +333,51 @@ namespace margot
 
 
       /**
+       * @brief Explicit definition of the sibling rank pointer
+       */
+      using RankInterfacePtr = typename RankInterface<OperatingPoint>::RankInterfacePtr;
+
+
+      /**
        * @brief Default constructor
+       *
+       * @see View
+       */
+      Rank( void ): MyView()
+      {}
+
+
+      /**
+       * @brief Constructor of the class
        *
        * @see View
        */
       Rank(Fields ...values): MyView(values...)
       {}
+
+
+      /**
+       * @brief Creates a pseudo-copy of the underlying rank
+       *
+       * @return A shared pointer to the sibling rank
+       *
+       * @details
+       * This method creates a copy of the actual rank, which have the
+       * same features, but it lacks any relation with the managed OPs.
+       * This method is used to interact with the Data-Aware AS-RTM.
+       */
+      RankInterfacePtr create_sibling( void ) const
+      {
+        // since we don't have anymore the information regarding the coefficients of
+        // the rank values, we have to create a rank object with the trivial constructor
+        // and then replace the evaluator with the actual evaluating function
+        std::shared_ptr< Rank<OperatingPoint,objective,composer,Fields...> > sibling;
+        sibling.reset(new Rank<OperatingPoint,objective,composer,Fields...>());
+        sibling->MyView::evaluate = MyView::evaluate;
+
+        // now we have to perform a pointer conversion
+        return std::static_pointer_cast<typename  RankInterfacePtr::element_type>(sibling);
+      }
 
 
       /**
