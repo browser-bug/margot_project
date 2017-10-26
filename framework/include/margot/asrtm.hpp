@@ -954,9 +954,9 @@ namespace margot
     std::cout << "# // ----------------------------------------------------------" << std::endl;
 
     std::cout << "# //" << std::endl;
-    if (proposed_best_configuration)
+    if (application_configuration)
     {
-      print_whole_op<OperatingPoint>(proposed_best_configuration, "# //");
+      print_whole_op<OperatingPoint>(application_configuration, "# //");
     }
     else
     {
@@ -971,9 +971,9 @@ namespace margot
     std::cout << "# // ----------------------------------------------------------" << std::endl;
 
     std::cout << "# //" << std::endl;
-    if (application_configuration)
+    if (proposed_best_configuration)
     {
-      print_whole_op<OperatingPoint>(application_configuration, "# //");
+      print_whole_op<OperatingPoint>(proposed_best_configuration, "# //");
     }
     else
     {
