@@ -151,6 +151,17 @@ namespace margot
 
 
       /**
+       * @brief This methods retrieves the metrics of the Operating Point
+       *
+       * @return A copy of the metric segment
+       */
+      inline MetricsSegmentType get_metrics( void ) const
+      {
+        return metrics;
+      }
+
+
+      /**
        * @brief Retrives a lower bound on the value of the target metric
        *
        * @tparam metric_index The index of the target metric
