@@ -359,9 +359,6 @@ namespace margot
       std::function<value_type(const OperatingPointPtr&)> evaluate;
 
 
-    private:
-
-
       /**
        * @brief The container, used to store all the Operating Point of the view
        */

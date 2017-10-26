@@ -28,9 +28,11 @@
 #include <cassert>
 #include <mutex>
 #include <functional>
+#include <iostream>
 
 #include "margot/operating_point.hpp"
 #include "margot/asrtm.hpp"
+#include "margot/debug.hpp"
 
 
 namespace margot
@@ -758,6 +760,19 @@ namespace margot
       }
 
 
+
+
+      /******************************************************************
+       *  DEBUG METHODS
+       ******************************************************************/
+
+
+       /**
+        * @brief This method prints on the standard output the state of the da_asrtm
+        */
+       void dump( void ) const;
+
+
     private:
 
 
@@ -778,6 +793,58 @@ namespace margot
       mutable std::mutex asrtm_mutex;
 
   };
+
+
+
+  template< class OperatingPoint, class Feature, class Compare, class state_id_type, typename priority_type, typename error_coef_type >
+  void DataAwareAsrtm<OperatingPoint, Feature, Compare, state_id_type, priority_type, error_coef_type>::dump( void ) const
+  {
+    // print out loud the header
+    print_header();
+
+    // print information regarding the outer loop
+    std::cout << "# Data-Aware Application-Specific RunTime Manager status dump" << std::endl;
+    std::cout << "#" << std::endl;
+    std::cout << "# Number of data feature cluster: " << managers.size() << std::endl;
+    if ( active_manager != managers.end() )
+    {
+      // loop some statistics about the cluster
+      std::cout << "# Active feature cluster address: " << &active_manager->second << std::endl;
+      std::cout << "# Active feature cluster key value: " << active_manager->first << std::endl;
+    }
+    else
+    {
+      std::cout << "# Active feature cluster address: N/A" << std::endl;
+      std::cout << "# Active feature cluster key value: N/A" << std::endl;
+    }
+
+    // print each active state
+    const auto key = active_manager->first;
+
+    // print the details about each feature cluster
+    for( const auto& manager_pair : managers )
+    {
+      // print the header for the data cluster
+      std::string active_feature = manager_pair.first == key ? " <---- CURRENT CLUSTER " : "";
+      std::cout << "#" << std::endl;
+      std::cout << "# ///////////////////////////////////////////////////////////////////" << std::endl;
+      std::cout << "# //       FEATURE CLUSTER KEY: " << manager_pair.first << active_feature << std::endl;
+
+      // print the detail about the data cluster
+      manager_pair.second.dump(false);
+
+      // print the trailer for the data cluster
+      std::cout << "#" << std::endl;
+    }
+
+
+
+
+
+    // print the trailer
+    print_trailer();
+
+  }
 
 }
 

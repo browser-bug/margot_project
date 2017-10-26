@@ -24,6 +24,8 @@
 #include <memory>
 #include <unordered_set>
 #include <vector>
+#include <string>
+#include <iostream>
 
 #include "margot/operating_point.hpp"
 #include "margot/field_adaptor.hpp"
@@ -32,6 +34,7 @@
 #include "margot/knowledge_base.hpp"
 #include "margot/goal.hpp"
 #include "margot/enums.hpp"
+#include "margot/debug.hpp"
 
 namespace margot
 {
@@ -315,6 +318,12 @@ namespace margot
        * stream.
        */
       virtual void update( OPStream& invalidated_ops, OPStream& validated_ops ) = 0;
+
+
+      /**
+       * @brief Print a debug description of the constraint on the standard output
+       */
+      virtual void dump( std::string prefix ) = 0;
 
 
       /**
@@ -1009,6 +1018,18 @@ namespace margot
 
 
 
+      /******************************************************************
+       *  METHODS TO DEBUG
+       ******************************************************************/
+
+
+      /**
+       * @brief Print a debug description of the constraint on standard output
+       */
+      void dump( std::string prefix );
+
+
+
     private:
 
 
@@ -1046,6 +1067,50 @@ namespace margot
       MyFieldAdaptor knowledge_adaptor;
 
   };
+
+
+
+
+
+  template< class OperatingPoint,
+            OperatingPointSegments segment,
+            std::size_t field_index,
+            int sigma,
+            class ConstraintGoal,
+            typename error_coef_type >
+  void Constraint<OperatingPoint, segment, field_index, sigma, ConstraintGoal, error_coef_type >::dump( std::string prefix )
+  {
+    // print global information
+    std::cout << prefix << " Number of Operating Points in the view: " << knowledge_view.size() << std::endl;
+    const std::string with_info = knowledge_adaptor ? "YES!" : "NO!";
+    std::cout << prefix << " With runtime information? " << with_info << std::endl;
+    const auto actual_goal_value = target_goal.get();
+    const auto coef = knowledge_adaptor ? knowledge_adaptor->get_error_coefficient() : static_cast<error_coef_type>(1);
+    std::cout << prefix << " Actual goal value = " << actual_goal_value << std::endl;
+    std::cout << prefix << " Adjusted actual goal value = " << actual_goal_value * coef << std::endl;
+    std::cout << prefix << " Last adjusted goal value (used to compare) = " << last_check_value << std::endl;
+    std::cout << prefix << std::endl;
+
+
+    // print the blocked ops
+    if (!blocked_ops.empty())
+    {
+      std::cout << prefix << " Blocked Operating Points from this very constraint:" << std::endl;
+
+
+      // loop over the blocked Operating Points
+      for( const auto op_ptr : blocked_ops )
+      {
+        const auto op_value = knowledge_view.evaluate_op(op_ptr);
+        print_conf_with_value<OperatingPoint,typename MyView::value_type>(op_ptr, op_value, prefix, "Constraint Value" );
+        std::cout << prefix << std::endl;
+      }
+    }
+    else
+    {
+      std::cout << prefix << " This constraint does not block any Operating Points" << std::endl;
+    }
+  }
 
 }
 

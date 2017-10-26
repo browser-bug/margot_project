@@ -25,6 +25,8 @@
 #include <map>
 #include <vector>
 #include <cassert>
+#include <string>
+#include <iostream>
 
 #include "margot/operating_point.hpp"
 #include "margot/knowledge_adaptor.hpp"
@@ -33,6 +35,7 @@
 #include "margot/enums.hpp"
 #include "margot/constraint.hpp"
 #include "margot/rank.hpp"
+#include "margot/debug.hpp"
 
 namespace margot
 {
@@ -557,6 +560,12 @@ namespace margot
       }
 
 
+      /**
+       * @brief Dump the status of the state for debug purpose
+       */
+      void dump( const std::string& prefix ) const;
+
+
     private:
 
 
@@ -709,6 +718,57 @@ namespace margot
       OperatingPointPtr best_operating_point_found;
 
   };
+
+
+
+  template< class OperatingPoint, typename priority_type, typename error_coef_type >
+  void State<OperatingPoint,priority_type,error_coef_type>::dump(const std::string &prefix) const
+  {
+    // print the global information
+    std::cout << prefix << " Number of constraints: " << constraints.size() << std::endl;
+    const std::string problem =  problem_is_changed ? "YES!" : "NO!";
+    std::cout << prefix << " We need to force the finding of a new solution? " << problem << std::endl;
+    std::cout << prefix << " (Without considering goals and runtime information)" << std::endl;
+    std::cout << prefix << std::endl;
+    std::cout << prefix << " ----------------------------------------------------------" << std::endl;
+    std::cout << prefix << " -- Last known best Operating Point" << std::endl;
+    std::cout << prefix << " ----------------------------------------------------------" << std::endl;
+    if (best_operating_point_found)
+    {
+      print_whole_op<OperatingPoint>(best_operating_point_found, prefix);
+    }
+    else
+    {
+      std::cout << prefix << " We haven't found any Operating Points yet" << std::endl;
+    }
+    std::cout << prefix << std::endl;
+    std::cout << prefix << " ----------------------------------------------------------" << std::endl;
+    std::cout << prefix << " -- Optimization problem representation" << std::endl;
+    std::cout << prefix << " ----------------------------------------------------------" << std::endl;
+    std::cout << prefix << std::endl;
+    std::cout << prefix << " The optimization problem is represented as a filtering of" << std::endl;
+    std::cout << prefix << " the Operating Points, from the one(s) invalidated by the" << std::endl;
+    std::cout << prefix << " top priority constraint, to the valid Operating Points" << std::endl;
+    std::cout << prefix << std::endl;
+
+
+    // print information about the constraints
+    for( const auto& constraint_pair : constraints )
+    {
+      std::cout << prefix << " ---- Constraint with priority " << constraint_pair.first << std::endl;
+      std::cout << prefix << " ----------------------------------------------------------" << std::endl;
+      std::cout << prefix << std::endl;
+      constraint_pair.second->dump(prefix);
+      std::cout << prefix << std::endl;
+    }
+
+
+    // print information about the rank
+    std::cout << prefix << " ---- Valid Operating Points " << std::endl;
+    std::cout << prefix << " ----------------------------------------------------------" << std::endl;
+    std::cout << prefix << std::endl;
+    rank->dump(prefix);
+  }
 
 }
 

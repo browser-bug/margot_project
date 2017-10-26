@@ -23,6 +23,8 @@
 #include <memory>
 #include <cinttypes>
 #include <array>
+#include <string>
+#include <iostream>
 
 #include "margot/operating_point.hpp"
 #include "margot/traits.hpp"
@@ -176,6 +178,12 @@ namespace margot
       }
 
 
+      /**
+       * @brief Print the status of the runtime information provider
+       */
+      void dump( const std::string& prefix ) const;
+
+
     private:
 
 
@@ -185,6 +193,45 @@ namespace margot
       Container adaptors;
 
   };
+
+
+
+
+  template< class OperatingPoint, typename coefficient_type >
+  void KnowledgeAdaptor<OperatingPoint,coefficient_type>::dump( const std::string& prefix ) const
+  {
+    // print the header
+    std::cout << prefix << std::endl;
+    std::cout << prefix << " List of runtime information providers for software knobs:" << std::endl;
+    std::cout << prefix << std::endl;
+
+    // print all the providers
+    std::size_t counter = 0;
+    for( const auto& provider : adaptors )
+    {
+      if (counter == OperatingPoint::number_of_software_knobs)
+      {
+        std::cout << prefix << std::endl;
+        std::cout << prefix << " List of runtime information providers for metrics:" << std::endl;
+        std::cout << prefix << std::endl;
+      }
+      std::cout << prefix << "\tField index " << std::to_string(counter) << " -> ";
+      if (provider)
+      {
+        std::cout << provider->get_status();
+      }
+      else
+      {
+        std::cout << "N/A";
+      }
+      std::cout << std::endl;
+      ++counter;
+    }
+
+    // add some spaces
+    std::cout << prefix << std::endl;
+
+  }
 
 }
 

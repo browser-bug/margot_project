@@ -24,6 +24,7 @@
 #include <memory>
 #include <array>
 #include <functional>
+#include <string>
 
 #include "margot/operating_point.hpp"
 #include "margot/enums.hpp"
@@ -85,6 +86,16 @@ namespace margot
        * For performance reason, it should be as lightweight as possible.
        */
       virtual coefficient_type get_error_coefficient( void ) const = 0;
+
+
+      /**
+       * @brief Retrieves a string which represent the status of the adaptor
+       *
+       * @details
+       * This method is meant to be used only to visual inspect the status of the
+       * adaptor for debug reasons
+       */
+      virtual std::string get_status( void ) const = 0;
 
 
       /**
@@ -281,6 +292,21 @@ namespace margot
       coefficient_type get_error_coefficient( void ) const
       {
         return average_coefficient_error;
+      }
+
+
+      /**
+       * @brief Retrieves a string which represent the status of the adaptor
+       *
+       * @details
+       * This method is meant to be used only to visual inspect the status of the
+       * adaptor for debug reasons
+       */
+      std::string get_status( void ) const
+      {
+        return std::string("Size = ") + std::to_string(inertia)
+                                      + std::string(" | coefficient_error = ")
+                                      + std::to_string(get_error_coefficient());
       }
 
 

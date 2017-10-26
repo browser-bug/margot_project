@@ -26,10 +26,13 @@
 #include <algorithm>
 #include <iostream>
 #include <vector>
+#include <string>
+#include <iostream>
 
 #include "margot/operating_point.hpp"
 #include "margot/view.hpp"
 #include "margot/knowledge_base.hpp"
+#include "margot/debug.hpp"
 
 namespace margot
 {
@@ -139,6 +142,12 @@ namespace margot
        * @return A OPStream of the valid Operating Points
        */
       virtual OPStream to_stream( void ) const = 0;
+
+
+      /**
+       * @brief Print the status of the rank, for debug purpose
+       */
+      virtual void dump( const std::string& prefix ) const = 0;
 
 
       /**
@@ -403,7 +412,37 @@ namespace margot
         return MyView::range();
       }
 
+
+      /**
+       * @brief Print the status of the rank, for debug purpose
+       */
+      void dump( const std::string& prefix ) const;
+
   };
+
+
+  template< class OperatingPoint, RankObjective objective, FieldComposer composer, class ...Fields >
+  void Rank<OperatingPoint,objective,composer,Fields...>::dump(const std::string &prefix) const
+  {
+    const std::string direction = objective == RankObjective::MAXIMIZE ? "Maximize" : "Minimize";
+    std::cout << prefix << " Rank objective: " << direction << std::endl;
+
+
+    if (MyView::empty())
+    {
+      std::cout << prefix << std::endl;
+      std::cout << prefix << " There are no valid Operating Points" << std::endl;
+    }
+    else
+    {
+      for( const auto op_pair : MyView::sorted_knowledge )
+      {
+        std::cout << prefix << std::endl;
+        print_conf_with_value<OperatingPoint,rank_type>(op_pair.second, op_pair.first, prefix, "Rank");
+        std::cout << prefix << std::endl;
+      }
+    }
+  }
 
 }
 

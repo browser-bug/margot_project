@@ -28,12 +28,14 @@
 #include <cassert>
 #include <mutex>
 #include <functional>
+#include <iostream>
 
 #include "margot/operating_point.hpp"
 #include "margot/knowledge_base.hpp"
 #include "margot/knowledge_adaptor.hpp"
 #include "margot/monitor.hpp"
 #include "margot/state.hpp"
+#include "margot/debug.hpp"
 
 
 namespace margot
@@ -826,6 +828,26 @@ namespace margot
       }
 
 
+
+
+      /******************************************************************
+       *  DEBUG METHODS
+       ******************************************************************/
+
+
+      /**
+       * @brief This method prints on the standard output the state of the Asrtm
+       *
+       * @param [in] starting_point States if this call is the first dump call
+       *
+       * @details
+       * Since the exposed interface toward the application is either this class
+       * or the Data-Aware AS-RTM, the parameters is used to check whether we
+       * should print the header or not.
+       */
+      void dump( bool starting_point = true ) const;
+
+
     private:
 
 
@@ -875,6 +897,178 @@ namespace margot
       ApplicationStatus status;
 
   };
+
+
+  template< class OperatingPoint, class state_id_type, typename priority_type, typename error_coef_type >
+  void Asrtm<OperatingPoint, state_id_type, priority_type, error_coef_type>::dump( bool starting_point ) const
+  {
+    // check if we have to print the header
+    if (starting_point)
+    {
+      print_header();
+    }
+
+    // print the total recap about the state
+    std::cout << "# ///////////////////////////////////////////////////////////////////" << std::endl;
+    std::cout << "# //" << std::endl;
+    std::cout << "# // Application-Specific RunTime Manager status dump" << std::endl;
+    std::cout << "# //" << std::endl;
+
+    // print the summary about the manager
+    std::cout << "# // Number of Operating Points in the knowledge: " << knowledge.size() << std::endl;
+    std::cout << "# // Number of State(s) (optimization problems): " << application_optimizers.size() << std::endl;
+    std::cout << "# // Synchronization with application: ";
+    if ( status == ApplicationStatus::UNDEFINED )
+    {
+      std::cout << "OUT OF SYNC" << std::endl;
+    }
+    else
+    {
+      if ( status == ApplicationStatus::TUNED )
+      {
+        std::cout << "SYNC" << std::endl;
+      }
+      else
+      {
+        std::cout << "UNKNOWN (ERROR!)" << std::endl;
+      }
+    }
+    const bool is_active_state_selected = current_optimizer != application_optimizers.end();
+    if (is_active_state_selected)
+    {
+      std::cout << "# // Active State address: " << &current_optimizer->second << std::endl;
+      std::cout << "# // Active State id: " << current_optimizer->first << std::endl;
+    }
+    else
+    {
+      std::cout << "# // Active State address: N/A" << std::endl;
+      std::cout << "# // Active State id: N/A" << std::endl;
+    }
+    std::cout << "# //" << std::endl;
+
+
+
+    // print the last known configuration of the application
+    std::cout << "# // ----------------------------------------------------------" << std::endl;
+    std::cout << "# // -- Last known configuration of the application" << std::endl;
+    std::cout << "# // ----------------------------------------------------------" << std::endl;
+
+    std::cout << "# //" << std::endl;
+    if (proposed_best_configuration)
+    {
+      print_whole_op<OperatingPoint>(proposed_best_configuration, "# //");
+    }
+    else
+    {
+      std::cout << "# // Actually we have no clue, sorry :(" << std::endl;
+    }
+    std::cout << "# //" << std::endl;
+
+
+    // print the last known configuration of the application
+    std::cout << "# // ----------------------------------------------------------" << std::endl;
+    std::cout << "# // -- The proposed best configuration for the application" << std::endl;
+    std::cout << "# // ----------------------------------------------------------" << std::endl;
+
+    std::cout << "# //" << std::endl;
+    if (application_configuration)
+    {
+      print_whole_op<OperatingPoint>(application_configuration, "# //");
+    }
+    else
+    {
+      std::cout << "# // No information about it, maybe we have to find it before..." << std::endl;
+    }
+    std::cout << "# //" << std::endl;
+
+
+
+
+    // print the application knwoledge
+    std::cout << "# // ----------------------------------------------------------" << std::endl;
+    std::cout << "# // -- Application knwoledge dump" << std::endl;
+    std::cout << "# // ----------------------------------------------------------" << std::endl;
+
+    // get the whole knowledge as stream
+    OPStream kb_stream = knowledge.to_stream();
+
+    // print the ops
+    for ( const auto& op : kb_stream )
+    {
+      std::cout << "# //" << std::endl;
+      print_whole_op<OperatingPoint>(op, "# //");
+      std::cout << "# //" << std::endl;
+    }
+
+    if (kb_stream.empty())
+    {
+      std::cout << "# //" << std::endl;
+      std::cout << "# // No Operating Points in the knowledge" << std::endl;
+      std::cout << "# //" << std::endl;
+    }
+
+
+
+    // print the optimization states
+    std::cout << "# // ----------------------------------------------------------" << std::endl;
+    std::cout << "# // -- Runtume information providers" << std::endl;
+    std::cout << "# // ----------------------------------------------------------" << std::endl;
+
+    // print the number of monitor resetters
+    std::cout << "# //" << std::endl;
+    std::cout << "# // Number of monitor handlers: " << monitor_handlers.size() << std::endl;
+
+    // loop over them
+    runtime_information.dump("# //");
+
+
+
+
+    // print the optimization states
+    std::cout << "# // ----------------------------------------------------------" << std::endl;
+    std::cout << "# // -- List of optimization problems available (states)" << std::endl;
+    std::cout << "# // ----------------------------------------------------------" << std::endl;
+
+    // loop over them
+    for( auto it = application_optimizers.begin(); it != application_optimizers.end(); ++it )
+    {
+      std::cout << "# //" << std::endl;
+      const std::string suffix = it == current_optimizer ? " <---- CURRENT STATE " : "";
+      std::cout << "# // @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@" << std::endl;
+      std::cout << "# // @       STATE " << it->first << suffix << std::endl;
+      std::cout << "# // @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@" << std::endl;
+      std::cout << "# // @" << std::endl;
+
+      // dump the status of the state
+      it->second.dump("# // @");
+
+      std::cout << "# // @" << std::endl;
+      std::cout << "# // @" << std::endl;
+      std::cout << "# // @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@" << std::endl;
+      std::cout << "# //" << std::endl;
+    }
+
+
+    if (application_optimizers.empty())
+    {
+      std::cout << "# //" << std::endl;
+      std::cout << "# // No Optimization states available" << std::endl;
+      std::cout << "# //" << std::endl;
+    }
+
+
+
+    // print the final recap
+    std::cout << "# //" << std::endl;
+    std::cout << "# ///////////////////////////////////////////////////////////////////" << std::endl;
+
+
+    // check if we have to print the trailer
+    if (starting_point)
+    {
+      print_trailer();
+    }
+  }
 
 }
 
