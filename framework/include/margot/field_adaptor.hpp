@@ -84,7 +84,7 @@ namespace margot
        * This method only retrieves the value of the precomputed coefficient error.
        * For performance reason, it should be as lightweight as possible.
        */
-      virtual coefficient_type get_error_coefficient( void ) = 0;
+      virtual coefficient_type get_error_coefficient( void ) const = 0;
 
 
       /**
@@ -278,7 +278,7 @@ namespace margot
        *
        * @return The value of the coefficient error
        */
-      coefficient_type get_error_coefficient( void )
+      coefficient_type get_error_coefficient( void ) const
       {
         return average_coefficient_error;
       }
