@@ -147,7 +147,7 @@ class BlockModel:
         # check if we found a monitor
         if not found:
           print('[CONSISTENCY ERROR] The goal "{0}" has a reference to a metric "{1}"'.format(goal_model.name, metric_name))
-          print('                    Available knobs: "{0}"'.format('", "'.join([x.name for x in self.netrics])))
+          print('                    Available knobs: "{0}"'.format('", "'.join([x.name for x in self.metrics])))
           sys.exit(-1)
 
 
@@ -155,7 +155,7 @@ class BlockModel:
 
     # loop over the field adators
     for field_adaptor in self.field_adaptor_models:
-      
+
       # get the reference name of the monitor
       monitor_name = field_adaptor.monitor_name
 
