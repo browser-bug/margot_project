@@ -129,6 +129,44 @@ namespace margot
     SECONDS
   };
 
+
+  /**
+   * @brief Used to indicate the comparison function for the data features
+   *
+   * @details
+   * This enum extend the classical comparison function with the "don't care"
+   * enumerator, which indicates that the user has no constraints for the
+   * given field of the data feature.
+   */
+  enum class FeatureComparison
+  {
+    LESS,
+    LESS_OR_EQUAL,
+    GREATER,
+    GREATER_OR_EQUAL,
+    DONT_CARE
+  };
+
+
+  /**
+   * @brief Used to indicate the type of distance between data features
+   */
+  enum class FeatureDistanceType
+  {
+    /**
+     * @details
+     * This enumerator defines the "classic" euclidean distance in n-dimensional space
+     */
+    EUCLIDEAN,
+
+    /**
+     * @details
+     * This enumerator is similar to previous one, but all the distances are normalized.
+     * It is usefull when the fields of the data features have different magnitude.
+     */
+    NORMALIZED
+  };
+
 }
 
 #endif // MARGOT_ENUMS_HDR

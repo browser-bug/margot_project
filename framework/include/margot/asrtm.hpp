@@ -109,6 +109,24 @@ namespace margot
 
 
       /**
+       * @brief Forward declarion of the Operating Point type
+       */
+      using operating_point_type = OperatingPoint;
+
+
+      /**
+       * @brief Forward declaration of the priority type
+       */
+      using priority_type_type = priority_type;
+
+
+      /**
+       * @brief Forward declaration of the state type
+       */
+      using state_id_type_type = state_id_type;
+
+
+      /**
        * @brief Explicit definition to an Operating Point pointer
        */
       using OperatingPointPtr = typename Knowledge<OperatingPoint>::OperatingPointPtr;

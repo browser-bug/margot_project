@@ -22,17 +22,20 @@
 
 #include <memory>
 #include <string>
-#include <map>
-#include <vector>
+#include <deque>
 #include <cstddef>
 #include <cassert>
 #include <mutex>
 #include <functional>
 #include <iostream>
+#include <array>
+#include <utility>
+#include <type_traits>
 
 #include "margot/operating_point.hpp"
 #include "margot/asrtm.hpp"
 #include "margot/debug.hpp"
+#include "margot/data_features.hpp"
 
 
 namespace margot
@@ -41,12 +44,11 @@ namespace margot
   /**
    * @brief The Data Aware Application-Specific RunTime Manger implementation
    *
-   * @tparam OperatingPoint The type which defines the Operating Point characteristics
-   * @tparam Feature The type of the considered data feature
-   * @tparam Compare Function object for performing comparisons. Unless specialized, invokes operator< on type Feature
-   * @tparam state_id_type The type used to identify a state
-   * @tparam priority_type The type used to represents the priority of a constraint
-   * @tparam error_coef_type The type used to compute the error coefficient of the application knowledge
+   * @tparam Asrtm The type which defines the underlying Application-Specific RunTime managers
+   * @tparam T The type of the elements stored in the data features
+   * @tparam number_of_features The number of fields which define a data feature
+   * @tparam distance_type The enumerator that defines how distance between features are computed
+   * @tparam cfs.. The type of comparator which define a vald data feature candidate
    *
    * @see Asrtm
    *
@@ -54,35 +56,65 @@ namespace margot
    * This class represent the interface of the mARGOt dynamic autotuner toward the appplication, if we want to
    * take in consideration heterogeneous input, without any assumption on the order of the input.
    * The idea of this class is to allocate a separate Asrtm for each cluster of input, represented by the Feature
-   * template parameter.
-   * At run-time the application set the correct data feature for the actual input, and this class will use that value
+   * template parameter, i.e. an array of numeric values.
+   * At run-time the application set the correct data features for the actual input, and this class will use that value
    * for selecting the most suitable configuration.
+   * To define the "closest" datafeature, we implemented the concept in two stage, in the first stage we compara the
+   * validity of the data features, using the cfs template parameters, then we compute the distance from the requested
+   * key and we choose the closest one. If there are more than one feature cluster at the same distance of the requested
+   * one, it will be chosen the one that happens to be inserted first.
    * All the methods that defines the optimization problem, e.g. adding a constraint, will apply to all the Input
    * features. The other methods affects only the "active" Asrtm.
    *
    * However, all the methods are mutex protected, to enforce a consistent internal state.
    *
    * @note
-   * The state_id_type and priority_type types require that std::hash is able to compute their hash value.
-   * It must be defined the < operator for priority type.
-   * The error_coef_type must be a floating point aritmethic type.
-   * The internal representation uses a Feature object as key in a std::map. If Compare is not specified, the
-   * type Feature must implement the < operator. Otherwise it is possible to define a custom order.
-   * To select the correct data feature cluster it uses the lower_bound method.
-   * In any case the Feature type must implement the == operator.
+   * The type T must be numeric and there must be at least one data feature.
+   * The number of FeatureComparison must be equal to the number of data features. The value of the data feature
+   * comparator must be read as data_feature_cluster_x[i-th] must be <comparison> than target_feature[i-th]
    */
-  template< class OperatingPoint, class Feature = int, class Compare = std::less<Feature>, class state_id_type = std::string, typename priority_type = int, typename error_coef_type = float >
+  template< class Asrtm, typename T, std::size_t number_of_features, FeatureDistanceType distance_type, FeatureComparison... cfs >
   class DataAwareAsrtm
   {
 
 
 
-      // statically check the template argument
-      static_assert(traits::is_operating_point<OperatingPoint>::value,
+      // statically check the template arguments
+      static_assert(traits::is_operating_point<typename Asrtm::operating_point_type>::value,
                     "Error: the Data-Aware Application-Specific RunTime Manager handles object with is_operating_point trait");
+
+      static_assert(number_of_features > 0, "Error: there must be at least one Data Feature");
+
+      static_assert(sizeof...(cfs) == number_of_features, "The number of feature comparison must be equal to the number of features");
+
+      static_assert( std::is_arithmetic<T>::value, "Error: the data features value type must be numerical");
 
 
     public:
+
+
+      /**
+       * @brief Explicit definition of the Operating points
+       */
+      using OperatingPoint = typename Asrtm::operating_point_type;
+
+
+      /**
+       * @brief Explicit definition of the priority type
+       */
+      using priority_type = typename Asrtm::priority_type_type;
+
+
+      /**
+       * @brief Explicit definition of the state id type
+       */
+      using state_id_type = typename Asrtm::state_id_type_type;
+
+
+      /**
+       * @brief Explicit definition of the Data Features
+       */
+      using Feature = std::array<T, number_of_features>;
 
 
       /**
@@ -92,9 +124,15 @@ namespace margot
 
 
       /**
+       * @brief Explicit definition of the stored element in the container
+       */
+      using AsrtmElement = std::pair< Feature, Asrtm >;
+
+
+      /**
        * @brief The definition of the container of the Asrtm
        */
-      using AsrtmContainer = std::map< Feature, Asrtm< OperatingPoint, state_id_type, priority_type, error_coef_type >, Compare >;
+      using AsrtmContainer = std::deque< AsrtmElement >;
 
 
       /**
@@ -119,9 +157,9 @@ namespace margot
        * @details
        * This method creates a data-aware application-specific runtime manager.
        * It is required to instantiate a feature cluster before performing any
-       * other operation such as defining a rank or adding a constraint.
+       * other operation, such as defining a rank or adding a constraint.
        */
-      DataAwareAsrtm( void )
+      DataAwareAsrtm( void ):get_closest()
       {
         // enforce the actual state of the AS-RTM
         active_manager = managers.end();
@@ -136,14 +174,14 @@ namespace margot
 
 
       /**
-       * @brief Create a niew data feature cluster
+       * @brief Create a new data feature cluster using the target key
        *
-       * @param [in] key The Feature object that defines the feature cluster
+       * @param [in] key The std::array of features that defines the new cluster
        *
        * @details
-       * The new Application-Specific RunTime manager is either a flat new object if
-       * it is the first manager created, otherwise this method uses the first another
-       * asrtm to get all states and runtime information.
+       * The new Application-Specific RunTime manager is either a flat new object, if
+       * it is the first manager created. Otherwise, this method uses the first
+       * asrtm to get all the states and runtime information (perform a pseudo-copy).
        * The idea is to keep all the data feature cluster syncronized about the definition
        * of the optimization problem.
        * If key object is already taken by another feature cluster, no actions are performed.
@@ -154,18 +192,33 @@ namespace margot
         // make sure that no one else is going to change the container
         std::lock_guard<std::mutex> lock(asrtm_mutex);
 
+
+        // make a copy of the current key (it might be invalidated)
+        const auto previous_active_key = active_manager->first;
+
         // check if we need to get the optimization problems from another
         // application-specific runtime manager
         const auto first_cluster = managers.begin();
         if (first_cluster != managers.end())
         {
           // emplace the new asrtm (if it's actually new)
-          managers.emplace(key, first_cluster->second.create_sibling());
+          managers.emplace_back(key, first_cluster->second.create_sibling());
         }
         else
         {
           // it's the first cluster
-          managers.emplace(key, Asrtm< OperatingPoint, state_id_type, priority_type, error_coef_type >{});
+          managers.emplace_back(key, Asrtm{});
+        }
+
+        // reset the iterator to the current manager
+        const auto end_iterator = managers.end();
+        for( auto it = managers.begin(); it != end_iterator; ++it )
+        {
+          if (it->first == previous_active_key)
+          {
+            active_manager = it;
+            break;
+          }
         }
       }
 
@@ -173,13 +226,16 @@ namespace margot
       /**
        * @brief Change the active feature cluster
        *
-       * @param [in] key The feature value of interest
+       * @param [in] key The data feature of the actual input
        *
        * @details
        * This method tries to select the correct feature cluster given the key in
-       * input. It uses the lower_bound method of a std::map to retrieve the closer
-       * feature cluster. Therefore the implementation depends on the Compare object
-       * used to sort the feature clusters.
+       * input, finding the closest one from the valid cluster.
+       * The key of a cluster is valid if it respect the constraint specified as template
+       * parameter "cfs" of this class. The order of the template parameter must match the
+       * index of the data feature. And the comparison function stands for "the key of the
+       * evaluated feature cluster must be <comparator> than the one in input".
+       * The comparison value "DONT_CARE", automatically validates the target field.
        * If there are no feature cluster:
        *  - if compiled in debug mode, it will trigger an assert and terminate the program
        *  - if compiled in release mode, it will lead to an undefined behavior
@@ -192,14 +248,18 @@ namespace margot
         // check if there is any cluster available
         assert( !managers.empty() && "Error: attempt to select a cluster from an empty container");
 
-        // get the lower bound cluster
-        const auto low_cluster = managers.lower_bound(key);
-
         // take a copy of the previous active state
         const auto previous_active_manager = active_manager;
 
-        // if it is the final one, go back
-        active_manager = low_cluster != managers.end() ? low_cluster : std::prev(low_cluster);
+        // assume that the first manager is the correct one
+        active_manager = managers.begin();
+
+        // loop to see if it is the actual best manager
+        const auto final_iterator = managers.end();
+        for( auto it = std::next(active_manager); it != final_iterator; ++it )
+        {
+          active_manager = get_closest(key, active_manager, it);
+        }
 
         // reset the information about the current Operating Point (if we change the active manager)
         if (previous_active_manager != active_manager)
@@ -226,16 +286,35 @@ namespace margot
         // make sure that no one else is going to change the container
         std::lock_guard<std::mutex> lock(asrtm_mutex);
 
-        // find the target feature cluster
-        const auto result = managers.find(key);
+        // since erasing an element invalidates all the iterator, use temporaney
+        // the active_manager iterator as the end iterator, then we will restore
+        // it's actual value, but in this way we are safe in case is not yet
+        // defined the actual manager
+        const auto previous_active = active_manager;
+        active_manager = managers.end();
 
-        // make sure that the selected feature cluster is different from the active one
-        assert( result != active_manager && "Error: attempt to delete the active feature cluster");
+        // store the key of the previous cluster (if any)
+        const auto key_active = active_manager != active_manager ? active_manager->first : key;
 
-        // if found, delete the selected manager
-        if (result != managers.end())
+        // remove the target asrtm
+        for( auto it = managers.begin(); it != active_manager; ++it )
         {
-          managers.erase(result);
+          if (it->first == key)
+          {
+            assert(previous_active != it && "Error: attempting to delete the active cluster");
+            managers.erase(it);
+            break;
+          }
+        }
+
+        // find again the active manager (if any)
+        for( auto it = managers.begin(); it != active_manager; ++it)
+        {
+          if (it->first == key_active)
+          {
+            active_manager = it;
+            break;
+          }
         }
       }
 
@@ -250,7 +329,7 @@ namespace margot
       /**
        * @brief Add Operating Points to the active AS-RTM
        *
-       * @tparam T An object which implements the STL Container concept and stores Operating Points
+       * @tparam Y An object which implements the STL Container concept and stores Operating Points
        *
        * @param [in] op_list The container of the set of new Operating Points
        *
@@ -265,8 +344,8 @@ namespace margot
        *  - if compiled in debug mode, it will trigger an assert and terminate the program
        *  - if compiled in release mode, it will lead to an undefined behavior
        */
-      template< class T >
-      inline std::size_t add_operating_points( const T& op_list )
+      template< class Y >
+      inline std::size_t add_operating_points( const Y& op_list )
       {
         // lock the manger mutex, to ensure a consistent global state
         std::lock_guard< std::mutex > lock(asrtm_mutex);
@@ -282,7 +361,7 @@ namespace margot
       /**
        * @brief Remove Operating Points from the active AS-RTM
        *
-       * @tparam T An object which implements the STL Container concept and stores Operating Points or configurations
+       * @tparam Y An object which implements the STL Container concept and stores Operating Points or configurations
        *
        * @param [in] configuration_list The container of the set of Operating Points or configurations to remove
        *
@@ -297,8 +376,8 @@ namespace margot
        *  - if compiled in debug mode, it will trigger an assert and terminate the program
        *  - if compiled in release mode, it will lead to an undefined behavior
        */
-      template< class T >
-      inline std::size_t remove_operating_points( const T& configuration_list )
+      template< class Y >
+      inline std::size_t remove_operating_points( const Y& configuration_list )
       {
         // lock the manger mutex, to ensure a consistent global state
         std::lock_guard< std::mutex > lock(asrtm_mutex);
@@ -483,7 +562,7 @@ namespace margot
        * @tparam target_segment The enumerator value of the target segment of the Operating Point
        * @tparam target_field_index The index of the target field within the target segment
        * @tparam inertia The value of the inertia of the field adaptor @see OneSigmaAdaptor
-       * @tparam T The type of elements stored in the monitor
+       * @tparam Y The type of elements stored in the monitor
        * @tparam statistical_t The type used to compute statistical properties in the monitor
        *
        * @see Monitor
@@ -499,9 +578,9 @@ namespace margot
       template< OperatingPointSegments target_segment,
                 std::size_t target_field_index,
                 std::size_t inertia,
-                class T,
+                class Y,
                 typename statistical_t >
-      inline void add_runtime_knowledge( const Monitor<T, statistical_t>& monitor )
+      inline void add_runtime_knowledge( const Monitor<Y, statistical_t>& monitor )
       {
         // lock the manger mutex, to ensure a consistent global state
         std::lock_guard< std::mutex > lock(asrtm_mutex);
@@ -510,7 +589,7 @@ namespace margot
         for( auto& asrtm_pair : managers )
         {
           // create a new state
-          asrtm_pair.second.template add_runtime_knowledge<target_segment,target_field_index,inertia,T,statistical_t>(monitor);
+          asrtm_pair.second.template add_runtime_knowledge<target_segment,target_field_index,inertia,Y,statistical_t>(monitor);
         }
       }
 
@@ -629,7 +708,7 @@ namespace margot
        *
        * @tparam segment The target segment of the Operating Point
        * @tparam field The index of the target field wihin the segment
-       * @tparam T The type of the return value
+       * @tparam Y The type of the return value
        *
        * @return The mean value of the requested field
        *
@@ -642,8 +721,8 @@ namespace margot
        *  - if compiled in debug mode, it will trigger an assert and terminate the program
        *  - if compiled in release mode, it will lead to an undefined behavior
        */
-      template< OperatingPointSegments segment, std::size_t field, class T = float >
-      inline T get_mean( void ) const
+      template< OperatingPointSegments segment, std::size_t field, class Y = float >
+      inline Y get_mean( void ) const
       {
         // lock the manger mutex, to ensure a consistent global state
         std::lock_guard< std::mutex > lock(asrtm_mutex);
@@ -693,7 +772,7 @@ namespace margot
         for( auto& asrtm_pair : managers )
         {
           // add a constraint
-          asrtm_pair.second.template get_mean<segment,field_index,sigma,ConstraintGoal>(goal_value, priority);
+          asrtm_pair.second.template add_constraint<segment,field_index,sigma,ConstraintGoal>(goal_value, priority);
         }
       }
 
@@ -789,6 +868,12 @@ namespace margot
 
 
       /**
+       * @brief The object used to select the closest AS-RTM
+       */
+      const data_feature_selector<Feature, typename AsrtmContainer::iterator, distance_type, cfs...> get_closest;
+
+
+      /**
        * @brief The pointer to the active manger, for the given input feature
        */
       typename AsrtmContainer::iterator active_manager;
@@ -802,11 +887,29 @@ namespace margot
 
 
 
-  template< class OperatingPoint, class Feature, class Compare, class state_id_type, typename priority_type, typename error_coef_type >
-  void DataAwareAsrtm<OperatingPoint, Feature, Compare, state_id_type, priority_type, error_coef_type>::dump( void ) const
+  template< class Asrtm, typename T, std::size_t number_of_features, FeatureDistanceType distance_type, FeatureComparison... cfs >
+  void DataAwareAsrtm<Asrtm, T, number_of_features, distance_type, cfs... >::dump( void ) const
   {
     // print out loud the header
     print_header();
+
+    // macro to print the data feature value
+    const auto feature2string = [] ( const Feature& f )
+    {
+      std::string result = "[";
+      std::size_t counter = 0;
+      for( const auto value : f )
+      {
+        result += std::string(" ") + std::to_string(value);
+        if (counter > 0)
+        {
+          result += ",";
+        }
+        ++counter;
+      }
+      result += " ]";
+      return result;
+    };
 
     // print information regarding the outer loop
     std::cout << "# Data-Aware Application-Specific RunTime Manager status dump" << std::endl;
@@ -816,7 +919,7 @@ namespace margot
     {
       // loop some statistics about the cluster
       std::cout << "# Active feature cluster address: " << &active_manager->second << std::endl;
-      std::cout << "# Active feature cluster key value: " << active_manager->first << std::endl;
+      std::cout << "# Active feature cluster key value: " << feature2string(active_manager->first) << std::endl;
     }
     else
     {
@@ -834,7 +937,7 @@ namespace margot
       std::string active_feature = manager_pair.first == key ? " <---- CURRENT CLUSTER " : "";
       std::cout << "#" << std::endl;
       std::cout << "# ///////////////////////////////////////////////////////////////////" << std::endl;
-      std::cout << "# //       FEATURE CLUSTER KEY: " << manager_pair.first << active_feature << std::endl;
+      std::cout << "# //       FEATURE CLUSTER KEY: " << feature2string(manager_pair.first) << active_feature << std::endl;
 
       // print the detail about the data cluster
       manager_pair.second.dump(false);

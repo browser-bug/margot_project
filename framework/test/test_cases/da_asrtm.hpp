@@ -12,6 +12,7 @@ class DataAwareAsrtm : public CxxTest::TestSuite
     using software_knob_geometry = margot::OperatingPointSegment< 1, margot::Data<int> >;
     using metrics_geometry = margot::OperatingPointSegment< 3, margot::Distribution<float> >;
     using MyOperatingPoint = margot::OperatingPoint< software_knob_geometry, metrics_geometry >;
+    using MyAsrtm = margot::Asrtm< MyOperatingPoint >;
 
     std::vector< MyOperatingPoint > op_list_2;
     std::vector< MyOperatingPoint > op_list_5;
@@ -119,64 +120,123 @@ class DataAwareAsrtm : public CxxTest::TestSuite
 
     void test_creation_empty( void )
     {
-      margot::DataAwareAsrtm<MyOperatingPoint> manager;
-      manager.add_feature_cluster(4);
-      manager.add_feature_cluster(2);
+      margot::DataAwareAsrtm<MyAsrtm, int, 1, margot::FeatureDistanceType::EUCLIDEAN, margot::FeatureComparison::DONT_CARE> manager;
+      manager.add_feature_cluster({{4}});
+      manager.add_feature_cluster({{2}});
     }
 
 
     void test_creation_before( void )
     {
       // prepare everything
-      margot::DataAwareAsrtm<MyOperatingPoint> manager;
-      manager.add_feature_cluster(5);
-      manager.add_feature_cluster(2);
+      margot::DataAwareAsrtm<MyAsrtm, int, 1, margot::FeatureDistanceType::EUCLIDEAN, margot::FeatureComparison::DONT_CARE> manager;
+      manager.add_feature_cluster({{5}});
+      manager.add_feature_cluster({{2}});
       manager.create_new_state("default");
       manager.change_active_state("default");
       manager.set_rank< margot::RankObjective::MINIMIZE, margot::FieldComposer::SIMPLE, avg_metric_2 >( 1.0f );
-      manager.select_feature_cluster(2);
+      manager.select_feature_cluster({{2}});
       manager.add_operating_points(op_list_2);
-      manager.select_feature_cluster(5);
+      manager.select_feature_cluster({{5}});
       manager.add_operating_points(op_list_5);
 
       // check the result for feature cluster 2
-      manager.select_feature_cluster(2);
+      manager.select_feature_cluster({{2}});
       manager.find_best_configuration();
       TS_ASSERT_EQUALS(manager.get_best_configuration().get_mean<0>(), 2);
 
 
       // check the result for feature cluster 5
-      manager.select_feature_cluster(5);
+      manager.select_feature_cluster({{5}});
       manager.find_best_configuration();
       TS_ASSERT_EQUALS(manager.get_best_configuration().get_mean<0>(), 7);
     }
 
+
     void test_creation_after( void )
     {
       // prepare everything
-      margot::DataAwareAsrtm<MyOperatingPoint> manager;
-      manager.add_feature_cluster(5);
-      manager.select_feature_cluster(5);
+      margot::DataAwareAsrtm<MyAsrtm, int, 1, margot::FeatureDistanceType::EUCLIDEAN, margot::FeatureComparison::DONT_CARE> manager;
+      manager.add_feature_cluster({{5}});
+      manager.select_feature_cluster({{5}});
       manager.create_new_state("default");
       manager.change_active_state("default");
       manager.set_rank< margot::RankObjective::MINIMIZE, margot::FieldComposer::SIMPLE, avg_metric_2 >( 1.0f );
       manager.add_operating_points(op_list_5);
-      manager.add_feature_cluster(2);
-      manager.select_feature_cluster(2);
+      manager.add_feature_cluster({{2}});
+      manager.select_feature_cluster({{2}});
       manager.add_operating_points(op_list_2);
 
       // check the result for feature cluster 2
-      manager.select_feature_cluster(2);
+      manager.select_feature_cluster({{2}});
       manager.find_best_configuration();
       TS_ASSERT_EQUALS(manager.get_number_operating_points(), 2);
       TS_ASSERT_EQUALS(manager.get_best_configuration().get_mean<0>(), 2);
 
 
       // check the result for feature cluster 4
-      manager.select_feature_cluster(5);
+      manager.select_feature_cluster({{5}});
       manager.find_best_configuration();
       TS_ASSERT_EQUALS(manager.get_number_operating_points(), 5);
       TS_ASSERT_EQUALS(manager.get_best_configuration().get_mean<0>(), 7);
+    }
+
+
+    void test_creation_before_full( void )
+    {
+      // prepare everything
+      margot::DataAwareAsrtm<MyAsrtm, int, 1, margot::FeatureDistanceType::EUCLIDEAN, margot::FeatureComparison::DONT_CARE> manager;
+      manager.add_feature_cluster({{5}});
+      manager.add_feature_cluster({{2}});
+      manager.create_new_state("default");
+      manager.change_active_state("default");
+      manager.set_rank< margot::RankObjective::MAXIMIZE, margot::FieldComposer::SIMPLE, avg_metric_2 >( 1.0f );
+      greater_goal.set(3);
+      manager.add_constraint< margot::OperatingPointSegments::SOFTWARE_KNOBS, 0, 0 >(greater_goal, 10);
+      manager.select_feature_cluster({{5}});
+      manager.add_operating_points(op_list_5);
+      manager.select_feature_cluster({{2}});
+      manager.add_operating_points(op_list_2);
+
+      // check the result for feature cluster 2
+      manager.select_feature_cluster({{2}});
+      manager.find_best_configuration();
+      TS_ASSERT_EQUALS(manager.get_best_configuration().get_mean<0>(), 2);
+
+
+      // check the result for feature cluster 5
+      manager.select_feature_cluster({{5}});
+      manager.find_best_configuration();
+      TS_ASSERT_EQUALS(manager.get_best_configuration().get_mean<0>(), 4);
+    }
+
+
+    void test_creation_after_full( void )
+    {
+      // prepare everything
+      margot::DataAwareAsrtm<MyAsrtm, int, 1, margot::FeatureDistanceType::EUCLIDEAN, margot::FeatureComparison::DONT_CARE> manager;
+      manager.add_feature_cluster({{5}});
+      manager.create_new_state("default");
+      manager.change_active_state("default");
+      manager.set_rank< margot::RankObjective::MAXIMIZE, margot::FieldComposer::SIMPLE, avg_metric_2 >( 1.0f );
+      greater_goal.set(3);
+      manager.add_constraint< margot::OperatingPointSegments::SOFTWARE_KNOBS, 0, 0 >(greater_goal, 10);
+      manager.select_feature_cluster({{5}});
+      manager.add_operating_points(op_list_5);
+      manager.add_feature_cluster({{2}});
+      manager.select_feature_cluster({{2}});
+      manager.add_operating_points(op_list_2);
+
+      // check the result for feature cluster 2
+      manager.select_feature_cluster({{2}});
+      manager.find_best_configuration();
+      TS_ASSERT_EQUALS(manager.get_best_configuration().get_mean<0>(), 2);
+
+
+      // check the result for feature cluster 5
+      manager.select_feature_cluster({{5}});
+      manager.find_best_configuration();
+      TS_ASSERT_EQUALS(manager.get_best_configuration().get_mean<0>(), 4);
     }
 
 };

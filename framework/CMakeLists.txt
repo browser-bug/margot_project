@@ -40,6 +40,7 @@ set( MARGOT_HEADERS
 	${HDR_PATH}/margot/time_monitor.hpp
 	${HDR_PATH}/margot/da_asrtm.hpp
 	${HDR_PATH}/margot/debug.hpp
+	${HDR_PATH}/margot/data_features.hpp
 	)
 include_directories( ${HDR_PATH} )
 
