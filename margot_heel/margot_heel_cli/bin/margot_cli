@@ -255,7 +255,7 @@ def execute_command_xml2csv( file_path ):
 		op_utils.print_op_list_csv(op_list_model)
 
 
-def execute_command_postprocessMCS(dse, dse_folder, doe_strategy, thresholds, aggr_metr, thrs_metr, aggr_knob, confidence):
+def execute_command_postprocessMCS(dse, dse_folder, doe_strategy, thresholds, aggr_metr, thrs_metr, aggr_knob, confidence, quantile_value):
 	"""
 	modify a metric into a knob postprocessing the result of a DSE
 	"""
@@ -264,7 +264,7 @@ def execute_command_postprocessMCS(dse, dse_folder, doe_strategy, thresholds, ag
 #	print (thresholds_array)
 	thresholds_real = [float(x) for x in thresholds_array]
 	postprocess_extractor = post.Postprocessor(dse, dse_folder, doe_strategy)
-	postprocess_extractor.postprocessMCS(thresholds_real, aggr_metr, thrs_metr,aggr_knob, confidence)
+	postprocess_extractor.postprocessMCS(thresholds_real, aggr_metr, thrs_metr,aggr_knob, confidence, quantile_value)
 
 
 def execute_command_add_metric( file_path, metric_name, formula ):
@@ -407,6 +407,7 @@ if __name__ == "__main__":
 	parser_generator.add_argument('--thrs_metr', metavar='TSM', type=str, required = True,help='metric that has to be clustered in OPs')
 	parser_generator.add_argument('--aggr_knob', metavar='AGK', type=str, required = True,help='knob that has to be aggregated in OPs, its values MUST be a number')
 	parser_generator.add_argument('--confidence', metavar='CON', type=int, required = False, default = 1,help='coefficient to be applied as confidence on the error (i.e how many sigma consider), default 1')
+	parser_generator.add_argument('--quantile_value', metavar='QUV', type=int, required = False, default = 95,help='quantile used as threshold for the regression, default 95')
 
 
 	# add the add_column command
@@ -458,7 +459,7 @@ if __name__ == "__main__":
 		execute_command_plot_distr (args.varname, args.oplist_pattern)
 
 	if args.command == 'postprocessMCS':
-		execute_command_postprocessMCS(args.dse, args.dse_folder, args.doe, args.thresholds, args.aggr_metr, args.thrs_metr, args.aggr_knob,args.confidence)
+		execute_command_postprocessMCS(args.dse, args.dse_folder, args.doe, args.thresholds, args.aggr_metr, args.thrs_metr, args.aggr_knob,args.confidence, args.quantile_value)
 
 	if args.command == 'add_metric':
 		execute_command_add_metric(args.op_list, args.metric_name, args.formula)

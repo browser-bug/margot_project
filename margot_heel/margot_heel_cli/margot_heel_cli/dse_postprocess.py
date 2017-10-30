@@ -57,7 +57,7 @@ class Postprocessor:
 #		print (self.file_to_process_list)
 
 
-	def postprocessMCS(self,thresholds, aggregated_metric, threshold_metric, aggregation_knob, confidence):
+	def postprocessMCS(self,thresholds, aggregated_metric, threshold_metric, aggregation_knob, confidence, quantile_value):
 		oplist = model_op_list.OperatingPointListModel()
 		op_map_to_postprocess = {}
 		firstlist = parse_op.parse_ops_xml (self.file_to_process_list[0])
@@ -155,7 +155,7 @@ class Postprocessor:
 					if len(op_tmp_list) >= 50:
 						#test, if fail exit from inner loop
 						#print ("testing: ", metric_tmp_list)
-						if stats.percentileofscore(metric_tmp_list, thresh,'weak') <= 95:
+						if stats.percentileofscore(metric_tmp_list, thresh,'weak') <= quantile_value:
 							broken_from_inner = True
 							#remove last 1% of values in array
 							num_to_remove_float = len (op_tmp_list)*0.01
