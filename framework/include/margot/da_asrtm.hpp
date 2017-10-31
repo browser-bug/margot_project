@@ -236,17 +236,11 @@ namespace margot
        * index of the data feature. And the comparison function stands for "the key of the
        * evaluated feature cluster must be <comparator> than the one in input".
        * The comparison value "DONT_CARE", automatically validates the target field.
-       * If there are no feature cluster:
-       *  - if compiled in debug mode, it will trigger an assert and terminate the program
-       *  - if compiled in release mode, it will lead to an undefined behavior
        */
       void select_feature_cluster( const Feature key )
       {
         // make sure that no one else is going to change the container
         std::lock_guard<std::mutex> lock(asrtm_mutex);
-
-        // check if there is any cluster available
-        assert( !managers.empty() && "Error: attempt to select a cluster from an empty container");
 
         // take a copy of the previous active state
         const auto previous_active_manager = active_manager;
