@@ -313,6 +313,25 @@ namespace margot
       }
 
 
+      /**
+       * @brief Retrieve the value of a field of the active data feature
+       *
+       * @tparam index The index of the target field of the data feature
+       *
+       * @return the numeric value of the target field
+       *
+       * @details
+       * If it is not set any active manager will be returned a default
+       * value, according to the type T, usually zero.
+       */
+      template< std::size_t index >
+      inline T get_selected_feature( void ) const
+      {
+        static_assert( index < number_of_features, "Error: attempt to access an out of bound feature");
+        return active_manager != managers.end() ? std::get<index>(active_manager->first) : T{};
+      }
+
+
 
 
       /******************************************************************
