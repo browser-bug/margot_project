@@ -431,25 +431,22 @@ namespace margot
       /**
        * @brief Test whether the application knowledge is empty for the active AS-RTM
        *
-       * @return True, if the knowledge base is empty
+       * @return True, if the knowledge base is empty or there is no active manager
        *
        * @see Asrtm
        *
        * @details
-       * It is forbidden to check if there are Operating Points in a non-defined active cluster, in that case:
-       *  - if compiled in debug mode, it will trigger an assert and terminate the program
-       *  - if compiled in release mode, it will lead to an undefined behavior
+       * It is forbidden to check if there are Operating Points in a non-defined active cluster.
+       * For this reason this method return true also in case that there are no feature cluster
+       * or the active feature cluster is undefined
        */
       inline bool is_application_knowledge_empty( void ) const
       {
         // lock the manger mutex, to ensure a consistent global state
         std::lock_guard< std::mutex > lock(asrtm_mutex);
 
-        // make sure that there is an active feature cluster
-        assert(active_manager != managers.end() && "Error: attempt to test the knowledge base of a non-existent Asrtm");
-
         // method forward
-        return active_manager->second.is_application_knowledge_empty();
+        return active_manager != managers.end() ? active_manager->second.is_application_knowledge_empty() : true;
       }
 
 
