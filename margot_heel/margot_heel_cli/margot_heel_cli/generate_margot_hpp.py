@@ -8,6 +8,14 @@ from .generate_utility import generate_update_signature
 
 
 
+cfun_feature_translator = {
+  "GE"  : "margot::FeatureComparison::GREATER_OR_EQUAL",
+  "LE"  : "margot::FeatureComparison::LESS_OR_EQUAL",
+  "-"   : "margot::FeatureComparison::DONT_CARE"
+}
+
+
+
 def generate_block_body( block_model, op_lists, cc ):
   """
   Generates the per block code
@@ -55,13 +63,61 @@ def generate_block_body( block_model, op_lists, cc ):
     # close the goal namespace
     cc.write('\t\t} // namespace goal\n')
 
-  # write the manager
-  cc.write('\n\n\t\textern Asrtm< MyOperatingPoint > manager;\n\n\n')
+  # write the observed data features variables (if any)
+  if (block_model.features):
 
-  # write the list of operating points
+    # open the data feature namespace
+    cc.write('\n\t\tnamespace feature {\n')
+
+    # loop over the features
+    for feature in block_model.features:
+      cc.write('\t\t\textern {1} {0};\n'.format(feature.name, feature.type))
+
+    # close the feature namespace
+    cc.write('\t\t} // namespace feature\n')
+
+
+  # open the software knobs namespace
+  cc.write('\n\t\tnamespace knobs {\n')
+
+  # loop over the knobs
+  for knob_model in block_model.software_knobs:
+    cc.write('\t\t\textern {1} {0};\n'.format(knob_model.var_name, knob_model.var_type))
+
+  # close the software knobs namespace
+  cc.write('\t\t} // namespace knobs\n')
+
+
+  # write the manager (check if we have data feature)
+  if (block_model.features):
+
+    # get the names of data feature, in alphabetical order
+    names = sorted([ x.name for x in block_model.features ])
+
+    # loop over the data feature fields to compose the type
+    features_cf = []
+    for name in names:
+      # get the corresponding data feature comparison function
+      feature_cf = [ x.cf for x in block_model.features if x.name == name][0]
+      features_cf.append(cfun_feature_translator[feature_cf])
+
+    # print the new type of the asrtm
+    cc.write('\n\n\t\textern DataAwareAsrtm< Asrtm< MyOperatingPoint >, margot::FeatureDistanceType::{0}, {1} > manager;\n\n\n'.format(block_model.feature_distance, ', '.join(features_cf)))
+  else:
+    cc.write('\n\n\t\textern Asrtm< MyOperatingPoint > manager;\n\n\n')
+
+  # write the list of operating points (one for each data feature)
   for op_list_name in op_lists:
     if block_model.block_name == op_list_name:
-      cc.write('\n\n\t\textern std::vector< MyOperatingPoint > op_list;\n\n\n')
+
+      # get all the op list for data cluster
+      op_list_ids = sorted(op_lists[op_list_name].keys())
+
+      # loop over the op list for data features
+      cc.write('\n')
+      for index, data_feature_id in enumerate(op_list_ids):
+        cc.write('\n\t\textern std::vector< MyOperatingPoint > op_list{0};'.format(index))
+      cc.write('\n\n\n')
 
   # write all the exposed variables from the monitors
   for monitor_model in block_model.monitor_models:
@@ -125,7 +181,7 @@ def generate_margot_hpp( block_models, op_lists, output_folder ):
     cc.write('#define MARGOT_CC_HEADER_H\n')
 
     # get all the required headers
-    required_headers = [ '<margot/asrtm.hpp>', '<cstddef>', '<vector>', '"margot_op_struct.hpp"' ]
+    required_headers = [ '<margot/da_asrtm.hpp>', '<cstddef>', '<vector>', '"margot_op_struct.hpp"' ]
     for block_name in block_models:
       required_headers.extend( x.monitor_header for x in block_models[block_name].monitor_models )
     required_headers = reversed(sorted(list(set(required_headers))))

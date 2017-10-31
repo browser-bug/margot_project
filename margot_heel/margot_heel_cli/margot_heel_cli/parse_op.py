@@ -47,7 +47,7 @@ def parse_op( op_xml_element, namespace = ''):
     except ValueError as err:
       print('[ERROR] Unable to convert a value of the metric "{0}" to a float value: value = {1}'.format(metric_name, get_parameter(metric_xml_element, 'value')))
       sys.exit(-1)
-    
+
     # try to parse also the standard deviation
     try:
       metric_std = get_parameter(metric_xml_element, 'standard_dev', required = False)
@@ -65,7 +65,32 @@ def parse_op( op_xml_element, namespace = ''):
           value = my_op_model.metrics_std[metric_name]
         except KeyError as err:
           my_op_model.metrics_std[metric_name] = float(0)
-    
+
+  # get the reference to the data features (if any)
+  feature_xml_element = get_elements(op_xml_element, 'features', namespace = namespace, unique = True, required = False)
+
+  # get all the data features
+  if (feature_xml_element):
+    features_xml_element = get_elements( feature_xml_element[0], 'feature', namespace = namespace, required = True )
+    for feature_xml_element in features_xml_element:
+
+      # parse the name and value
+      feature_name = get_parameter(feature_xml_element, 'name')
+      feature_value = get_parameter(feature_xml_element, 'value')
+
+      # make sure that the data feature is numeric
+      try:
+        feature_value_num = int(feature_value)
+      except ValueError:
+        try:
+          feature_value_num = float(feature_value)
+        except ValueError:
+          print('[ERROR] Unable to convert a value of the feature "{0}" to a numeric value: value = {1}'.format(metric_name, get_parameter(metric_xml_element, 'value')))
+          sys.exit(-1)
+
+      # add it to the parameters
+      my_op_model.features[feature_name] = feature_value
+
 
   # return the model
   return my_op_model
@@ -139,20 +164,25 @@ def parse_ops_csv( csv_path, my_delimiter ):
   header_row = csvmatrix.pop(0)
 
 
-  # compose the parameter and metric name -> column index translator
+  # compose the parameter, feature and metric name -> column index translator
   knob_dic = {}
   metric_dic = {}
   metric_std_dic = {}
+  feature_dic = {}
   for col_index, header_token in enumerate(header_row):
     if header_token:
-      if header_token[0] == '#':
-        knob_dic[header_token[1:]] = col_index
+      if header_token[0] == '@':
+        feature_dic[header_token[1:]] = col_index
       else:
-        if header_token.endswith('_standard_dev'):
-          metric_std_dic[header_token.replace('_standard_dev', '')] = col_index
+        if header_token[0] == '#':
+          knob_dic[header_token[1:]] = col_index
+        else:
+          if header_token.endswith('_standard_dev'):
+            metric_std_dic[header_token.replace('_standard_dev', '')] = col_index
 
   knob_names = sorted(knob_dic.keys())
   metric_names = sorted(metric_dic.keys())
+  feature_names = sorted(feature_dic.keys())
 
   # create the Operating Point list
   op_list_model = OperatingPointListModel()
@@ -160,6 +190,16 @@ def parse_ops_csv( csv_path, my_delimiter ):
 
     # create the OP model
     op_model = OperatingPointModel()
+    for feature_name in feature_names:
+      try:
+        op_model.features[feature_name] = int(csv_op_description[feature_dic[feature_name]])
+      except ValueError:
+        try:
+          op_model.features[feature_name] = float(csv_op_description[feature_dic[feature_name]])
+        except ValueError:
+          print('[ERROR] Unable to convert "{0}" to a float value'.format(csv_op_description[feature_dic[feature_name]]))
+          sys.exit(-1)
+
     for knob_name in knob_names:
       op_model.knobs[knob_name] = csv_op_description[knob_dic[knob_name]]
     try:

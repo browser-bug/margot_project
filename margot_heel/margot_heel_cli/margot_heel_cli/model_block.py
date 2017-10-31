@@ -19,6 +19,12 @@ class BlockModel:
     # the list of software knob associated to the block
     self.software_knobs = []
 
+    # the list of data features associated to the block
+    self.features = []
+
+    # how to compute the distance between data feature
+    self.feature_distance = ''
+
     # the list of metrics associated to the block
     self.metrics = []
 
@@ -57,6 +63,11 @@ class BlockModel:
     dump_string2 = '{0}\n\n--------  SOFTWARE KNOBS --------'.format(dump_string2)
     for knob_model in self.software_knobs:
       dump_string2 = '{0}\n{1}'.format(dump_string2, knob_model)
+
+    dump_string2 = '{0}\n\n--------  DATA FEATURES  --------'.format(dump_string2)
+    for feature_model in self.features:
+      dump_string2 = '{0}\nData feature distance = {1}'.format(dump_string2, self.feature_distance.upper())
+      dump_string2 = '{0}\n{1}'.format(dump_string2, feature_model)
 
     dump_string2 = '{0}\n\n------------ METRICS ------------'.format(dump_string2)
     for metric_model in self.metrics:

@@ -8,26 +8,17 @@ from .generate_utility import generate_update_signature
 
 
 
-dfun_translator = {
-  "AVERAGE"  : "margot::DataFunction::Average",
-  "VARIANCE" : "margot::DataFunction::Variance",
-  "MAX"      : "margot::DataFunction::Max",
-  "MIN"      : "margot::DataFunction::Min",
-}
-
-
-cfun_translator = {
-  "GT"  : "margot::ComparisonFunction::Greater",
-  "GE"  : "margot::ComparisonFunction::GreaterOrEqual",
-  "LT"  : "margot::ComparisonFunction::Less",
-  "LE"  : "margot::ComparisonFunction::LessOrEqual",
-}
-
 what_translator = {
   "AVERAGE"  : "average",
   "VARIANCE" : "variance",
   "MAX"      : "max",
   "MIN"      : "min",
+}
+
+cfun_feature_translator = {
+  "GE"  : "margot::FeatureComparison::GREATER_OR_EQUAL",
+  "LE"  : "margot::FeatureComparison::LESS_OR_EQUAL",
+  "-"   : "margot::FeatureComparison::DONT_CARE"
 }
 
 
@@ -79,8 +70,47 @@ def generate_block_body( block_model, op_lists, cc ):
     # close the goal namespace
     cc.write('\t\t} // namespace goal\n')
 
-  # write the manager
-  cc.write('\n\n\t\tAsrtm< MyOperatingPoint > manager;\n\n\n')
+  # write the observed data features variables (if any)
+  if (block_model.features):
+
+    # open the data feature namespace
+    cc.write('\n\t\tnamespace features {\n')
+
+    # loop over the features
+    for feature in block_model.features:
+      cc.write('\t\t\t{1} {0};\n'.format(feature.name, feature.type))
+
+    # close the feature namespace
+    cc.write('\t\t} // namespace features\n')
+
+  # open the software knobs namespace
+  cc.write('\n\t\tnamespace knobs {\n')
+
+  # loop over the knobs
+  for knob_model in block_model.software_knobs:
+    cc.write('\t\t\t{1} {0};\n'.format(knob_model.var_name, knob_model.var_type))
+
+  # close the software knobs namespace
+  cc.write('\t\t} // namespace knobs\n')
+
+  # write the manager (check if we have data feature)
+  if (block_model.features):
+
+    # get the names of data feature, in alphabetical order
+    names = sorted([ x.name for x in block_model.features ])
+
+    # loop over the data feature fields to compose the type
+    features_cf = []
+    for name in names:
+      # get the corresponding data feature comparison function
+      feature_cf = [ x.cf for x in block_model.features if x.name == name][0]
+      features_cf.append(cfun_feature_translator[feature_cf])
+
+    # print the new type of the asrtm
+    cc.write('\n\n\t\tDataAwareAsrtm< Asrtm< MyOperatingPoint >, margot::FeatureDistanceType::{0}, {1} > manager;\n\n\n'.format(block_model.feature_distance, ', '.join(features_cf)))
+  else:
+    # write the manager
+    cc.write('\n\n\t\tAsrtm< MyOperatingPoint > manager;\n\n\n')
 
   # write the logger
   cc.write('\n\t\t#ifdef MARGOT_LOG_FILE\n')
@@ -95,6 +125,21 @@ def generate_block_body( block_model, op_lists, cc ):
   # write the update function
   cc.write('\n\n\t\tbool {0}\n'.format(generate_update_signature(block_model)))
   cc.write('\t\t{\n')
+
+  # check if we should handle the data features
+  if block_model.features:
+
+    # write the statements that assign the data features to the global variable
+    feature_names = []
+    for feature in block_model.features:
+      cc.write('\t\t\tfeature::{0} = {0};\n'.format(feature.name))
+      feature_names.append(feature.name)
+
+    # write the statement that select the correct asrtm
+    feature_string = '{{{{{0}}}}}'.format(', '.join(feature_names))
+    cc.write('\t\t\tmanager.select_feature_cluster({0})\n'.format(feature_string))
+
+
   cc.write('\t\t\tif (!manager.is_application_knowledge_empty())\n')
   cc.write('\t\t\t{\n')
   cc.write('\t\t\t\tmanager.find_best_configuration();\n')
@@ -106,8 +151,12 @@ def generate_block_body( block_model, op_lists, cc ):
   for knob in block_model.software_knobs:
     cc.write('\t\t\t\t\t{0} = new_conf.get_mean<static_cast<std::size_t>(Knob::{1})>();\n'.format(knob.var_name, knob.name.upper()))
   cc.write('\t\t\t\t}\n')
+  for knob in block_model.software_knobs:
+    cc.write('\t\t\t\tknobs::{0} = {0};\n'.format(knob.var_name))
   cc.write('\t\t\t\treturn conf_changed;\n')
   cc.write('\t\t\t}\n')
+  for knob in block_model.software_knobs:
+    cc.write('\t\t\tknobs::{0} = {0};\n'.format(knob.var_name))
   cc.write('\t\t\treturn false;\n')
   cc.write('\t\t}\n')
 
@@ -154,13 +203,20 @@ def generate_block_body( block_model, op_lists, cc ):
   # keep track of what we are printing (for the cout)
   what_we_are_printing = []
 
+  # compute the getters for the data features
+  cluster_feature_printer = []
+  data_feature_names = sorted([ x.name for x in block_model.features ])
+  for index, feature_name in enumerate(data_feature_names):
+    what_we_are_printing.append('Cluster {0}'.format(feature_name))
+    cluster_feature_printer.append('{0}::manager.get_selected_feature<{1}>()'.format(block_model.block_name, index))
+
 
   # compute the getters for software knobs
   software_knobs_printers = []
   for knob in block_model.software_knobs:
     what_we_are_printing.append('Knob {0}'.format(knob.name))
     if block_model.block_name in op_lists:
-      if knob.name in op_lists[block_model.block_name].translator:
+      if knob.name in op_lists[block_model.block_name][op_lists[block_model.block_name].keys()[0]].translator:
         software_knobs_printers.append('{0}::knob_{2}_int2str[static_cast<int>({0}::manager.get_mean<OperatingPointSegments::SOFTWARE_KNOBS, static_cast<std::size_t>({0}::Knob::{1})>()]'.format(block_model.block_name, knob.name.upper(), knob.name.lower()))
         continue
     software_knobs_printers.append('{0}::manager.get_mean<OperatingPointSegments::SOFTWARE_KNOBS, static_cast<std::size_t>({0}::Knob::{1})>()'.format(block_model.block_name, knob.name.upper()))
@@ -187,6 +243,14 @@ def generate_block_body( block_model, op_lists, cc ):
       monitor_printers.append('{0}::{1}'.format(block_model.block_name, monitor_model.exposed_metrics[exposed_var_what]))
 
 
+  # compute the getters for the observed data features
+  data_feature_printer = []
+  data_feature_names = sorted([ x.name for x in block_model.features ])
+  for feature_name in data_feature_names:
+    what_we_are_printing.append('Input {0}'.format(feature_name))
+    data_feature_printer.append('{0}::feature::{1}'.format(block_model.block_name, feature_name))
+
+
   # ------- actually compose the log functin on file
 
   cc.write('\n\t\t\t#ifdef MARGOT_LOG_FILE\n')
@@ -195,10 +259,12 @@ def generate_block_body( block_model, op_lists, cc ):
 
 
   # if we have ops it's easythen print the stuff
-  things_to_print = list(software_knobs_printers)
+  things_to_print = list(cluster_feature_printer)
+  things_to_print.extend(software_knobs_printers)
   things_to_print.extend(metrics_printers)
   things_to_print.extend(goal_printers)
   things_to_print.extend(monitor_printers)
+  things_to_print.extend(data_feature_printer)
   string_to_print = ',\n\t\t\t\t\t'.join(things_to_print)
   cc.write('\t\t\t\tfile_logger.write(')
   cc.write('{0});\n'.format(string_to_print))
@@ -209,14 +275,17 @@ def generate_block_body( block_model, op_lists, cc ):
   cc.write('\t\t\t{\n')
 
   # if we have no ops, we must made up the expected stuff
-  software_knobs_printers_alternative = ['"N/A"' for x in software_knobs_printers]
+  software_knobs_printers_alternative = ['{1}::knobs::{0}'.format(x.var_name, block_model.block_name) for x in block_model.software_knobs]
   metrics_printers_alternative = ['"N/A"' for x in metrics_printers]
+  cluster_feature_printer_alternative = ['"N/A"' for x in cluster_feature_printer]
 
   # then print the stuff
-  things_to_print = list(software_knobs_printers_alternative)
+  things_to_print = list(cluster_feature_printer_alternative)
+  things_to_print.extend(software_knobs_printers_alternative)
   things_to_print.extend(metrics_printers_alternative)
   things_to_print.extend(goal_printers)
   things_to_print.extend(monitor_printers)
+  things_to_print.extend(data_feature_printer)
   string_to_print = ',\n\t\t\t\t\t'.join(things_to_print)
   cc.write('\t\t\t\tfile_logger.write(')
   cc.write('{0});\n'.format(string_to_print))
@@ -236,16 +305,20 @@ def generate_block_body( block_model, op_lists, cc ):
   cc.write('\t\t\t{\n')
 
   # then print the stuff
-  things_to_print = list(software_knobs_printers)
+  things_to_print = list(cluster_feature_printer)
+  things_to_print.extend(software_knobs_printers)
   things_to_print.extend(metrics_printers)
   things_to_print.extend(goal_printers)
   things_to_print.extend(monitor_printers)
+  things_to_print.extend(data_feature_printer)
 
   # set the endl from arguments
-  endl_indexes = [len(software_knobs_printers)]
+  endl_indexes = [len(cluster_feature_printer)]
+  endl_indexes.append( endl_indexes[-1] + len(software_knobs_printers))
   endl_indexes.append( endl_indexes[-1] + len(metrics_printers))
   endl_indexes.append( endl_indexes[-1] + len(goal_printers))
   endl_indexes.append( endl_indexes[-1] + len(monitor_printers))
+  endl_indexes.append( endl_indexes[-1] + len(data_feature_printer))
 
   # write the print statement
   composed_elements = []
@@ -263,22 +336,21 @@ def generate_block_body( block_model, op_lists, cc ):
   cc.write('\t\t\telse\n')
   cc.write('\t\t\t{\n')
 
-
-  # if we have no ops, we must made up the expected stuff
-  software_knobs_printers_alternative = ['"N/A"' for x in software_knobs_printers]
-  metrics_printers_alternative = ['"N/A"' for x in metrics_printers]
-
   # then print the stuff
-  things_to_print = list(software_knobs_printers_alternative)
+  things_to_print = list(cluster_feature_printer_alternative)
+  things_to_print.extend(software_knobs_printers_alternative)
   things_to_print.extend(metrics_printers_alternative)
   things_to_print.extend(goal_printers)
   things_to_print.extend(monitor_printers)
+  things_to_print.extend(data_feature_printer)
 
   # set the endl from arguments
-  endl_indexes = [len(software_knobs_printers)]
+  endl_indexes = [len(cluster_feature_printer_alternative)]
+  endl_indexes.append( endl_indexes[-1] + len(software_knobs_printers_alternative))
   endl_indexes.append( endl_indexes[-1] + len(metrics_printers))
   endl_indexes.append( endl_indexes[-1] + len(goal_printers))
   endl_indexes.append( endl_indexes[-1] + len(monitor_printers))
+  endl_indexes.append( endl_indexes[-1] + len(data_feature_printer))
 
   # write the print statement
   composed_elements = []
@@ -394,10 +466,32 @@ def generate_margot_cc( block_models, op_lists, output_folder ):
         cc.write('\t\t{0}::goal::{1}.set({2});\n'.format(block_name, goal_model.name, goal_model.value))
 
 
-      # check if we need to add Operating Points
-      ops_key = op_lists.keys()
-      if block_name in ops_key:
-        cc.write('\n\t\t{0}::manager.add_operating_points({0}::op_list);\n'.format(block_name))
+
+      # check if we have any Operating Points
+      if block_name in op_lists:
+        cc.write('\n\t\t// Adding the application knowledge\n')
+
+        # get all the op list for data cluster
+        op_list_ids = sorted(op_lists[block_name].keys())
+
+        # loop over them to create Operating Points
+        for index, op_list_feature_id in enumerate(op_list_ids):
+
+          # make a tuple out of the id
+          data_feature = '{{{{{0}}}}}'.format(op_list_feature_id.replace('|',', '))
+
+          # check if we actually have to create a data cluster
+          if block_model.features:
+
+            # insert the call that creates the feature cluster
+            cc.write('\t\t{0}::manager.add_feature_cluster({1});\n'.format(block_name, data_feature))
+
+            # insert the call which selects the feature cluster
+            cc.write('\t\t{0}::manager.select_feature_cluster({1});\n'.format(block_name, data_feature))
+
+          # eventually, insert the call which adds the Operating Points
+          cc.write('\t\t{0}::manager.add_operating_points({0}::op_list{1});\n'.format(block_name, index))
+      cc.write('\n')
 
 
       # check if we need to insert runtime information providers
@@ -494,18 +588,22 @@ def generate_margot_cc( block_models, op_lists, output_folder ):
         cc.write('\t\t{0}::manager.change_active_state("{1}");\n'.format(block_name, active_state.name))
 
       # initialize the file logger
+      data_feature_names = sorted([x.name for x in block_model.features])
       cc.write('\n\n\t\t#ifdef MARGOT_LOG_FILE\n')
       cc.write('\t\t{0}::file_logger.open("{0}.log", margot::Format::PLAIN,\n'.format(block_name))
-      if block_model.block_name in op_lists.keys():
-        for knob in block_model.software_knobs:
-          cc.write('\t\t\t"Knob_{0}",\n'.format(knob.name.upper()))
-        for metric in block_model.metrics:
-          cc.write('\t\t\t"Known_Metric_{0}",\n'.format(metric.name.upper()))
+      for data_feature_name in data_feature_names:
+        cc.write('\t\t\t"Cluster_{0}",\n'.format(data_feature_name.upper()))
+      for knob in block_model.software_knobs:
+        cc.write('\t\t\t"Knob_{0}",\n'.format(knob.name.upper()))
+      for metric in block_model.metrics:
+        cc.write('\t\t\t"Known_Metric_{0}",\n'.format(metric.name.upper()))
       for goal in block_model.goal_models:
-        cc.write('\t\t\t"goal_{0}",\n'.format(goal.name))
+        cc.write('\t\t\t"Goal_{0}",\n'.format(goal.name))
       for monitor_model in block_model.monitor_models:
         for exposed_var_what in monitor_model.exposed_metrics:
-          cc.write('\t\t\t"{1}_{0}",\n'.format(exposed_var_what, monitor_model.monitor_name))
+          cc.write('\t\t\t"{1}_{0}",\n'.format(exposed_var_what, monitor_model.monitor_name.upper()))
+      for data_feature_name in data_feature_names:
+        cc.write('\t\t\t"Input_{0}",\n'.format(data_feature_name.upper()))
       cc.seek(-2, 1)
       cc.write(');\n')
       cc.write('\t\t#endif // MARGOT_LOG_FILE\n')

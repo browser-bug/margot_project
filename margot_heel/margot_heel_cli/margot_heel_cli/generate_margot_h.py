@@ -74,7 +74,7 @@ def generate_block_body( block_model, op_list, cc ):
 
   # write the translating function
   if op_list:
-    for string_param_name in op_list.translator:
+    for string_param_name in op_list[op_list.keys()[0]].translator:
 
       # write the function to convert from str to int
       cc.write('\nvoid margot_{0}_knob_{1}_int2str(const int numeric_value, char const ** string_value);\n'.format(block_model.block_name, string_param_name.lower()))

@@ -13,8 +13,14 @@ def generate_op_lists( op_lists, output_folder ):
 
   for block_name in op_lists:
 
-    # get the operating point list
-    op_list = op_lists[block_name]
+    # get all the operating points list for the current block
+    op_list_dic = op_lists[block_name]
+
+    # get a reference for the first list (to get the translation dictionaries)
+    first_op_list = op_list_dic[op_list_dic.keys()[0]]
+
+    # get the sorted list of available data features
+    op_features = sorted(op_list_dic.keys())
 
 
     # open the output file
@@ -43,45 +49,52 @@ def generate_op_lists( op_lists, output_folder ):
       cc.write('\n\tnamespace {0} {{\n'.format(block_name))
 
       # write the translation hash map
-      for string_param_name in op_list.translator:
+      for string_param_name in first_op_list.translator:
 
         # write the function to convert from str to int
         cc.write('\n\t\tstd::unordered_map<std::string,int> knob_{0}_str2int = {{\n'.format(string_param_name.lower()))
-        for value_string in op_list.translator[string_param_name]:
-          cc.write('\t\t\t{{"{0}", {1}}},\n'.format(value_string, op_list.translator[string_param_name][value_string]))
+        for value_string in first_op_list.translator[string_param_name]:
+          cc.write('\t\t\t{{"{0}", {1}}},\n'.format(value_string, first_op_list.translator[string_param_name][value_string]))
         cc.write('\t\t};')
         cc.write('\n\t\tstd::unordered_map<int,std::string> knob_{0}_int2str = {{\n'.format(string_param_name.lower()))
-        for value_string in op_list.translator[string_param_name]:
-          cc.write('\t\t\t{{{1}, "{0}"}},\n'.format(value_string, op_list.translator[string_param_name][value_string]))
+        for value_string in first_op_list.translator[string_param_name]:
+          cc.write('\t\t\t{{{1}, "{0}"}},\n'.format(value_string, first_op_list.translator[string_param_name][value_string]))
         cc.write('\t\t};')
 
 
 
       # get the list of sw knob and metrics
-      knob_list = sorted(op_list.ops[0].knobs.keys())
-      metric_list = sorted(op_list.ops[0].metrics.keys())
+      knob_list = sorted(first_op_list.ops[0].knobs.keys())
+      metric_list = sorted(first_op_list.ops[0].metrics.keys())
 
-      # write the actual list of operating points
-      cc.write('\n\n\t\tstd::vector< MyOperatingPoint > op_list = {\n')
-      for index, op_model in enumerate(op_list.ops):
-        if index > 0:
-          cc.write(',\n')
-        cc.write('\t\t\t{{ // Operating Point {0}\n'.format(index + 1))
-        values = []
-        for knob_name in knob_list:
-          values.append(op_model.knobs[knob_name])
-        cc.write('\t\t\t\t{{ {0} }}, // The software knobs\n'.format(', '.join(str(x) for x in values)))
-        values = []
-        for metric_name in metric_list:
-          metric_value = 'MyMetricType({0}'.format(op_model.metrics[metric_name])
-          if op_model.metrics_std:
-            metric_value = '{0}, {1})'.format(metric_value, op_model.metrics_std[metric_name])
-          else:
-            metric_value = str(op_model.metrics[metric_name])
-          values.append(metric_value)
-        cc.write('\t\t\t\t{{ {0} }}, // The metrics of interest\n'.format(', '.join(values)))
-        cc.write('\t\t\t}')
-      cc.write('\n\t\t};\n')
+
+      # loop over all the op list for each defined input feature
+      for index, feature_id in enumerate(op_features):
+
+        # get the actual op_list
+        op_list = op_list_dic[feature_id]
+
+        # write the actual list of operating points
+        cc.write('\n\n\t\tstd::vector< MyOperatingPoint > op_list{0} = {{\n'.format(index))
+        for index, op_model in enumerate(op_list.ops):
+          if index > 0:
+            cc.write(',\n')
+          cc.write('\t\t\t{{ // Operating Point {0}\n'.format(index + 1))
+          values = []
+          for knob_name in knob_list:
+            values.append(op_model.knobs[knob_name])
+          cc.write('\t\t\t\t{{ {0} }}, // The software knobs\n'.format(', '.join(str(x) for x in values)))
+          values = []
+          for metric_name in metric_list:
+            metric_value = 'MyMetricType({0}'.format(op_model.metrics[metric_name])
+            if op_model.metrics_std:
+              metric_value = '{0}, {1})'.format(metric_value, op_model.metrics_std[metric_name])
+            else:
+              metric_value = str(op_model.metrics[metric_name])
+            values.append(metric_value)
+          cc.write('\t\t\t\t{{ {0} }}, // The metrics of interest\n'.format(', '.join(values)))
+          cc.write('\t\t\t}')
+        cc.write('\n\t\t};\n')
 
 
       # write the end of namespace

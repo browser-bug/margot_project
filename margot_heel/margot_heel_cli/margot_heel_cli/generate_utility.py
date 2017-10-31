@@ -64,23 +64,22 @@ def generate_update_signature( block_model, use = False, c_language = False ):
   function
   """
 
-  if not c_language:
-    param_list_use = ['{0}& {1}'.format(x.var_type, x.var_name) for x in block_model.software_knobs]
-  else:
-    param_list_use = ['{0}* {1}'.format(x.var_type, x.var_name) for x in block_model.software_knobs]
-
   # compose the parameter signature
   if not use:
     if not c_language:
       param_list = ['{0}& {1}'.format(x.var_type, x.var_name) for x in block_model.software_knobs]
+      param_list.extend(['const {0} {1}'.format(x.type, x.name) for x in block_model.features])
     else:
       param_list = ['{0}* {1}'.format(x.var_type, x.var_name) for x in block_model.software_knobs]
+      param_list.extend(['const {0} {1}'.format(x.type, x.name) for x in block_model.features])
     param_string = ', '.join( param_list )
   else:
     if not c_language:
       param_list = ['{0}'.format(x.var_name) for x in block_model.software_knobs]
+      param_list.extend(['{0}'.format(x.name) for x in block_model.features])
     else:
       param_list = ['*{0}'.format(x.var_name) for x in block_model.software_knobs]
+      param_list.extend(['{0}'.format(x.name) for x in block_model.features])
     param_string = ', '.join(param_list)
   if not param_string:
     if not use:

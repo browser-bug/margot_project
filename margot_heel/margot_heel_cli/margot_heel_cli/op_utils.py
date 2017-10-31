@@ -21,17 +21,25 @@ def get_field_value( op_model, field, std_dev_coef = 0 ):
       return float(op_model.knobs[field])
     except KeyError:
 
-      # real error, exit
-      print('[LOGIC ERROR] Unable to retrieve the field "{0}"'.format(field))
-      print('\t- available metrics: "{0}"'.format('", "'.join(op_model.metrics.keys())))
-      print('\t- available knobs: "{0}"'.format('", "'.join(op_model.knobs.keys())))
-      sys.exit(-1)
+
+      # extract the value assuming it is a data feature
+      try:
+        return float(op_model.features[field])
+      except KeyError:
+
+        # real error, exit
+        print('[LOGIC ERROR] Unable to retrieve the field "{0}"'.format(field))
+        print('\t- available metrics: "{0}"'.format('", "'.join(op_model.metrics.keys())))
+        print('\t- available features: "{0}"'.format('", "'.join(op_model.features.keys())))
+        print('\t- available knobs: "{0}"'.format('", "'.join(op_model.knobs.keys())))
+        sys.exit(-1)
 
 
 def op_equals( op_1, op_2 ):
   """
   This method tests whether the op_1 is equal to the op_2.
   Two Operating Points are equal if they have the same parameters
+  and the same data features
   """
 
   # if they have a different number of knobs, they are not the same
@@ -55,6 +63,27 @@ def op_equals( op_1, op_2 ):
     if not op_1_value == op_2_value:
       return False
 
+  # they have the same software knob, we should check for the data features
+  if len(op_1.features) != len(op_2.features):
+    return False
+
+  # loop over the ops of op1
+  for feature_name in op_1.features:
+
+    # get the value of op1
+    op_1_value = op_1.features[feature_name]
+
+    # get the value of op2
+    try:
+      op_2_value = op_2.features[feature_name]
+    except KeyError:
+      # if they have different knob, they are not the same
+      return False
+
+    # if they have different values, they are not the same
+    if not op_1_value == op_2_value:
+      return False
+
   # otherwise they are the same Operating Point
   return True
 
@@ -63,7 +92,27 @@ def op_equals( op_1, op_2 ):
 def dominate( op1, op2, directions ):
   """
   This function returns True iff op1 dominate op2 according to directions
+  This definition make sense only if they have the same data features
   """
+
+  # loop over the ops of op1
+  for feature_name in op1.features:
+
+    # get the value of op1
+    op1_value = op1.features[feature_name]
+
+    # get the value of op2
+    try:
+      op_2_value = op2.features[feature_name]
+    except KeyError:
+      # if they have different features, they cannot be compared
+      return False
+
+    # if they have different values, they cannot be compared
+    if not op1_value == op_2_value:
+      return False
+
+  # reached this point, they refer to the same data feature
 
   # loop over the fields of interest
   for field_name in directions:
@@ -259,6 +308,13 @@ def print_op_list_xml( op_list ):
         print('\t\t\t<parameter name="{0}" value="{1}"/>'.format(knob_name, op.knobs[knob_name]))
       print('\t\t</parameters>')
 
+    # print the data features
+    if op.features:
+      print('\t\t<features>')
+      for feature_name in op.features:
+        print('\t\t\t<feature name="{0}" value="{1}"/>'.format(feature_name, op.features[feature_name]))
+      print('\t\t</features>')
+
     # print the metrics
     if op.metrics:
       print('\t\t<system_metrics>')
@@ -281,9 +337,10 @@ def print_op_list_csv( op_list ):
   if not op_list.ops:
     return
 
-  # get the list of knobs and metrics
+  # get the list of knobs, features and metrics
   knob_names = sorted(op_list.ops[0].knobs.keys())
   metric_names = op_list.ops[0].metrics.keys()
+  feature_names = sorted(op_list.ops[0].features.keys())
   only_metric_names = sorted(list(metric_names))
   if op_list.ops[0].metrics_std:
     metric_names.extend( ['{0}_standard_dev'.format(x) for x in metric_names] )
@@ -301,6 +358,9 @@ def print_op_list_csv( op_list ):
   # add the prefix for the knobs
   elements = ['#{0}'.format(x) for x in knob_names]
 
+  # add the prefix for the data features
+  elements.extend(['@{0}'.format(x) for x in feature_names])
+
   # compose the header
   elements.extend(metric_names)
 
@@ -317,6 +377,10 @@ def print_op_list_csv( op_list ):
         values.append(str(reversed_dictionary[n][str(op.knobs[n])]))
       else:
         values.append(str(op.knobs[n]))
+
+    # append the data features
+    for n in feature_names:
+      values.append(str(op.features[n]))
 
     # append the metrics
     for n in only_metric_names:

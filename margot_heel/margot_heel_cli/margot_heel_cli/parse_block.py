@@ -6,6 +6,7 @@ from .parse_knob import parse_knob
 from .parse_state import parse_state
 from .parse_adaptors import parse_adaptor
 from .parse_metrics import parse_metric
+from .parse_data_feature import parse_data_feature
 from . import model_block
 
 
@@ -57,6 +58,17 @@ def parse_block_xml( xml_block_root, namespace = '' ):
 
     # add the knob model
     model.software_knobs.append(knob_model)
+
+
+  # get the possible data feature element
+  feature_xml_element = get_elements(xml_block_root, 'features', unique = True, namespace = namespace)[0]
+  
+  # get the model of data features
+  data_feature_model = parse_data_feature(feature_xml_element, namespace = namespace)
+
+  # append the model to the block
+  model.features = data_feature_model.features
+  model.feature_distance = data_feature_model.distance
 
   # get all the field adaptors
   adaptor_xml_elements = get_elements(xml_block_root, 'adapt', namespace = namespace)

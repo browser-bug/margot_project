@@ -8,6 +8,7 @@ from .parse_op import parse_ops_xml,parse_ops_csv,parse_multi_xml_list,parse_par
 from .model_op_list import OperatingPointListModel
 from .op_utils import process_multiapp_outputs
 import sys
+import copy
 
 class Parser:
   """
@@ -169,6 +170,41 @@ class Parser:
         if not (knob_names == op_knob_names and metric_names == op_metric_names):
           print('[CONSISTENCY ERROR] Mismatch between the Operating List and the requirements for the block "{0}"'.format(block_name))
           sys.exit(-1)
+
+        # extract the name of the managed data features
+        managed_data_features = set([x.name for x in self.block_models[block_name].features])
+
+        # remove from the op list the data features not managed by the margot
+        for op_model in self.ops[block_name].ops:
+
+          # get their data features
+          op_data_features = [x for x in op_model.features.keys()]
+
+          # compute the difference
+          feature_to_eliminate = [ x for x in op_data_features if x not in managed_data_features ]
+
+          # delete the corresponding metrics
+          for feature_name in feature_to_eliminate:
+            del op_model.features[feature_to_eliminate]
+
+
+        # parition the Operating Point list in different list according to data features
+        block_op_list_dic = {}
+        for op_model in self.ops[block_name].ops:
+
+          # get the id of the op
+          op_feature_id = op_model.get_data_feature_id()
+
+          # handle the op
+          try:
+            block_op_list_dic[op_feature_id].ops.append(op_model)
+          except KeyError:
+            block_op_list_dic[op_feature_id] = copy.deepcopy(self.ops[block_name])
+            block_op_list_dic[op_feature_id].ops = [op_model]
+
+        # replace the single op list with the dictionary
+        self.ops[block_name] = block_op_list_dic
+
 
       except KeyError:
 
