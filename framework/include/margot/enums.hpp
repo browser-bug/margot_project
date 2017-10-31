@@ -134,15 +134,14 @@ namespace margot
    * @brief Used to indicate the comparison function for the data features
    *
    * @details
-   * This enum extend the classical comparison function with the "don't care"
+   * This enum replace the classical comparison function with the "don't care"
    * enumerator, which indicates that the user has no constraints for the
    * given field of the data feature.
+   * Moreover, in case that the 
    */
   enum class FeatureComparison
   {
-    LESS,
     LESS_OR_EQUAL,
-    GREATER,
     GREATER_OR_EQUAL,
     DONT_CARE
   };

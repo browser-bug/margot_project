@@ -86,26 +86,6 @@ namespace margot
    * @tparam T The type of the element stored in the data feature
    *
    * @details
-   * Partial specialization for the less comparison
-   */
-  template< class T >
-  struct cf_proxy< T, FeatureComparison::LESS >
-  {
-
-    /**
-     * @brief Explicit re-definition of the std::less functor
-     */
-    using compare = std::less<T>;
-
-  };
-
-
-  /**
-   * @brief Proxy struct to select the correct comparison function
-   *
-   * @tparam T The type of the element stored in the data feature
-   *
-   * @details
    * Partial specialization for the less or equal comparison
    */
   template< class T >
@@ -116,26 +96,6 @@ namespace margot
      * @brief Explicit re-definition of the std::less_equal functor
      */
     using compare = std::less_equal<T>;
-
-  };
-
-
-  /**
-   * @brief Proxy struct to select the correct comparison function
-   *
-   * @tparam T The type of the element stored in the data feature
-   *
-   * @details
-   * Partial specialization for the greater comparison
-   */
-  template< class T >
-  struct cf_proxy< T, FeatureComparison::GREATER >
-  {
-
-    /**
-     * @brief Explicit re-definition of the std::greater functor
-     */
-    using compare = std::greater<T>;
 
   };
 
