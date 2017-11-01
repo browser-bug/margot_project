@@ -61,14 +61,18 @@ def parse_block_xml( xml_block_root, namespace = '' ):
 
 
   # get the possible data feature element
-  feature_xml_element = get_elements(xml_block_root, 'features', unique = True, namespace = namespace)[0]
-  
-  # get the model of data features
-  data_feature_model = parse_data_feature(feature_xml_element, namespace = namespace)
+  feature_xml_element = get_elements(xml_block_root, 'features', unique = True, namespace = namespace)
+  if feature_xml_element:
 
-  # append the model to the block
-  model.features = data_feature_model.features
-  model.feature_distance = data_feature_model.distance
+    # get the first element of the data features
+    feature_xml_element = feature_xml_element[0]
+  
+    # get the model of data features
+    data_feature_model = parse_data_feature(feature_xml_element, namespace = namespace)
+
+    # append the model to the block
+    model.features = data_feature_model.features
+    model.feature_distance = data_feature_model.distance
 
   # get all the field adaptors
   adaptor_xml_elements = get_elements(xml_block_root, 'adapt', namespace = namespace)

@@ -185,7 +185,7 @@ class Parser:
 
           # delete the corresponding metrics
           for feature_name in feature_to_eliminate:
-            del op_model.features[feature_to_eliminate]
+            del op_model.features[feature_name]
 
 
         # parition the Operating Point list in different list according to data features
