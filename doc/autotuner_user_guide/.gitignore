@@ -1,0 +1,11 @@
+# Ignore every file in this directory
+/*
+
+# Except those one
+!Makefile
+!main.tex
+!main.pdf
+!introduction.tex
+!monitor.tex
+!pictures/
+!picture_sources/
