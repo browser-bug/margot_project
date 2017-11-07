@@ -117,7 +117,7 @@ In the current implementation, a support four standard comparison functions (gre
 
 \prettyref{fig:goal_examples} shows an example on how it is possible to use the goals and monitors, to check if the application kernel execution time is below $2ms$.
 In particular, line 1 defines a time monitor with a resolution of milliseconds.
-Line 2 defines a goal with value two and comparison function ``less than''.
+Line 2 defines a goal with value $2$ and comparison function ``less than'', the numerical value of the goal might be changed dynamically.
 After that we have instrumented the kernel of the application (lines 4-8), we check if the execution time was below $2ms$ (line 10), and we print an output message accordingly (lines 10-17). 
 
  
