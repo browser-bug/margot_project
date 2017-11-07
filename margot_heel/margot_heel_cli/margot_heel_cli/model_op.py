@@ -70,10 +70,10 @@ class OperatingPointModel:
     add the metrics of the two ops. have to be similar
     """
     if self.similar(other_op):
-      for key in self.metrics.keys():
+      for key in self.metrics:
         self.metrics[key]=float(other_op.metrics[key])+float(self.metrics[key])
-        if self.metrics_std:
-          self.metrics_std[key] = float(other_op.metrics_std[key]) + float(self.metrics_std[key])
+      for key in self.metrics_std:
+        self.metrics_std[key] = float(other_op.metrics_std[key]) + float(self.metrics_std[key])
 
     else:
       print ("attempt to add metrics of non similar ops: aborting")
@@ -88,4 +88,5 @@ class OperatingPointModel:
     """
     if key in self.metrics.keys():
       self.metrics[key]=float(self.metrics[key])/int(num_values)
+    if key in self.metrics_std.keys():
       self.metrics_std[key]=float(self.metrics_std[key])/int(num_values)
