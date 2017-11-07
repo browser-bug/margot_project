@@ -54,10 +54,10 @@ class Postprocessor:
     for index_folder_ID in self.my_application.flags.keys():
       self.file_to_process_list.append(os.path.join(my_ws.working_root,my_ws.launchpard_dir_name,str(index_folder_ID),my_ws.outfile_name))
 
-#		print (self.file_to_process_list)
+#   print (self.file_to_process_list)
 
 
-  def postprocessMCS(self,thresholds, aggregated_metric, threshold_metric, aggregation_knob, confidence):
+  def postprocessMCS(self,thresholds, aggregated_metric, threshold_metric, aggregation_knob, confidence, quantile_value):
     oplist = model_op_list.OperatingPointListModel()
     op_map_to_postprocess = {}
     firstlist = parse_op.parse_ops_xml (self.file_to_process_list[0])
@@ -67,6 +67,7 @@ class Postprocessor:
     my_doe_plan = dse_doe.DoE(self.doe_strategy, self.my_application, 0)
     block_name = firstlist.name
     doe_plan_real = []
+
     for doe_conf in my_doe_plan.plan:
       del(doe_conf.knob_map[aggregation_knob])
       flag = True
@@ -98,15 +99,24 @@ class Postprocessor:
       for op in temp_oplist.ops:
         #flag = True
         #for knob_name in doe_conf.knob_map.keys():
-        #	if ((knob_name != aggregation_knob) and (str(doe_conf.knob_map[knob_name]) !=str(op.knobs[knob_name]))):
-        #		flag = False
-        #		break
+        # if ((knob_name != aggregation_knob) and (str(doe_conf.knob_map[knob_name]) !=str(op.knobs[knob_name]))):
+        #   flag = False
+        #   break
         #if (flag):
         op.metrics[threshold_metric]=op.metrics[threshold_metric]*int(confidence)
         op_map_to_postprocess.setdefault(op.knobs[aggregation_knob],[]).append(op)
     for entry in op_map_to_postprocess:
       op_map_to_postprocess[entry] = sorted (op_map_to_postprocess[entry], key = lambda op:op.metrics[aggregated_metric])
 
+    #print (op_map_to_postprocess)
+    #print ("DEBUG:" )
+    #for entry in op_map_to_postprocess:
+      #for op in op_map_to_postprocess[entry]:
+      #   print (op)
+      #print ("finished entry", entry)
+
+
+    
     #perform the actual post processing and insert the found operative points in the final oplist
     #init
     final_point_lists = {}
@@ -129,6 +139,7 @@ class Postprocessor:
         debug_unpr_list = []
         broken_from_inner = False
         #print ("befor iteration: prv is: ",prv, "and the prv_line is: ",prv_line)
+        #print ("length of op_map_to_postprocess is", len (op_map_to_postprocess[point_list]))
         for point in op_map_to_postprocess[point_list]:
           try :
             point.metrics[aggregated_metric] = float(point.metrics[aggregated_metric])
@@ -144,7 +155,7 @@ class Postprocessor:
           if len(op_tmp_list) >= 50:
             #test, if fail exit from inner loop
             #print ("testing: ", metric_tmp_list)
-            if stats.percentileofscore(metric_tmp_list, thresh,'weak') <= 95:
+            if stats.percentileofscore(metric_tmp_list, thresh,'weak') <= quantile_value:
               broken_from_inner = True
               #remove last 1% of values in array
               num_to_remove_float = len (op_tmp_list)*0.01
@@ -161,16 +172,30 @@ class Postprocessor:
           if (broken_from_inner):
             prv = op_tmp_list[-1].metrics[aggregated_metric]
           #else:
-          #	print (metric_tmp_list)
-          #	print (debug_unpr_list)
+          # print (metric_tmp_list)
+          # print (debug_unpr_list)
           prv_line [key_map[point_list]]=op_tmp_list[-1].metrics[aggregated_metric]
     for doe_plan in doe_plan_real:
+      #print (doe_plan_real)
       for point in final_point_lists:
+        #print (doe_plan)
+        #print (point)
+        #print (final_point_lists)
+        #print (len (final_point_lists[point]))
         for i in range (0, len( final_point_lists[point])):
           #print ("DEBUG: point is: ", point)
           #create an op that will be in the output oplist.
           #must have the max unpredictability as knob, the target error as metric and
           #all the other metrics have to be averaged to the correct doeplan.
+          
+          ##########################################################
+          #              NTS:            #
+          # every doe point has to have (MUST) a point in the new  #
+          # oplist, so if no input groups have been given in the   #
+          # dse to cluster with, it will fail here since at least  #
+          # one of the list of correct points will be empty because#
+          # the point cannot be in more than one clustered lists   #
+          ##########################################################
           out_op = model_op.OperatingPointModel()
           for knob in final_point_lists[point][i][0].knobs:
             if knob != aggregation_knob:
@@ -180,18 +205,27 @@ class Postprocessor:
             out_op.metrics[metric]=0
           #print (final_point_lists[point][i])
           #for op in final_point_lists[point][i]:
-          #	print (op)
+          # print (op)
           #print (doe_plan)
           list_of_correct_points = [x for x in final_point_lists[point][i] if equal_dicts(doe_plan, oplist.get_op_knobs_as_string(x),[aggregation_knob])]
+          if len (list_of_correct_points) == 0:
+            print ("ERROR IN DATASET: no point are found in cluster that have the doe value",doe_plan)
+            sys.exit(1)
           #print (list_of_correct_points)
           for op in list_of_correct_points:
+            #print (op)
             out_op.add(op)
           for metric in out_op.metrics.keys():
+            #print ("++++****")
+            #print ("adding metric: ",metric)
+            #print (out_op)
             out_op.avg(len (list_of_correct_points), metric)
+          #print ("out")
           out_op.knobs[aggregated_metric] = list_of_correct_points[-1].metrics[aggregated_metric]
           del out_op.metrics[aggregated_metric]
           out_op.metrics[threshold_metric] = final_metric_lists[point][i]
           oplist.ops.append(out_op)
+        #print ("out inner")
       #clean temp, and proceed with next doe in plan.
       
     oplist.name = block_name

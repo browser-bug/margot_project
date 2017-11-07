@@ -79,7 +79,9 @@ class Application:
           actual_type = int
         start_value = p.get_parameter(knob_xml, 'start_value', my_target_type = actual_type)
         stop_value = p.get_parameter(knob_xml, 'stop_value', my_target_type = actual_type)
-        step_value = p.get_parameter(knob_xml, 'step', my_target_type = actual_type)
+        step_value = p.get_parameter(knob_xml, 'step', required = False, my_target_type = actual_type)
+        if not step_value:
+            step_value = 1
         index = start_value
         while( index <= stop_value):
           knob_values.append(str(index))
