@@ -16,7 +16,7 @@ class OperatingPointModel:
 
 
   def __str__(self):
-    string = '{0}\tSoftware-knobs:\n'.format(string)
+    string = '\tSoftware-knobs:\n'
     for knob_name in self.knobs:
       string = '{0}\t\t{1} = {2}\n'.format(string, knob_name, self.knobs[knob_name])
     string = '{0}\tData features:\n'.format(string)
