@@ -40,7 +40,7 @@ namespace margot
    * This method is used to print to the standard output the main header of
    * margot, to debug purpose
    */
-  void print_header( void )
+  inline void print_header( void )
   {
     std::cout << std::endl << std::endl << std::endl;
     std::cout << "#####################################################################" << std::endl;
@@ -61,7 +61,7 @@ namespace margot
   /**
    * @brief Print the trailer of the dump
    */
-  void print_trailer( void )
+  inline void print_trailer( void )
   {
     std::cout << "#" << std::endl;
     std::cout << "#" << std::endl;
