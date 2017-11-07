@@ -203,6 +203,7 @@ class Postprocessor:
           out_op.knobs[aggregation_knob]=int(point)
           for metric in final_point_lists[point][i][0].metrics:
             out_op.metrics[metric]=0
+            out_op.metrics_std[metric]=0
           #print (final_point_lists[point][i])
           #for op in final_point_lists[point][i]:
           # print (op)
