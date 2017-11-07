@@ -1,3 +1,5 @@
+import sys
+
 class OperatingPointModel:
   """
   This class represents an Operating Point.
