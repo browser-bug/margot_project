@@ -8,6 +8,10 @@ from .generate_utility import generate_update_signature
 
 
 
+from .model_data_feature import DataFeatureModel
+
+
+
 cfun_feature_translator = {
   "GE"  : "margot::FeatureComparison::GREATER_OR_EQUAL",
   "LE"  : "margot::FeatureComparison::LESS_OR_EQUAL",
@@ -94,7 +98,12 @@ def generate_block_body( block_model, op_lists, cc ):
     # get the names of data feature, in alphabetical order
     names = sorted([ x.name for x in block_model.features ])
 
-    # loop over the data feature fields to compose the type
+    # set the type of the asrtm
+    features_types = set([x.type for x in block_model.features])
+    features_types_indexes = [ DataFeatureModel.available_var_types.index(x) for x in features_types]
+    features_type = DataFeatureModel.available_var_types[max(features_types_indexes)]
+
+    # loop over the data feature fields to compose the da asrtm type
     features_cf = []
     for name in names:
       # get the corresponding data feature comparison function
@@ -102,7 +111,7 @@ def generate_block_body( block_model, op_lists, cc ):
       features_cf.append(cfun_feature_translator[feature_cf])
 
     # print the new type of the asrtm
-    cc.write('\n\n\t\textern DataAwareAsrtm< Asrtm< MyOperatingPoint >, margot::FeatureDistanceType::{0}, {1} > manager;\n\n\n'.format(block_model.feature_distance, ', '.join(features_cf)))
+    cc.write('\n\n\t\textern DataAwareAsrtm< Asrtm< MyOperatingPoint >, {0}, margot::FeatureDistanceType::{1}, {2} > manager;\n\n\n'.format(features_type, block_model.feature_distance, ', '.join(features_cf)))
   else:
     cc.write('\n\n\t\textern Asrtm< MyOperatingPoint > manager;\n\n\n')
 
@@ -143,11 +152,12 @@ def generate_block_body( block_model, op_lists, cc ):
   # write the block macro
   cc.write('\n\n#ifndef MARGOT_MANAGED_BLOCK_{0}\n'.format(block_model.block_name.upper()))
   cc.write('#define MARGOT_MANAGED_BLOCK_{0} \\\n'.format(block_model.block_name.upper()))
-  cc.write('if (margot::{0}::{1}) {{\\\n'.format(block_model.block_name, generate_update_signature(block_model, True)))
-  if block_model.state_models:
-    cc.write('margot::{0}::manager.configuration_applied();}}\\\n'.format(block_model.block_name))
-  else:
-    cc.write('}\\\n')
+  if (block_model.metrics and block_model.software_knobs ):
+      cc.write('if (margot::{0}::{1}) {{\\\n'.format(block_model.block_name, generate_update_signature(block_model, True)))
+      if block_model.state_models:
+        cc.write('margot::{0}::manager.configuration_applied();}}\\\n'.format(block_model.block_name))
+      else:
+        cc.write('}\\\n')
   cc.write('margot::{0}::{1};\\\n'.format(block_model.block_name, generate_start_monitor_signature(block_model, True)))
   cc.write('for(bool flag = true; flag == true; margot::{0}::{1}, margot::{0}::log(), flag = false )\n'.format(block_model.block_name, generate_stop_monitor_signature(block_model, True)))
   cc.write('#endif // MARGOT_MANAGED_BLOCK_')

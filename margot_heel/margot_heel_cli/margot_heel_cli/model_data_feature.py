@@ -24,7 +24,7 @@ class DataFeaure:
     dump_string = '{0}\n    Name:       {1}'.format(dump_string, self.name)
     dump_string = '{0}\n    Type:       {1}'.format(dump_string, self.type)
     dump_string = '{0}\n    Comparison: {1}'.format(dump_string, self.cf)
-  
+
     return dump_string
 
 class DataFeatureModel:
@@ -39,6 +39,8 @@ class DataFeatureModel:
   available_comparison_functions = [ 'GE', 'LE', '-']
 
   # the available data features types
+  # NOTE: the order of types in this list, specify also the type promotion
+  #       for setting the final data features type of the related asrtm
   available_var_types = ['int', 'float', 'double', 'long double']
 
   # the available distance types
@@ -74,5 +76,5 @@ class DataFeatureModel:
       dump_string = '{0}\n    Name:       {1}'.format(dump_string, feature.name)
       dump_string = '{0}\n    Type:       {1}'.format(dump_string, feature.type)
       dump_string = '{0}\n    Comparison: {1}'.format(dump_string, feature.cf)
-    
+
     return dump_string

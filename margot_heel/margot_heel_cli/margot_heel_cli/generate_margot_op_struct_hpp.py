@@ -54,87 +54,88 @@ def generate_margot_structure_hpp( block_models, op_lists, output_folder ):
           cc.write('\n\t\textern std::unordered_map<int,std::string> knob_{0}_int2str;\n'.format(string_param_name.lower()))
 
       except KeyError as err:
-        
+
         # we don't have any Operating Point list, but it's ok
-        pass 
+        pass
 
 
 
       # get the list of sw knob and metrics
-      knob_list = sorted([x.name for x in block_models[block_name].software_knobs])
-      metric_list = sorted([x.name for x in block_models[block_name].metrics])
+      if (block_models[block_name].metrics and block_models[block_name].software_knobs ):
+          knob_list = sorted([x.name for x in block_models[block_name].software_knobs])
+          metric_list = sorted([x.name for x in block_models[block_name].metrics])
 
-      # write the enum for the op fields
-      cc.write('\n\t\t// Name of the software knobs\n')
-      cc.write('\t\tenum class Knob : std::size_t {\n')
-      for index, knob_name in enumerate(knob_list):
-        cc.write('\t\t\t{0} = {1},\n'.format(knob_name.upper(), index))
-      cc.write('\t\t};\n')
-      cc.write('\n\t\t// Name of the metrics of interest\n')
-      cc.write('\t\tenum class Metric : std::size_t {\n')
-      for index, metric_name in enumerate(metric_list):
-        cc.write('\t\t\t{0} = {1},\n'.format(metric_name.upper(), index))
-      cc.write('\t\t};\n')
+          # write the enum for the op fields
+          cc.write('\n\t\t// Name of the software knobs\n')
+          cc.write('\t\tenum class Knob : std::size_t {\n')
+          for index, knob_name in enumerate(knob_list):
+            cc.write('\t\t\t{0} = {1},\n'.format(knob_name.upper(), index))
+          cc.write('\t\t};\n')
+          cc.write('\n\t\t// Name of the metrics of interest\n')
+          cc.write('\t\tenum class Metric : std::size_t {\n')
+          for index, metric_name in enumerate(metric_list):
+            cc.write('\t\t\t{0} = {1},\n'.format(metric_name.upper(), index))
+          cc.write('\t\t};\n')
 
-      # check if the metric segment is a distribution
-      metric_are_distribution = False
-      for metric_model in block_models[block_name].metrics:
-        if metric_model.distribution:
-          metric_are_distribution = True
-          break
+          # check if the metric segment is a distribution
+          metric_are_distribution = False
+          for metric_model in block_models[block_name].metrics:
+            if metric_model.distribution:
+              metric_are_distribution = True
+              break
 
-      # define the type of a metric
-      metrics_type = []
-      for metric_model in block_models[block_name].metrics:
-        metrics_type.append(metric_model.type)
+          # define the type of a metric
+          metrics_type = []
+          for metric_model in block_models[block_name].metrics:
+            metrics_type.append(metric_model.type)
 
-      # perform a type promotion c-like
-      if 'int' in metrics_type:
-        metric_type = 'int'
-      if 'float' in metrics_type:
-        metric_type = 'float'
-      if 'double' in metrics_type:
-        metric_type = 'double'
-      if 'long double' in metrics_type:
-        metric_type = 'long double'
+          # perform a type promotion c-like
+          if 'int' in metrics_type:
+            metric_type = 'int'
+          if 'float' in metrics_type:
+            metric_type = 'float'
+          if 'double' in metrics_type:
+            metric_type = 'double'
+          if 'long double' in metrics_type:
+            metric_type = 'long double'
 
-      # set the actual type of metric segment
-      if metric_are_distribution:
-        metric_type = 'margot::Distribution<{0}>'.format(metric_type)
-      else:
-        metric_type = 'margot::Data<{0}>'.format(metric_type)
-      metric_segment_type = 'margot::OperatingPointSegment< {0}, {1} >'.format(len(block_models[block_name].metrics), metric_type)
-
-
-      # define the type of a software knob
-      knobs_type = []
-      for knob_model in block_models[block_name].software_knobs:
-        knobs_type.append(knob_model.var_type)
-
-      # perform a type promotion c-like
-      if 'int' in knobs_type:
-        knob_type = 'int'
-      if 'float' in knobs_type:
-        knob_type = 'float'
-      if 'double' in knobs_type:
-        knob_type = 'double'
-      if 'long double' in knobs_type:
-        knob_type = 'long double'
-
-      # set the actual type of the knob segment
-      knob_type = 'margot::Data<{0}>'.format(knob_type)
-      knob_segment_type = 'margot::OperatingPointSegment< {0}, {1} >'.format(len(block_models[block_name].software_knobs), knob_type)
+          # set the actual type of metric segment
+          if metric_are_distribution:
+            metric_type = 'margot::Distribution<{0}>'.format(metric_type)
+          else:
+            metric_type = 'margot::Data<{0}>'.format(metric_type)
+          metric_segment_type = 'margot::OperatingPointSegment< {0}, {1} >'.format(len(block_models[block_name].metrics), metric_type)
 
 
-      # define the actual type of the Operating Points
-      op_type = 'margot::OperatingPoint< {0}, {1} >'.format(knob_segment_type, metric_segment_type)
+          # define the type of a software knob
+          knobs_type = []
+          for knob_model in block_models[block_name].software_knobs:
+            knobs_type.append(knob_model.var_type)
 
-      # write the definition
-      cc.write('\n\t\t// Useful type aliasing for the Operating Point geometry\n')
-      cc.write('\t\t// of the current tuned block of code ("{0}")\n'.format(block_name))
-      if metric_are_distribution:
-        cc.write('\t\tusing MyMetricType = {0};\n'.format(metric_type))
-      cc.write('\t\tusing MyOperatingPoint = {0};\n'.format(op_type))
+          # perform a type promotion c-like
+          if 'int' in knobs_type:
+            knob_type = 'int'
+          if 'float' in knobs_type:
+            knob_type = 'float'
+          if 'double' in knobs_type:
+            knob_type = 'double'
+          if 'long double' in knobs_type:
+            knob_type = 'long double'
+
+          # set the actual type of the knob segment
+          knob_type = 'margot::Data<{0}>'.format(knob_type)
+          knob_segment_type = 'margot::OperatingPointSegment< {0}, {1} >'.format(len(block_models[block_name].software_knobs), knob_type)
+
+
+          # define the actual type of the Operating Points
+          op_type = 'margot::OperatingPoint< {0}, {1} >'.format(knob_segment_type, metric_segment_type)
+
+          # write the definition
+          cc.write('\n\t\t// Useful type aliasing for the Operating Point geometry\n')
+          cc.write('\t\t// of the current tuned block of code ("{0}")\n'.format(block_name))
+          if metric_are_distribution:
+            cc.write('\t\tusing MyMetricType = {0};\n'.format(metric_type))
+          cc.write('\t\tusing MyOperatingPoint = {0};\n'.format(op_type))
 
 
 

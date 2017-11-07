@@ -40,11 +40,12 @@ def generate_block_body( block_model, op_list, cc ):
   # write the block macro
   cc.write('\n\n#ifndef MARGOT_MANAGED_BLOCK_{0}\n'.format(block_model.block_name.upper()))
   cc.write('#define MARGOT_MANAGED_BLOCK_{0} \\\n'.format(block_model.block_name.upper()))
-  cc.write('if (margot_{0}_{1}) {{\\\n'.format(block_model.block_name, generate_update_signature(block_model, True)))
-  if block_model.state_models:
-    cc.write('margot_{0}_configuration_applied(); }}\\\n'.format(block_model.block_name))
-  else:
-    cc.write('}\\\n')
+  if (block_model.metrics and block_model.software_knobs ):
+      cc.write('if (margot_{0}_{1}) {{\\\n'.format(block_model.block_name, generate_update_signature(block_model, True)))
+      if block_model.state_models:
+        cc.write('margot_{0}_configuration_applied(); }}\\\n'.format(block_model.block_name))
+      else:
+        cc.write('}\\\n')
   cc.write('margot_{0}_{1};\\\n'.format(block_model.block_name, generate_start_monitor_signature(block_model, True)))
   cc.write('for(int flag = 1; flag == 1; flag = 0, margot_{0}_{1} )\n'.format(block_model.block_name, generate_stop_monitor_signature(block_model, True)))
   cc.write('#endif // MARGOT_MANAGED_BLOCK__{0}\n'.format(block_model.block_name.upper()))

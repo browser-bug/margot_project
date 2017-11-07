@@ -8,6 +8,10 @@ from .generate_utility import generate_update_signature
 
 
 
+from .model_data_feature import DataFeatureModel
+
+
+
 what_translator = {
   "AVERAGE"  : "average",
   "VARIANCE" : "variance",
@@ -94,23 +98,29 @@ def generate_block_body( block_model, op_lists, cc ):
   cc.write('\t\t} // namespace knobs\n')
 
   # write the manager (check if we have data feature)
-  if (block_model.features):
+  if (block_model.metrics and block_model.software_knobs ):
+      if (block_model.features):
 
-    # get the names of data feature, in alphabetical order
-    names = sorted([ x.name for x in block_model.features ])
+        # get the names of data feature, in alphabetical order
+        names = sorted([ x.name for x in block_model.features ])
 
-    # loop over the data feature fields to compose the type
-    features_cf = []
-    for name in names:
-      # get the corresponding data feature comparison function
-      feature_cf = [ x.cf for x in block_model.features if x.name == name][0]
-      features_cf.append(cfun_feature_translator[feature_cf])
+        # set the type of the asrtm
+        features_types = set([x.type for x in block_model.features])
+        features_types_indexes = [ DataFeatureModel.available_var_types.index(x) for x in features_types]
+        features_type = DataFeatureModel.available_var_types[max(features_types_indexes)]
 
-    # print the new type of the asrtm
-    cc.write('\n\n\t\tDataAwareAsrtm< Asrtm< MyOperatingPoint >, margot::FeatureDistanceType::{0}, {1} > manager;\n\n\n'.format(block_model.feature_distance, ', '.join(features_cf)))
-  else:
-    # write the manager
-    cc.write('\n\n\t\tAsrtm< MyOperatingPoint > manager;\n\n\n')
+        # loop over the data feature fields to compose the type
+        features_cf = []
+        for name in names:
+          # get the corresponding data feature comparison function
+          feature_cf = [ x.cf for x in block_model.features if x.name == name][0]
+          features_cf.append(cfun_feature_translator[feature_cf])
+
+        # print the new type of the asrtm
+        cc.write('\n\n\t\tDataAwareAsrtm< Asrtm< MyOperatingPoint >, {0}, margot::FeatureDistanceType::{1}, {2} > manager;\n\n\n'.format(features_type, block_model.feature_distance, ', '.join(features_cf)))
+      else:
+        # write the manager
+        cc.write('\n\n\t\tAsrtm< MyOperatingPoint > manager;\n\n\n')
 
   # write the logger
   cc.write('\n\t\t#ifdef MARGOT_LOG_FILE\n')
@@ -127,37 +137,40 @@ def generate_block_body( block_model, op_lists, cc ):
   cc.write('\t\t{\n')
 
   # check if we should handle the data features
-  if block_model.features:
+  if (block_model.metrics and block_model.software_knobs ):
+      if block_model.features:
 
-    # write the statements that assign the data features to the global variable
-    feature_names = []
-    for feature in block_model.features:
-      cc.write('\t\t\tfeature::{0} = {0};\n'.format(feature.name))
-      feature_names.append(feature.name)
+        # write the statements that assign the data features to the global variable
+        feature_names = []
+        for feature in block_model.features:
+          cc.write('\t\t\tfeature::{0} = {0};\n'.format(feature.name))
+          feature_names.append(feature.name)
 
-    # write the statement that select the correct asrtm
-    feature_string = '{{{{{0}}}}}'.format(', '.join(feature_names))
-    cc.write('\t\t\tmanager.select_feature_cluster({0})\n'.format(feature_string))
+        # write the statement that select the correct asrtm
+        feature_string = '{{{{{0}}}}}'.format(', '.join(feature_names))
+        cc.write('\t\t\tmanager.select_feature_cluster({0})\n'.format(feature_string))
 
 
-  cc.write('\t\t\tif (!manager.is_application_knowledge_empty())\n')
-  cc.write('\t\t\t{\n')
-  cc.write('\t\t\t\tmanager.find_best_configuration();\n')
-  cc.write('\t\t\t\tbool conf_changed = false;\n')
-  cc.write('\t\t\t\tconst auto new_conf = manager.get_best_configuration(&conf_changed);\n')
-  cc.write('\t\t\t\tif (conf_changed)\n')
-  cc.write('\t\t\t\t{\n')
-  param_list = ['{0}& {1}'.format(x.var_type, x.var_name) for x in block_model.software_knobs]
-  for knob in block_model.software_knobs:
-    cc.write('\t\t\t\t\t{0} = new_conf.get_mean<static_cast<std::size_t>(Knob::{1})>();\n'.format(knob.var_name, knob.name.upper()))
-  cc.write('\t\t\t\t}\n')
-  for knob in block_model.software_knobs:
-    cc.write('\t\t\t\tknobs::{0} = {0};\n'.format(knob.var_name))
-  cc.write('\t\t\t\treturn conf_changed;\n')
-  cc.write('\t\t\t}\n')
-  for knob in block_model.software_knobs:
-    cc.write('\t\t\tknobs::{0} = {0};\n'.format(knob.var_name))
-  cc.write('\t\t\treturn false;\n')
+      cc.write('\t\t\tif (!manager.is_application_knowledge_empty())\n')
+      cc.write('\t\t\t{\n')
+      cc.write('\t\t\t\tmanager.find_best_configuration();\n')
+      cc.write('\t\t\t\tbool conf_changed = false;\n')
+      cc.write('\t\t\t\tconst auto new_conf = manager.get_best_configuration(&conf_changed);\n')
+      cc.write('\t\t\t\tif (conf_changed)\n')
+      cc.write('\t\t\t\t{\n')
+      param_list = ['{0}& {1}'.format(x.var_type, x.var_name) for x in block_model.software_knobs]
+      for knob in block_model.software_knobs:
+        cc.write('\t\t\t\t\t{0} = new_conf.get_mean<static_cast<std::size_t>(Knob::{1})>();\n'.format(knob.var_name, knob.name.upper()))
+      cc.write('\t\t\t\t}\n')
+      for knob in block_model.software_knobs:
+        cc.write('\t\t\t\tknobs::{0} = {0};\n'.format(knob.var_name))
+      cc.write('\t\t\t\treturn conf_changed;\n')
+      cc.write('\t\t\t}\n')
+      for knob in block_model.software_knobs:
+        cc.write('\t\t\tknobs::{0} = {0};\n'.format(knob.var_name))
+      cc.write('\t\t\treturn false;\n')
+  else:
+      cc.write('\t\t\treturn false;\n')
   cc.write('\t\t}\n')
 
   # write the start_monitor function
@@ -254,45 +267,53 @@ def generate_block_body( block_model, op_lists, cc ):
   # ------- actually compose the log functin on file
 
   cc.write('\n\t\t\t#ifdef MARGOT_LOG_FILE\n')
-  cc.write('\t\t\tif (!manager.is_application_knowledge_empty())\n')
-  cc.write('\t\t\t{\n')
+  if (block_model.metrics and block_model.software_knobs ):
+      cc.write('\t\t\tif (!manager.is_application_knowledge_empty())\n')
+      cc.write('\t\t\t{\n')
 
 
-  # if we have ops it's easythen print the stuff
-  things_to_print = list(cluster_feature_printer)
-  things_to_print.extend(software_knobs_printers)
-  things_to_print.extend(metrics_printers)
-  things_to_print.extend(goal_printers)
-  things_to_print.extend(monitor_printers)
-  things_to_print.extend(data_feature_printer)
-  string_to_print = ',\n\t\t\t\t\t'.join(things_to_print)
-  cc.write('\t\t\t\tfile_logger.write(')
-  cc.write('{0});\n'.format(string_to_print))
+      # if we have ops it's easythen print the stuff
+      things_to_print = list(cluster_feature_printer)
+      things_to_print.extend(software_knobs_printers)
+      things_to_print.extend(metrics_printers)
+      things_to_print.extend(goal_printers)
+      things_to_print.extend(monitor_printers)
+      things_to_print.extend(data_feature_printer)
+      string_to_print = ',\n\t\t\t\t\t'.join(things_to_print)
+      cc.write('\t\t\t\tfile_logger.write(')
+      cc.write('{0});\n'.format(string_to_print))
 
 
-  cc.write('\t\t\t}\n')
-  cc.write('\t\t\telse\n')
-  cc.write('\t\t\t{\n')
+      cc.write('\t\t\t}\n')
+      cc.write('\t\t\telse\n')
+      cc.write('\t\t\t{\n')
 
-  # if we have no ops, we must made up the expected stuff
-  software_knobs_printers_alternative = ['{1}::knobs::{0}'.format(x.var_name, block_model.block_name) for x in block_model.software_knobs]
-  metrics_printers_alternative = ['"N/A"' for x in metrics_printers]
-  cluster_feature_printer_alternative = ['"N/A"' for x in cluster_feature_printer]
+      # if we have no ops, we must made up the expected stuff
+      software_knobs_printers_alternative = ['{1}::knobs::{0}'.format(x.var_name, block_model.block_name) for x in block_model.software_knobs]
+      metrics_printers_alternative = ['"N/A"' for x in metrics_printers]
+      cluster_feature_printer_alternative = ['"N/A"' for x in cluster_feature_printer]
 
-  # then print the stuff
-  things_to_print = list(cluster_feature_printer_alternative)
-  things_to_print.extend(software_knobs_printers_alternative)
-  things_to_print.extend(metrics_printers_alternative)
-  things_to_print.extend(goal_printers)
-  things_to_print.extend(monitor_printers)
-  things_to_print.extend(data_feature_printer)
-  string_to_print = ',\n\t\t\t\t\t'.join(things_to_print)
-  cc.write('\t\t\t\tfile_logger.write(')
-  cc.write('{0});\n'.format(string_to_print))
+      # then print the stuff
+      things_to_print = list(cluster_feature_printer_alternative)
+      things_to_print.extend(software_knobs_printers_alternative)
+      things_to_print.extend(metrics_printers_alternative)
+      things_to_print.extend(goal_printers)
+      things_to_print.extend(monitor_printers)
+      things_to_print.extend(data_feature_printer)
+      string_to_print = ',\n\t\t\t\t\t'.join(things_to_print)
+      cc.write('\t\t\t\tfile_logger.write(')
+      cc.write('{0});\n'.format(string_to_print))
 
 
 
-  cc.write('\t\t\t}\n')
+      cc.write('\t\t\t}\n')
+  else:
+      things_to_print = list(goal_printers)
+      things_to_print.extend(monitor_printers)
+      things_to_print.extend(data_feature_printer)
+      string_to_print = ',\n\t\t\t\t\t'.join(things_to_print)
+      cc.write('\t\t\t\tfile_logger.write(')
+      cc.write('{0});\n'.format(string_to_print))
   cc.write('\t\t\t#endif // MARGOT_LOG_FILE\n')
 
 
@@ -301,70 +322,92 @@ def generate_block_body( block_model, op_lists, cc ):
 
 
   cc.write('\n\t\t\t#ifdef MARGOT_LOG_STDOUT\n')
-  cc.write('\t\t\tif (!manager.is_application_knowledge_empty())\n')
-  cc.write('\t\t\t{\n')
 
-  # then print the stuff
-  things_to_print = list(cluster_feature_printer)
-  things_to_print.extend(software_knobs_printers)
-  things_to_print.extend(metrics_printers)
-  things_to_print.extend(goal_printers)
-  things_to_print.extend(monitor_printers)
-  things_to_print.extend(data_feature_printer)
+  if (block_model.metrics and block_model.software_knobs ):
+      cc.write('\t\t\tif (!manager.is_application_knowledge_empty())\n')
+      cc.write('\t\t\t{\n')
 
-  # set the endl from arguments
-  endl_indexes = [len(cluster_feature_printer)]
-  endl_indexes.append( endl_indexes[-1] + len(software_knobs_printers))
-  endl_indexes.append( endl_indexes[-1] + len(metrics_printers))
-  endl_indexes.append( endl_indexes[-1] + len(goal_printers))
-  endl_indexes.append( endl_indexes[-1] + len(monitor_printers))
-  endl_indexes.append( endl_indexes[-1] + len(data_feature_printer))
+      # then print the stuff
+      things_to_print = list(cluster_feature_printer)
+      things_to_print.extend(software_knobs_printers)
+      things_to_print.extend(metrics_printers)
+      things_to_print.extend(goal_printers)
+      things_to_print.extend(monitor_printers)
+      things_to_print.extend(data_feature_printer)
 
-  # write the print statement
-  composed_elements = []
-  for index, content in enumerate(things_to_print):
-    if index in endl_indexes:
-      composed_elements.append('std::endl')
-    string = '"[ {0} = " << {1} << "] "'.format(what_we_are_printing[index], content)
-    composed_elements.append(string)
-  string_to_print = '\n\t\t\t\t\t<< '.join(composed_elements)
-  cc.write('\t\t\t\tstd::cout <<')
-  cc.write('{0} << std::endl;\n'.format(string_to_print))
+      # set the endl from arguments
+      endl_indexes = [len(cluster_feature_printer)]
+      endl_indexes.append( endl_indexes[-1] + len(software_knobs_printers))
+      endl_indexes.append( endl_indexes[-1] + len(metrics_printers))
+      endl_indexes.append( endl_indexes[-1] + len(goal_printers))
+      endl_indexes.append( endl_indexes[-1] + len(monitor_printers))
+      endl_indexes.append( endl_indexes[-1] + len(data_feature_printer))
 
-
-  cc.write('\t\t\t}\n')
-  cc.write('\t\t\telse\n')
-  cc.write('\t\t\t{\n')
-
-  # then print the stuff
-  things_to_print = list(cluster_feature_printer_alternative)
-  things_to_print.extend(software_knobs_printers_alternative)
-  things_to_print.extend(metrics_printers_alternative)
-  things_to_print.extend(goal_printers)
-  things_to_print.extend(monitor_printers)
-  things_to_print.extend(data_feature_printer)
-
-  # set the endl from arguments
-  endl_indexes = [len(cluster_feature_printer_alternative)]
-  endl_indexes.append( endl_indexes[-1] + len(software_knobs_printers_alternative))
-  endl_indexes.append( endl_indexes[-1] + len(metrics_printers))
-  endl_indexes.append( endl_indexes[-1] + len(goal_printers))
-  endl_indexes.append( endl_indexes[-1] + len(monitor_printers))
-  endl_indexes.append( endl_indexes[-1] + len(data_feature_printer))
-
-  # write the print statement
-  composed_elements = []
-  for index, content in enumerate(things_to_print):
-    if index in endl_indexes:
-      composed_elements.append('std::endl')
-    string = '"[ {0} = " << {1} << "] "'.format(what_we_are_printing[index], content)
-    composed_elements.append(string)
-  string_to_print = '\n\t\t\t\t\t<< '.join(composed_elements)
-  cc.write('\t\t\t\tstd::cout <<')
-  cc.write('{0} << std::endl;\n'.format(string_to_print))
+      # write the print statement
+      composed_elements = []
+      for index, content in enumerate(things_to_print):
+        if index in endl_indexes:
+          composed_elements.append('std::endl')
+        string = '"[ {0} = " << {1} << "] "'.format(what_we_are_printing[index], content)
+        composed_elements.append(string)
+      string_to_print = '\n\t\t\t\t\t<< '.join(composed_elements)
+      cc.write('\t\t\t\tstd::cout <<')
+      cc.write('{0} << std::endl;\n'.format(string_to_print))
 
 
-  cc.write('\t\t\t}\n')
+      cc.write('\t\t\t}\n')
+      cc.write('\t\t\telse\n')
+      cc.write('\t\t\t{\n')
+
+      # then print the stuff
+      things_to_print = list(cluster_feature_printer_alternative)
+      things_to_print.extend(software_knobs_printers_alternative)
+      things_to_print.extend(metrics_printers_alternative)
+      things_to_print.extend(goal_printers)
+      things_to_print.extend(monitor_printers)
+      things_to_print.extend(data_feature_printer)
+
+      # set the endl from arguments
+      endl_indexes = [len(cluster_feature_printer_alternative)]
+      endl_indexes.append( endl_indexes[-1] + len(software_knobs_printers_alternative))
+      endl_indexes.append( endl_indexes[-1] + len(metrics_printers))
+      endl_indexes.append( endl_indexes[-1] + len(goal_printers))
+      endl_indexes.append( endl_indexes[-1] + len(monitor_printers))
+      endl_indexes.append( endl_indexes[-1] + len(data_feature_printer))
+
+      # write the print statement
+      composed_elements = []
+      for index, content in enumerate(things_to_print):
+        if index in endl_indexes:
+          composed_elements.append('std::endl')
+        string = '"[ {0} = " << {1} << "] "'.format(what_we_are_printing[index], content)
+        composed_elements.append(string)
+      string_to_print = '\n\t\t\t\t\t<< '.join(composed_elements)
+      cc.write('\t\t\t\tstd::cout <<')
+      cc.write('{0} << std::endl;\n'.format(string_to_print))
+
+
+      cc.write('\t\t\t}\n')
+  else:
+      things_to_print = list(goal_printers)
+      things_to_print.extend(monitor_printers)
+      things_to_print.extend(data_feature_printer)
+
+      # set the endl from arguments
+      endl_indexes = [len(goal_printers)]
+      endl_indexes.append( endl_indexes[-1] + len(monitor_printers))
+      endl_indexes.append( endl_indexes[-1] + len(data_feature_printer))
+
+      # write the print statement
+      composed_elements = []
+      for index, content in enumerate(things_to_print):
+        if index in endl_indexes:
+          composed_elements.append('std::endl')
+        string = '"[ {0} = " << {1} << "] "'.format(what_we_are_printing[index], content)
+        composed_elements.append(string)
+      string_to_print = '\n\t\t\t\t\t<< '.join(composed_elements)
+      cc.write('\t\t\t\tstd::cout <<')
+      cc.write('{0} << std::endl;\n'.format(string_to_print))
   cc.write('\t\t\t#endif // MARGOT_LOG_STDOUT\n')
 
 
@@ -587,25 +630,27 @@ def generate_margot_cc( block_models, op_lists, output_folder ):
         cc.write('\n\t\t// Switch to the starting active state\n')
         cc.write('\t\t{0}::manager.change_active_state("{1}");\n'.format(block_name, active_state.name))
 
-      # initialize the file logger
-      data_feature_names = sorted([x.name for x in block_model.features])
-      cc.write('\n\n\t\t#ifdef MARGOT_LOG_FILE\n')
-      cc.write('\t\t{0}::file_logger.open("{0}.log", margot::Format::PLAIN,\n'.format(block_name))
-      for data_feature_name in data_feature_names:
-        cc.write('\t\t\t"Cluster_{0}",\n'.format(data_feature_name.upper()))
-      for knob in block_model.software_knobs:
-        cc.write('\t\t\t"Knob_{0}",\n'.format(knob.name.upper()))
-      for metric in block_model.metrics:
-        cc.write('\t\t\t"Known_Metric_{0}",\n'.format(metric.name.upper()))
-      for goal in block_model.goal_models:
-        cc.write('\t\t\t"Goal_{0}",\n'.format(goal.name))
-      for monitor_model in block_model.monitor_models:
-        for exposed_var_what in monitor_model.exposed_metrics:
-          cc.write('\t\t\t"{1}_{0}",\n'.format(exposed_var_what, monitor_model.monitor_name.upper()))
-      for data_feature_name in data_feature_names:
-        cc.write('\t\t\t"Input_{0}",\n'.format(data_feature_name.upper()))
-      cc.seek(-2, 1)
-      cc.write(');\n')
+
+      # store the information to print
+      if (block_model.metrics and block_model.software_knobs ):
+          data_feature_names = sorted([x.name for x in block_model.features])
+          things_to_print = ['\t\t\t"Cluster_{0}"'.format(x.upper()) for x in data_feature_names]
+          things_to_print.extend(['\t\t\t"Knob_{0}"'.format(x.name.upper()) for x in block_model.software_knobs])
+          things_to_print.extend(['\t\t\t"Known_Metric_{0}"'.format(x.name.upper()) for x in block_model.metrics])
+          things_to_print.extend(['\t\t\t"Goal_{0}"'.format(goal.name.upper()) for x in block_model.goal_models])
+          for monitor_model in block_model.monitor_models:
+            for exposed_var_what in monitor_model.exposed_metrics:
+              things_to_print.append('\t\t\t"{1}_{0}"'.format(exposed_var_what, monitor_model.monitor_name.upper()))
+          things_to_print.extend(['\t\t\t"Input_{0}"'.format(x.upper()) for x in data_feature_names])
+          cc.write('\t\t{0}::file_logger.open("{0}.log", margot::Format::PLAIN,\n{1});\n'.format(block_name, ',\n'.join(things_to_print)))
+      else:
+          data_feature_names = sorted([x.name for x in block_model.features])
+          things_to_print = ['\t\t\t"Goal_{0}"'.format(goal.name.upper()) for x in block_model.goal_models]
+          for monitor_model in block_model.monitor_models:
+            for exposed_var_what in monitor_model.exposed_metrics:
+              things_to_print.append('\t\t\t"{1}_{0}"'.format(exposed_var_what, monitor_model.monitor_name.upper()))
+          things_to_print.extend(['\t\t\t"Input_{0}"'.format(x.upper()) for x in data_feature_names])
+          cc.write('\t\t{0}::file_logger.open("{0}.log", margot::Format::PLAIN,\n{1});\n'.format(block_name, ',\n'.join(things_to_print)))
       cc.write('\t\t#endif // MARGOT_LOG_FILE\n')
 
     cc.write('\t}\n')
