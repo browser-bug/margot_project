@@ -46,7 +46,6 @@ namespace margot
    *
    * @tparam Asrtm The type which defines the underlying Application-Specific RunTime managers
    * @tparam T The type of the elements stored in the data features
-   * @tparam number_of_features The number of fields which define a data feature
    * @tparam distance_type The enumerator that defines how distance between features are computed
    * @tparam cfs.. The type of comparator which define a vald data feature candidate
    *
@@ -73,7 +72,7 @@ namespace margot
    * The number of FeatureComparison must be equal to the number of data features. The value of the data feature
    * comparator must be read as data_feature_cluster_x[i-th] must be <comparison> than target_feature[i-th]
    */
-  template< class Asrtm, typename T, std::size_t number_of_features, FeatureDistanceType distance_type, FeatureComparison... cfs >
+  template< class Asrtm, typename T, FeatureDistanceType distance_type, FeatureComparison... cfs >
   class DataAwareAsrtm
   {
 
@@ -83,9 +82,7 @@ namespace margot
       static_assert(traits::is_operating_point<typename Asrtm::operating_point_type>::value,
                     "Error: the Data-Aware Application-Specific RunTime Manager handles object with is_operating_point trait");
 
-      static_assert(number_of_features > 0, "Error: there must be at least one Data Feature");
-
-      static_assert(sizeof...(cfs) == number_of_features, "The number of feature comparison must be equal to the number of features");
+      static_assert(sizeof...(cfs) > 0, "Error: there must be at least one Data Feature");
 
       static_assert( std::is_arithmetic<T>::value, "Error: the data features value type must be numerical");
 
@@ -114,7 +111,7 @@ namespace margot
       /**
        * @brief Explicit definition of the Data Features
        */
-      using Feature = std::array<T, number_of_features>;
+      using Feature = std::array<T, sizeof...(cfs)>;
 
 
       /**
@@ -327,7 +324,7 @@ namespace margot
       template< std::size_t index >
       inline T get_selected_feature( void ) const
       {
-        static_assert( index < number_of_features, "Error: attempt to access an out of bound feature");
+        static_assert( index < sizeof...(cfs), "Error: attempt to access an out of bound feature");
         return active_manager != managers.end() ? std::get<index>(active_manager->first) : T{};
       }
 
@@ -897,8 +894,8 @@ namespace margot
 
 
 
-  template< class Asrtm, typename T, std::size_t number_of_features, FeatureDistanceType distance_type, FeatureComparison... cfs >
-  void DataAwareAsrtm<Asrtm, T, number_of_features, distance_type, cfs... >::dump( void ) const
+  template< class Asrtm, typename T, FeatureDistanceType distance_type, FeatureComparison... cfs >
+  void DataAwareAsrtm<Asrtm, T, distance_type, cfs... >::dump( void ) const
   {
     // print out loud the header
     print_header();

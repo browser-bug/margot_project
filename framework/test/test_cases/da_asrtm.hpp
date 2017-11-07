@@ -120,7 +120,7 @@ class DataAwareAsrtm : public CxxTest::TestSuite
 
     void test_creation_empty( void )
     {
-      margot::DataAwareAsrtm<MyAsrtm, int, 1, margot::FeatureDistanceType::EUCLIDEAN, margot::FeatureComparison::DONT_CARE> manager;
+      margot::DataAwareAsrtm<MyAsrtm, int, margot::FeatureDistanceType::EUCLIDEAN, margot::FeatureComparison::DONT_CARE> manager;
       manager.add_feature_cluster({{4}});
       manager.add_feature_cluster({{2}});
     }
@@ -129,7 +129,7 @@ class DataAwareAsrtm : public CxxTest::TestSuite
     void test_creation_before( void )
     {
       // prepare everything
-      margot::DataAwareAsrtm<MyAsrtm, int, 1, margot::FeatureDistanceType::EUCLIDEAN, margot::FeatureComparison::DONT_CARE> manager;
+      margot::DataAwareAsrtm<MyAsrtm, int, margot::FeatureDistanceType::EUCLIDEAN, margot::FeatureComparison::DONT_CARE> manager;
       manager.add_feature_cluster({{5}});
       manager.add_feature_cluster({{2}});
       manager.create_new_state("default");
@@ -156,7 +156,7 @@ class DataAwareAsrtm : public CxxTest::TestSuite
     void test_creation_after( void )
     {
       // prepare everything
-      margot::DataAwareAsrtm<MyAsrtm, int, 1, margot::FeatureDistanceType::EUCLIDEAN, margot::FeatureComparison::DONT_CARE> manager;
+      margot::DataAwareAsrtm<MyAsrtm, int, margot::FeatureDistanceType::EUCLIDEAN, margot::FeatureComparison::DONT_CARE> manager;
       manager.add_feature_cluster({{5}});
       manager.select_feature_cluster({{5}});
       manager.create_new_state("default");
@@ -185,7 +185,7 @@ class DataAwareAsrtm : public CxxTest::TestSuite
     void test_creation_before_full( void )
     {
       // prepare everything
-      margot::DataAwareAsrtm<MyAsrtm, int, 1, margot::FeatureDistanceType::EUCLIDEAN, margot::FeatureComparison::DONT_CARE> manager;
+      margot::DataAwareAsrtm<MyAsrtm, int, margot::FeatureDistanceType::EUCLIDEAN, margot::FeatureComparison::DONT_CARE> manager;
       manager.add_feature_cluster({{5}});
       manager.add_feature_cluster({{2}});
       manager.create_new_state("default");
@@ -214,7 +214,7 @@ class DataAwareAsrtm : public CxxTest::TestSuite
     void test_creation_after_full( void )
     {
       // prepare everything
-      margot::DataAwareAsrtm<MyAsrtm, int, 1, margot::FeatureDistanceType::EUCLIDEAN, margot::FeatureComparison::DONT_CARE> manager;
+      margot::DataAwareAsrtm<MyAsrtm, int, margot::FeatureDistanceType::EUCLIDEAN, margot::FeatureComparison::DONT_CARE> manager;
       manager.add_feature_cluster({{5}});
       manager.create_new_state("default");
       manager.change_active_state("default");
