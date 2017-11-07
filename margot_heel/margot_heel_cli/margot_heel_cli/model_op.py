@@ -23,7 +23,7 @@ class OperatingPointModel:
     for feature_name in self.features:
       string = '{0}\t\t{1} = {2}'.format(string, feature_name, self.features[self.feature_name])
     string = '{0}\tMetrics:\n'.format(string)
-    if (self.mertics_std):
+    if (self.metrics_std):
       for metric_name in self.metrics:
         string = '{0}\t\t{1} = {2} +- {3}\n'.format(string, metric_name, self.metrics[metric_name], self.metrics_std[metric_name])
       else:
@@ -66,7 +66,7 @@ class OperatingPointModel:
     if self.similar(other_op):
       for key in self.metrics.keys():
         self.metrics[key]=float(other_op.metrics[key])+float(self.metrics[key])
-        if self.mertics_std:
+        if self.metrics_std:
           self.metrics_std[key] = float(other_op.metrics_std[key]) + float(self.metrics_std[key])
 
     else:
