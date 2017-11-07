@@ -43,16 +43,17 @@ def generate_block_body( block_model, op_list, cc ):
   cc.write('\t}')
 
   # write the configuration applied function
-  cc.write('\n\n\tvoid margot_{0}_configuration_applied( void )\n'.format(block_model.block_name))
-  cc.write('\t{\n')
-  cc.write('\t\tmargot::{0}::manager.configuration_applied();\n'.format(block_model.block_name))
-  cc.write('\t}')
+  if (block_model.metrics and block_model.software_knobs ):
+      cc.write('\n\n\tvoid margot_{0}_configuration_applied( void )\n'.format(block_model.block_name))
+      cc.write('\t{\n')
+      cc.write('\t\tmargot::{0}::manager.configuration_applied();\n'.format(block_model.block_name))
+      cc.write('\t}')
 
-  # write the change state function
-  cc.write('\n\n\tvoid margot_{0}_change_state( const char* new_state )\n'.format(block_model.block_name))
-  cc.write('\t{\n')
-  cc.write('\t\tmargot::{0}::manager.change_active_state(std::string(new_state));\n'.format(block_model.block_name))
-  cc.write('\t}')
+      # write the change state function
+      cc.write('\n\n\tvoid margot_{0}_change_state( const char* new_state )\n'.format(block_model.block_name))
+      cc.write('\t{\n')
+      cc.write('\t\tmargot::{0}::manager.change_active_state(std::string(new_state));\n'.format(block_model.block_name))
+      cc.write('\t}')
 
   cc.write('\n\n')
 
