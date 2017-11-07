@@ -25,11 +25,15 @@ class OperatingPointModel:
     for feature_name in self.features:
       string = '{0}\t\t{1} = {2}'.format(string, feature_name, self.features[self.feature_name])
     string = '{0}\tMetrics:\n'.format(string)
-    if (self.metrics_std):
-      for metric_name in self.metrics:
-        string = '{0}\t\t{1} = {2} +- {3}\n'.format(string, metric_name, self.metrics[metric_name], self.metrics_std[metric_name])
-      else:
-        string = '{0}\t\t{1} = {2}\n'.format(string, metric_name, self.metrics[metric_name])
+    metric_names = sorted(self.metrics.keys())
+    for metric_name in self.metrics:
+      avg_value = str(self.metrics[metric_name])
+      try:
+        mean_value = str(self.metrics_std[metric_name])
+        string = '{0}\t\t{1} = {2} +- {3}\n'.format(string, metric_name, avg_value, mean_value)
+      except KeyError as err:
+        string = '{0}\t\t{1} = {2}\n'.format(string, metric_name, avg_value)
+
     return string
 
   def get_data_feature_id( self ):
