@@ -632,6 +632,7 @@ def generate_margot_cc( block_models, op_lists, output_folder ):
 
 
       # store the information to print
+      cc.write('\t\t#ifdef MARGOT_LOG_FILE\n')
       if (block_model.metrics and block_model.software_knobs ):
           data_feature_names = sorted([x.name for x in block_model.features])
           things_to_print = ['\t\t\t"Cluster_{0}"'.format(x.upper()) for x in data_feature_names]

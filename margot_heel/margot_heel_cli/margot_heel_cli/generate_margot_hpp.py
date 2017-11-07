@@ -93,27 +93,28 @@ def generate_block_body( block_model, op_lists, cc ):
 
 
   # write the manager (check if we have data feature)
-  if (block_model.features):
+  if (block_model.metrics and block_model.software_knobs ):
+      if (block_model.features):
 
-    # get the names of data feature, in alphabetical order
-    names = sorted([ x.name for x in block_model.features ])
+        # get the names of data feature, in alphabetical order
+        names = sorted([ x.name for x in block_model.features ])
 
-    # set the type of the asrtm
-    features_types = set([x.type for x in block_model.features])
-    features_types_indexes = [ DataFeatureModel.available_var_types.index(x) for x in features_types]
-    features_type = DataFeatureModel.available_var_types[max(features_types_indexes)]
+        # set the type of the asrtm
+        features_types = set([x.type for x in block_model.features])
+        features_types_indexes = [ DataFeatureModel.available_var_types.index(x) for x in features_types]
+        features_type = DataFeatureModel.available_var_types[max(features_types_indexes)]
 
-    # loop over the data feature fields to compose the da asrtm type
-    features_cf = []
-    for name in names:
-      # get the corresponding data feature comparison function
-      feature_cf = [ x.cf for x in block_model.features if x.name == name][0]
-      features_cf.append(cfun_feature_translator[feature_cf])
+        # loop over the data feature fields to compose the da asrtm type
+        features_cf = []
+        for name in names:
+          # get the corresponding data feature comparison function
+          feature_cf = [ x.cf for x in block_model.features if x.name == name][0]
+          features_cf.append(cfun_feature_translator[feature_cf])
 
-    # print the new type of the asrtm
-    cc.write('\n\n\t\textern DataAwareAsrtm< Asrtm< MyOperatingPoint >, {0}, margot::FeatureDistanceType::{1}, {2} > manager;\n\n\n'.format(features_type, block_model.feature_distance, ', '.join(features_cf)))
-  else:
-    cc.write('\n\n\t\textern Asrtm< MyOperatingPoint > manager;\n\n\n')
+        # print the new type of the asrtm
+        cc.write('\n\n\t\textern DataAwareAsrtm< Asrtm< MyOperatingPoint >, {0}, margot::FeatureDistanceType::{1}, {2} > manager;\n\n\n'.format(features_type, block_model.feature_distance, ', '.join(features_cf)))
+      else:
+        cc.write('\n\n\t\textern Asrtm< MyOperatingPoint > manager;\n\n\n')
 
   # write the list of operating points (one for each data feature)
   for op_list_name in op_lists:
@@ -191,7 +192,7 @@ def generate_margot_hpp( block_models, op_lists, output_folder ):
     cc.write('#define MARGOT_CC_HEADER_H\n')
 
     # get all the required headers
-    required_headers = [ '<margot/da_asrtm.hpp>', '<cstddef>', '<vector>', '"margot_op_struct.hpp"' ]
+    required_headers = [ '<margot/asrtm.hpp>', '<margot/da_asrtm.hpp>', '<cstddef>', '<vector>', '"margot_op_struct.hpp"' ]
     for block_name in block_models:
       required_headers.extend( x.monitor_header for x in block_models[block_name].monitor_models )
     required_headers = reversed(sorted(list(set(required_headers))))
