@@ -30,11 +30,11 @@ def equal_dicts(d1, d2, ignore_keys):
 class Postprocessor:
   """
   This class contains the building of the structure for the postprocessing, given the dse xml file.
-  Then contains a function to postprocess MonteCarlo simulations. 
+  Then contains a function to postprocess MonteCarlo simulations.
   Other actual postprocessing functions can be added.
   The init function prepares all the file to be read for the actual postprocessing, parsing the dse xml
   and navigating the folder structure created with the dse.
-  A new command from the margot_cli is needed for every 
+  A new command from the margot_cli is needed for every
   """
   file_to_process_list = []
   def __init__(self, dse_file, path_workspace_directory, doe_strategy):
@@ -63,7 +63,7 @@ class Postprocessor:
     firstlist = parse_op.parse_ops_xml (self.file_to_process_list[0])
     oplist.translator =firstlist.translator
     oplist.reverse_translator = firstlist.reverse_translator
-    
+
     my_doe_plan = dse_doe.DoE(self.doe_strategy, self.my_application, 0)
     block_name = firstlist.name
     doe_plan_real = []
@@ -71,7 +71,7 @@ class Postprocessor:
     for doe_conf in my_doe_plan.plan:
       del(doe_conf.knob_map[aggregation_knob])
       flag = True
-      for dic in doe_plan_real: 
+      for dic in doe_plan_real:
         if doe_conf.knob_map == dic:
           flag = False
           break
@@ -116,7 +116,7 @@ class Postprocessor:
       #print ("finished entry", entry)
 
 
-    
+
     #perform the actual post processing and insert the found operative points in the final oplist
     #init
     final_point_lists = {}
@@ -187,9 +187,9 @@ class Postprocessor:
           #create an op that will be in the output oplist.
           #must have the max unpredictability as knob, the target error as metric and
           #all the other metrics have to be averaged to the correct doeplan.
-          
+
           ##########################################################
-          #              NTS:            #
+          #                          NTS:                          #
           # every doe point has to have (MUST) a point in the new  #
           # oplist, so if no input groups have been given in the   #
           # dse to cluster with, it will fail here since at least  #
@@ -221,14 +221,12 @@ class Postprocessor:
             #print (out_op)
             out_op.avg(len (list_of_correct_points), metric)
           #print ("out")
-          out_op.knobs[aggregated_metric] = list_of_correct_points[-1].metrics[aggregated_metric]
+          out_op.features[aggregated_metric] = list_of_correct_points[-1].metrics[aggregated_metric]
           del out_op.metrics[aggregated_metric]
           out_op.metrics[threshold_metric] = final_metric_lists[point][i]
           oplist.ops.append(out_op)
         #print ("out inner")
       #clean temp, and proceed with next doe in plan.
-      
+
     oplist.name = block_name
     print_op_list_xml(oplist)
-
-

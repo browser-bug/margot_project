@@ -60,17 +60,3 @@ def generate_global_makefile(folder_list, out_path,launchpad_name, outfile_name)
       outfile.write('{0}:\n'.format(folder))
       outfile.write('\t@$(MAKE) -C {0}/{1}\n'.format(launchpad_name,folder))
       outfile.write('\n\n')
-
-
-
-
-
-
-
-
-
-
-
-
-
-
