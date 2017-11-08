@@ -148,7 +148,7 @@ def generate_block_body( block_model, op_lists, cc ):
 
         # write the statement that select the correct asrtm
         feature_string = '{{{{{0}}}}}'.format(', '.join(feature_names))
-        cc.write('\t\t\tmanager.select_feature_cluster({0})\n'.format(feature_string))
+        cc.write('\t\t\tmanager.select_feature_cluster({0});\n'.format(feature_string))
 
 
       cc.write('\t\t\tif (!manager.is_application_knowledge_empty())\n')
