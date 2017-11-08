@@ -585,10 +585,10 @@ def generate_margot_cc( block_models, op_lists, output_folder ):
         for rank_field_model in state_model.rank_fields:
           if rank_field_model.metric_name:
             metric_index = 'static_cast<std::size_t>({0}::Metric::{1})'.format(block_name, rank_field_model.metric_name.upper())
-            rank_fields.append('OPField<OperatingPointSegments::SOFTWARE_KNOBS,BoundType::LOWER,{0},0>'.format(metric_index))
+            rank_fields.append('OPField<OperatingPointSegments::METRICS,BoundType::LOWER,{0},0>'.format(metric_index))
           if rank_field_model.knob_name:
             knob_index = 'static_cast<std::size_t>({0}::Knob::{1})'.format(block_name, rank_field_model.knob_name.upper())
-            rank_fields.append('OPField<OperatingPointSegments::METRICS,BoundType::LOWER,{0},0>'.format(metric_index))
+            rank_fields.append('OPField<OperatingPointSegments::SOFTWARE_KNOBS,BoundType::LOWER,{0},0>'.format(knob_index))
 
         # get the rank coefs
         rank_coefs = [str(float(x.coefficient)) for x in state_model.rank_fields]
