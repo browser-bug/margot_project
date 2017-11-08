@@ -638,7 +638,7 @@ def generate_margot_cc( block_models, op_lists, output_folder ):
           things_to_print = ['\t\t\t"Cluster_{0}"'.format(x.upper()) for x in data_feature_names]
           things_to_print.extend(['\t\t\t"Knob_{0}"'.format(x.name.upper()) for x in block_model.software_knobs])
           things_to_print.extend(['\t\t\t"Known_Metric_{0}"'.format(x.name.upper()) for x in block_model.metrics])
-          things_to_print.extend(['\t\t\t"Goal_{0}"'.format(goal.name.upper()) for x in block_model.goal_models])
+          things_to_print.extend(['\t\t\t"Goal_{0}"'.format(x.name.upper()) for x in block_model.goal_models])
           for monitor_model in block_model.monitor_models:
             for exposed_var_what in monitor_model.exposed_metrics:
               things_to_print.append('\t\t\t"{1}_{0}"'.format(exposed_var_what, monitor_model.monitor_name.upper()))
