@@ -78,7 +78,7 @@ def generate_block_body( block_model, op_lists, cc ):
       cc.write('\t\t\textern {1} {0};\n'.format(feature.name, feature.type))
 
     # close the feature namespace
-    cc.write('\t\t} // namespace feature\n')
+    cc.write('\t\t} // namespace features\n')
 
 
   # open the software knobs namespace

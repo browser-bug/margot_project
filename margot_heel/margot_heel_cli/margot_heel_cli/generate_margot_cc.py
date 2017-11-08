@@ -261,7 +261,7 @@ def generate_block_body( block_model, op_lists, cc ):
   data_feature_names = sorted([ x.name for x in block_model.features ])
   for feature_name in data_feature_names:
     what_we_are_printing.append('Input {0}'.format(feature_name))
-    data_feature_printer.append('{0}::feature::{1}'.format(block_model.block_name, feature_name))
+    data_feature_printer.append('{0}::features::{1}'.format(block_model.block_name, feature_name))
 
 
   # ------- actually compose the log functin on file
