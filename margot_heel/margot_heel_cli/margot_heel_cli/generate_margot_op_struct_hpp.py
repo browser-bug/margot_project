@@ -43,7 +43,7 @@ def generate_margot_structure_hpp( block_models, op_lists, output_folder ):
 
       # check if we have an Operating Point list with a translator
       try:
-        op_list = op_lists[block_name][op_lists[block_name].keys()[0]]
+        op_list = op_lists[block_name][list(op_lists[block_name].keys())[0]]
 
 
         # write the translation function

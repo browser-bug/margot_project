@@ -17,7 +17,7 @@ def generate_op_lists( op_lists, output_folder, block_models ):
     op_list_dic = op_lists[block_name]
 
     # get a reference for the first list (to get the translation dictionaries)
-    first_op_list = op_list_dic[op_list_dic.keys()[0]]
+    first_op_list = op_list_dic[list(op_list_dic.keys())[0]]
 
     # get the sorted list of available data features
     op_features = sorted(op_list_dic.keys())

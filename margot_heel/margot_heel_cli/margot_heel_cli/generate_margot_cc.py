@@ -229,7 +229,7 @@ def generate_block_body( block_model, op_lists, cc ):
   for knob in block_model.software_knobs:
     what_we_are_printing.append('Knob {0}'.format(knob.name))
     if block_model.block_name in op_lists:
-      if knob.name in op_lists[block_model.block_name][op_lists[block_model.block_name].keys()[0]].translator:
+      if knob.name in op_lists[block_model.block_name][list(op_lists[block_model.block_name].keys())[0]].translator:
         software_knobs_printers.append('{0}::knob_{2}_int2str[static_cast<int>({0}::manager.get_mean<OperatingPointSegments::SOFTWARE_KNOBS, static_cast<std::size_t>({0}::Knob::{1})>()]'.format(block_model.block_name, knob.name.upper(), knob.name.lower()))
         continue
     software_knobs_printers.append('{0}::manager.get_mean<OperatingPointSegments::SOFTWARE_KNOBS, static_cast<std::size_t>({0}::Knob::{1})>()'.format(block_model.block_name, knob.name.upper()))
