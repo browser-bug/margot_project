@@ -143,7 +143,7 @@ def generate_block_body( block_model, op_lists, cc ):
         # write the statements that assign the data features to the global variable
         feature_names = []
         for feature in block_model.features:
-          cc.write('\t\t\tfeature::{0} = {0};\n'.format(feature.name))
+          cc.write('\t\t\tfeatures::{0} = {0};\n'.format(feature.name))
           feature_names.append(feature.name)
 
         # write the statement that select the correct asrtm

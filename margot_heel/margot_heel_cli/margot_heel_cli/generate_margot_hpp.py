@@ -71,7 +71,7 @@ def generate_block_body( block_model, op_lists, cc ):
   if (block_model.features):
 
     # open the data feature namespace
-    cc.write('\n\t\tnamespace feature {\n')
+    cc.write('\n\t\tnamespace features {\n')
 
     # loop over the features
     for feature in block_model.features:
