@@ -165,7 +165,7 @@ namespace margot
   {
 
 
-    static_assert( sizeof...(cfs) + 1 == DataFeature{}.size(), "Error: mismatch number of comparison function to validate a data feature");
+    static_assert( sizeof...(cfs) + 1 <= DataFeature{}.size(), "Error: mismatch number of comparison function to validate a data feature");
 
 
     /**
