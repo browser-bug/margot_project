@@ -67,10 +67,10 @@ def generate_op_lists( op_lists, output_folder, block_models ):
       knob_list = sorted(first_op_list.ops[0].knobs.keys())
       metric_list = sorted(first_op_list.ops[0].metrics.keys())
       metrics_are_distribution = False
-      for metric_name in metric_list:
-          if block_models[block_name].metrics[metric_name].distribution:
-              metrics_are_distribution = True
-              break
+      for metric_model in block_models[block_name].metrics:
+        if metric_model.distribution:
+          metrics_are_distribution = True
+          break
 
 
       # loop over all the op list for each defined input feature
