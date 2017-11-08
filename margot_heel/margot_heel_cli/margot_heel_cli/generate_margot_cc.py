@@ -534,6 +534,14 @@ def generate_margot_cc( block_models, op_lists, output_folder ):
 
           # eventually, insert the call which adds the Operating Points
           cc.write('\t\t{0}::manager.add_operating_points({0}::op_list{1});\n'.format(block_name, index))
+      else:
+
+        # if we have no Operating Point lists, but we do have data features,
+        # we need to create a dummy cluster
+        if block_model.features:
+            dummy_feature = '{{{{{0}}}}}'.format(','.join(['0' for x in range(len(block_model.features))]))
+            cc.write('\t\t{0}::manager.add_feature_cluster({1});\n'.format(block_name, dummy_feature))
+            cc.write('\t\t{0}::manager.select_feature_cluster({1});\n'.format(block_name, dummy_feature))
       cc.write('\n')
 
 
