@@ -40,7 +40,7 @@ def generate_source_files( block_models, op_lists, output_folder ):
   mkdir_p(output_folder)
 
   # generate the op list source files
-  generate_op_lists(op_lists, output_folder)
+  generate_op_lists(op_lists, output_folder, block_models)
 
   # generate the margot_op_struct.h source file
   generate_margot_structure_hpp( block_models, op_lists, output_folder)

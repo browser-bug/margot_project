@@ -4,7 +4,7 @@ import errno                             # for checking before creating a path
 
 
 
-def generate_op_lists( op_lists, output_folder ):
+def generate_op_lists( op_lists, output_folder, block_models ):
   """
   This function generates the actual margot source files
   """
@@ -66,6 +66,11 @@ def generate_op_lists( op_lists, output_folder ):
       # get the list of sw knob and metrics
       knob_list = sorted(first_op_list.ops[0].knobs.keys())
       metric_list = sorted(first_op_list.ops[0].metrics.keys())
+      metrics_are_distribution = False
+      for metric_name in metric_list:
+          if block_models[block_name].metrics[metric_name].distribution:
+              metrics_are_distribution = True
+              break
 
 
       # loop over all the op list for each defined input feature
@@ -86,12 +91,16 @@ def generate_op_lists( op_lists, output_folder ):
           cc.write('\t\t\t\t{{ {0} }}, // The software knobs\n'.format(', '.join(str(x) for x in values)))
           values = []
           for metric_name in metric_list:
-            metric_value = 'MyMetricType({0}'.format(op_model.metrics[metric_name])
-            if op_model.metrics_std:
-              metric_value = '{0}, {1})'.format(metric_value, op_model.metrics_std[metric_name])
+            if metrics_are_distribution:
+                metric_value = 'MyMetricType({0}'.format(op_model.metrics[metric_name])
+                if op_model.metrics_std:
+                  metric_value = '{0}, {1})'.format(metric_value, op_model.metrics_std[metric_name])
+                else:
+                  metric_value = str(op_model.metrics[metric_name])
+                values.append(metric_value)
             else:
-              metric_value = str(op_model.metrics[metric_name])
-            values.append(metric_value)
+                metric_value = '{0}'.format(op_model.metrics[metric_name])
+                values.append(metric_value)
           cc.write('\t\t\t\t{{ {0} }}, // The metrics of interest\n'.format(', '.join(values)))
           cc.write('\t\t\t}')
         cc.write('\n\t\t};\n')
