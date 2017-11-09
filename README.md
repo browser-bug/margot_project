@@ -55,7 +55,7 @@ However, it is possible to change this behavior using the CMake configuration op
 |--------------------------|--------------------|-------------------------------------------------------------|
 | LIB_STATIC               |  [ON],  OFF        | Build a static library (otherwise it is shared)             |
 | WITH_DOC                 |   ON , [OFF]       | Generate the Doxygen documentation                          |
-| WITH_TEST                |  [ON],  OFF        | Build the cxxtest application, to test the framework        |
+| WITH_TEST                |   ON , [OFF]       | Build the cxxtest application, to test the framework        |
 | USE_COLLECTOR_MONITOR    |   ON , [OFF]       | Include the wrapper monitor for Examon (by ETHz)            |
 | USE_PAPI_MONITOR         |   ON , [OFF]       | Include the monitor of Perf events (using PAPI interface)   |
 | USE_TEMPERATURE_MONITOR  |   ON , [OFF]       | Include the temperature monitor (requires lm_sensors)       |

@@ -38,7 +38,7 @@ set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -march=native -mtune=nat
 
 option( LIB_STATIC "Build a static version of the library" ON)
 
-option( WITH_TEST "Build a test unit application" ON )
+option( WITH_TEST "Build a test unit application" OFF )
 if ( WITH_TEST )
 	list (APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/framework/test/cmake")
 	find_package( CXXTEST )
