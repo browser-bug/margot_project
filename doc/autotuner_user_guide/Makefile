@@ -5,6 +5,7 @@ MAINTEXFILE?=main
 
 pdf: $(MAINTEXFILE).tex
 	@latexmk -pdf $(MAINTEXFILE)
+	@cp $(MAINTEXFILE).pdf margot_user_guide.pdf
 	@pdffonts $(MAINTEXFILE).pdf
 
 dvi: $(MAINTEXFILE).tex

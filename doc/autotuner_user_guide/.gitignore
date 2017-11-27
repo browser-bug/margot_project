@@ -4,7 +4,7 @@
 # Except those one
 !Makefile
 !main.tex
-!main.pdf
+!margot_user_guide.pdf
 !introduction.tex
 !monitor.tex
 !application_knowledge.tex
