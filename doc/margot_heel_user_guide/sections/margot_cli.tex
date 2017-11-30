@@ -1,0 +1,25 @@
+\section{mARGOt command line interface}
+
+The mARGOt command line interface (margot\_cli) is a python script to provide to the end-user utility functions to manage the mARGOt heel configuration files.
+The usage of the script is explained in the its help command.
+The most important command is \textit{generate} which automatically generates the source code of the high level interface, from the XML configurations files.
+This is the command  leveraged by margot\_if to generate the high-level interface library.
+Beside this command, margot\_cli expose the following operations to manage the application knowledge:
+\begin{itemize}
+	\item[plotOPs] It takes in input the XML configuration file of the application knowledge and it prints on the standard output a gnuplot script that display the application knowledge, according to the fields specified at command line.
+	\item[pareto] It takes in input the XML configuration file of the application knowledge and it prints on the standard output the XML configuration file of application knowledge with only the Operating Points which belong to the Pareto set, according to the criteria specified at command line.
+	\item[csv2xml] It takes in input the CSV configuration file of the application knowledge and it prints on the standard output the XML configuration file of application knowledge.
+	\item[xml2csv] It takes in input the XML configuration file of the application knowledge and it prints on the standard output the CSV configuration file of application knowledge
+\end{itemize}
+
+The CSV format of the application knowledge shall represents the Operating Point list using the following conventions.
+Each row is considered a different Operating Point.
+Each column is considered a field of the Operating Point.
+All the column of the file shall have an header to identify the field:
+\begin{itemize}
+	\item Each software knob shall have the prefix ``\#''. For example, to represent the knob ``compiler\_flag'', the header name should be ``\#compiler\_flag''.
+	\item The metric mean value and standard deviation must be in two separated columns. In particular, the column with the mean value of the metric is written in plain, while its standard deviation shall have the ``\_standard\_dev'' suffix. For example to represent the mean value and the standard deviation of the metric execution time, the header of the column that represents the mean value is ``exec\_time'', while the header of the column that represents its standard deviation is ``exec\_time\_standard\_dev``.
+	\item Each data feature shall have the prefix ``$@$''. For example, to represent the data feature ``size'', the header name should be ``$@$size''.
+\end{itemize}
+
+All the required suffixes and prefixes will be stripped from the actual name of the field.

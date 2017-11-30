@@ -1,0 +1,351 @@
+\section{Monitor implementation details}
+\label{appendix:monitor_implementation}
+
+This appendix lists, for each monitor, all the parameters of its constructor, start measure method and stop measure method.
+These information might be used when a monitor is declared in the XML configuration file.
+
+
+
+\subsection{Collector Monitor}
+
+\subsubsection*{Constructor parameters}
+\begin{enumerate}
+	\item Default constructor
+		\begin{itemize}
+			\item Size of the observation window (default = 1)
+			\item Minimum number of observations (default = 1)
+		\end{itemize}
+	\item Custom connection constructor
+		\begin{itemize}
+			\item Name of the topic of interest (string)
+			\item Address of the MQTT broker (string)
+			\item Size of the observation window (default = 1)
+			\item Minimum number of observations (default = 1)
+		\end{itemize}
+\end{enumerate}
+
+\subsubsection*{Start method parameters}
+\begin{enumerate}
+	\item[] N/A
+\end{enumerate}
+
+
+\subsubsection*{Stop method parameters}
+\begin{enumerate}
+	\item[] N/A
+\end{enumerate}
+
+
+
+
+
+
+\subsection{Energy Monitor}
+
+\subsubsection*{Constructor parameters}
+\begin{enumerate}
+	\item Default constructor
+		\begin{itemize}
+			\item Size of the observation window (default = 1)
+			\item Minimum number of observations (default = 1)
+		\end{itemize}
+	\item Custom domain constructor
+		\begin{itemize}
+			\item Domain of interest
+				\begin{enumerate}
+					\item margot::EnergyMonitor::Domain::Cores
+					\item margot::EnergyMonitor::Domain::Uncores
+					\item margot::EnergyMonitor::Domain::Ram
+					\item margot::EnergyMonitor::Domain::Package
+				\end{enumerate}
+			\item Size of the observation window (default = 1)
+			\item Minimum number of observations (default = 1)
+		\end{itemize}
+\end{enumerate}
+
+\subsubsection*{Start method parameters}
+\begin{enumerate}
+	\item[] N/A
+\end{enumerate}
+
+
+\subsubsection*{Stop method parameters}
+\begin{enumerate}
+	\item[] N/A
+\end{enumerate}
+
+
+
+
+
+\subsection{Frequency Monitor}
+
+\subsubsection*{Constructor parameters}
+\begin{enumerate}
+	\item Default constructor
+		\begin{itemize}
+			\item Size of the observation window (default = 1)
+			\item Minimum number of observations (default = 1)
+		\end{itemize}
+\end{enumerate}
+
+\subsubsection*{Start method parameters}
+\begin{enumerate}
+	\item[] N/A
+\end{enumerate}
+
+
+\subsubsection*{Stop method parameters}
+\begin{enumerate}
+	\item[] N/A
+\end{enumerate}
+
+
+
+
+\subsection{Odroid Energy Monitor}
+
+\subsubsection*{Constructor parameters}
+\begin{enumerate}
+	\item Default constructor
+		\begin{itemize}
+			\item Size of the observation window (default = 1)
+			\item Minimum number of observations (default = 1)
+		\end{itemize}
+	\item Custom period time
+		\begin{itemize}
+			\item Period of polling (unsigned integer)
+			\item Size of the observation window (default = 1)
+			\item Minimum number of observations (default = 1)
+		\end{itemize}
+\end{enumerate}
+
+\subsubsection*{Start method parameters}
+\begin{enumerate}
+	\item[] N/A
+\end{enumerate}
+
+
+\subsubsection*{Stop method parameters}
+\begin{enumerate}
+	\item[] N/A
+\end{enumerate}
+
+
+
+
+\subsection{Odroid Power Monitor}
+
+\subsubsection*{Constructor parameters}
+\begin{enumerate}
+	\item Default constructor
+		\begin{itemize}
+			\item Size of the observation window (default = 1)
+			\item Minimum number of observations (default = 1)
+		\end{itemize}
+\end{enumerate}
+
+\subsubsection*{Start method parameters}
+\begin{enumerate}
+	\item[] N/A
+\end{enumerate}
+
+
+\subsubsection*{Stop method parameters}
+\begin{enumerate}
+	\item[] N/A
+\end{enumerate}
+
+
+
+
+
+
+\subsection{Papi Monitor}
+
+\subsubsection*{Constructor parameters}
+\begin{enumerate}
+	\item Trivial Default constructor
+		\begin{itemize}
+			\item[] N/A
+		\end{itemize}
+	\item Custom event constructor
+		\begin{itemize}
+			\item PAPI event of interest
+				\begin{enumerate}
+					\item margot::PapiEvent::L1\_MISS
+					\item margot::PapiEvent::L2\_MISS
+					\item margot::PapiEvent::L3\_MISS
+					\item margot::PapiEvent::INS\_COMPLETED
+					\item margot::PapiEvent::NUM\_BRANCH
+					\item margot::PapiEvent::NUM\_LOAD
+					\item margot::PapiEvent::NUM\_STORE
+					\item margot::PapiEvent::CYC\_NO\_ISSUE
+					\item margot::PapiEvent::CYC\_TOT
+				\end{enumerate}
+			\item Size of the observation window (default = 1)
+			\item Minimum number of observations (default = 1)
+		\end{itemize}
+\end{enumerate}
+
+\subsubsection*{Start method parameters}
+\begin{enumerate}
+	\item[] N/A
+\end{enumerate}
+
+
+\subsubsection*{Stop method parameters}
+\begin{enumerate}
+	\item[] N/A
+\end{enumerate}
+
+
+
+
+
+
+
+
+\subsection{Process CPU Usage Monitor}
+
+\subsubsection*{Constructor parameters}
+\begin{enumerate}
+	\item Default constructor
+		\begin{itemize}
+			\item Size of the observation window (default = 1)
+			\item Minimum number of observations (default = 1)
+		\end{itemize}
+	\item Custom CPU time counter constructor
+		\begin{itemize}
+			\item CPU time counter
+				\begin{enumerate}
+					\item margot::CounterType::SoftwareCounter
+					\item margot::CounterType::HardwareCounter
+				\end{enumerate}
+			\item Size of the observation window (default = 1)
+			\item Minimum number of observations (default = 1)
+		\end{itemize}
+\end{enumerate}
+
+\subsubsection*{Start method parameters}
+\begin{enumerate}
+	\item[] N/A
+\end{enumerate}
+
+
+\subsubsection*{Stop method parameters}
+\begin{enumerate}
+	\item[] N/A
+\end{enumerate}
+
+
+
+
+\subsection{System CPU Usage Monitor}
+
+\subsubsection*{Constructor parameters}
+\begin{enumerate}
+	\item Default constructor
+		\begin{itemize}
+			\item Size of the observation window (default = 1)
+			\item Minimum number of observations (default = 1)
+		\end{itemize}
+\end{enumerate}
+
+\subsubsection*{Start method parameters}
+\begin{enumerate}
+	\item[] N/A
+\end{enumerate}
+
+
+\subsubsection*{Stop method parameters}
+\begin{enumerate}
+	\item[] N/A
+\end{enumerate}
+
+
+
+\subsection{Temperature Monitor}
+
+\subsubsection*{Constructor parameters}
+\begin{enumerate}
+	\item Default constructor
+		\begin{itemize}
+			\item Size of the observation window (default = 1)
+			\item Minimum number of observations (default = 1)
+		\end{itemize}
+\end{enumerate}
+
+\subsubsection*{Start method parameters}
+\begin{enumerate}
+	\item[] N/A
+\end{enumerate}
+
+
+\subsubsection*{Stop method parameters}
+\begin{enumerate}
+	\item[] N/A
+\end{enumerate}
+
+
+
+
+\subsection{Throughput Monitor}
+
+\subsubsection*{Constructor parameters}
+\begin{enumerate}
+	\item Default constructor
+		\begin{itemize}
+			\item Size of the observation window (default = 1)
+			\item Minimum number of observations (default = 1)
+		\end{itemize}
+\end{enumerate}
+
+\subsubsection*{Start method parameters}
+\begin{enumerate}
+	\item[] N/A
+\end{enumerate}
+
+
+\subsubsection*{Stop method parameters}
+\begin{enumerate}
+	\item Amount of data processed (float)
+\end{enumerate}
+
+
+
+
+
+\subsection{Time Monitor}
+
+\subsubsection*{Constructor parameters}
+\begin{enumerate}
+	\item Default constructor
+		\begin{itemize}
+			\item Size of the observation window (default = 1)
+			\item Minimum number of observations (default = 1)
+		\end{itemize}
+	\item Custom time unit constructor
+		\begin{itemize}
+			\item Time resolution
+				\begin{enumerate}
+					\item margot::TimeUnit::NANOSECONDS
+					\item margot::TimeUnit::MICROSECONDS
+					\item margot::TimeUnit::MILLISECONDS
+					\item margot::TimeUnit::SECONDS
+				\end{enumerate}
+			\item Size of the observation window (default = 1)
+			\item Minimum number of observations (default = 1)
+		\end{itemize}
+\end{enumerate}
+
+\subsubsection*{Start method parameters}
+\begin{enumerate}
+	\item[] N/A
+\end{enumerate}
+
+
+\subsubsection*{Stop method parameters}
+\begin{enumerate}
+	\item[] N/A
+\end{enumerate}
