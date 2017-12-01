@@ -165,7 +165,7 @@ namespace margot
 
 
         // replicate the constraint structure
-        for( const auto& constraint_pair : constraints )
+        for ( const auto& constraint_pair : constraints )
         {
           sibling.constraints.emplace(constraint_pair.first, constraint_pair.second->create_sibling());
         }
@@ -761,7 +761,7 @@ namespace margot
 
 
   template< class OperatingPoint, typename priority_type, typename error_coef_type >
-  void State<OperatingPoint,priority_type,error_coef_type>::dump(const std::string &prefix) const
+  void State<OperatingPoint, priority_type, error_coef_type>::dump(const std::string& prefix) const
   {
     // print the global information
     std::cout << prefix << " Number of constraints: " << constraints.size() << std::endl;
@@ -772,6 +772,7 @@ namespace margot
     std::cout << prefix << " ----------------------------------------------------------" << std::endl;
     std::cout << prefix << " -- Last known best Operating Point" << std::endl;
     std::cout << prefix << " ----------------------------------------------------------" << std::endl;
+
     if (best_operating_point_found)
     {
       print_whole_op<OperatingPoint>(best_operating_point_found, prefix);
@@ -780,6 +781,7 @@ namespace margot
     {
       std::cout << prefix << " We haven't found any Operating Points yet" << std::endl;
     }
+
     std::cout << prefix << std::endl;
     std::cout << prefix << " ----------------------------------------------------------" << std::endl;
     std::cout << prefix << " -- Optimization problem representation" << std::endl;
@@ -792,7 +794,7 @@ namespace margot
 
 
     // print information about the constraints
-    for( const auto& constraint_pair : constraints )
+    for ( const auto& constraint_pair : constraints )
     {
       std::cout << prefix << " ---- Constraint with priority " << constraint_pair.first << std::endl;
       std::cout << prefix << " ----------------------------------------------------------" << std::endl;

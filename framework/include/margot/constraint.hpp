@@ -89,7 +89,7 @@ namespace margot
       /*
        * @brief Definition of pointer to this constraint interface
        */
-      using ConstraintHandlerPtr = std::shared_ptr< ConstraintHandler<OperatingPoint,error_coef_type> >;
+      using ConstraintHandlerPtr = std::shared_ptr< ConstraintHandler<OperatingPoint, error_coef_type> >;
 
 
 
@@ -99,18 +99,18 @@ namespace margot
        ******************************************************************/
 
 
-       /**
-        * @brief Creates a pseudo-copy of the underlying constraint
-        *
-        * @return A shared pointer to the sibling constraint
-        *
-        * @details
-        * This method creates a copy of the actual constraint, which have the
-        * same features, but it lacks any relation with the managed OPs and with
-        * the runtime information provider.
-        * This method is used to interact with the Data-Aware AS-RTM.
-        */
-       virtual ConstraintHandlerPtr create_sibling( void ) const = 0;
+      /**
+       * @brief Creates a pseudo-copy of the underlying constraint
+       *
+       * @return A shared pointer to the sibling constraint
+       *
+       * @details
+       * This method creates a copy of the actual constraint, which have the
+       * same features, but it lacks any relation with the managed OPs and with
+       * the runtime information provider.
+       * This method is used to interact with the Data-Aware AS-RTM.
+       */
+      virtual ConstraintHandlerPtr create_sibling( void ) const = 0;
 
 
 
@@ -618,7 +618,7 @@ namespace margot
        */
       SiblingConstraintPtr create_sibling( void ) const
       {
-        return SiblingConstraintPtr{ new Constraint<OperatingPoint,segment,field_index,sigma,ConstraintGoal,error_coef_type>(target_goal)};
+        return SiblingConstraintPtr{ new Constraint<OperatingPoint, segment, field_index, sigma, ConstraintGoal, error_coef_type>(target_goal)};
       }
 
 
@@ -1142,7 +1142,7 @@ namespace margot
     const auto actual_goal_value = target_goal.get();
     const auto coef = knowledge_adaptor ? knowledge_adaptor->get_error_coefficient() : static_cast<error_coef_type>(1);
     std::cout << prefix << " Actual goal value = " << actual_goal_value << std::endl;
-    std::cout << prefix << " Adjusted actual goal value = " << actual_goal_value * coef << std::endl;
+    std::cout << prefix << " Adjusted actual goal value = " << actual_goal_value* coef << std::endl;
     std::cout << prefix << " Last adjusted goal value (used to compare) = " << last_check_value << std::endl;
     std::cout << prefix << std::endl;
 
@@ -1154,10 +1154,10 @@ namespace margot
 
 
       // loop over the blocked Operating Points
-      for( const auto op_ptr : blocked_ops )
+      for ( const auto op_ptr : blocked_ops )
       {
         const auto op_value = knowledge_view.evaluate_op(op_ptr);
-        print_conf_with_value<OperatingPoint,typename MyView::value_type>(op_ptr, op_value, prefix, "Constraint Value" );
+        print_conf_with_value<OperatingPoint, typename MyView::value_type>(op_ptr, op_value, prefix, "Constraint Value" );
         std::cout << prefix << std::endl;
       }
     }

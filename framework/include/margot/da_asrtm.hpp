@@ -156,7 +156,7 @@ namespace margot
        * It is required to instantiate a feature cluster before performing any
        * other operation, such as defining a rank or adding a constraint.
        */
-      DataAwareAsrtm( void ):get_closest()
+      DataAwareAsrtm( void ): get_closest()
       {
         // enforce the actual state of the AS-RTM
         active_manager = managers.end();
@@ -196,6 +196,7 @@ namespace margot
         // check if we need to get the optimization problems from another
         // application-specific runtime manager
         const auto first_cluster = managers.begin();
+
         if (first_cluster != managers.end())
         {
           // emplace the new asrtm (if it's actually new)
@@ -209,7 +210,8 @@ namespace margot
 
         // reset the iterator to the current manager
         const auto end_iterator = managers.end();
-        for( auto it = managers.begin(); it != end_iterator; ++it )
+
+        for ( auto it = managers.begin(); it != end_iterator; ++it )
         {
           if (it->first == previous_active_key)
           {
@@ -247,7 +249,8 @@ namespace margot
 
         // loop to see if it is the actual best manager
         const auto final_iterator = managers.end();
-        for( auto it = std::next(active_manager); it != final_iterator; ++it )
+
+        for ( auto it = std::next(active_manager); it != final_iterator; ++it )
         {
           active_manager = get_closest(key, active_manager, it);
         }
@@ -288,7 +291,7 @@ namespace margot
         const auto key_active = active_manager != active_manager ? active_manager->first : key;
 
         // remove the target asrtm
-        for( auto it = managers.begin(); it != active_manager; ++it )
+        for ( auto it = managers.begin(); it != active_manager; ++it )
         {
           if (it->first == key)
           {
@@ -299,7 +302,7 @@ namespace margot
         }
 
         // find again the active manager (if any)
-        for( auto it = managers.begin(); it != active_manager; ++it)
+        for ( auto it = managers.begin(); it != active_manager; ++it)
         {
           if (it->first == key_active)
           {
@@ -471,7 +474,7 @@ namespace margot
         std::lock_guard< std::mutex > lock(asrtm_mutex);
 
         // loop over the available AS-RTM
-        for( auto& asrtm_pair : managers )
+        for ( auto& asrtm_pair : managers )
         {
           // create a new state
           asrtm_pair.second.create_new_state(new_state_id);
@@ -496,7 +499,7 @@ namespace margot
         std::lock_guard< std::mutex > lock(asrtm_mutex);
 
         // loop over the available AS-RTM
-        for( auto& asrtm_pair : managers )
+        for ( auto& asrtm_pair : managers )
         {
           // create a new state
           asrtm_pair.second.remove_state(state_id);
@@ -521,7 +524,7 @@ namespace margot
         std::lock_guard< std::mutex > lock(asrtm_mutex);
 
         // loop over the available AS-RTM
-        for( auto& asrtm_pair : managers )
+        for ( auto& asrtm_pair : managers )
         {
           // switch to a new state
           asrtm_pair.second.change_active_state(state_id);
@@ -593,10 +596,10 @@ namespace margot
         std::lock_guard< std::mutex > lock(asrtm_mutex);
 
         // loop over the available AS-RTM
-        for( auto& asrtm_pair : managers )
+        for ( auto& asrtm_pair : managers )
         {
           // create a new state
-          asrtm_pair.second.template add_runtime_knowledge<target_segment,target_field_index,inertia,Y,statistical_t>(monitor);
+          asrtm_pair.second.template add_runtime_knowledge<target_segment, target_field_index, inertia, Y, statistical_t>(monitor);
         }
       }
 
@@ -616,7 +619,7 @@ namespace margot
         std::lock_guard< std::mutex > lock(asrtm_mutex);
 
         // loop over the available AS-RTM
-        for( auto& asrtm_pair : managers )
+        for ( auto& asrtm_pair : managers )
         {
           // create a new state
           asrtm_pair.second.remove_all_runtime_knowledge();
@@ -738,7 +741,7 @@ namespace margot
         assert(active_manager != managers.end() && "Error: attempt to get the expected value from a non-existent Asrtm");
 
         // method forward
-        return active_manager->second.template get_mean<segment,field,T>();
+        return active_manager->second.template get_mean<segment, field, T>();
       }
 
 
@@ -776,10 +779,10 @@ namespace margot
         std::lock_guard< std::mutex > lock(asrtm_mutex);
 
         // loop over the available AS-RTM
-        for( auto& asrtm_pair : managers )
+        for ( auto& asrtm_pair : managers )
         {
           // add a constraint
-          asrtm_pair.second.template add_constraint<segment,field_index,sigma,ConstraintGoal>(goal_value, priority);
+          asrtm_pair.second.template add_constraint<segment, field_index, sigma, ConstraintGoal>(goal_value, priority);
         }
       }
 
@@ -804,7 +807,7 @@ namespace margot
         std::lock_guard< std::mutex > lock(asrtm_mutex);
 
         // loop over the available AS-RTM
-        for( auto& asrtm_pair : managers )
+        for ( auto& asrtm_pair : managers )
         {
           // remove a constraint
           asrtm_pair.second.remove_constraint(priority);
@@ -844,10 +847,10 @@ namespace margot
         std::lock_guard< std::mutex > lock(asrtm_mutex);
 
         // loop over the available AS-RTM
-        for( auto& asrtm_pair : managers )
+        for ( auto& asrtm_pair : managers )
         {
           // set the new rank definition
-          asrtm_pair.second.template set_rank<objective,composer,Fields...>(values...);
+          asrtm_pair.second.template set_rank<objective, composer, Fields...>(values...);
         }
       }
 
@@ -859,10 +862,10 @@ namespace margot
        ******************************************************************/
 
 
-       /**
-        * @brief This method prints on the standard output the state of the da_asrtm
-        */
-       void dump( void ) const;
+      /**
+       * @brief This method prints on the standard output the state of the da_asrtm
+       */
+      void dump( void ) const;
 
 
     private:
@@ -901,19 +904,23 @@ namespace margot
     print_header();
 
     // macro to print the data feature value
-    const auto feature2string = [] ( const Feature& f )
+    const auto feature2string = [] ( const Feature & f )
     {
       std::string result = "[";
       std::size_t counter = 0;
-      for( const auto value : f )
+
+      for ( const auto value : f )
       {
         result += std::string(" ") + std::to_string(value);
+
         if (counter > 0)
         {
           result += ",";
         }
+
         ++counter;
       }
+
       result += " ]";
       return result;
     };
@@ -922,6 +929,7 @@ namespace margot
     std::cout << "# Data-Aware Application-Specific RunTime Manager status dump" << std::endl;
     std::cout << "#" << std::endl;
     std::cout << "# Number of data feature cluster: " << managers.size() << std::endl;
+
     if ( active_manager != managers.end() )
     {
       // loop some statistics about the cluster
@@ -938,7 +946,7 @@ namespace margot
     const auto key = active_manager->first;
 
     // print the details about each feature cluster
-    for( const auto& manager_pair : managers )
+    for ( const auto& manager_pair : managers )
     {
       // print the header for the data cluster
       std::string active_feature = manager_pair.first == key ? " <---- CURRENT CLUSTER " : "";

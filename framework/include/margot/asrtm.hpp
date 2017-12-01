@@ -203,7 +203,8 @@ namespace margot
 
         // but extra care should be placed for the iterator of the current state
         current_optimizer = application_optimizers.begin();
-        for( auto it = other.application_optimizers.begin(); it != other.application_optimizers.end(); ++it)
+
+        for ( auto it = other.application_optimizers.begin(); it != other.application_optimizers.end(); ++it)
         {
           if (it == other.current_optimizer)
           {
@@ -227,33 +228,34 @@ namespace margot
        *
        * @param [in] other The source object to be copied from
        */
-       Asrtm( Asrtm&& other )
-       {
-         // it is safe to copy-construct the container
-         knowledge = std::move(Knowledge<OperatingPoint>(other.knowledge));
-         runtime_information = std::move(KnowledgeAdaptor<OperatingPoint, error_coef_type>(other.runtime_information));
-         monitor_handlers = std::move(MonitorHandlers(other.monitor_handlers));
-         application_optimizers = std::move(StateMap(other.application_optimizers));
+      Asrtm( Asrtm&& other )
+      {
+        // it is safe to copy-construct the container
+        knowledge = std::move(Knowledge<OperatingPoint>(other.knowledge));
+        runtime_information = std::move(KnowledgeAdaptor<OperatingPoint, error_coef_type>(other.runtime_information));
+        monitor_handlers = std::move(MonitorHandlers(other.monitor_handlers));
+        application_optimizers = std::move(StateMap(other.application_optimizers));
 
-         // but extra care should be placed for the iterator of the current state
-         current_optimizer = application_optimizers.begin();
-         for( auto it = other.application_optimizers.begin(); it != other.application_optimizers.end(); ++it)
-         {
-           if (it == other.current_optimizer)
-           {
-             break;
-           }
-           else
-           {
-             ++current_optimizer;
-           }
-         }
+        // but extra care should be placed for the iterator of the current state
+        current_optimizer = application_optimizers.begin();
 
-         // it is safe to copy-construct the status and pointers to Operating Points
-         application_configuration = other.application_configuration;
-         proposed_best_configuration = other.proposed_best_configuration;
-         status = other.status;
-       }
+        for ( auto it = other.application_optimizers.begin(); it != other.application_optimizers.end(); ++it)
+        {
+          if (it == other.current_optimizer)
+          {
+            break;
+          }
+          else
+          {
+            ++current_optimizer;
+          }
+        }
+
+        // it is safe to copy-construct the status and pointers to Operating Points
+        application_configuration = other.application_configuration;
+        proposed_best_configuration = other.proposed_best_configuration;
+        status = other.status;
+      }
 
 
 
@@ -876,7 +878,7 @@ namespace margot
 
 
         // replicate the state structure
-        for( const auto& state : application_optimizers )
+        for ( const auto& state : application_optimizers )
         {
           // insert the optimization problem
           const auto result = cloned_manager.application_optimizers.emplace(state.first, state.second.create_sibling());
@@ -1007,6 +1009,7 @@ namespace margot
     std::cout << "# // Number of Operating Points in the knowledge: " << knowledge.size() << std::endl;
     std::cout << "# // Number of State(s) (optimization problems): " << application_optimizers.size() << std::endl;
     std::cout << "# // Synchronization with application: ";
+
     if ( status == ApplicationStatus::UNDEFINED )
     {
       std::cout << "OUT OF SYNC" << std::endl;
@@ -1022,7 +1025,9 @@ namespace margot
         std::cout << "UNKNOWN (ERROR!)" << std::endl;
       }
     }
+
     const bool is_active_state_selected = current_optimizer != application_optimizers.end();
+
     if (is_active_state_selected)
     {
       std::cout << "# // Active State address: " << &current_optimizer->second << std::endl;
@@ -1033,6 +1038,7 @@ namespace margot
       std::cout << "# // Active State address: N/A" << std::endl;
       std::cout << "# // Active State id: N/A" << std::endl;
     }
+
     std::cout << "# //" << std::endl;
 
 
@@ -1043,6 +1049,7 @@ namespace margot
     std::cout << "# // ----------------------------------------------------------" << std::endl;
 
     std::cout << "# //" << std::endl;
+
     if (application_configuration)
     {
       print_whole_op<OperatingPoint>(application_configuration, "# //");
@@ -1051,6 +1058,7 @@ namespace margot
     {
       std::cout << "# // Actually we have no clue, sorry :(" << std::endl;
     }
+
     std::cout << "# //" << std::endl;
 
 
@@ -1060,6 +1068,7 @@ namespace margot
     std::cout << "# // ----------------------------------------------------------" << std::endl;
 
     std::cout << "# //" << std::endl;
+
     if (proposed_best_configuration)
     {
       print_whole_op<OperatingPoint>(proposed_best_configuration, "# //");
@@ -1068,6 +1077,7 @@ namespace margot
     {
       std::cout << "# // No information about it, maybe we have to find it before..." << std::endl;
     }
+
     std::cout << "# //" << std::endl;
 
 
@@ -1119,7 +1129,7 @@ namespace margot
     std::cout << "# // ----------------------------------------------------------" << std::endl;
 
     // loop over them
-    for( auto it = application_optimizers.begin(); it != application_optimizers.end(); ++it )
+    for ( auto it = application_optimizers.begin(); it != application_optimizers.end(); ++it )
     {
       std::cout << "# //" << std::endl;
       const std::string suffix = it == current_optimizer ? " <---- CURRENT STATE " : "";

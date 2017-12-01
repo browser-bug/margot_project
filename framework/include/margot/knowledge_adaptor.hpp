@@ -220,7 +220,7 @@ namespace margot
 
 
   template< class OperatingPoint, typename coefficient_type >
-  void KnowledgeAdaptor<OperatingPoint,coefficient_type>::dump( const std::string& prefix ) const
+  void KnowledgeAdaptor<OperatingPoint, coefficient_type>::dump( const std::string& prefix ) const
   {
     // print the header
     std::cout << prefix << std::endl;
@@ -229,7 +229,8 @@ namespace margot
 
     // print all the providers
     std::size_t counter = 0;
-    for( const auto& provider : adaptors )
+
+    for ( const auto& provider : adaptors )
     {
       if (counter == OperatingPoint::number_of_software_knobs)
       {
@@ -237,7 +238,9 @@ namespace margot
         std::cout << prefix << " List of runtime information providers for metrics:" << std::endl;
         std::cout << prefix << std::endl;
       }
+
       std::cout << prefix << "\tField index " << std::to_string(counter) << " -> ";
+
       if (provider)
       {
         std::cout << provider->get_status();
@@ -246,6 +249,7 @@ namespace margot
       {
         std::cout << "N/A";
       }
+
       std::cout << std::endl;
       ++counter;
     }

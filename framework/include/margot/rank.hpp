@@ -371,8 +371,8 @@ namespace margot
         // since we don't have anymore the information regarding the coefficients of
         // the rank values, we have to create a rank object with the trivial constructor
         // and then replace the evaluator with the actual evaluating function
-        std::shared_ptr< Rank<OperatingPoint,objective,composer,Fields...> > sibling;
-        sibling.reset(new Rank<OperatingPoint,objective,composer,Fields...>());
+        std::shared_ptr< Rank<OperatingPoint, objective, composer, Fields...> > sibling;
+        sibling.reset(new Rank<OperatingPoint, objective, composer, Fields...>());
         sibling->MyView::evaluate = MyView::evaluate;
 
         // now we have to perform a pointer conversion
@@ -480,7 +480,7 @@ namespace margot
 
 
   template< class OperatingPoint, RankObjective objective, FieldComposer composer, class ...Fields >
-  void Rank<OperatingPoint,objective,composer,Fields...>::dump(const std::string &prefix) const
+  void Rank<OperatingPoint, objective, composer, Fields...>::dump(const std::string& prefix) const
   {
     const std::string direction = objective == RankObjective::MAXIMIZE ? "Maximize" : "Minimize";
     std::cout << prefix << " Rank objective: " << direction << std::endl;
@@ -493,10 +493,10 @@ namespace margot
     }
     else
     {
-      for( const auto op_pair : MyView::sorted_knowledge )
+      for ( const auto op_pair : MyView::sorted_knowledge )
       {
         std::cout << prefix << std::endl;
-        print_conf_with_value<OperatingPoint,rank_type>(op_pair.second, op_pair.first, prefix, "Rank");
+        print_conf_with_value<OperatingPoint, rank_type>(op_pair.second, op_pair.first, prefix, "Rank");
         std::cout << prefix << std::endl;
       }
     }

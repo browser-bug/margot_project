@@ -72,7 +72,7 @@ namespace margot
     std::cout << std::endl;
   }
 
-  template< class OperatingPointSegment, std::size_t number_of_elements, std::size_t current_index = number_of_elements - 1 >
+  template < class OperatingPointSegment, std::size_t number_of_elements, std::size_t current_index = number_of_elements - 1 >
   struct segment_to_string
   {
     static void fill_configuration( const OperatingPointSegment& segment,  std::vector< std::string >& description )
@@ -84,12 +84,12 @@ namespace margot
       description[current_index] = std_dev != 0 ? mean_value_str + " +- " + std::to_string(std_dev) : mean_value_str;
 
       // recursively compute the other fields
-      segment_to_string<OperatingPointSegment,number_of_elements,current_index -1>::fill_configuration(segment, description);
+      segment_to_string < OperatingPointSegment, number_of_elements, current_index - 1 >::fill_configuration(segment, description);
     }
   };
 
   template< class OperatingPointSegment, std::size_t number_of_elements >
-  struct segment_to_string<OperatingPointSegment,number_of_elements,0>
+  struct segment_to_string<OperatingPointSegment, number_of_elements, 0>
   {
     static void fill_configuration( const OperatingPointSegment& segment,  std::vector< std::string >& description )
     {
@@ -104,6 +104,7 @@ namespace margot
   inline std::string pad_string( std::string output, std::size_t max_size )
   {
     const std::size_t string_size = output.length();
+
     if ( string_size < max_size )
     {
       const std::size_t padding_lenght = max_size - string_size;
@@ -113,6 +114,7 @@ namespace margot
       const std::string right_pad(right_padding, ' ');
       return left_pad + output + right_pad;
     }
+
     return output;
   }
 
@@ -137,34 +139,34 @@ namespace margot
 
     // print the header of the software knob
     std::cout << prefix << " +" << line_seperator << "+" << std::endl;
-    std::cout << prefix << " |" << pad_string("Software Knobs",op_width) << "|" << std::endl;
+    std::cout << prefix << " |" << pad_string("Software Knobs", op_width) << "|" << std::endl;
     std::cout << prefix << " +" << line_seperator << "+" << std::endl;
 
 
     // get the to_string representation of the Operating Point
     std::vector< std::string > knob_values(OperatingPoint::number_of_software_knobs);
-    segment_to_string<software_knob_segment_t,OperatingPoint::number_of_software_knobs>::fill_configuration(software_knobs, knob_values);
+    segment_to_string<software_knob_segment_t, OperatingPoint::number_of_software_knobs>::fill_configuration(software_knobs, knob_values);
 
     // print the informations
-    for( const auto& knob_value : knob_values )
+    for ( const auto& knob_value : knob_values )
     {
-      std::cout << prefix << " |" << pad_string(knob_value ,op_width) << "|" << std::endl;
+      std::cout << prefix << " |" << pad_string(knob_value, op_width) << "|" << std::endl;
     }
 
     // print the header of the metrics
     std::cout << prefix << " +" << line_seperator << "+" << std::endl;
-    std::cout << prefix << " |" << pad_string("Metrics",op_width) << "|" << std::endl;
+    std::cout << prefix << " |" << pad_string("Metrics", op_width) << "|" << std::endl;
     std::cout << prefix << " +" << line_seperator << "+" << std::endl;
 
 
     // get the to_string representation of the Operating Point
     std::vector< std::string > metric_values(OperatingPoint::number_of_metrics);
-    segment_to_string<metric_segment_t,OperatingPoint::number_of_metrics>::fill_configuration(metrics, metric_values);
+    segment_to_string<metric_segment_t, OperatingPoint::number_of_metrics>::fill_configuration(metrics, metric_values);
 
     // print the informations
-    for( const auto& metric_value : metric_values )
+    for ( const auto& metric_value : metric_values )
     {
-      std::cout << prefix << " |" << pad_string(metric_value,op_width) << "|" << std::endl;
+      std::cout << prefix << " |" << pad_string(metric_value, op_width) << "|" << std::endl;
     }
 
 
@@ -191,25 +193,25 @@ namespace margot
 
     // print the header of the software knob
     std::cout << prefix << " +" << line_seperator << "+" << std::endl;
-    std::cout << prefix << " |" << pad_string("Software Knobs",op_width) << "|" << std::endl;
+    std::cout << prefix << " |" << pad_string("Software Knobs", op_width) << "|" << std::endl;
     std::cout << prefix << " +" << line_seperator << "+" << std::endl;
 
 
     // get the to_string representation of the Operating Point
     std::vector< std::string > knob_values(OperatingPoint::number_of_software_knobs);
-    segment_to_string<software_knob_segment_t,OperatingPoint::number_of_software_knobs>::fill_configuration(software_knobs, knob_values);
+    segment_to_string<software_knob_segment_t, OperatingPoint::number_of_software_knobs>::fill_configuration(software_knobs, knob_values);
 
     // print the informations
-    for( const auto& knob_value : knob_values )
+    for ( const auto& knob_value : knob_values )
     {
-      std::cout << prefix << " |" << pad_string(knob_value ,op_width) << "|" << std::endl;
+      std::cout << prefix << " |" << pad_string(knob_value, op_width) << "|" << std::endl;
     }
 
     // print the header of the metrics
     std::cout << prefix << " +" << line_seperator << "+" << std::endl;
-    std::cout << prefix << " |" << pad_string(label,op_width) << "|" << std::endl;
+    std::cout << prefix << " |" << pad_string(label, op_width) << "|" << std::endl;
     std::cout << prefix << " +" << line_seperator << "+" << std::endl;
-    std::cout << prefix << " |" << pad_string(std::to_string(value),op_width) << "|" << std::endl;
+    std::cout << prefix << " |" << pad_string(std::to_string(value), op_width) << "|" << std::endl;
     std::cout << prefix << " +" << line_seperator << "+" << std::endl;
   }
 

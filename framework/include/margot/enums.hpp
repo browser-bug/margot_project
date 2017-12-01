@@ -137,7 +137,6 @@ namespace margot
    * This enum replace the classical comparison function with the "don't care"
    * enumerator, which indicates that the user has no constraints for the
    * given field of the data feature.
-   * Moreover, in case that the 
    */
   enum class FeatureComparison
   {

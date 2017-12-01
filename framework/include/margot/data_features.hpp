@@ -165,7 +165,7 @@ namespace margot
   {
 
 
-    static_assert( sizeof...(cfs) + 1 <= DataFeature{}.size(), "Error: mismatch number of comparison function to validate a data feature");
+    static_assert( sizeof...(cfs) + 1 <= DataFeature{} .size(), "Error: mismatch number of comparison function to validate a data feature");
 
 
     /**
@@ -177,7 +177,7 @@ namespace margot
     /**
      * @brief Explicit definition of the comparison functor
      */
-    using comparison_function = typename cf_proxy<value_type,cf>::compare;
+    using comparison_function = typename cf_proxy<value_type, cf>::compare;
 
 
     /**
@@ -190,8 +190,8 @@ namespace margot
      */
     inline bool operator()(const DataFeature& f1, const DataFeature& f2) const
     {
-      return comparison_function()(f1[f1.size() - (sizeof...(cfs) + 1)],f2[f1.size() - (sizeof...(cfs) + 1)])
-        && data_features_admissible<DataFeature, cfs...>()(f1,f2);
+      return comparison_function()(f1[f1.size() - (sizeof...(cfs) + 1)], f2[f1.size() - (sizeof...(cfs) + 1)])
+             && data_features_admissible<DataFeature, cfs...>()(f1, f2);
     }
 
   };
@@ -223,7 +223,7 @@ namespace margot
     /**
      * @brief Explicit definition of the comparison functor
      */
-    using comparison_function = typename cf_proxy<value_type,cf>::compare;
+    using comparison_function = typename cf_proxy<value_type, cf>::compare;
 
 
     /**
@@ -236,7 +236,7 @@ namespace margot
      */
     inline bool operator()(const DataFeature& f1, const DataFeature& f2) const
     {
-      return comparison_function()(f1[f1.size() - 1],f2[f1.size() - 1]);
+      return comparison_function()(f1[f1.size() - 1], f2[f1.size() - 1]);
     }
 
   };
@@ -249,17 +249,17 @@ namespace margot
    ******************************************************************/
 
 
-   /**
-    * @brief This struct is used to compute the distance between n-dimensional data features
-    *
-    * @tparam DataFeature The type of the data feature, it is assumed to be a std::array
-    * @tparam index The index of the target field of the data feature
-    *
-    * @details
-    * This struct leverage compile time recursion to compute the distance between two
-    * n-dimensional data features.
-    */
-  template< class DataFeature, std::size_t index = DataFeature{}.size() - 1  >
+  /**
+   * @brief This struct is used to compute the distance between n-dimensional data features
+   *
+   * @tparam DataFeature The type of the data feature, it is assumed to be a std::array
+   * @tparam index The index of the target field of the data feature
+   *
+   * @details
+   * This struct leverage compile time recursion to compute the distance between two
+   * n-dimensional data features.
+   */
+  template < class DataFeature, std::size_t index = DataFeature {} .size() - 1  >
   struct data_features_distance
   {
 
@@ -281,7 +281,7 @@ namespace margot
     inline value_type operator()(const DataFeature& origin, const DataFeature& target) const
     {
       const auto distance = std::get<index>(origin) - std::get<index>(target);
-      return distance * distance + data_features_distance<DataFeature,index-1>()(origin,target);
+      return distance * distance + data_features_distance < DataFeature, index - 1 > ()(origin, target);
     }
 
   };
@@ -345,7 +345,7 @@ namespace margot
    * This struct leverage compile time recursion to perform the normalization in a n-dimensional
    * data feature.
    */
-  template< class DataFeature, std::size_t index = DataFeature{}.size() - 1  >
+  template < class DataFeature, std::size_t index = DataFeature {} .size() - 1  >
   struct normalize_datafeatures
   {
 
@@ -370,7 +370,7 @@ namespace margot
       std::get<index>(f2) = (std::get<index>(f2) - coord_min) / coord_width;
 
       // go to the lower axis
-      normalize_datafeatures<DataFeature, index -1>()(origin, f1, f2);
+      normalize_datafeatures < DataFeature, index - 1 > ()(origin, f1, f2);
     }
 
   };
@@ -485,6 +485,7 @@ namespace margot
       {
         return best;
       }
+
       if (!is_best_valid && is_target_valid)
       {
         return target;
@@ -547,6 +548,7 @@ namespace margot
       {
         return best;
       }
+
       if (!is_best_valid && is_target_valid)
       {
         return target;

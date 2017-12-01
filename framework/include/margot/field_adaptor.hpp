@@ -328,8 +328,8 @@ namespace margot
       std::string get_status( void ) const
       {
         return std::string("Size = ") + std::to_string(inertia)
-                                      + std::string(" | coefficient_error = ")
-                                      + std::to_string(get_error_coefficient());
+               + std::string(" | coefficient_error = ")
+               + std::to_string(get_error_coefficient());
       }
 
 
