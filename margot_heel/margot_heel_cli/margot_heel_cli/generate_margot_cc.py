@@ -14,7 +14,7 @@ from .model_data_feature import DataFeatureModel
 
 what_translator = {
   "AVERAGE"  : "average",
-  "VARIANCE" : "variance",
+  "STDDEV"   : "standard_deviation",
   "MAX"      : "max",
   "MIN"      : "min",
 }
