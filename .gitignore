@@ -1,4 +1,5 @@
 build/
 margot_heel/margot_heel_if/cmake/
+extern/
 .clang_complete
 *.pyc

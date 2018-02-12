@@ -2,9 +2,6 @@
 #### Compile framework library
 ################################
 
-# set the name of the final library
-set( MARGOT_LIB_NAME "margot")
-
 
 # set the headers of the margot library
 set( HDR_PATH "${CMAKE_CURRENT_SOURCE_DIR}/include" )

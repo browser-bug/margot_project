@@ -67,6 +67,12 @@ if ( USE_TEMPERATURE_MONITOR )
 	find_package( SENSORS )
 endif( USE_TEMPERATURE_MONITOR )
 
+option( BUILD_SERVER "Build agora: the server-side application to manage appication knowledge" ON )
+if ( BUILD_SERVER )
+	list (APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/server/cmake")
+	find_package( MQTT )
+endif( BUILD_SERVER )
+
 
 
 ################################
@@ -176,6 +182,39 @@ else ( USE_TEMPERATURE_MONITOR )
 endif ( USE_TEMPERATURE_MONITOR )
 
 
+# check if we can compile margot agora
+if ( BUILD_SERVER )
+	if ( HAVE_MQTT )
+		message( STATUS "Server application agora.............: ENABLED (-DBUILD_SERVER=OFF to disable)" )
+	else ( HAVE_MQTT )
+
+		# print the fact that we fetch and build an external library
+		message( STATUS "Server application agora.............: ENABLED (-DBUILD_SERVER=OFF to disable)" )
+		message( STATUS "    NOTE: MQTT not found, we build it internally, internet connection required")
+
+		# set up the mqtt environment
+		set( MQTT_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/extern/install)
+		include(${CMAKE_ROOT}/Modules/ExternalProject.cmake)
+		ExternalProject_add( MQTT
+			PREFIX ${CMAKE_CURRENT_SOURCE_DIR}/extern/mqtt
+			GIT_REPOSITORY https://github.com/eclipse/paho.mqtt.c.git
+			GIT_TAG v1.2.0
+			UPDATE_COMMAND ""
+			PATCH_COMMAND ""
+			CMAKE_ARGS -DPAHO_BUILD_STATIC:STRING=TRUE -DCMAKE_INSTALL_PREFIX:PATH=${MQTT_ROOT} -DCMAKE_BUILD_TYPE:STRING=RELEASE
+		)
+		set( HAVE_MQTT TRUE)
+		set( MQTT_LIBRARIES ${MQTT_ROOT}/lib/libpaho-mqtt3a-static.a)
+		set( MQTT_INCLUDES ${MQTT_ROOT}/include)
+	endif ( HAVE_MQTT)
+
+		# eventually include the headers directory
+		include_directories( ${MQTT_INCLUDES})
+else ( BUILD_SERVER )
+	message( STATUS "Server application agora.............: DISABLED (-DBUILD_SERVER=ON to enable)" )
+endif ( BUILD_SERVER )
+
+
 # this message is just for pretty printing
 message( STATUS "" )
 
@@ -187,7 +226,13 @@ message( STATUS "" )
 ################################
 
 # build the framework
+set( MARGOT_LIB_NAME "margot")
 add_subdirectory( framework )
+
+# build margot agora
+if ( BUILD_SERVER )
+	add_subdirectory( server )
+endif ( BUILD_SERVER)
 
 # generate auto complete file
 set( AUTOCOMPLETE_FILE_NAME .clang_complete )
@@ -204,3 +249,6 @@ endif ( HAVE_PAPI )
 if ( HAVE_SENSORS )
 	file( APPEND ${AUTOCOMPLETE_FILE_NAME} "-I${SENSORS_INCLUDES}\n" )
 endif ( HAVE_SENSORS )
+if ( HAVE_MQTT )
+	file( APPEND ${AUTOCOMPLETE_FILE_NAME} "-I${MQTT_INCLUDES}\n" )
+endif ( HAVE_MQTT )
