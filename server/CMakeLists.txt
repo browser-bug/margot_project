@@ -8,7 +8,9 @@ set( MARGOT_SERVER_NAME "margot-agora")
 
 # set the header of the application
 set( HDR_PATH "${CMAKE_CURRENT_SOURCE_DIR}/include" )
-set( AGORA_HEADERS "")
+set( AGORA_HEADERS
+     ${HDR_PATH}/logger.hpp
+   )
 include_directories( ${HDR_PATH} )
 
 
@@ -16,6 +18,7 @@ include_directories( ${HDR_PATH} )
 set( SRC_PATH "${CMAKE_CURRENT_SOURCE_DIR}/src" )
 set( AGORA_SOURCES
      ${SRC_PATH}/main
+     ${SRC_PATH}/logger
    )
 
 
