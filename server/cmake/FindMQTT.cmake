@@ -16,22 +16,33 @@ set( MQTT_ROOT $ENV{MQTT_ROOT})
 ## Check for the header files
 
 find_path (MQTT_INCLUDES MQTTClient.h
-	PATHS ${MQTT_ROOT}/include ${PROJECT_SOURCE_DIR}/extern/install/include
-	NO_DEFAULT_PATH
-	)
+  PATHS ${MQTT_ROOT}/include ${PROJECT_SOURCE_DIR}/extern/install/include
+  NO_DEFAULT_PATH
+  )
 
 find_path (MQTT_INCLUDES MQTTClient.h)
 
 
 ## -----------------------------------------------------------------------------
-## Check for the library
+## Check for the paho mqtt library
 
-find_library (MQTT_LIBRARIES libpaho-mqtt3a-static.a paho-mqtt3a
+find_library (MQTT_LIBRARY libpaho-mqtt3c-static.a paho-mqtt3c
   PATHS ${MQTT_ROOT}/lib ${MQTT_ROOT}/lib64 ${PROJECT_SOURCE_DIR}/extern/install/lib ${PROJECT_SOURCE_DIR}/extern/install/lib64
   NO_DEFAULT_PATH
   )
 
-find_library (MQTT_LIBRARIES libpaho-mqtt3a-static.a paho-mqtt3a)
+find_library (MQTT_LIBRARY libpaho-mqtt3c-static.a paho-mqtt3c)
+
+
+## -----------------------------------------------------------------------------
+## Check for the pthread library
+
+find_library (MQTT_PTHREADS pthread)
+
+## -----------------------------------------------------------------------------
+## Compose the libraries
+
+set( MQTT_LIBRARIES ${MQTT_LIBRARY} ${MQTT_PTHREADS} )
 
 
 

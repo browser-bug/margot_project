@@ -203,8 +203,9 @@ if ( BUILD_SERVER )
 			PATCH_COMMAND ""
 			CMAKE_ARGS -DPAHO_BUILD_STATIC:STRING=TRUE -DCMAKE_INSTALL_PREFIX:PATH=${MQTT_ROOT} -DCMAKE_BUILD_TYPE:STRING=RELEASE
 		)
+		find_library (MQTT_PTHREADS pthread)
 		set( HAVE_MQTT TRUE)
-		set( MQTT_LIBRARIES ${MQTT_ROOT}/lib/libpaho-mqtt3a-static.a)
+		set( MQTT_LIBRARIES ${MQTT_ROOT}/lib/libpaho-mqtt3c-static.a ${MQTT_PTHREADS})
 		set( MQTT_INCLUDES ${MQTT_ROOT}/include)
 	endif ( HAVE_MQTT)
 
@@ -237,6 +238,7 @@ endif ( BUILD_SERVER)
 # generate auto complete file
 set( AUTOCOMPLETE_FILE_NAME .clang_complete )
 file( WRITE ${AUTOCOMPLETE_FILE_NAME} "-I${PROJECT_SOURCE_DIR}/framework/include\n" )
+file( WRITE ${AUTOCOMPLETE_FILE_NAME} "-I${PROJECT_SOURCE_DIR}/server/include\n" )
 if ( WITH_TEST )
 	file( APPEND ${AUTOCOMPLETE_FILE_NAME} "-I${CXXTEST_INCLUDES}\n" )
 endif ( WITH_TEST )
