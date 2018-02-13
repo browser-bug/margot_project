@@ -10,6 +10,9 @@ set( MARGOT_SERVER_NAME "margot-agora")
 set( HDR_PATH "${CMAKE_CURRENT_SOURCE_DIR}/include" )
 set( AGORA_HEADERS
      ${HDR_PATH}/logger.hpp
+     ${HDR_PATH}/safe_queue.hpp
+     ${HDR_PATH}/remote_handler.hpp
+     ${HDR_PATH}/virtual_channel.hpp
    )
 include_directories( ${HDR_PATH} )
 
@@ -19,6 +22,7 @@ set( SRC_PATH "${CMAKE_CURRENT_SOURCE_DIR}/src" )
 set( AGORA_SOURCES
      ${SRC_PATH}/main
      ${SRC_PATH}/logger
+     ${SRC_PATH}/paho_remote_implementation
    )
 
 
