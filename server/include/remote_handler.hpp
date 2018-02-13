@@ -59,6 +59,8 @@ namespace margot
 
       virtual void unsubscribe( const std::string& topic ) = 0;
 
+      virtual void disconnect( void ) = 0;
+
       virtual ~RemoteHandler( void ) {}
 
     protected:

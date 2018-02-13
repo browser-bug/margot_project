@@ -21,6 +21,7 @@
 #include <thread>
 #include <atomic>
 #include <stdexcept>
+#include <cassert>
 
 #include "paho_remote_implementation.hpp"
 #include "logger.hpp"
@@ -173,32 +174,21 @@ PahoClient::PahoClient( const std::string& broker_address, const uint8_t qos_lev
 
 PahoClient::~PahoClient( void )
 {
-  // first of all we need to end the connection with the broker and free the memory
-  if (is_connected)
-  {
-    uint16_t disconnect_timeout_ms = 10000;
-    margot::warning("MQTT client: disconnecting from the broker (timeout ", disconnect_timeout_ms, "ms)");
-    int return_code = MQTTClient_disconnect(client, disconnect_timeout_ms);
-
-    if (return_code != MQTTCLIENT_SUCCESS)
-    {
-      margot::warning("MQTT client: unable to disconnect from client properly");
-    }
-    else
-    {
-      margot::warning("MQTT client: we are now disconnected from the broker");
-    }
-  }
-
-  MQTTClient_destroy(&client);
-
-  // send the terminate signal in the queue, nice job everybody
-  inbox.send_terminate_signal();
+  // if we haven't done it yet, we have to disconnet the channel
+  disconnect();
 }
 
 
 void PahoClient::send_message( message_t& output_message )
 {
+  // make sure to send a message while we are actually connected to a broker
+  // it may happens in the shutdown procedure
+  if (!is_connected)
+  {
+    margot::warning("MQTT client: attempt to send a message while disconnected");
+    return;
+  }
+
   // this would be the "id" of the token to check in the log
   MQTTClient_deliveryToken delivery_token;
 
@@ -227,6 +217,15 @@ void PahoClient::send_message( message_t& output_message )
 
 void PahoClient::subscribe( const std::string& topic )
 {
+  // make sure to subscibe while we are actually connected to a broker
+  // it may happens in the shutdown procedure
+  if (!is_connected)
+  {
+    margot::warning("MQTT client: attempt to subscribe in a topic while disconnected");
+    return;
+  }
+
+  // subscribe to the topic
   int return_code = MQTTClient_subscribe(client, topic.c_str(), qos_level);
 
   if (return_code != MQTTCLIENT_SUCCESS)
@@ -240,6 +239,14 @@ void PahoClient::subscribe( const std::string& topic )
 
 void PahoClient::unsubscribe( const std::string& topic )
 {
+  // make sure to unsubscibe while we are actually connected to a broker
+  // it may happens in the shutdown procedure
+  if (!is_connected)
+  {
+    margot::warning("MQTT client: attempt to unsubscribe from a topic while disconnected");
+    return;
+  }
+
   int return_code = MQTTClient_unsubscribe(client, topic.c_str());
 
   if (return_code != MQTTCLIENT_SUCCESS)
@@ -248,4 +255,34 @@ void PahoClient::unsubscribe( const std::string& topic )
   }
 
   margot::pedantic("MQTT client: unsubscribed to topic \"", topic, "\"");
+}
+
+
+void PahoClient::disconnect( void )
+{
+  // first of all we need to end the connection with the broker
+  if (is_connected)
+  {
+    uint16_t disconnect_timeout_ms = 10000;
+    margot::warning("MQTT client: disconnecting from the broker (timeout ", disconnect_timeout_ms, "ms)");
+    int return_code = MQTTClient_disconnect(client, disconnect_timeout_ms);
+
+    if (return_code != MQTTCLIENT_SUCCESS)
+    {
+      margot::warning("MQTT client: unable to disconnect from client properly");
+    }
+    else
+    {
+      margot::warning("MQTT client: we are now disconnected from the broker");
+    }
+  }
+
+  // now we have to free the memory held by the client
+  MQTTClient_destroy(&client);
+
+  // state that we are no more in contact with the broker
+  is_connected = false;
+
+  // eventually we notify any worker in the inbox that we are out of business
+  inbox.send_terminate_signal();
 }

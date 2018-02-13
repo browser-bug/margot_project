@@ -64,6 +64,8 @@ namespace margot
 
       void unsubscribe( const std::string& topic );
 
+      void disconnect( void );
+
   };
 
 }

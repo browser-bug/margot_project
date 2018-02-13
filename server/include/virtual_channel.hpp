@@ -22,6 +22,7 @@
 #define MARGOT_AGORA_VIRTUAL_CHANNEL_HDR
 
 #include <memory>
+#include <cassert>
 
 #include "remote_handler.hpp"
 #include "paho_remote_implementation.hpp"
@@ -44,23 +45,33 @@ namespace margot
         channel.reset( new T(remote_arguments...));
       }
 
+      inline void destroy_channel( void )
+      {
+        assert(channel && "Error: destroy on an empty channel");
+        channel->disconnect();
+      }
+
       inline bool recv_message( message_t& output_message )
       {
+        assert(channel && "Error: recv on an empty channel");
         return channel->recv_message(output_message);
       }
 
       inline void send_message( message_t& input_message )
       {
+        assert(channel && "Error: send on an empty channel");
         channel->send_message(input_message);
       }
 
       inline void subscribe( const std::string& topic)
       {
+        assert(channel && "Error: subscribe on an empty channel");
         channel->subscribe(topic);
       }
 
       inline void unsubscribe( const std::string& topic )
       {
+        assert(channel && "Error: unsubscribe on an empty channel");
         channel->subscribe(topic);
       }
 
