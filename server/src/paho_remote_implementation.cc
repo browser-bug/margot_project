@@ -33,11 +33,29 @@ extern "C"
 
   int recv_callback_function( void* recv_buffer, char* topic_c_str, int topic_size, MQTTClient_message* message )
   {
-    // log the reception of a message
-    margot::pedantic("MQTT callback: received a message on topic \"", topic_c_str, "\"");
+    // check if the payload message is a valid c-string
+    char* payload_message = (char*) message->payload;
+    const int supposed_end_string_pos = message->payloadlen;
+    const char final_char = payload_message[supposed_end_string_pos];
 
-    // get message and payload in a proper format
-    struct message_t incoming_message = {std::string(topic_c_str), std::string((char*)message->payload)};
+    // fix the string if it is broken and convert it to a std::string
+    std::string payload;
+    if (final_char != '\0')
+    {
+      payload_message[supposed_end_string_pos] = '\0'; // i know, but don't judge me
+      payload = std::string(payload_message);
+      payload_message[supposed_end_string_pos] = final_char; // not sure how paho frees memory
+    }
+    else
+    {
+      payload = std::string(payload_message);
+    }
+
+    // log the reception of a message
+    margot::pedantic("MQTT callback: received a message on topic \"", topic_c_str, "\" with payload \"", payload, "\"");
+
+    // compose the actual message
+    struct message_t incoming_message = {std::string(topic_c_str), payload};
 
     // push the message in the queue
     // NOTE: this operation is dangerous, because we are assuming that context
@@ -49,7 +67,8 @@ extern "C"
     MQTTClient_freeMessage(&message);
     MQTTClient_free(topic_c_str);
 
-    // not sure on why we should return a value, but still...
+    // everything is fine, we must return something different from 0
+    // according to the documentation
     return 1;
   }
 
