@@ -32,8 +32,7 @@ set( AGORA_SOURCES
 add_executable( ${MARGOT_SERVER_NAME} ${AGORA_HEADERS} ${AGORA_SOURCES} )
 
 # link the libraries
-target_link_libraries( ${MARGOT_SERVER_NAME} ${MARGOT_LIB_NAME} )
-target_link_libraries( ${MARGOT_SERVER_NAME} ${MQTT_LIBRARIES} )
+target_link_libraries( ${MARGOT_SERVER_NAME} ${MQTT_LIBRARIES} ${CASSANDRA_LIBRARIES} )
 
 
 # add the install command

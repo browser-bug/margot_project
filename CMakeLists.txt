@@ -71,6 +71,7 @@ option( BUILD_SERVER "Build agora: the server-side application to manage appicat
 if ( BUILD_SERVER )
 	list (APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/server/cmake")
 	find_package( MQTT )
+	find_package( CASSANDRA )
 endif( BUILD_SERVER )
 
 
@@ -184,17 +185,21 @@ endif ( USE_TEMPERATURE_MONITOR )
 
 # check if we can compile margot agora
 if ( BUILD_SERVER )
-	if ( HAVE_MQTT )
-		message( STATUS "Server application agora.............: ENABLED (-DBUILD_SERVER=OFF to disable)" )
-	else ( HAVE_MQTT )
+	message( STATUS "Server application agora.............: ENABLED (-DBUILD_SERVER=OFF to disable)" )
+
+	# check if we have to build some component manually
+	if ( (NOT HAVE_MQTT) OR (NOT HAVE_CASSANDRA) )
+		include(${CMAKE_ROOT}/Modules/ExternalProject.cmake)
+	endif ( (NOT HAVE_MQTT) OR (NOT HAVE_CASSANDRA) )
+
+	# deal with MQTT client library
+	if ( NOT HAVE_MQTT )
 
 		# print the fact that we fetch and build an external library
-		message( STATUS "Server application agora.............: ENABLED (-DBUILD_SERVER=OFF to disable)" )
 		message( STATUS "    NOTE: MQTT not found, we build it internally, internet connection required")
 
 		# set up the mqtt environment
 		set( MQTT_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/extern/install)
-		include(${CMAKE_ROOT}/Modules/ExternalProject.cmake)
 		ExternalProject_add( MQTT
 			PREFIX ${CMAKE_CURRENT_SOURCE_DIR}/extern/mqtt
 			GIT_REPOSITORY https://github.com/eclipse/paho.mqtt.c.git
@@ -207,10 +212,38 @@ if ( BUILD_SERVER )
 		set( HAVE_MQTT TRUE)
 		set( MQTT_LIBRARIES ${MQTT_ROOT}/lib/libpaho-mqtt3c-static.a ${MQTT_PTHREADS})
 		set( MQTT_INCLUDES ${MQTT_ROOT}/include)
-	endif ( HAVE_MQTT)
+	endif ( NOT HAVE_MQTT )
 
-		# eventually include the headers directory
-		include_directories( ${MQTT_INCLUDES})
+	# deal with the CASSANDRA driver
+	if ( NOT HAVE_CASSANDRA )
+
+		# print the fact that we fetch and build an external library
+		message( STATUS "    NOTE: CASSANDRA driver not found, we build it internally, internet connection required")
+		message( STATUS "          it requires also OpenSLL and libvu components, they are not internally built")
+
+		# set up the mqtt environment
+		set( CASSANDRA_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/extern/install)
+		ExternalProject_add( CASSANDRA
+			PREFIX ${CMAKE_CURRENT_SOURCE_DIR}/extern/cassandra
+			GIT_REPOSITORY https://github.com/datastax/cpp-driver.git
+			GIT_TAG 2.8.1
+			UPDATE_COMMAND ""
+			PATCH_COMMAND ""
+			CMAKE_ARGS -DCASS_BUILD_STATIC:STRING=TRUE -DCASS_BUILD_SHARED:STRING=FALSE -DCASS_USE_STATIC_LIBS:STRING=TRUE -DCMAKE_INSTALL_PREFIX:PATH=${CASSANDRA_ROOT} -DCMAKE_BUILD_TYPE:STRING=RELEASE
+		)
+		set( HAVE_CASSANDRA TRUE)
+		set( CASSANDRA_LIBRARY ${CASSANDRA_ROOT}/lib/libcassandra_static.a)
+		set( CASSANDRA_INCLUDES ${CASSANDRA_ROOT}/include)
+		find_library (CLIBVU_LIBRARY uv libuv )
+		find_package ( OpenSSL )
+		set ( CASSANDRA_LIBRARIES ${CASSANDRA_LIBRARY} ${CLIBVU_LIBRARY} ${OPENSSL_LIBRARIES} )
+	endif ( NOT HAVE_CASSANDRA )
+
+
+
+	# eventually include the headers directory
+	include_directories( ${MQTT_INCLUDES})
+	include_directories( ${CASSANDRA_INCLUDES})
 else ( BUILD_SERVER )
 	message( STATUS "Server application agora.............: DISABLED (-DBUILD_SERVER=ON to enable)" )
 endif ( BUILD_SERVER )
@@ -226,19 +259,21 @@ message( STATUS "" )
 #### Build section
 ################################
 
-# build the framework
-set( MARGOT_LIB_NAME "margot")
-add_subdirectory( framework )
 
 # build margot agora
 if ( BUILD_SERVER )
 	add_subdirectory( server )
 endif ( BUILD_SERVER)
 
+# build the framework
+add_subdirectory( framework )
+
 # generate auto complete file
 set( AUTOCOMPLETE_FILE_NAME .clang_complete )
 file( WRITE ${AUTOCOMPLETE_FILE_NAME} "-I${PROJECT_SOURCE_DIR}/framework/include\n" )
-file( WRITE ${AUTOCOMPLETE_FILE_NAME} "-I${PROJECT_SOURCE_DIR}/server/include\n" )
+file( APPEND ${AUTOCOMPLETE_FILE_NAME} "-I${PROJECT_SOURCE_DIR}/server/include\n")
+file( APPEND ${AUTOCOMPLETE_FILE_NAME} "-I${MQTT_INCLUDES}\n" )
+file( APPEND ${AUTOCOMPLETE_FILE_NAME} "-I${CASSANDRA_INCLUDES}\n" )
 if ( WITH_TEST )
 	file( APPEND ${AUTOCOMPLETE_FILE_NAME} "-I${CXXTEST_INCLUDES}\n" )
 endif ( WITH_TEST )
