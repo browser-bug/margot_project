@@ -1,6 +1,4 @@
-#include <iostream>
 #include <cstdlib>
-#include <chrono>
 
 
 #include "logger.hpp"
@@ -8,19 +6,12 @@
 #include "virtual_channel.hpp"
 #include "threadpool.hpp"
 #include "worker.hpp"
-#include "application_stub.hpp"
 
 
 
 int main( int argc, char* argv[] )
 {
 
-  // run the application stub for 5 secs
-  margot::Application local_application;
-  local_application(std::chrono::seconds(5));
-
-
-#if 0 // We don't actually care of the server side right now
   // create a virtual channel to communicate with the applications
   margot::info("Agora main: bootstrap step 1: estabilish a connection with broker");
 
@@ -44,8 +35,6 @@ int main( int argc, char* argv[] )
 
   // ok, the whole server is down, time to go out of business
   margot::info("Agora main: all the workers have joined me, farewell my friend");
-
-#endif
 
   return EXIT_SUCCESS;
 }
