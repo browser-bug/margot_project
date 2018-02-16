@@ -22,11 +22,17 @@
 #include <atomic>
 #include <stdexcept>
 #include <cassert>
+#include <unistd.h>      // to get the hostname
+#include <sys/syscall.h> // i didn't tough that it was so difficult
+#define gettid() syscall(SYS_gettid) // glibc wrapper missing
+
 
 #include "paho_remote_implementation.hpp"
 #include "logger.hpp"
 
 using namespace margot;
+
+#define MAX_HOSTNAME_LENGHT 256
 
 extern "C"
 {
@@ -117,7 +123,10 @@ PahoClient::PahoClient( const std::string& broker_address, const uint8_t qos_lev
   }
 
   // initialize the client data structure
-  int return_code = MQTTClient_create(&client, broker_address.c_str(), "margot-agora", MQTTCLIENT_PERSISTENCE_NONE, NULL);
+  char hostname[MAX_HOSTNAME_LENGHT];
+  gethostname(hostname, MAX_HOSTNAME_LENGHT);
+  const std::string actual_id = std::string(hostname) + "_" + std::to_string(::gettid());
+  int return_code = MQTTClient_create(&client, broker_address.c_str(), actual_id.c_str(), MQTTCLIENT_PERSISTENCE_NONE, NULL);
 
   if (return_code != MQTTCLIENT_SUCCESS)
   {
