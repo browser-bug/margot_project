@@ -27,7 +27,7 @@
 using namespace margot;
 
 CassandraClient::CassandraClient(const std::string& url, const std::string& username, const std::string& password)
-  :is_connected(false)
+  : is_connected(false)
 {
   // initialize the proper data structure
   CassCluster* cluster = cass_cluster_new();
@@ -104,6 +104,7 @@ CassFuture* CassandraClient::send_query( const std::string& query )
   // evaluate if it went well
   CassError rc = cass_future_error_code(query_future);
   const bool is_query_ok = rc == CASS_OK;
+
   if ( is_query_ok )
   {
     debug("Cassandra client: query \"", query, "\" executed successfully");

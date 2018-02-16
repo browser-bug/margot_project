@@ -46,6 +46,7 @@ extern "C"
 
     // fix the string if it is broken and convert it to a std::string
     std::string payload;
+
     if (final_char != '\0')
     {
       payload_message[supposed_end_string_pos] = '\0'; // i know, but don't judge me

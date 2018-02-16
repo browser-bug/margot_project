@@ -25,7 +25,7 @@
 
 extern "C"
 {
-  #include <cassandra.h>
+#include <cassandra.h>
 }
 
 
@@ -38,39 +38,39 @@ namespace margot
 
   class CassandraClient: public FsHandler
   {
-  private:
+    private:
 
-    bool is_connected;
-    CassSession* session;
-
-
-    // send the query to database and check returning code
-    CassFuture* send_query( const std::string& query );
+      bool is_connected;
+      CassSession* session;
 
 
-    // for the free problem, we can't return the result
-    void execute_query_synch( const std::string& query );
+      // send the query to database and check returning code
+      CassFuture* send_query( const std::string& query );
 
 
-    // use this version if you actually would like to process the result
-    template< class T >
-    inline void execute_query_synch( const std::string& query, T& functor )
-    {
-      // execute the query
-      CassFuture* query_future = send_query(query);
-
-      // process the result of the query
-      functor(cass_future_get_result(query_future));
-
-      // free the future
-      cass_future_free(query_future);
-    }
+      // for the free problem, we can't return the result
+      void execute_query_synch( const std::string& query );
 
 
-  public:
+      // use this version if you actually would like to process the result
+      template< class T >
+      inline void execute_query_synch( const std::string& query, T& functor )
+      {
+        // execute the query
+        CassFuture* query_future = send_query(query);
 
-    CassandraClient(const std::string& url, const std::string& username = "", const std::string& password = "");
-    ~CassandraClient( void );
+        // process the result of the query
+        functor(cass_future_get_result(query_future));
+
+        // free the future
+        cass_future_free(query_future);
+      }
+
+
+    public:
+
+      CassandraClient(const std::string& url, const std::string& username = "", const std::string& password = "");
+      ~CassandraClient( void );
 
   };
 

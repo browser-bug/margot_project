@@ -46,7 +46,7 @@ namespace margot
 
       template< class... Ts >
       ThreadPool( VirtualChannel target_channel, uint16_t number_of_workers, const Ts... arguments)
-        :channel(target_channel),worker_functor(target_channel,arguments...)
+        : channel(target_channel), worker_functor(target_channel, arguments...)
       {
 
         // build the lambda which defines the actual thread function
@@ -56,7 +56,8 @@ namespace margot
           margot::info("Thread ", std::this_thread::get_id(), " on duty");
 
           // assuming that there is plenty of work for everybody
-          while (true) {
+          while (true)
+          {
 
             // declaring the new message
             message_t new_incoming_message;
@@ -74,7 +75,8 @@ namespace margot
 
         // spawn all the threads
         pool.reserve(number_of_workers);
-        for( uint16_t i = 0; i < number_of_workers; ++i)
+
+        for ( uint16_t i = 0; i < number_of_workers; ++i)
         {
           pool.emplace_back(std::thread(worker_wrapper));
         }

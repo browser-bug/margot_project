@@ -34,34 +34,34 @@ namespace margot
 
   class Worker
   {
-  private:
+    private:
 
-    VirtualChannel channel;
-
-
-  public:
-
-    Worker(VirtualChannel channel):channel(channel){}
+      VirtualChannel channel;
 
 
-    inline void operator()(const message_t& new_message)
-    {
-      // trivial implementation of the response system
-      std::cout << "[" << new_message.topic << "] -> " << new_message.payload << std::endl;
+    public:
 
-      // this is to test the send of the message
-      message_t response_message = {{"margot/anwser"},{new_message.payload}};
-      channel.send_message(response_message);
+      Worker(VirtualChannel channel): channel(channel) {}
 
-      // the very first control is for quitting the whole thing
-      if (new_message.topic.compare("margot/system") == 0)
+
+      inline void operator()(const message_t& new_message)
       {
-        if (new_message.payload.compare("shutdown") ==  0)
+        // trivial implementation of the response system
+        std::cout << "[" << new_message.topic << "] -> " << new_message.payload << std::endl;
+
+        // this is to test the send of the message
+        message_t response_message = {{"margot/anwser"}, {new_message.payload}};
+        channel.send_message(response_message);
+
+        // the very first control is for quitting the whole thing
+        if (new_message.topic.compare("margot/system") == 0)
         {
-          channel.destroy_channel();
+          if (new_message.payload.compare("shutdown") ==  0)
+          {
+            channel.destroy_channel();
+          }
         }
       }
-    }
 
 
   };
