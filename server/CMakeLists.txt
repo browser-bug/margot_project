@@ -16,6 +16,7 @@ set( AGORA_HEADERS
      ${HDR_PATH}/threadpool.hpp
      ${HDR_PATH}/fs_handler.hpp
      ${HDR_PATH}/cassandra_fs_implementation.hpp
+     ${HDR_PATH}/application_stub.hpp
    )
 include_directories( ${HDR_PATH} )
 
