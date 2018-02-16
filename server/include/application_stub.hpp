@@ -55,6 +55,30 @@ namespace margot
     std::thread local_handler;
     VirtualChannel channel;
 
+
+    // this is the function executed by the main thread
+    void local_application_handler( void )
+    {
+      margot::info("ToyApp thread ", std::this_thread::get_id(), " on duty");
+
+      // remember, this is a thread, it shoul terminates only when the
+      // client disconnect
+      while (true) {
+
+        // declaring the new message
+        message_t new_incoming_message;
+
+        if (!channel.recv_message(new_incoming_message))
+        {
+          margot::info("ToyApp thread ", std::this_thread::get_id(), " on retirement ");
+          return; // there is no more work available
+        }
+
+        // otherwise process the incoming message
+        std::cout << "********* MARGOT LOCAL HANDLER WORK ***********" << knob1 << std::endl;
+      }
+    }
+
   public:
 
     MargotMimicking( void ):knob1(1),knob2(2),knob3(3){}
@@ -90,31 +114,9 @@ namespace margot
       // initialize communication channel with the server
       channel.create_channel<PahoClient>("127.0.0.1:1883", 0);
 
-      // define the main function that is runned by the local application handler
-      const auto support_function = [&] ( void )
-      {
-        margot::info("ToyApp thread ", std::this_thread::get_id(), " on duty");
-
-        while (true) {
-
-          // declaring the new message
-          message_t new_incoming_message;
-
-          if (!channel.recv_message(new_incoming_message))
-          {
-            margot::info("ToyApp thread ", std::this_thread::get_id(), " on retirement ", knob1);
-            return; // there is no more work available
-          }
-
-          // otherwise process the incoming message
-          std::cout << "********* MARGOT LOCAL HANDLER WORK ***********" << knob1 << std::endl;
-        }
-      };
-
       // start the thread
-      local_handler = std::thread(support_function);
+      local_handler = std::thread(&MargotMimicking::local_application_handler, this);
     }
-
 
   };
 
@@ -182,7 +184,8 @@ namespace margot
         // "run" the application
         const auto execution_time = do_job();
         std::this_thread::sleep_for(std::chrono::milliseconds(execution_time));
-        info("APPLICATION: k1=", knob1, " k2=", knob2, " k3=", knob3, " f1=", feature1, " f2=", feature2, " time=", execution_time);
+        info("APPLICATION: k1=", knob1, " k2=", knob2, " k3=", knob3,
+             " f1=", feature1, " f2=", feature2, " time=", execution_time);
 
       }
     }
