@@ -14,6 +14,8 @@ set( AGORA_HEADERS
      ${HDR_PATH}/remote_handler.hpp
      ${HDR_PATH}/virtual_channel.hpp
      ${HDR_PATH}/threadpool.hpp
+     ${HDR_PATH}/fs_handler.hpp
+     ${HDR_PATH}/cassandra_fs_implementation.hpp
    )
 include_directories( ${HDR_PATH} )
 
@@ -24,6 +26,7 @@ set( AGORA_SOURCES
      ${SRC_PATH}/main
      ${SRC_PATH}/logger
      ${SRC_PATH}/paho_remote_implementation
+     ${SRC_PATH}/cassandra_fs_implementation
    )
 
 
