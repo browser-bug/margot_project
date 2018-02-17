@@ -189,6 +189,8 @@ namespace margot
           info("APPLICATION: k1=", knob1, " k2=", knob2, " k3=", knob3,
                " f1=", feature1, " f2=", feature2, " time=", execution_time);
 
+          // stop the measurement and log to the application
+          autotuner.stop_monitor(feature1, feature2, execution_time);
         }
       }
 

@@ -3,8 +3,9 @@
 ################################
 
 # set the name of the final library
-set( MARGOT_SERVER_NAME "margot-agora")
-set( MARGOT_APP_STUB "margot-stub" )
+set( MARGOT_AGORA_COMMON_LIB "agora-common" )
+set( MARGOT_AGORA_REMOTE_HANDLER "agora-remote-handler" )
+set( MARGOT_PSEUDOAPP "margot-pseudoapp" )
 
 
 # set the header of the application
@@ -22,38 +23,25 @@ set( AGORA_HEADERS
 include_directories( ${HDR_PATH} )
 
 
-# set the common source files for server-side stuff
+# set the common source files for server-side stuff in a library
 set( SRC_PATH "${CMAKE_CURRENT_SOURCE_DIR}/src" )
 set( AGORA_SOURCES
      ${SRC_PATH}/logger
      ${SRC_PATH}/paho_remote_implementation
      ${SRC_PATH}/cassandra_fs_implementation
    )
-
-
-# add the main file for the server
-set( SERVER_SOURCES
-     ${AGORA_SOURCES}
-     ${SRC_PATH}/main
-   )
-
-# add the main file for the stub appication
-set( APP_STUB
-     ${AGORA_SOURCES}
-     ${SRC_PATH}/appstub
-   )
-
+add_library( ${MARGOT_AGORA_COMMON_LIB} STATIC ${AGORA_HEADERS} ${AGORA_SOURCES} )
 
 
 # compile the executables
-add_executable( ${MARGOT_SERVER_NAME} ${AGORA_HEADERS} ${AGORA_SOURCES} ${SERVER_SOURCES} )
-add_executable( ${MARGOT_APP_STUB} ${AGORA_HEADERS} ${AGORA_SOURCES} ${APP_STUB} )
+add_executable( ${MARGOT_AGORA_REMOTE_HANDLER} ${AGORA_HEADERS} ${SRC_PATH}/main )
+add_executable( ${MARGOT_PSEUDOAPP} ${AGORA_HEADERS} ${SRC_PATH}/pseudoapp )
 
 
 # link the libraries
-target_link_libraries( ${MARGOT_SERVER_NAME} ${MQTT_LIBRARIES} ${CASSANDRA_LIBRARIES} )
-target_link_libraries( ${MARGOT_APP_STUB} ${MQTT_LIBRARIES} ${CASSANDRA_LIBRARIES} )
+target_link_libraries( ${MARGOT_AGORA_REMOTE_HANDLER} ${MARGOT_AGORA_COMMON_LIB} ${MQTT_LIBRARIES} ${CASSANDRA_LIBRARIES}  )
+target_link_libraries( ${MARGOT_PSEUDOAPP} ${MARGOT_AGORA_COMMON_LIB} ${MQTT_LIBRARIES} ${CASSANDRA_LIBRARIES} )
 
 
 # add the install command
-install( TARGETS ${MARGOT_SERVER_NAME} ${MARGOT_APP_STUB} DESTINATION bin )
+install( TARGETS ${MARGOT_AGORA_REMOTE_HANDLER} ${MARGOT_PSEUDOAPP} DESTINATION bin )
