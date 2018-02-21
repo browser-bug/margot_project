@@ -75,6 +75,12 @@ namespace margot
         channel->subscribe(topic);
       }
 
+      inline std::string get_my_client_id( void ) const
+      {
+        assert(channel && "Error: unable to get the client id from an empty channel");
+        return channel->get_my_client_id();
+      }
+
   };
 }
 

@@ -53,6 +53,8 @@ namespace margot
 
       virtual void disconnect( void ) = 0;
 
+      virtual std::string get_my_client_id( void ) const = 0;
+
       virtual ~RemoteHandler( void ) {}
 
     protected:

@@ -45,6 +45,7 @@ namespace margot
       MQTTClient client;
       bool is_connected;
       uint8_t qos_level;
+      std::string client_id;
       std::atomic_flag send_spinlock;
 
 

@@ -96,7 +96,7 @@ PahoClient::PahoClient( const std::string& broker_address, const uint8_t qos_lev
   // create the client id as unique-ish in the network
   char hostname[MAX_HOSTNAME_LENGHT];
   gethostname(hostname, MAX_HOSTNAME_LENGHT);
-  const std::string actual_id = std::string(hostname) + "_" + std::to_string(::gettid());
+  client_id = std::string(hostname) + "_" + std::to_string(::gettid());
 
   // initialize the connection options
   MQTTClient_connectOptions conn_opts = MQTTClient_connectOptions_initializer;
@@ -106,7 +106,7 @@ PahoClient::PahoClient( const std::string& broker_address, const uint8_t qos_lev
   // set the last will and testment
   MQTTClient_willOptions last_will = MQTTClient_willOptions_initializer;
   last_will.topicName = "margot/kia";
-  last_will.message = actual_id.c_str();
+  last_will.message = client_id.c_str();
   last_will.qos = qos_level;
   conn_opts.will = &last_will;
 
@@ -121,7 +121,7 @@ PahoClient::PahoClient( const std::string& broker_address, const uint8_t qos_lev
   }
 
   // initialize the client data structure
-  int return_code = MQTTClient_create(&client, broker_address.c_str(), actual_id.c_str(), MQTTCLIENT_PERSISTENCE_NONE, NULL);
+  int return_code = MQTTClient_create(&client, broker_address.c_str(), client_id.c_str(), MQTTCLIENT_PERSISTENCE_NONE, NULL);
 
   if (return_code != MQTTCLIENT_SUCCESS)
   {
@@ -308,4 +308,10 @@ void PahoClient::disconnect( void )
 
   // eventually we notify any worker in the inbox that we are out of business
   inbox.send_terminate_signal();
+}
+
+
+std::string PahoClient::get_my_client_id( void ) const
+{
+  return client_id;
 }
