@@ -1,4 +1,4 @@
-/* agora/global_view.cc
+/* agora/virtual_io.hpp
  * Copyright (C) 2018 Davide Gadioli
  *
  * This library is free software; you can redistribute it and/or
@@ -17,7 +17,21 @@
  * USA
  */
 
+#ifndef MARGOT_AGORA_VIRTUAL_IO_HDR
+#define MARGOT_AGORA_VIRTUAL_IO_HDR
 
-#include "global_view.hpp"
+#include "virtual_channel.hpp"
+#include "virtual_fs.hpp"
 
-using namespace margot;
+namespace margot
+{
+
+  namespace io
+  {
+    extern VirtualChannel remote;
+    extern VirtualFs storage;
+  }
+
+}
+
+#endif // MARGOT_AGORA_VIRTUAL_IO_HDR

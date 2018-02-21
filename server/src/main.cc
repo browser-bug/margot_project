@@ -23,11 +23,9 @@
 #include "logger.hpp"
 #include "paho_remote_implementation.hpp"
 #include "cassandra_fs_implementation.hpp"
-#include "virtual_channel.hpp"
+#include "virtual_io.hpp"
 #include "threadpool.hpp"
 #include "worker.hpp"
-
-#include "common_objects.hpp"
 
 
 
@@ -37,19 +35,18 @@ int main( int argc, char* argv[] )
 {
   // create a virtual channel to communicate with the applications
   margot::info("Agora main: bootstrap step 1: estabilish a connection with broker");
+  margot::io::remote.create<margot::PahoClient>("127.0.0.1:1883", 0);
+  margot::io::remote.subscribe("margot/welcome");
+  margot::io::remote.subscribe("margot/system");
+  margot::io::remote.subscribe("margot/kia");
 
-  // establish a connection with broker
-  margot::VirtualChannel remote;
-  remote.create_channel<margot::PahoClient>("127.0.0.1:1883", 0);
-
-  // subscribes to the initial set of topics
-  remote.subscribe("margot/welcome");
-  remote.subscribe("margot/system");
-  remote.subscribe("margot/kia");
+  // initialize the virtual fs to store/load the information from hard drive
+  margot::info("Agora main: bootstrap step 2: initializing the virtual file system");
+  margot::io::storage.create<margot::CassandraClient>("127.0.0.1");
 
   // start the thread pool of worker that manage the applications
-  margot::info("Agora main: bootstrap step 2: hiring the oompa loompas");
-  margot::ThreadPool<margot::Worker> workers(remote, 3);
+  margot::info("Agora main: bootstrap step 3: hiring the oompa loompas");
+  margot::ThreadPool workers(3, margot::agora_worker_function);
 
 
   // wain until the workers have done

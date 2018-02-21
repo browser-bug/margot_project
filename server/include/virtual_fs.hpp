@@ -39,14 +39,14 @@ namespace margot
     public:
 
       template< class T, class ...Ts >
-      inline void create_channel( const Ts& ... fs_arguments )
+      inline void create( const Ts& ... fs_arguments )
       {
         fs.reset( new T(fs_arguments...));
       }
 
       inline void store_metrics( const std::string& application_name, const application_metrics_t& metrics )
       {
-        fs->store_metrics(application_name,metrics);
+        fs->store_metrics(application_name, metrics);
       }
 
       inline application_metrics_t load_metrics( const std::string& application_name )
@@ -56,7 +56,7 @@ namespace margot
 
       inline void store_knobs( const std::string& application_name, const application_knobs_t& knobs )
       {
-        fs->store_knobs(application_name,knobs);
+        fs->store_knobs(application_name, knobs);
       }
 
       inline application_knobs_t load_knobs( const std::string& application_name )
@@ -66,7 +66,7 @@ namespace margot
 
       inline void store_features( const std::string& application_name, const application_features_t& features )
       {
-        fs->store_features(application_name,features);
+        fs->store_features(application_name, features);
       }
 
       inline application_features_t load_features( const std::string& application_name )
@@ -76,7 +76,7 @@ namespace margot
 
       inline void store_model( const std::string& application_name, const model_t& model )
       {
-        fs->store_model(application_name,model);
+        fs->store_model(application_name, model);
       }
 
       inline model_t load_model( const std::string& application_name )
@@ -86,7 +86,7 @@ namespace margot
 
       inline void store_doe( const std::string& application_name, const doe_t& doe )
       {
-        fs->store_doe(application_name,doe);
+        fs->store_doe(application_name, doe);
       }
 
       inline doe_t load_doe( const std::string& application_name )

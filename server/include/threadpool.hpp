@@ -24,90 +24,44 @@
 #include <vector>
 #include <cstdint>
 
-#include "remote_handler.hpp"
-#include "virtual_channel.hpp"
-#include "logger.hpp"
-
 
 namespace margot
 {
 
-  template< class T >
   class ThreadPool
   {
 
     private:
 
-      VirtualChannel channel;
       std::vector<std::thread> pool;
-      T worker_functor;
 
     public:
 
-      template< class... Ts >
-      ThreadPool( VirtualChannel target_channel, uint16_t number_of_workers, const Ts... arguments)
-        : channel(target_channel), worker_functor(target_channel, arguments...)
+      template< class Function, class... Arguments >
+      ThreadPool( uint16_t number_of_workers, Function&& f,  Arguments&& ... args)
       {
-
-        // build the lambda which defines the actual thread function
-        auto worker_wrapper = [this] (void)
-        {
-          // notify that we are a new thread
-          margot::info("Thread ", std::this_thread::get_id(), " on duty");
-
-          // assuming that there is plenty of work for everybody
-          while (true)
-          {
-
-            // declaring the new message
-            message_t new_incoming_message;
-
-            if (!channel.recv_message(new_incoming_message))
-            {
-              margot::info("Thread ", std::this_thread::get_id(), " on retirement");
-              return; // there is no more work available
-            }
-
-            // otherwise process the incoming message
-            worker_functor(new_incoming_message);
-          }
-        };
-
         // spawn all the threads
         pool.reserve(number_of_workers);
 
         for ( uint16_t i = 0; i < number_of_workers; ++i)
         {
-          pool.emplace_back(std::thread(worker_wrapper));
+          pool.emplace_back(std::thread(f, args...));
         }
       }
 
       ~ThreadPool( void );
-
-      void force_disconnect( void );
 
       void wait_workers( void );
 
   };
 
 
-  template< class T >
-  ThreadPool<T>::~ThreadPool( void )
+  ThreadPool::~ThreadPool( void )
   {
-    force_disconnect();
     wait_workers();
   }
 
-  template< class T >
-  void ThreadPool<T>::force_disconnect( void )
-  {
-    // to wake up all the threads it is enough to close the communication
-    // channel. To create a new one, we must rehestabilish a connection
-    channel.destroy_channel();
-  }
-
-  template< class T >
-  void ThreadPool<T>::wait_workers( void )
+  void ThreadPool::wait_workers( void )
   {
     for ( auto& worker : pool)
     {

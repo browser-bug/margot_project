@@ -22,14 +22,15 @@
 #include <chrono>
 
 #include "application_stub.hpp"
+#include "threadpool.hpp"
 
 
 int main( int argc, char* argv[] )
 {
 
-  // run the application stub for 5 secs
-  margot::Application local_application;
-  local_application(std::chrono::seconds(5));
+  // run n istances of the application for m seconds
+  margot::Application application_stub;
+  margot::ThreadPool workers(3, application_stub, std::chrono::seconds(5));
 
   return EXIT_SUCCESS;
 }

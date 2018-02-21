@@ -24,10 +24,11 @@
 #include <mutex>
 #include <unordered_map>
 #include <string>
+#include <memory>
 
 
 #include "application_handler.hpp"
-#include "virtual_channel.hpp"
+#include "virtual_io.hpp"
 
 
 namespace margot
@@ -36,18 +37,43 @@ namespace margot
   class GlobalView
   {
 
-    private:
-
-      std::mutex global_structure;
-      std::unordered_map< std::string, RemoteApplicationHandler > handled_applications;
-
     public:
 
+      using RemoteApplicationHandlerPtr = std::shared_ptr<RemoteApplicationHandler>;
 
+      static inline RemoteApplicationHandlerPtr get_handler( const std::string& application_name )
+      {
+        std::lock_guard<std::mutex> lock(global_structure);
+        auto iterator = handled_applications.find(application_name);
 
+        if (iterator == handled_applications.end())
+        {
+          auto&& application_ptr = RemoteApplicationHandlerPtr(new RemoteApplicationHandler(application_name));
+          const auto result_pair = handled_applications.emplace(application_name, application_ptr);
+          return result_pair.first->second;
+        }
 
+        return iterator->second;
+      }
 
+      static inline void remove_handler( const std::string& application_name )
+      {
+        std::lock_guard<std::mutex> lock(global_structure);
+        auto iterator = handled_applications.find(application_name);
 
+        if (iterator != handled_applications.end())
+        {
+          handled_applications.erase(iterator);
+        }
+      }
+
+    private:
+
+      static VirtualFs fs;
+      static VirtualChannel channel;
+
+      static std::mutex global_structure;
+      static std::unordered_map< std::string, RemoteApplicationHandlerPtr > handled_applications;
   };
 
 }

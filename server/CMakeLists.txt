@@ -24,6 +24,7 @@ set( AGORA_HEADERS
      ${HDR_PATH}/global_view.hpp
      ${HDR_PATH}/doe.hpp
      ${HDR_PATH}/virtual_fs.hpp
+     ${HDR_PATH}/virtual_io.hpp
    )
 include_directories( ${HDR_PATH} )
 
@@ -35,7 +36,8 @@ set( AGORA_SOURCES
      ${SRC_PATH}/paho_remote_implementation
      ${SRC_PATH}/cassandra_fs_implementation
      ${SRC_PATH}/application_handler
-     ${SRC_PATH}/global_view
+     ${SRC_PATH}/worker
+     ${SRC_PATH}/virtual_io
    )
 add_library( ${MARGOT_AGORA_COMMON_LIB} STATIC ${AGORA_HEADERS} ${AGORA_SOURCES} )
 

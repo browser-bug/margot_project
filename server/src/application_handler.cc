@@ -24,8 +24,8 @@
 
 using namespace margot;
 
-RemoteApplicationHandler::RemoteApplicationHandler( VirtualChannel channel )
-  : status(ApplicationStatus::REQUESTING_INFO), channel(channel)
+RemoteApplicationHandler::RemoteApplicationHandler( const std::string& application_name )
+  : application_name(application_name), status(ApplicationStatus::REQUESTING_INFO)
 {}
 
 

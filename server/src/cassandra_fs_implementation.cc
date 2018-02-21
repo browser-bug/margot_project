@@ -79,6 +79,7 @@ CassandraClient::~CassandraClient( void )
   cass_future_wait(connection_result); // wait for inflight traffic, might happens
   cass_future_free(connection_result);
   cass_session_free(session);
+  info("Cassandra client: disconnected from the databse");
 }
 
 
@@ -712,7 +713,7 @@ doe_t CassandraClient::load_doe( const std::string& application_name )
         const auto last_coma_pos = predictor.find_last_of(',');
 
         // append the row to the model
-        output_doe.doe.emplace(predictor.substr(0,last_coma_pos), doe_counter);
+        output_doe.doe.emplace(predictor.substr(0, last_coma_pos), doe_counter);
 
         // free the iterator to the row
         cass_iterator_free(column_iterator);

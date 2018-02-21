@@ -1,4 +1,4 @@
-/* agora/worker.hpp
+/* agora/virtual_io.hpp
  * Copyright (C) 2018 Davide Gadioli
  *
  * This library is free software; you can redistribute it and/or
@@ -17,22 +17,13 @@
  * USA
  */
 
-
-#ifndef MARGOT_AGORA_WORKER_HDR
-#define MARGOT_AGORA_WORKER_HDR
-
-#include <string>
-#include <iostream>
-
-
 #include "virtual_io.hpp"
-
 
 namespace margot
 {
-
-  void agora_worker_function( void );
-
+  namespace io
+  {
+    VirtualChannel remote;
+    VirtualFs storage;
+  }
 }
-
-#endif // MARGOT_AGORA_WORKER_HDR

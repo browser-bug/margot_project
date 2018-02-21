@@ -28,8 +28,7 @@
 #include <random>
 #include <iostream>
 
-#include "virtual_channel.hpp"
-#include "paho_remote_implementation.hpp"
+#include "virtual_io.hpp"
 #include "logger.hpp"
 
 namespace margot
@@ -53,25 +52,23 @@ namespace margot
 
       // this is a reference to the support thread
       std::thread local_handler;
-      VirtualChannel channel;
 
 
       // this is the function executed by the main thread
       void local_application_handler( void )
       {
-        margot::info("ToyApp thread ", std::this_thread::get_id(), " on duty");
+        margot::info("mARGOt support thread on duty");
 
         // remember, this is a thread, it shoul terminates only when the
         // client disconnect
         while (true)
         {
-
           // declaring the new message
           message_t new_incoming_message;
 
-          if (!channel.recv_message(new_incoming_message))
+          if (!io::remote.recv_message(new_incoming_message))
           {
-            margot::info("ToyApp thread ", std::this_thread::get_id(), " on retirement ");
+            margot::info("mARGOt support thread on retirement ");
             return; // there is no more work available
           }
 
@@ -86,7 +83,7 @@ namespace margot
 
       ~MargotMimicking( void )
       {
-        channel.destroy_channel();
+        io::remote.destroy_channel();
 
         if (local_handler.joinable())
         {
@@ -114,7 +111,7 @@ namespace margot
       void start_support_thread( void )
       {
         // initialize communication channel with the server
-        channel.create_channel<PahoClient>("127.0.0.1:1883", 0);
+        io::remote.create<PahoClient>("127.0.0.1:1883", 0);
 
         // start the thread
         local_handler = std::thread(&MargotMimicking::local_application_handler, this);
@@ -137,10 +134,9 @@ namespace margot
       float feature2;
 
       // this objects emulates the margot client
-      MargotMimicking autotuner;
+      std::shared_ptr<MargotMimicking> autotuner;
 
       // to generate random numbers
-      std::random_device random_device;
       std::default_random_engine generator;
       std::uniform_real_distribution<float> feature1_distribution;
       std::uniform_real_distribution<float> feature2_distribution;
@@ -149,8 +145,7 @@ namespace margot
     public:
 
       Application( void )
-        : autotuner()
-        , random_device(), generator(random_device()), feature1_distribution(1.0f, 6.0f)
+        : generator(std::random_device()()), feature1_distribution(1.0f, 6.0f)
         , feature2_distribution(10.0f, 20.0f), time_error_distribution(1, 10)
       {}
 
@@ -167,7 +162,8 @@ namespace margot
         // this is the equivalent of the main function of the application
 
         // in the init we must initialize the autotuner, here we spawn a thread
-        autotuner.start_support_thread();
+        autotuner.reset( new MargotMimicking() );
+        autotuner->start_support_thread();
 
         // taking the time of now
         const auto start_time = std::chrono::steady_clock::now();
@@ -177,7 +173,7 @@ namespace margot
         while ( std::chrono::steady_clock::now() < stop_time )
         {
           // take the configuration from the autotuner
-          autotuner.update(knob1, knob2, knob3);
+          autotuner->update(knob1, knob2, knob3);
 
           // "read" the input feature from the input file
           feature1 = feature1_distribution(generator);
@@ -190,7 +186,7 @@ namespace margot
                " f1=", feature1, " f2=", feature2, " time=", execution_time);
 
           // stop the measurement and log to the application
-          autotuner.stop_monitor(feature1, feature2, execution_time);
+          autotuner->stop_monitor(feature1, feature2, execution_time);
         }
       }
 

@@ -40,7 +40,7 @@ namespace margot
     public:
 
       template< class T, class ...Ts >
-      inline void create_channel( const Ts& ... remote_arguments )
+      inline void create( const Ts& ... remote_arguments )
       {
         channel.reset( new T(remote_arguments...));
       }

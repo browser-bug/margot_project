@@ -27,7 +27,7 @@
 #include <unordered_map>
 #include <cstdint>
 
-#include "virtual_channel.hpp"
+#include "virtual_io.hpp"
 #include "common_objects.hpp"
 
 namespace margot
@@ -50,8 +50,8 @@ namespace margot
     private:
 
       std::mutex handler_mutex;
+      const std::string application_name;
       ApplicationStatus status;
-      VirtualChannel channel;
 
       application_list_t pending_application;
       application_map_t assigned_configurations;
@@ -59,10 +59,10 @@ namespace margot
     public:
 
 
-      RemoteApplicationHandler( VirtualChannel channel );
+      RemoteApplicationHandler( const std::string& application_name );
 
 
-      void welcome_application( const std::string& application_name );
+      void welcome_application( const std::string& client_name );
 
 
 
