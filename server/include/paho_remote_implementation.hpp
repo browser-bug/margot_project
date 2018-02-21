@@ -47,11 +47,12 @@ namespace margot
       uint8_t qos_level;
       std::string client_id;
       std::atomic_flag send_spinlock;
+      std::string goodbye_topic;
 
 
     public:
 
-      PahoClient( const std::string& broker_address, const uint8_t qos_level = 1, const std::string& username = "", const std::string& password = "");
+      PahoClient( const std::string& application_name, const std::string& broker_address, const uint8_t qos_level = 1, const std::string& username = "", const std::string& password = "");
       ~PahoClient( void );
 
       // don't copy or move this object, things explode otherwise

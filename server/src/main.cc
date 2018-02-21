@@ -35,10 +35,10 @@ int main( int argc, char* argv[] )
 {
   // create a virtual channel to communicate with the applications
   margot::info("Agora main: bootstrap step 1: estabilish a connection with broker");
-  margot::io::remote.create<margot::PahoClient>("127.0.0.1:1883", 0);
+  margot::io::remote.create<margot::PahoClient>("server", "127.0.0.1:1883", 0);
   margot::io::remote.subscribe("margot/welcome");
   margot::io::remote.subscribe("margot/system");
-  margot::io::remote.subscribe("margot/kia");
+  margot::io::remote.subscribe("margot/+/kia");
 
   // initialize the virtual fs to store/load the information from hard drive
   margot::info("Agora main: bootstrap step 2: initializing the virtual file system");

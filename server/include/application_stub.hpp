@@ -28,7 +28,7 @@
 #include <random>
 #include <iostream>
 
-#include "virtual_io.hpp"
+#include "virtual_channel.hpp"
 #include "logger.hpp"
 
 namespace margot
@@ -52,21 +52,22 @@ namespace margot
 
       // this is a reference to the support thread
       std::thread local_handler;
+      VirtualChannel remote;
 
 
       // this is the function executed by the main thread
-      void local_application_handler( void )
+      void local_application_handler( const std::string& application_name )
       {
         margot::info("mARGOt support thread on duty");
 
-        // remember, this is a thread, it shoul terminates only when the
-        // client disconnect
+        // initialize communication channel with the server
+        remote.create<PahoClient>(application_name, "127.0.0.1:1883", 0);
         while (true)
         {
           // declaring the new message
           message_t new_incoming_message;
 
-          if (!io::remote.recv_message(new_incoming_message))
+          if (!remote.recv_message(new_incoming_message))
           {
             margot::info("mARGOt support thread on retirement ");
             return; // there is no more work available
@@ -83,7 +84,7 @@ namespace margot
 
       ~MargotMimicking( void )
       {
-        io::remote.destroy_channel();
+        remote.destroy_channel();
 
         if (local_handler.joinable())
         {
@@ -108,13 +109,10 @@ namespace margot
       }
 
       // this function should be parametric and hidden
-      void start_support_thread( void )
+      void start_support_thread( const std::string& application_name )
       {
-        // initialize communication channel with the server
-        io::remote.create<PahoClient>("127.0.0.1:1883", 0);
-
         // start the thread
-        local_handler = std::thread(&MargotMimicking::local_application_handler, this);
+        local_handler = std::thread(&MargotMimicking::local_application_handler, this, application_name);
       }
 
   };
@@ -163,7 +161,7 @@ namespace margot
 
         // in the init we must initialize the autotuner, here we spawn a thread
         autotuner.reset( new MargotMimicking() );
-        autotuner->start_support_thread();
+        autotuner->start_support_thread("swaptions/v1.3/elaboration");
 
         // taking the time of now
         const auto start_time = std::chrono::steady_clock::now();

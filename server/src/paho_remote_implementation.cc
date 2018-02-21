@@ -90,13 +90,16 @@ extern "C"
 }
 
 
-PahoClient::PahoClient( const std::string& broker_address, const uint8_t qos_level, const std::string& username, const std::string& password )
+PahoClient::PahoClient( const std::string& application_name, const std::string& broker_address, const uint8_t qos_level, const std::string& username, const std::string& password )
   : RemoteHandler(), is_connected(false), qos_level(qos_level), send_spinlock(ATOMIC_FLAG_INIT)
 {
   // create the client id as unique-ish in the network
   char hostname[MAX_HOSTNAME_LENGHT];
   gethostname(hostname, MAX_HOSTNAME_LENGHT);
   client_id = std::string(hostname) + "_" + std::to_string(::gettid());
+
+  // create the topic name for the last will and testment
+  goodbye_topic = "margot/" + application_name + "/kia";
 
   // initialize the connection options
   MQTTClient_connectOptions conn_opts = MQTTClient_connectOptions_initializer;
@@ -105,7 +108,7 @@ PahoClient::PahoClient( const std::string& broker_address, const uint8_t qos_lev
 
   // set the last will and testment
   MQTTClient_willOptions last_will = MQTTClient_willOptions_initializer;
-  last_will.topicName = "margot/kia";
+  last_will.topicName = goodbye_topic.c_str();
   last_will.message = client_id.c_str();
   last_will.qos = qos_level;
   conn_opts.will = &last_will;
@@ -286,10 +289,15 @@ void PahoClient::disconnect( void )
   // first of all we need to end the connection with the broker
   if (is_connected)
   {
+    // send a goodbye message in the system
+    send_message({goodbye_topic, client_id});
+
+    // actually disconnect from the broker
     uint16_t disconnect_timeout_ms = 10000;
     margot::warning("MQTT client: disconnecting from the broker (timeout ", disconnect_timeout_ms, "ms)");
     int return_code = MQTTClient_disconnect(client, disconnect_timeout_ms);
 
+    // this is basically for show, since we cannot doing anything
     if (return_code != MQTTCLIENT_SUCCESS)
     {
       margot::warning("MQTT client: unable to disconnect from client properly");
