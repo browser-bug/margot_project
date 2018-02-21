@@ -45,7 +45,7 @@ namespace margot
         return inbox.dequeue(input_message);
       }
 
-      virtual void send_message( message_t& output_message ) = 0;
+      virtual void send_message( const message_t&& output_message ) = 0;
 
       virtual void subscribe( const std::string& topic) = 0;
 

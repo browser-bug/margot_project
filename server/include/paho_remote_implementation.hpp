@@ -59,11 +59,13 @@ namespace margot
       PahoClient( PahoClient&& ) = delete;
 
 
-      void send_message( message_t& output_message );
+      void send_message( const message_t&& output_message );
 
       void subscribe( const std::string& topic );
 
       void unsubscribe( const std::string& topic );
+
+      std::string get_my_client_id( void ) const;
 
       void disconnect( void );
 

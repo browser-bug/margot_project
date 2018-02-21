@@ -57,10 +57,10 @@ namespace margot
         return channel->recv_message(output_message);
       }
 
-      inline void send_message( message_t& input_message )
+      inline void send_message( const message_t&& input_message )
       {
         assert(channel && "Error: send on an empty channel");
-        channel->send_message(input_message);
+        channel->send_message(std::move(input_message));
       }
 
       inline void subscribe( const std::string& topic)

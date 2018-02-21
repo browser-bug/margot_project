@@ -202,7 +202,7 @@ PahoClient::~PahoClient( void )
 }
 
 
-void PahoClient::send_message( message_t& output_message )
+void PahoClient::send_message( const message_t&& output_message )
 {
   // make sure to send a message while we are actually connected to a broker
   // it may happens in the shutdown procedure

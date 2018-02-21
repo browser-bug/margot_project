@@ -66,8 +66,7 @@ namespace margot
     std::cout << "[" << new_message.topic << "] -> " << new_message.payload << std::endl;
 
     // this is to test the send of the message
-    message_t response_message = {{"margot/anwser"}, {new_message.payload}};
-    io::remote.send_message(response_message);
+    io::remote.send_message({{"margot/anwser"}, {new_message.payload}});
 
     // the very first control is for quitting the whole thing
     if (new_message.topic.compare("margot/system") == 0)
