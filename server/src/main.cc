@@ -22,15 +22,19 @@
 
 #include "logger.hpp"
 #include "paho_remote_implementation.hpp"
+#include "cassandra_fs_implementation.hpp"
 #include "virtual_channel.hpp"
 #include "threadpool.hpp"
 #include "worker.hpp"
 
+#include "common_objects.hpp"
 
+
+
+//NOTE: allowed type for knobs: int, float, double
 
 int main( int argc, char* argv[] )
 {
-
   // create a virtual channel to communicate with the applications
   margot::info("Agora main: bootstrap step 1: estabilish a connection with broker");
 
@@ -41,6 +45,7 @@ int main( int argc, char* argv[] )
   // subscribes to the initial set of topics
   remote.subscribe("margot/welcome");
   remote.subscribe("margot/system");
+  remote.subscribe("margot/kia");
 
   // start the thread pool of worker that manage the applications
   margot::info("Agora main: bootstrap step 2: hiring the oompa loompas");
@@ -54,6 +59,7 @@ int main( int argc, char* argv[] )
 
   // ok, the whole server is down, time to go out of business
   margot::info("Agora main: all the workers have joined me, farewell my friend");
+
 
   return EXIT_SUCCESS;
 }

@@ -19,6 +19,11 @@ set( AGORA_HEADERS
      ${HDR_PATH}/fs_handler.hpp
      ${HDR_PATH}/cassandra_fs_implementation.hpp
      ${HDR_PATH}/application_stub.hpp
+     ${HDR_PATH}/common_objects.hpp
+     ${HDR_PATH}/application_handler.hpp
+     ${HDR_PATH}/global_view.hpp
+     ${HDR_PATH}/doe.hpp
+     ${HDR_PATH}/virtual_fs.hpp
    )
 include_directories( ${HDR_PATH} )
 
@@ -29,6 +34,8 @@ set( AGORA_SOURCES
      ${SRC_PATH}/logger
      ${SRC_PATH}/paho_remote_implementation
      ${SRC_PATH}/cassandra_fs_implementation
+     ${SRC_PATH}/application_handler
+     ${SRC_PATH}/global_view
    )
 add_library( ${MARGOT_AGORA_COMMON_LIB} STATIC ${AGORA_HEADERS} ${AGORA_SOURCES} )
 

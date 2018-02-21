@@ -39,24 +39,9 @@ extern "C"
 
   int recv_callback_function( void* recv_buffer, char* topic_c_str, int topic_size, MQTTClient_message* message )
   {
-    // check if the payload message is a valid c-string
-    char* payload_message = (char*) message->payload;
-    const int supposed_end_string_pos = message->payloadlen;
-    const char final_char = payload_message[supposed_end_string_pos];
 
     // fix the string if it is broken and convert it to a std::string
-    std::string payload;
-
-    if (final_char != '\0')
-    {
-      payload_message[supposed_end_string_pos] = '\0'; // i know, but don't judge me
-      payload = std::string(payload_message);
-      payload_message[supposed_end_string_pos] = final_char; // not sure how paho frees memory
-    }
-    else
-    {
-      payload = std::string(payload_message);
-    }
+    std::string payload((char*) message->payload, message->payloadlen);
 
     // log the reception of a message
     margot::pedantic("MQTT callback: received a message on topic \"", topic_c_str, "\" with payload \"", payload, "\"");
@@ -108,10 +93,22 @@ extern "C"
 PahoClient::PahoClient( const std::string& broker_address, const uint8_t qos_level, const std::string& username, const std::string& password )
   : RemoteHandler(), is_connected(false), qos_level(qos_level), send_spinlock(ATOMIC_FLAG_INIT)
 {
+  // create the client id as unique-ish in the network
+  char hostname[MAX_HOSTNAME_LENGHT];
+  gethostname(hostname, MAX_HOSTNAME_LENGHT);
+  const std::string actual_id = std::string(hostname) + "_" + std::to_string(::gettid());
+
   // initialize the connection options
   MQTTClient_connectOptions conn_opts = MQTTClient_connectOptions_initializer;
   conn_opts.keepAliveInterval = 30;
   conn_opts.cleansession = 1;
+
+  // set the last will and testment
+  MQTTClient_willOptions last_will = MQTTClient_willOptions_initializer;
+  last_will.topicName = "margot/kia";
+  last_will.message = actual_id.c_str();
+  last_will.qos = qos_level;
+  conn_opts.will = &last_will;
 
   if (!username.empty())
   {
@@ -124,9 +121,6 @@ PahoClient::PahoClient( const std::string& broker_address, const uint8_t qos_lev
   }
 
   // initialize the client data structure
-  char hostname[MAX_HOSTNAME_LENGHT];
-  gethostname(hostname, MAX_HOSTNAME_LENGHT);
-  const std::string actual_id = std::string(hostname) + "_" + std::to_string(::gettid());
   int return_code = MQTTClient_create(&client, broker_address.c_str(), actual_id.c_str(), MQTTCLIENT_PERSISTENCE_NONE, NULL);
 
   if (return_code != MQTTCLIENT_SUCCESS)

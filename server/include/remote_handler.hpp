@@ -21,21 +21,13 @@
 #ifndef MARGOT_AGORA_COMMUNICATOR_GENERIC_HDR
 #define MARGOT_AGORA_COMMUNICATOR_GENERIC_HDR
 
-#include <string>
-#include <cstdint>
-
 
 #include "safe_queue.hpp"
+#include "common_objects.hpp"
 
 
 namespace margot
 {
-
-  struct message_t
-  {
-    std::string topic;
-    std::string payload;
-  };
 
   class RemoteHandler
   {
