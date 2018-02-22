@@ -27,16 +27,6 @@ RemoteApplicationHandler::RemoteApplicationHandler( const std::string& applicati
   : spinlock(ATOMIC_FLAG_INIT), application_name(application_name), status(ApplicationStatus::CLUELESS)
 {}
 
-void RemoteApplicationHandler::send_model( const std::string& topic_name )
-{
-  io::remote.send_message({topic_name,"begin"});
-  for( const auto& configuration : model.model_data )
-  {
-    io::remote.send_message({topic_name,configuration});
-  }
-  io::remote.send_message({topic_name,"end"});
-}
-
 void RemoteApplicationHandler::build_model( void )
 {
   //TODO

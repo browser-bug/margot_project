@@ -97,7 +97,11 @@ namespace margot
         return doe.next_configuration->first;
       }
 
-      void send_model( const std::string& topic_name );
+      inline void send_model( const std::string& topic_name ) const
+      {
+        io::remote.send_message({topic_name,model.join_model()});
+      }
+
       void build_model( void );
 
     public:

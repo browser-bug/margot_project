@@ -28,6 +28,7 @@
 #include <vector>
 #include <cstdint>
 #include <algorithm>
+#include <sstream>
 
 #include "doe.hpp"
 
@@ -143,6 +144,13 @@ namespace margot
       model_data.clear();
     }
 
+    inline std::string join_model( void ) const
+    {
+      std::ostringstream os;
+      std::for_each(model_data.begin(), model_data.end(), [&os] ( const std::string& configuration )
+      { os << configuration << '\n'; });
+      return os.str();
+    }
 
     std::vector< std::string > fields_name;
     std::vector< std::string > fields_type;  // actually optional when loading from fs
