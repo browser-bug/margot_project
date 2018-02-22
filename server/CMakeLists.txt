@@ -38,6 +38,7 @@ set( AGORA_SOURCES
      ${SRC_PATH}/application_handler
      ${SRC_PATH}/worker
      ${SRC_PATH}/virtual_io
+     ${SRC_PATH}/global_view
    )
 add_library( ${MARGOT_AGORA_COMMON_LIB} STATIC ${AGORA_HEADERS} ${AGORA_SOURCES} )
 

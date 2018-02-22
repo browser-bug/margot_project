@@ -129,7 +129,8 @@ CassFuture* CassandraClient::send_query( const std::string& query )
 void CassandraClient::store_metrics( const std::string& application_name, const application_metrics_t& metrics )
 {
   std::string table_name = application_name;
-  std::replace(table_name.begin(), table_name.end(), table_application_separator, default_application_separator);
+  std::replace(table_name.begin(), table_name.end(), default_application_separator, table_application_separator );
+  std::replace(table_name.begin(), table_name.end(), '.', table_application_separator );
   table_name += "_metrics";
 
   // create the table
@@ -151,7 +152,8 @@ application_metrics_t CassandraClient::load_metrics( const std::string& applicat
 
   // compose the name of the table
   std::string table_name = application_name;
-  std::replace(table_name.begin(), table_name.end(), table_application_separator, default_application_separator);
+  std::replace(table_name.begin(), table_name.end(), default_application_separator, table_application_separator );
+  std::replace(table_name.begin(), table_name.end(), '.', table_application_separator );
   table_name += "_metrics";
 
   // how the result of the query will be processed
@@ -234,7 +236,8 @@ void CassandraClient::store_knobs( const std::string& application_name, const ap
 {
   // compose the name of the table
   std::string table_name = application_name;
-  std::replace(table_name.begin(), table_name.end(), table_application_separator, default_application_separator);
+  std::replace(table_name.begin(), table_name.end(), default_application_separator, table_application_separator );
+  std::replace(table_name.begin(), table_name.end(), '.', table_application_separator );
   table_name += "_knobs";
 
   // create the table
@@ -268,7 +271,8 @@ application_knobs_t CassandraClient::load_knobs( const std::string& application_
 
   // compose the name of the table
   std::string table_name = application_name;
-  std::replace(table_name.begin(), table_name.end(), table_application_separator, default_application_separator);
+  std::replace(table_name.begin(), table_name.end(), default_application_separator, table_application_separator );
+  std::replace(table_name.begin(), table_name.end(), '.', table_application_separator );
   table_name += "_knobs";
 
   // how the result of the query will be processed
@@ -360,7 +364,8 @@ void CassandraClient::store_features( const std::string& application_name, const
 {
   // compose the name of the table
   std::string table_name = application_name;
-  std::replace(table_name.begin(), table_name.end(), table_application_separator, default_application_separator);
+  std::replace(table_name.begin(), table_name.end(), default_application_separator, table_application_separator );
+  std::replace(table_name.begin(), table_name.end(), '.', table_application_separator );
   table_name += "_features";
 
   // create the table
@@ -393,7 +398,8 @@ application_features_t CassandraClient::load_features( const std::string& applic
 
   // compose the name of the table
   std::string table_name = application_name;
-  std::replace(table_name.begin(), table_name.end(), table_application_separator, default_application_separator);
+  std::replace(table_name.begin(), table_name.end(), default_application_separator, table_application_separator );
+  std::replace(table_name.begin(), table_name.end(), '.', table_application_separator );
   table_name += "_features";
 
   // how the result of the query will be processed
@@ -485,7 +491,8 @@ void CassandraClient::store_doe( const std::string& application_name, const doe_
 {
   // compose the name of the table
   std::string table_name = application_name;
-  std::replace(table_name.begin(), table_name.end(), table_application_separator, default_application_separator);
+  std::replace(table_name.begin(), table_name.end(), default_application_separator, table_application_separator );
+  std::replace(table_name.begin(), table_name.end(), '.', table_application_separator );
   table_name += "_doe";
 
   // compose the query that creates the table
@@ -537,7 +544,8 @@ doe_t CassandraClient::load_doe( const std::string& application_name )
 
   // compose the name of the table
   std::string table_name = application_name;
-  std::replace(table_name.begin(), table_name.end(), table_application_separator, default_application_separator);
+  std::replace(table_name.begin(), table_name.end(), default_application_separator, table_application_separator );
+  std::replace(table_name.begin(), table_name.end(), '.', table_application_separator );
   table_name += "_doe";
 
 
@@ -724,6 +732,9 @@ doe_t CassandraClient::load_doe( const std::string& application_name )
 
       // free the result
       cass_result_free(query_result);
+
+      // set the iterator of the doe
+      output_doe.next_configuration = output_doe.doe.begin();
     }
   };
 
@@ -740,7 +751,8 @@ void CassandraClient::store_model( const std::string& application_name, const mo
 {
   // compose the name of the table
   std::string table_name = application_name;
-  std::replace(table_name.begin(), table_name.end(), table_application_separator, default_application_separator);
+  std::replace(table_name.begin(), table_name.end(), default_application_separator, table_application_separator );
+  std::replace(table_name.begin(), table_name.end(), '.', table_application_separator );
   table_name += "_model";
 
   // compose the query that creates the table
@@ -794,7 +806,8 @@ model_t CassandraClient::load_model( const std::string& application_name )
 
   // compose the name of the table
   std::string table_name = application_name;
-  std::replace(table_name.begin(), table_name.end(), table_application_separator, default_application_separator);
+  std::replace(table_name.begin(), table_name.end(), default_application_separator, table_application_separator );
+  std::replace(table_name.begin(), table_name.end(), '.', table_application_separator );
   table_name += "_model";
 
 

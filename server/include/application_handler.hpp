@@ -22,7 +22,7 @@
 #define MARGOT_AGORA_APPLICATION_HANDLER_HDR
 
 #include <string>
-#include <mutex>
+#include <atomic>
 #include <unordered_set>
 #include <unordered_map>
 #include <cstdint>
@@ -35,11 +35,11 @@ namespace margot
 
   enum class ApplicationStatus : uint_fast8_t
   {
-    REQUESTING_INFO,
-    DOE_GENERATION,
-    DESIGN_SPACE_EXPLORATION,
-    MODEL_GENERATION,
-    MANAGED
+    CLUELESS,
+    LOADING,
+    EXPLORING,
+    BUILDING_MODEL, // do not put the client in pending list
+    WITH_MODEL,
   };
 
 
@@ -49,12 +49,56 @@ namespace margot
 
     private:
 
-      std::mutex handler_mutex;
+      std::atomic_flag spinlock;
       const std::string application_name;
       ApplicationStatus status;
 
-      application_list_t pending_application;
+      // this table contains all the clients of this application
+      application_list_t active_clients;
+
+      // this contains all the applications that are waiting to receive
+      // a configuration from the server
+      application_list_t pending_clients;
+
+      // this relates a client with the assigned configuration
       application_map_t assigned_configurations;
+
+      // this is the name of the client who is in charge of collecting info
+      std::string information_client;
+
+
+      // these are the data structures that actually have information
+      // about the application behavior
+      model_t model;
+      doe_t doe;
+      application_knobs_t knobs;
+      application_features_t features;
+      application_metrics_t metrics;
+
+
+
+      inline void lock( void )
+      {
+        while (spinlock.test_and_set(std::memory_order_acquire));
+      }
+
+      inline void unlock( void )
+      {
+        spinlock.clear(std::memory_order_release);
+      }
+
+      inline configuration_t get_next( void )
+      {
+        doe.next_configuration++;
+        if (doe.next_configuration == doe.doe.end())
+        {
+          doe.next_configuration = doe.doe.begin();
+        }
+        return doe.next_configuration->first;
+      }
+
+      void send_model( const std::string& topic_name );
+      void build_model( void );
 
     public:
 
@@ -62,7 +106,10 @@ namespace margot
       RemoteApplicationHandler( const std::string& application_name );
 
 
-      void welcome_application( const std::string& client_name );
+      void welcome_client( const std::string& client_name );
+
+
+      void bye_client( const std::string& client_name );
 
 
 

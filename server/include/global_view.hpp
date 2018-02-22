@@ -28,7 +28,6 @@
 
 
 #include "application_handler.hpp"
-#include "virtual_io.hpp"
 
 
 namespace margot
@@ -68,9 +67,6 @@ namespace margot
       }
 
     private:
-
-      static VirtualFs fs;
-      static VirtualChannel channel;
 
       static std::mutex global_structure;
       static std::unordered_map< std::string, RemoteApplicationHandlerPtr > handled_applications;

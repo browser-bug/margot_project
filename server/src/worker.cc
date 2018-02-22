@@ -28,6 +28,7 @@ inline int get_tid( void )
 #include "worker.hpp"
 #include "virtual_io.hpp"
 #include "logger.hpp"
+#include "global_view.hpp"
 
 
 namespace margot
@@ -62,19 +63,55 @@ namespace margot
   // this is the actual function handles the incoming messages
   void handle_incoming_message(const message_t& new_message)
   {
-    // trivial implementation of the response system
-    std::cout << "[" << new_message.topic << "] -> " << new_message.payload << std::endl;
-
-    // this is to test the send of the message
-    io::remote.send_message({{"margot/anwser"}, {new_message.payload}});
-
-    // the very first control is for quitting the whole thing
+    // the very first control is for system messages
     if (new_message.topic.compare("margot/system") == 0)
     {
       if (new_message.payload.compare("shutdown") ==  0)
       {
         io::remote.destroy_channel();
       }
+    }
+
+    // get the last part of the payload to understand what the message is about
+    const auto start_type_pos = new_message.topic.find_last_of('/');
+    const std::string message_type = new_message.topic.substr(start_type_pos);
+
+    // ---------------------------------------------------------------------------------- handle the welcome message
+    if (message_type.compare("/welcome") == 0)
+    {
+      // get the name of the application
+      const auto application_name = new_message.topic.substr(7,start_type_pos-7);
+
+      // get the client id
+      const auto client_id = new_message.payload;
+
+      // get the application handler
+      const auto application_handler = GlobalView::get_handler(application_name);
+
+      // log the event
+      info("Thread ", get_tid(), ": new client \"", client_id, "\" for application \"", application_name);
+
+      // handle the message
+      application_handler->welcome_client(client_id);
+    }
+
+    // ---------------------------------------------------------------------------------- handle the kia message
+    if (message_type.compare("/kia") == 0)
+    {
+      // get the name of the application
+      const auto application_name = new_message.topic.substr(7,start_type_pos-7);
+
+      // get the client id
+      const auto client_id = new_message.payload;
+
+      // get the application handler
+      const auto application_handler = GlobalView::get_handler(application_name);
+
+      // log the event
+      info("Thread ", get_tid(), ": lost client \"", client_id, "\" for application \"", application_name);
+
+      // handle the message
+      application_handler->bye_client(client_id);
     }
   }
 }

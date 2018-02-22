@@ -125,16 +125,22 @@ namespace margot
     }
 
     // the number of fields in the configuration
-    inline std::size_t num_data_fields( void ) const
+    inline bool usable( void ) const
     {
-      if (!model_data.empty())
-      {
-        return std::count(model_data[0].begin(), model_data[0].end(), ',') + 1;
-      }
-      else
-      {
-        return 0;
-      }
+      const auto number_of_theoretical_fields = fields_name.size();
+      return (number_of_theoretical_fields == num_data_fields()) && (number_of_theoretical_fields > 0);
+    }
+
+    inline int num_data_fields( void ) const
+    {
+      return !model_data.empty() ? std::count(model_data[0].begin(), model_data[0].end(), ',') + 1 : 0;
+    }
+
+    inline void clear( void )
+    {
+      fields_name.clear();
+      fields_type.clear();
+      model_data.clear();
     }
 
 
@@ -179,9 +185,23 @@ namespace margot
       }
     }
 
+    inline bool usable( void ) const
+    {
+      return fields_name.size() > 0;
+    }
+
+    inline void clear( void )
+    {
+      fields_name.clear();
+      fields_type.clear();
+      doe.clear();
+      next_configuration = doe.end();
+    }
+
     std::vector< std::string > fields_name;
     std::vector< std::string > fields_type;          // actually optional when loading from fs
     std::unordered_map< configuration_t, int > doe;
+    std::unordered_map< configuration_t, int >::iterator next_configuration;
   };
 
 

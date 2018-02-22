@@ -62,6 +62,21 @@ namespace margot
 
         // initialize communication channel with the server
         remote.create<PahoClient>(application_name, "127.0.0.1:1883", 0);
+
+        // get my own id
+        const std::string my_client_id = remote.get_my_client_id();
+
+        // register to the application-specific topic (before send the welcome message)
+        remote.subscribe("margot/" + application_name + "/" + my_client_id + "/#");
+
+        // send the welcome message
+        remote.send_message({{"margot/" + application_name + "/welcome"}, my_client_id});
+
+        // register to the application to receive the model
+        remote.subscribe("margot/" + application_name + "/model");
+
+        // remember, this is a thread, it should terminate only when the
+        // client disconnect, so keep running until the application is up
         while (true)
         {
           // declaring the new message
@@ -73,8 +88,8 @@ namespace margot
             return; // there is no more work available
           }
 
-          // otherwise process the incoming message
-          std::cout << "********* MARGOT LOCAL HANDLER WORK ***********" << knob1 << std::endl;
+          // execute here the application code that react to messages from server
+
         }
       }
 
