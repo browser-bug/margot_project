@@ -97,7 +97,7 @@ void RemoteApplicationHandler::welcome_client( const std::string& client_name )
 
   // ------------------------------------------------------------- CASE 2: we are initializing the object
   lock();
-  if (status == ApplicationStatus::LOADING)
+  if ((status == ApplicationStatus::LOADING) || (status == ApplicationStatus::GENERATING_DOE))
   {
     // we can't do anything, put the client in the pending list
     pending_clients.emplace(client_name);
@@ -147,17 +147,20 @@ void RemoteApplicationHandler::bye_client( const std::string& client_name )
   lock();
   if (active_clients.empty())
   {
-    // everybody left, we have to reset the object
     info("Handler ", application_name, ": everybody left, resetting the object");
-    status = ApplicationStatus::CLUELESS;
-    pending_clients.clear();         // should be useless
-    assigned_configurations.clear();
-    information_client.clear();
-    model.clear();
-    doe.clear();
-    knobs.clear();
-    features.clear();
-    metrics.clear();
+
+    // everybody left, we have to reset the object, unless someone is generating the doe
+    if (status != ApplicationStatus::GENERATING_DOE)
+    {
+      status = ApplicationStatus::CLUELESS;
+      model.clear();
+      doe.clear();
+      information_client.clear(); // if this happens when we are in the LOADING state
+    }
+    else
+    {
+      status = ApplicationStatus::CLUELESS; // we can't free memory, but we can change status
+    }
   }
   unlock();
 
@@ -166,11 +169,6 @@ void RemoteApplicationHandler::bye_client( const std::string& client_name )
   const bool is_information_client = information_client.compare(client_name) == 0;
   if (is_information_client)
   {
-    // we have to reset previous information
-    knobs.clear();
-    features.clear();
-    metrics.clear();
-
     // we should hire someone else to do it ( the first on the active list )
     information_client = *active_clients.begin();
     io::remote.send_message({{"margot/" + application_name + "/" + information_client + "/info"}, ""});
@@ -184,4 +182,132 @@ void RemoteApplicationHandler::bye_client( const std::string& client_name )
     info("Handler ", application_name, ": goodbye client \"", client_name, "\"");
   }
   unlock();
+}
+
+
+void RemoteApplicationHandler::process_info( const std::string& info_message )
+{
+  // those information are useful only to build the doe
+  application_knobs_t knobs;
+  application_features_t features;
+  application_metrics_t metrics;
+  std::string&& doe_strategy = "full_factorial";
+  int number_observations = 1;
+
+  // make sure that we want those information
+  lock();
+  const bool useful = status == ApplicationStatus::LOADING;
+  if (useful)
+  {
+    status = ApplicationStatus::GENERATING_DOE;
+  }
+  unlock();
+
+  // if we are not looking for them, return
+  if (!useful)
+  {
+    return;
+  }
+
+  // otherwise we have to process the string
+  info("Handler ", application_name, ": parsing the information of the application");
+  static constexpr char line_delimiter = '@';
+  static constexpr int header_size = 10; // characters
+  std::stringstream stream(info_message);
+  std::string&& info_element = {};
+  while(std::getline(stream,info_element,line_delimiter))
+  {
+    const std::string line_topic = info_element.substr(0, header_size);
+    if (line_topic.compare("knob      ") == 0)
+    {
+      knob_t&& new_knob = {};
+      new_knob.set(info_element.substr(header_size));
+      knobs.emplace_back(new_knob);
+    }
+    else
+    {
+      if (line_topic.compare("feature   ") == 0)
+      {
+        feature_t&& new_feature = {};
+        new_feature.set(info_element.substr(header_size));
+        features.emplace_back(new_feature);
+      }
+      else
+      {
+        if (line_topic.compare("metric    ") == 0)
+        {
+          metric_t&& new_metric = {};
+          new_metric.set(info_element.substr(header_size));
+          metrics.emplace_back(new_metric);
+        }
+        else
+        {
+          if (line_topic.compare("doe       ") == 0)
+          {
+            doe_strategy = info_element.substr(header_size);
+          }
+          else
+          {
+            if (line_topic.compare("num_obser ") == 0)
+            {
+              std::istringstream ( info_element.substr(header_size) ) >> number_observations;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // free the name of the client that should inform us about the application
+  lock();
+  information_client.clear();
+  unlock();
+
+  // we have to generate and store the model
+  info("Handler ", application_name, ": creating and storing the required predictions in the model");
+  model.create<DoeStrategy::FULL_FACTORIAL>(knobs, features, metrics);
+  io::storage.store_model(application_name, model);
+  model.clear(); // right now we don't need it
+
+  // free the useless information from memory
+  io::storage.store_features(application_name, features);
+  features.clear();
+  io::storage.store_metrics(application_name, metrics);
+  metrics.clear();
+
+  // we have to generate the doe
+  info("Handler ", application_name, ": generating and storing the doe");
+  if (doe_strategy.compare("full_factorial") == 0)
+  {
+    doe.create<DoeStrategy::FULL_FACTORIAL>(knobs, number_observations);
+  }
+  else
+  {
+    warning("Handler ", application_name, ": unable to create doe strategy \"", doe_strategy, "\", using full-factorial");
+    doe.create<DoeStrategy::FULL_FACTORIAL>(knobs, number_observations);
+  }
+
+  // we have to store the remaining information
+  io::storage.store_doe(application_name, doe);
+  io::storage.store_knobs(application_name, knobs);
+  knobs.clear();
+
+  // dispatch to the clients the required information (if there is someone available)
+  lock();
+  if (status == ApplicationStatus::GENERATING_DOE)
+  {
+    info("Handler ", application_name, ": starting the Design Space Exploration");
+    status = ApplicationStatus::EXPLORING;
+    for( const auto& client : pending_clients )
+    {
+      io::remote.send_message({{"margot/" + application_name + "/" + client + "/explore"},get_next()});
+    }
+  }
+  else
+  {
+    info("Handler ", application_name, ": nobody is left, but we have stored the information");
+    doe.clear();
+  }
+  unlock();
+
 }

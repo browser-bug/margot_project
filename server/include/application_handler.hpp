@@ -29,6 +29,7 @@
 
 #include "virtual_io.hpp"
 #include "common_objects.hpp"
+#include "doe.hpp"
 
 namespace margot
 {
@@ -37,6 +38,7 @@ namespace margot
   {
     CLUELESS,
     LOADING,
+    GENERATING_DOE,
     EXPLORING,
     BUILDING_MODEL, // do not put the client in pending list
     WITH_MODEL,
@@ -71,9 +73,6 @@ namespace margot
       // about the application behavior
       model_t model;
       doe_t doe;
-      application_knobs_t knobs;
-      application_features_t features;
-      application_metrics_t metrics;
 
 
 
@@ -114,6 +113,9 @@ namespace margot
 
 
       void bye_client( const std::string& client_name );
+
+
+      void process_info( const std::string& info );
 
 
 

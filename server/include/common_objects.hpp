@@ -42,6 +42,16 @@ namespace margot
 
   struct knob_t
   {
+    inline void set( const std::string&& description )
+    {
+      std::stringstream stream(description);
+      stream >> name;         // get the name
+      stream >> type;         // get the type
+      std::string&& value = {};
+      while (std::getline(stream,value,' ')) // get the values
+        if (!value.empty())
+          values.emplace_back(value);
+    }
     std::string name;
     std::string type;
     field_design_space_t values;
@@ -49,6 +59,13 @@ namespace margot
 
   struct metric_t
   {
+    inline void set( const std::string&& description )
+    {
+      std::stringstream stream(description);
+      stream >> name;              // get the name
+      stream >> type;              // get the type
+      stream >> prediction_method; // get the prediction method
+    }
     std::string name;
     std::string type;
     std::string prediction_method;
@@ -56,6 +73,16 @@ namespace margot
 
   struct feature_t
   {
+    inline void set( const std::string&& description )
+    {
+      std::stringstream stream(description);
+      stream >> name;         // get the name
+      stream >> type;         // get the type
+      std::string&& value = {};
+      while (std::getline(stream,value,' ')) // get the values
+        if (!value.empty())
+          values.emplace_back(value);
+    }
     std::string name;
     std::string type;
     field_design_space_t values;

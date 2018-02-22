@@ -27,6 +27,7 @@
 #include <chrono>
 #include <random>
 #include <iostream>
+#include <vector>
 
 #include "virtual_channel.hpp"
 #include "logger.hpp"
@@ -69,11 +70,11 @@ namespace margot
         // register to the application-specific topic (before send the welcome message)
         remote.subscribe("margot/" + application_name + "/" + my_client_id + "/#");
 
-        // send the welcome message
-        remote.send_message({{"margot/" + application_name + "/welcome"}, my_client_id});
-
         // register to the application to receive the model
         remote.subscribe("margot/" + application_name + "/model");
+
+        // announce to the world that i exists
+        remote.send_message({{"margot/" + application_name + "/welcome"}, my_client_id});
 
         // remember, this is a thread, it should terminate only when the
         // client disconnect, so keep running until the application is up
@@ -84,11 +85,32 @@ namespace margot
 
           if (!remote.recv_message(new_incoming_message))
           {
-            margot::info("mARGOt support thread on retirement ");
+            margot::info("mARGOt support thread on retirement");
             return; // there is no more work available
           }
 
-          // execute here the application code that react to messages from server
+          // get the "topic" of the message
+          const auto start_type_pos = new_incoming_message.topic.find_last_of('/');
+          const std::string message_topic = new_incoming_message.topic.substr(start_type_pos);
+
+          // handle the info message
+          if (message_topic.compare("/info") == 0)
+          {
+            const std::vector< std::string > descriptions = {
+              "knob      primus int 1 2 3@",
+              "knob      secundus int 4 5 6@",
+              "knob      terzius int 7 8 9@",
+              "feature   destrezza float 1 3.5 6@",
+              "feature   costituzione float 10 15 20@",
+              "metric    exec_time int average@",
+              "doe       full_factorial@",
+              "num_obser 5"
+            };
+            std::ostringstream os;
+            std::for_each(descriptions.begin(), descriptions.end(), [&os] ( const std::string& configuration )
+            { os << configuration; });
+            remote.send_message({{"margot/" + application_name + "/info"},os.str()});
+          }
 
         }
       }
