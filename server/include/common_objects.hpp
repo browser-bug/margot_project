@@ -155,7 +155,7 @@ namespace margot
     // the number of fields in the configuration
     inline bool usable( void ) const
     {
-      const auto number_of_theoretical_fields = fields_name.size();
+      const int number_of_theoretical_fields = fields_name.size();
       return (number_of_theoretical_fields == num_data_fields()) && (number_of_theoretical_fields > 0);
     }
 
@@ -175,7 +175,7 @@ namespace margot
     {
       std::ostringstream os;
       std::for_each(model_data.begin(), model_data.end(), [&os] ( const std::string& configuration )
-      { os << configuration << '\n'; });
+      { os << configuration << '@'; });
       return os.str();
     }
 
@@ -218,6 +218,9 @@ namespace margot
       {
         doe.emplace(configuration, required_number_of_observations);
       }
+
+      // set the correct value for the doe iterator
+      next_configuration = doe.begin();
     }
 
     inline bool usable( void ) const

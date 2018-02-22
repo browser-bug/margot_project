@@ -93,7 +93,27 @@ namespace margot
         {
           doe.next_configuration = doe.doe.begin();
         }
-        return doe.next_configuration->first;
+        auto configuration_to_send = doe.next_configuration->first;
+        return configuration_to_send;
+      }
+
+      inline void send_configuration( const std::string& client_name )
+      {
+        if (!doe.doe.empty())
+        {
+
+          // get the configuration to explore
+          auto&& next_configuration = get_next();
+
+          // replace the coma with spaces
+          std::replace(next_configuration.begin(), next_configuration.end(), ',', ' ' );
+
+          // update the assigned configurations
+          assigned_configurations[next_configuration] = client_name;
+
+          // send the configuration
+          io::remote.send_message({{"margot/" + application_name + "/" + client_name + "/explore"},next_configuration});
+        }
       }
 
       inline void send_model( const std::string& topic_name ) const

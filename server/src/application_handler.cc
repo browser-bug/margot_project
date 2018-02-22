@@ -78,9 +78,10 @@ void RemoteApplicationHandler::welcome_client( const std::string& client_name )
       status = ApplicationStatus::EXPLORING;
       for( const auto& client : pending_clients )
       {
-        io::remote.send_message({{"margot/" + application_name + "/" + client + "/explore"},get_next()});
+        send_configuration(client);
       }
-      io::remote.send_message({{"margot/" + application_name + "/" + client_name + "/explore"},get_next()});
+      send_configuration(client_name);
+      pending_clients.clear();
       unlock();
       return; // we have done our work
     }
@@ -108,7 +109,7 @@ void RemoteApplicationHandler::welcome_client( const std::string& client_name )
   lock();
   if (status == ApplicationStatus::EXPLORING)
   {
-    io::remote.send_message({{"margot/" + application_name + "/" + client_name + "/explore"},get_next()});
+    send_configuration(client_name);
   }
   unlock();
 
@@ -300,8 +301,9 @@ void RemoteApplicationHandler::process_info( const std::string& info_message )
     status = ApplicationStatus::EXPLORING;
     for( const auto& client : pending_clients )
     {
-      io::remote.send_message({{"margot/" + application_name + "/" + client + "/explore"},get_next()});
+      send_configuration(client);
     }
+    pending_clients.clear();
   }
   else
   {
