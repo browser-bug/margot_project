@@ -91,7 +91,7 @@ extern "C"
 
 
 PahoClient::PahoClient( const std::string& application_name, const std::string& broker_address, const uint8_t qos_level, const std::string& username, const std::string& password )
-  : RemoteHandler(), is_connected(false), qos_level(qos_level), send_spinlock(ATOMIC_FLAG_INIT)
+  : RemoteHandler(), is_connected(false), qos_level(qos_level)
 {
   // create the client id as unique-ish in the network
   char hostname[MAX_HOSTNAME_LENGHT];
@@ -226,10 +226,11 @@ void PahoClient::send_message( const message_t&& output_message )
   message.retained = 0;  // change to 1 if we want messages to appear to new subcribers
 
   // send the message (in asynchronous way) and it isn't thread safe >.>
-  while (send_spinlock.test_and_set(std::memory_order_acquire)); // locking the sender
-
-  int return_code = MQTTClient_publishMessage(client, output_message.topic.c_str(), &message, &delivery_token);
-  send_spinlock.clear(std::memory_order_release); // releasing the sender
+  int return_code;
+  {
+    std::lock_guard<std::mutex> lock(send_mutex);
+    return_code = MQTTClient_publishMessage(client, output_message.topic.c_str(), &message, &delivery_token);
+  }
 
   // check if the message is actually sent in the outer space (no guarantees to delivery though)
   if (return_code != MQTTCLIENT_SUCCESS)

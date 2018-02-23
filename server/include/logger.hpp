@@ -27,7 +27,7 @@
 #include <iostream>
 #include <ctime>
 #include <iomanip>
-#include <atomic>
+#include <mutex>
 
 
 namespace margot
@@ -71,7 +71,7 @@ namespace margot
 
       //std::ofstream log_file;
       uint8_t filter_level;
-      std::atomic_flag out_sync_flag;
+      std::mutex sync_mutex;
 
 
     public:
@@ -87,11 +87,9 @@ namespace margot
       {
         if (static_cast<uint8_t>(level) <= filter_level)
         {
-          while (out_sync_flag.test_and_set(std::memory_order_acquire)); // perform the lock operation
-
+          std::lock_guard<std::mutex> lock(sync_mutex);
           const auto now = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
           internal_log(std::put_time(std::localtime(&now), "%F %T"), " [", get_string_level(level), "] ", payload...);
-          out_sync_flag.clear(std::memory_order_release); // perform the unlock operation
         }
       }
 

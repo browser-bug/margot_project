@@ -23,7 +23,7 @@
 
 
 #include <string>
-#include <atomic>
+#include <mutex>
 
 
 extern "C"
@@ -46,7 +46,7 @@ namespace margot
       bool is_connected;
       uint8_t qos_level;
       std::string client_id;
-      std::atomic_flag send_spinlock;
+      std::mutex send_mutex;
       std::string goodbye_topic;
 
 

@@ -26,7 +26,7 @@ using namespace margot;
 Logger margot::my_agora_logger;
 
 Logger::Logger( void )
-  : filter_level(static_cast<uint8_t>(LogLevel::DEBUG)), out_sync_flag(ATOMIC_FLAG_INIT)
+  : filter_level(static_cast<uint8_t>(LogLevel::DEBUG))
 {
   //log_file.open("margot_agora.log", std::ofstream::out | std::ofstream::app);
 }

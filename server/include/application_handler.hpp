@@ -22,7 +22,7 @@
 #define MARGOT_AGORA_APPLICATION_HANDLER_HDR
 
 #include <string>
-#include <atomic>
+#include <mutex>
 #include <unordered_set>
 #include <unordered_map>
 #include <cstdint>
@@ -52,7 +52,7 @@ namespace margot
     private:
 
       // to protect the data structure
-      std::atomic_flag spinlock;
+      std::mutex mutex;
 
       // to handle the progress of the elaboration
       ApplicationStatus status;
@@ -77,17 +77,6 @@ namespace margot
       model_t model;
       doe_t doe;
 
-
-
-      inline void lock( void )
-      {
-        while (spinlock.test_and_set(std::memory_order_acquire));
-      }
-
-      inline void unlock( void )
-      {
-        spinlock.clear(std::memory_order_release);
-      }
 
       inline configuration_t get_next( void )
       {

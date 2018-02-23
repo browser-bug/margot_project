@@ -26,7 +26,7 @@
 using namespace margot;
 
 RemoteApplicationHandler::RemoteApplicationHandler( const std::string& application_name )
-  : spinlock(ATOMIC_FLAG_INIT), status(ApplicationStatus::CLUELESS), description(application_name)
+  : status(ApplicationStatus::CLUELESS), description(application_name)
 {}
 
 void RemoteApplicationHandler::build_model( void )
@@ -41,18 +41,21 @@ void RemoteApplicationHandler::build_model( void )
 void RemoteApplicationHandler::welcome_client( const std::string& client_name )
 {
   // for sure we have to register the new client
-  lock();
-  active_clients.emplace(client_name);
-  unlock();
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+    active_clients.emplace(client_name);
+  }
 
   // ------------------------------------------------------------- CASE 1: this is the first client
-  lock();
-  const bool clueless = status == ApplicationStatus::CLUELESS;
-  if (clueless)
+  bool clueless;
   {
-    status = ApplicationStatus::LOADING;
+     std::lock_guard<std::mutex> lock(mutex);
+     clueless = status == ApplicationStatus::CLUELESS;
+     if (clueless)
+     {
+       status = ApplicationStatus::LOADING;
+     }
   }
-  unlock();
   if (clueless)
   {
     // first of all we need to load the application description, otherwise we cannot do nothing
@@ -60,11 +63,12 @@ void RemoteApplicationHandler::welcome_client( const std::string& client_name )
     if ( description.knobs.empty() || description.metrics.empty() )
     {
       info("Handler ", description.application_name, ": asking \"", client_name, "\" to provide information");
-      lock();
-      information_client = client_name;      // we want to know which is the client to speak with
-      pending_clients.emplace(client_name);  // once we have the information, we need to provide to him configurations
-      io::remote.send_message({{"margot/" + description.application_name + "/" + client_name + "/info"}, ""});
-      unlock();
+      {
+        std::lock_guard<std::mutex> lock(mutex);
+        information_client = client_name;      // we want to know which is the client to speak with
+        pending_clients.emplace(client_name);  // once we have the information, we need to provide to him configurations
+        io::remote.send_message({{"margot/" + description.application_name + "/" + client_name + "/info"}, ""});
+      }
       return; // we cannot do anything
     }
 
@@ -75,10 +79,11 @@ void RemoteApplicationHandler::welcome_client( const std::string& client_name )
     if ( model.column_size() == theoretical_number_of_columns)
     {
       info("Handler ", description.application_name, ": recovered model from storage");
-      lock();
-      status = ApplicationStatus::WITH_MODEL; // change the status to the final one
-      pending_clients.clear(); // because we are about to broadcast the model
-      unlock();
+      {
+        std::lock_guard<std::mutex> lock(mutex);
+        status = ApplicationStatus::WITH_MODEL; // change the status to the final one
+        pending_clients.clear(); // because we are about to broadcast the model
+      }
       send_model("/margot/" + description.application_name + "/model");
       return; // we have done our work
     }
@@ -89,15 +94,16 @@ void RemoteApplicationHandler::welcome_client( const std::string& client_name )
     {
       // we configurations yet to explore, we shall start
       info("Handler ", description.application_name, ": recovered doe from storage");
-      lock();
-      status = ApplicationStatus::EXPLORING;
-      for( const auto& client : pending_clients )
       {
-        send_configuration(client);
+        std::lock_guard<std::mutex> lock(mutex);
+        status = ApplicationStatus::EXPLORING;
+        for( const auto& client : pending_clients )
+        {
+          send_configuration(client);
+        }
+        send_configuration(client_name);
+        pending_clients.clear();
       }
-      send_configuration(client_name);
-      pending_clients.clear();
-      unlock();
       return; // we have done our work
     }
 
@@ -105,29 +111,34 @@ void RemoteApplicationHandler::welcome_client( const std::string& client_name )
   }
 
   // ------------------------------------------------------------- CASE 2: we are initializing the object
-  lock();
-  if ((status == ApplicationStatus::LOADING) || (status == ApplicationStatus::GENERATING_DOE))
   {
-    // we can't do anything, put the client in the pending list
-    pending_clients.emplace(client_name);
+    std::lock_guard<std::mutex> lock(mutex);
+    if ((status == ApplicationStatus::LOADING) || (status == ApplicationStatus::GENERATING_DOE))
+    {
+      // we can't do anything, put the client in the pending list
+      pending_clients.emplace(client_name);
+    }
   }
-  unlock();
 
   // ------------------------------------------------------------- CASE 3: we are exploring some configurations
-  lock();
-  if (status == ApplicationStatus::EXPLORING)
   {
-    send_configuration(client_name);
+    std::lock_guard<std::mutex> lock(mutex);
+    if (status == ApplicationStatus::EXPLORING)
+    {
+      send_configuration(client_name);
+    }
   }
-  unlock();
+
 
   // ------------------------------------------------------------- CASE 4: we are building the model
   // sooner or later we broadcast the model, no need to do anything
 
   // ------------------------------------------------------------- CASE 5: we actually have a model
-  lock();
-  const bool with_model = status == ApplicationStatus::WITH_MODEL;
-  unlock();
+  bool with_model;
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+    with_model = status == ApplicationStatus::WITH_MODEL;
+  }
   if (with_model)
   {
     send_model("margot/" + description.application_name + "/" + client_name + "/model");
@@ -139,59 +150,61 @@ void RemoteApplicationHandler::welcome_client( const std::string& client_name )
 void RemoteApplicationHandler::bye_client( const std::string& client_name )
 {
   // for sure we have to remove the client from the active ones and from the configuration list
-  lock();
-  const auto active_it = active_clients.find(client_name);
-  if (active_it != active_clients.end())
   {
-    active_clients.erase(active_it);
+    std::lock_guard<std::mutex> lock(mutex);
+    const auto active_it = active_clients.find(client_name);
+    if (active_it != active_clients.end())
+    {
+      active_clients.erase(active_it);
+    }
+    const auto conf_it = assigned_configurations.find(client_name);
+    if (conf_it != assigned_configurations.end())
+    {
+      assigned_configurations.erase(conf_it);
+    }
   }
-  const auto conf_it = assigned_configurations.find(client_name);
-  if (conf_it != assigned_configurations.end())
-  {
-    assigned_configurations.erase(conf_it);
-  }
-  unlock();
 
   // ------------------------------------------------------------- CASE 1: it was the last client
-  lock();
-  if (active_clients.empty())
   {
-    info("Handler ", description.application_name, ": everybody left, resetting the object");
-
-    // everybody left, we have to reset the object, unless someone is generating the doe
-    if ((status != ApplicationStatus::GENERATING_DOE) && (status != ApplicationStatus::BUILDING_MODEL))
+    std::lock_guard<std::mutex> lock(mutex);
+    if (active_clients.empty())
     {
-      status = ApplicationStatus::CLUELESS;
-      model.knowledge.clear();
-      doe.required_explorations.clear();
-      assigned_configurations.clear();
-      information_client.clear(); // if this happens when we are in the LOADING state
+      info("Handler ", description.application_name, ": everybody left, resetting the object");
+
+      // everybody left, we have to reset the object, unless someone is generating the doe
+      if ((status != ApplicationStatus::GENERATING_DOE) && (status != ApplicationStatus::BUILDING_MODEL))
+      {
+        status = ApplicationStatus::CLUELESS;
+        model.knowledge.clear();
+        doe.required_explorations.clear();
+        assigned_configurations.clear();
+        information_client.clear(); // if this happens when we are in the LOADING state
+      }
+      else
+      {
+        status = ApplicationStatus::CLUELESS; // we can't free memory, but we can change status
+      }
+    }
+  }
+
+  // ------------------------------------------------------------- CASE 2: it was the information client
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+    if ( information_client.compare(client_name) == 0)
+    {
+      // we should hire someone else to do it ( the first on the active list )
+      information_client = *active_clients.begin();
+      io::remote.send_message({{"margot/" + description.application_name + "/" + information_client + "/info"}, ""});
+
+      info("Handler ", description.application_name, ": goodbye client \"", client_name, "\", requesting info at client \"", information_client, "\"");
     }
     else
     {
-      status = ApplicationStatus::CLUELESS; // we can't free memory, but we can change status
+      // ------------------------------------------------------------- CASE 3: it is a random client
+      // we don't actually care
+      info("Handler ", description.application_name, ": goodbye client \"", client_name, "\"");
     }
   }
-  unlock();
-
-  // ------------------------------------------------------------- CASE 2: it was the information client
-  lock();
-  const bool is_information_client = information_client.compare(client_name) == 0;
-  if (is_information_client)
-  {
-    // we should hire someone else to do it ( the first on the active list )
-    information_client = *active_clients.begin();
-    io::remote.send_message({{"margot/" + description.application_name + "/" + information_client + "/info"}, ""});
-
-    info("Handler ", description.application_name, ": goodbye client \"", client_name, "\", requesting info at client \"", information_client, "\"");
-  }
-  else
-  {
-    // ------------------------------------------------------------- CASE 3: it is a random client
-    // we don't actually care
-    info("Handler ", description.application_name, ": goodbye client \"", client_name, "\"");
-  }
-  unlock();
 }
 
 
@@ -202,19 +215,19 @@ void RemoteApplicationHandler::process_info( const std::string& info_message )
   int number_observations = 1;
 
   // make sure that we want those information
-  lock();
-  const bool useful = status == ApplicationStatus::LOADING;
-  if (useful)
   {
-    status = ApplicationStatus::GENERATING_DOE;
+    std::lock_guard<std::mutex> lock(mutex);
+    const bool useful = status == ApplicationStatus::LOADING;
+    if (useful)
+    {
+      status = ApplicationStatus::GENERATING_DOE;
+    }
+    else
+    {
+      return;
+    }
   }
-  unlock();
 
-  // if we are not looking for them, return
-  if (!useful)
-  {
-    return;
-  }
 
   // otherwise we have to process the string
   info("Handler ", description.application_name, ": parsing the information of the application");
@@ -273,9 +286,10 @@ void RemoteApplicationHandler::process_info( const std::string& info_message )
   }
 
   // free the name of the client that should inform us about the application
-  lock();
-  information_client.clear();
-  unlock();
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+    information_client.clear();
+  }
 
   // first of all we have to store the application description
   io::storage.store_description(description);
@@ -299,25 +313,26 @@ void RemoteApplicationHandler::process_info( const std::string& info_message )
   io::storage.store_doe(description, doe);
 
   // dispatch to the clients the required information (if there is someone available)
-  lock();
-  if (status == ApplicationStatus::GENERATING_DOE)
   {
-    info("Handler ", description.application_name, ": starting the Design Space Exploration");
-    status = ApplicationStatus::EXPLORING;
-    for( const auto& client : pending_clients )
+    std::lock_guard<std::mutex> lock(mutex);
+    if (status == ApplicationStatus::GENERATING_DOE)
     {
-      send_configuration(client);
+      info("Handler ", description.application_name, ": starting the Design Space Exploration");
+      status = ApplicationStatus::EXPLORING;
+      for( const auto& client : pending_clients )
+      {
+        send_configuration(client);
+      }
+      pending_clients.clear();
     }
-    pending_clients.clear();
+    else
+    {
+      info("Handler ", description.application_name, ": nobody is left, but we have stored the information");
+      doe.required_explorations.clear();
+      description.clear();
+      pending_clients.clear();
+    }
   }
-  else
-  {
-    info("Handler ", description.application_name, ": nobody is left, but we have stored the information");
-    doe.required_explorations.clear();
-    description.clear();
-    pending_clients.clear();
-  }
-  unlock();
 
 }
 
@@ -338,58 +353,60 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
   stream >> metrics;
 
   // this is a critical section
-  lock();
-
-  // check if the client_id is actually exploring something
-  const auto it = assigned_configurations.find(client_id);
-
-  // check if this is the assigned configuration
-  const bool is_assigned_conf = it != assigned_configurations.end() ? it->second.compare(configuration) == 0 : false;
-
-  // check if we are able to accept a new configuration
-  const bool we_are_ready = (status != ApplicationStatus::CLUELESS) && (status != ApplicationStatus::LOADING) && (status != ApplicationStatus::GENERATING_DOE);
-
-  // check if we are the one that should build the model
-  bool we_have_to_build_the_model = false;
-
-  // check if we need to send another configuration
-  if (is_assigned_conf)
+  bool we_are_ready;
+  bool we_have_to_build_the_model;
   {
-    // update the doe
-    const auto doe_it = doe.required_explorations.find(configuration);
-    if (doe_it != doe.required_explorations.end())
+    std::lock_guard<std::mutex> lock(mutex);
+
+    // check if the client_id is actually exploring something
+    const auto it = assigned_configurations.find(client_id);
+
+    // check if this is the assigned configuration
+    const bool is_assigned_conf = it != assigned_configurations.end() ? it->second.compare(configuration) == 0 : false;
+
+    // check if we are able to accept a new configuration
+    we_are_ready = (status != ApplicationStatus::CLUELESS) && (status != ApplicationStatus::LOADING) && (status != ApplicationStatus::GENERATING_DOE);
+
+    // check if we are the one that should build the model
+    we_have_to_build_the_model = false;
+
+    // check if we need to send another configuration
+    if (is_assigned_conf)
     {
-      // update the counter
-      doe_it->second--;
-
-      // send the query to update also the fs
-      io::storage.update_doe(description, doe_it->first + "," + std::to_string(doe_it->second));
-
-      // check if we need to remove the configuration
-      if (doe_it->second == 0)
+      // update the doe
+      const auto doe_it = doe.required_explorations.find(configuration);
+      if (doe_it != doe.required_explorations.end())
       {
-        info("Handler ", description.application_name, ": terminated the exploration of configuration \"",doe_it->first,"\", ",doe.required_explorations.size()," explorations to model");
-        doe.next_configuration = doe.required_explorations.erase(doe_it);
-        if (doe.next_configuration == doe.required_explorations.end())
+        // update the counter
+        doe_it->second--;
+
+        // send the query to update also the fs
+        io::storage.update_doe(description, doe_it->first + "," + std::to_string(doe_it->second));
+
+        // check if we need to remove the configuration
+        if (doe_it->second == 0)
         {
-          doe.next_configuration = doe.required_explorations.begin();
+          info("Handler ", description.application_name, ": terminated the exploration of configuration \"",doe_it->first,"\", ",doe.required_explorations.size()," explorations to model");
+          doe.next_configuration = doe.required_explorations.erase(doe_it);
+          if (doe.next_configuration == doe.required_explorations.end())
+          {
+            doe.next_configuration = doe.required_explorations.begin();
+          }
         }
-      }
 
-      // check if we need to build the model
-      we_have_to_build_the_model = doe.required_explorations.empty();
-      if (!we_have_to_build_the_model)
-      {
-        send_configuration(client_id);
-
-      }
-      else
-      {
-        status = ApplicationStatus::BUILDING_MODEL;
+        // check if we need to build the model
+        we_have_to_build_the_model = doe.required_explorations.empty();
+        if (!we_have_to_build_the_model)
+        {
+          send_configuration(client_id);
+        }
+        else
+        {
+          status = ApplicationStatus::BUILDING_MODEL;
+        }
       }
     }
   }
-  unlock();
 
   // if we are ready, we can store the information
   if (we_are_ready)
@@ -406,17 +423,18 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
     build_model();
 
     // change the status, we are done (if there is someone alive)
-    lock();
-    if (status == ApplicationStatus::BUILDING_MODEL)
     {
-      status = ApplicationStatus::WITH_MODEL;
+      std::lock_guard<std::mutex> lock(mutex);
+      if (status == ApplicationStatus::BUILDING_MODEL)
+      {
+        status = ApplicationStatus::WITH_MODEL;
+      }
+      else
+      {
+        model.knowledge.clear();
+        description.clear();
+      }
     }
-    else
-    {
-      model.knowledge.clear();
-      description.clear();
-    }
-    unlock();
   }
 
 }
