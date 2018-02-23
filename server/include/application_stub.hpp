@@ -25,6 +25,7 @@
 #include <mutex>
 #include <memory>
 #include <chrono>
+#include <ctime>
 #include <random>
 #include <iostream>
 #include <vector>
@@ -156,12 +157,21 @@ namespace margot
         this->feature2 = feature2;
         this->execution_time = execution_time;
 
-        int64_t ms = std::chrono::duration_cast< std::chrono::milliseconds >(std::chrono::system_clock::now().time_since_epoch()).count();
+        // take the time of now
+        auto now = std::chrono::system_clock::now();
+
+        // get the number of seconds and nanoseconds since epoch
+        const auto sec_since_now = std::chrono::duration_cast< std::chrono::seconds >(now.time_since_epoch());
+        const auto almost_epoch = now - sec_since_now;
+        const auto ns_since_sec = std::chrono::duration_cast< std::chrono::nanoseconds >(almost_epoch.time_since_epoch());
 
         // notify the server about the performance
-        std::string&& payload = std::to_string(ms) + " " + remote.get_my_client_id() + " " + std::to_string(knob1) + "," + std::to_string(knob2) + "," + std::to_string(knob3)
-                                + " " + std::to_string(feature1) + "," + std::to_string(feature2)
-                                + " " + std::to_string(execution_time);
+        std::string&& payload = std::to_string(sec_since_now.count()) + ","
+                                + std::to_string(ns_since_sec.count()) + " "
+                                + remote.get_my_client_id() + " "
+                                + std::to_string(knob1) + "," + std::to_string(knob2) + "," + std::to_string(knob3) + " "
+                                + std::to_string(feature1) + "," + std::to_string(feature2) + " "
+                                + std::to_string(execution_time);
         remote.send_message({{"margot/" + application_name + "/observation"},payload});
       }
 

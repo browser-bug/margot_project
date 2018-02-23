@@ -916,8 +916,8 @@ void CassandraClient::create_trace_table( const application_description_t& descr
   table_name += "_trace";
 
   // compose the table description and the primary keys
-  std::string table_desc = "time timestamp,client_id text,";
-  std::string primary_key = "time,client_id,";
+  std::string table_desc = "day date,time time,client_id text,";
+  std::string primary_key = "day,time,client_id,";
   const int number_of_knobs = static_cast<int>(description.knobs.size());
   const int number_of_features = static_cast<int>(description.features.size());
   const int number_of_metrics = static_cast<int>(description.metrics.size());
@@ -955,7 +955,7 @@ void CassandraClient::insert_trace_entry( const application_description_t& descr
   table_name += "_trace";
 
   // compose the table description and the primary keys
-  std::string fields = "time,client_id,";
+  std::string fields = "day,time,client_id,";
 
   for( const auto& knob : description.knobs )
   {
@@ -973,8 +973,26 @@ void CassandraClient::insert_trace_entry( const application_description_t& descr
   // remove the last come from the field list
   fields.pop_back();
 
-  // perform the quety
-  execute_query_synch("INSERT INTO " + table_name + " (" + fields + ") VALUES (" + values + ");");
+  // first we have to get the number of seconds and nanoseconds from epoch
+  const auto pos_first_coma = values.find_first_of(',', 0);
+  const auto pos_second_coma = values.find_first_of(',', pos_first_coma+1);
+  time_t secs_since_epoch;
+  uint64_t nanosecs_since_secs;
+  std::istringstream( values.substr(0, pos_first_coma) ) >> secs_since_epoch;
+  std::istringstream( values.substr(pos_first_coma+1, pos_second_coma - pos_first_coma) ) >> nanosecs_since_secs;
+
+  // now we have to convert them in the funny casssandra format
+  cass_uint32_t year_month_day = cass_date_from_epoch(secs_since_epoch);
+  cass_uint64_t time_of_day = cass_time_from_epoch(secs_since_epoch);
+
+  // now we add to the time of a day the missing information
+  time_of_day += nanosecs_since_secs;
+
+  // now we have to compose again the values string
+  std::string&& actual_data = std::to_string(year_month_day) + "," + std::to_string(time_of_day) + values.substr(pos_second_coma, std::string::npos);
+
+  // create the table
+  execute_query_synch("INSERT INTO " + table_name + " (" + fields + ") VALUES (" + actual_data + ");");
 }
 
 

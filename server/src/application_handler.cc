@@ -17,6 +17,8 @@
  * USA
  */
 
+#include <ctime>
+
 #include "application_handler.hpp"
 #include "logger.hpp"
 
@@ -345,7 +347,7 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
   const bool is_assigned_conf = it != assigned_configurations.end() ? it->second.compare(configuration) == 0 : false;
 
   // check if we are able to accept a new configuration
-  const bool we_are_ready = !(description.knobs.empty() || description.features.empty() || description.metrics.empty());
+  const bool we_are_ready = (status != ApplicationStatus::CLUELESS) && (status != ApplicationStatus::LOADING) && (status != ApplicationStatus::GENERATING_DOE);
 
   // check if we are the one that should build the model
   bool we_have_to_build_the_model = false;
@@ -366,6 +368,7 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
       // check if we need to remove the configuration
       if (doe_it->second == 0)
       {
+        info("Handler ", description.application_name, ": terminated the exploration of configuration \"",doe_it->first,"\", ",doe.required_explorations.size()," explorations to model");
         doe.next_configuration = doe.required_explorations.erase(doe_it);
         if (doe.next_configuration == doe.required_explorations.end())
         {
@@ -375,15 +378,14 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
 
       // check if we need to build the model
       we_have_to_build_the_model = doe.required_explorations.empty();
-      if (we_have_to_build_the_model)
-      {
-        status = ApplicationStatus::BUILDING_MODEL;
-      }
-
-      // if we don't need to build the model and there is someone, assign a new configuration
-      if ((status != ApplicationStatus::CLUELESS) && (status != ApplicationStatus::BUILDING_MODEL))
+      if (!we_have_to_build_the_model)
       {
         send_configuration(client_id);
+
+      }
+      else
+      {
+        status = ApplicationStatus::BUILDING_MODEL;
       }
     }
   }
@@ -392,12 +394,14 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
   // if we are ready, we can store the information
   if (we_are_ready)
   {
-    io::storage.insert_trace_entry(description, timestamp + "," + client_id + "," + configuration + "," + features + "," + metrics);
+    io::storage.insert_trace_entry(description, timestamp + ",'" + client_id + "'," + configuration + "," + features + "," + metrics);
   }
 
   // if we have to build the model, we should start
   if (we_have_to_build_the_model)
   {
+    info("Handler ", description.application_name, ": building the model...");
+
     // we actually build the model
     build_model();
 
