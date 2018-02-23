@@ -24,10 +24,25 @@
 
 #include "safe_queue.hpp"
 #include "common_objects.hpp"
+#include "logger.hpp"
 
 
 namespace margot
 {
+
+  inline void whitelist( message_t& incoming_string )
+  {
+    if (incoming_string.topic.find_first_not_of("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ01234567890_/") != std::string::npos)
+    {
+      warning("Input sanitizer: found a non valid character in the topic of the message, i will discard it");
+      incoming_string.topic = "margot/error";
+    }
+    if (incoming_string.payload.find_first_not_of("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ01234567890_ .,@") != std::string::npos)
+    {
+      warning("Input sanitizer: found a non valid character in the payload message, i will discard it");
+      incoming_string.payload = "";
+    }
+  }
 
   class RemoteHandler
   {
@@ -42,7 +57,9 @@ namespace margot
 
       inline bool recv_message( message_t& input_message )
       {
-        return inbox.dequeue(input_message);
+        const bool rc = inbox.dequeue(input_message);
+        whitelist(input_message);
+        return rc;
       }
 
       virtual void send_message( const message_t&& output_message ) = 0;

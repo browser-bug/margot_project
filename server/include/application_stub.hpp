@@ -231,7 +231,7 @@ namespace margot
 
         // in the init we must initialize the autotuner, here we spawn a thread
         autotuner.reset( new MargotMimicking() );
-        autotuner->start_support_thread("swaptions/v1.3/elaboration");
+        autotuner->start_support_thread("swaptions/v1_3/elaboration");
 
         // taking the time of now
         const auto start_time = std::chrono::steady_clock::now();
