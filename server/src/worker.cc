@@ -80,7 +80,7 @@ namespace margot
     if (message_type.compare("/welcome") == 0)
     {
       // get the name of the application
-      const auto application_name = new_message.topic.substr(7,start_type_pos-7);
+      const auto application_name = new_message.topic.substr(7, start_type_pos - 7);
 
       // get the client id
       const auto client_id = new_message.payload;
@@ -99,7 +99,7 @@ namespace margot
     if (message_type.compare("/kia") == 0)
     {
       // get the name of the application
-      const auto application_name = new_message.topic.substr(7,start_type_pos-7);
+      const auto application_name = new_message.topic.substr(7, start_type_pos - 7);
 
       // get the client id
       const auto client_id = new_message.payload;
@@ -118,7 +118,7 @@ namespace margot
     if (message_type.compare("/info") == 0)
     {
       // get the name of the application
-      const auto application_name = new_message.topic.substr(7,start_type_pos-7);
+      const auto application_name = new_message.topic.substr(7, start_type_pos - 7);
 
       // get the client id
       const auto application_info = new_message.payload;
@@ -137,7 +137,7 @@ namespace margot
     if (message_type.compare("/observation") == 0)
     {
       // get the name of the application
-      const auto application_name = new_message.topic.substr(7,start_type_pos-7);
+      const auto application_name = new_message.topic.substr(7, start_type_pos - 7);
 
       // get the client id
       const auto observation = new_message.payload;
@@ -146,7 +146,7 @@ namespace margot
       const auto application_handler = GlobalView::get_handler(application_name);
 
       // log the event
-      pedantic("Thread ", get_tid(), ": received a new observation for \"", application_name, "\": \"", observation,"\"");
+      pedantic("Thread ", get_tid(), ": received a new observation for \"", application_name, "\": \"", observation, "\"");
 
       // handle the message
       application_handler->new_observation(observation);

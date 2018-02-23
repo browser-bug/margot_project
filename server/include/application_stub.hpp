@@ -100,7 +100,8 @@ namespace margot
           // handle the info message
           if (message_topic.compare("/info") == 0)
           {
-            const std::vector< std::string > descriptions = {
+            const std::vector< std::string > descriptions =
+            {
               "knob      primus int 1 2 3@",
               "knob      secundus int 4 5 6@",
               "knob      terzius int 7 8 9@",
@@ -111,9 +112,11 @@ namespace margot
               "num_obser 1"
             };
             std::ostringstream os;
-            std::for_each(descriptions.begin(), descriptions.end(), [&os] ( const std::string& configuration )
-            { os << configuration; });
-            remote.send_message({{"margot/" + application_name + "/info"},os.str()});
+            std::for_each(descriptions.begin(), descriptions.end(), [&os] ( const std::string & configuration )
+            {
+              os << configuration;
+            });
+            remote.send_message({{"margot/" + application_name + "/info"}, os.str()});
           }
 
           // handle the configurations incoming from the server
@@ -172,7 +175,7 @@ namespace margot
                                 + std::to_string(knob1) + "," + std::to_string(knob2) + "," + std::to_string(knob3) + " "
                                 + std::to_string(feature1) + "," + std::to_string(feature2) + " "
                                 + std::to_string(execution_time);
-        remote.send_message({{"margot/" + application_name + "/observation"},payload});
+        remote.send_message({{"margot/" + application_name + "/observation"}, payload});
       }
 
       // this function should be parametric and hidden

@@ -41,17 +41,20 @@ void RemoteApplicationHandler::welcome_client( const std::string& client_name )
   // ------------------------------------------------------------- CASE 1: this is the first client
   bool clueless;
   {
-     std::lock_guard<std::mutex> lock(mutex);
-     clueless = status == ApplicationStatus::CLUELESS;
-     if (clueless)
-     {
-       status = ApplicationStatus::LOADING;
-     }
+    std::lock_guard<std::mutex> lock(mutex);
+    clueless = status == ApplicationStatus::CLUELESS;
+
+    if (clueless)
+    {
+      status = ApplicationStatus::LOADING;
+    }
   }
+
   if (clueless)
   {
     // first of all we need to load the application description, otherwise we cannot do nothing
     description = io::storage.load_description(description.application_name);
+
     if ( description.knobs.empty() || description.metrics.empty() )
     {
       info("Handler ", description.application_name, ": asking \"", client_name, "\" to provide information");
@@ -67,7 +70,8 @@ void RemoteApplicationHandler::welcome_client( const std::string& client_name )
 
     // if we are lucky we already have the model of the application
     model = io::storage.load_model(description.application_name);
-    const int theoretical_number_of_columns = static_cast<int>(description.knobs.size() + description.features.size() + (2*description.metrics.size()));
+    const int theoretical_number_of_columns = static_cast<int>(description.knobs.size() + description.features.size() + (2 * description.metrics.size()));
+
     if ( model.column_size() == theoretical_number_of_columns)
     {
       info("Handler ", description.application_name, ": recovered model from storage");
@@ -82,6 +86,7 @@ void RemoteApplicationHandler::welcome_client( const std::string& client_name )
 
     // if we are a bit less lucky we have at least the doe (with model in db)
     doe = io::storage.load_doe(description.application_name);
+
     if (!doe.required_explorations.empty()) // if the doe is terminated, we must also have the model
     {
       // we configurations yet to explore, we shall start
@@ -89,10 +94,12 @@ void RemoteApplicationHandler::welcome_client( const std::string& client_name )
       {
         std::lock_guard<std::mutex> lock(mutex);
         status = ApplicationStatus::EXPLORING;
-        for( const auto& client : pending_clients )
+
+        for ( const auto& client : pending_clients )
         {
           send_configuration(client);
         }
+
         send_configuration(client_name);
         pending_clients.clear();
       }
@@ -105,6 +112,7 @@ void RemoteApplicationHandler::welcome_client( const std::string& client_name )
   // ------------------------------------------------------------- CASE 2: we are initializing the object
   {
     std::lock_guard<std::mutex> lock(mutex);
+
     if ((status == ApplicationStatus::LOADING) || (status == ApplicationStatus::GENERATING_DOE))
     {
       // we can't do anything, put the client in the pending list
@@ -115,6 +123,7 @@ void RemoteApplicationHandler::welcome_client( const std::string& client_name )
   // ------------------------------------------------------------- CASE 3: we are exploring some configurations
   {
     std::lock_guard<std::mutex> lock(mutex);
+
     if (status == ApplicationStatus::EXPLORING)
     {
       send_configuration(client_name);
@@ -131,6 +140,7 @@ void RemoteApplicationHandler::welcome_client( const std::string& client_name )
     std::lock_guard<std::mutex> lock(mutex);
     with_model = status == ApplicationStatus::WITH_MODEL;
   }
+
   if (with_model)
   {
     send_model("margot/" + description.application_name + "/" + client_name + "/model");
@@ -145,11 +155,14 @@ void RemoteApplicationHandler::bye_client( const std::string& client_name )
   {
     std::lock_guard<std::mutex> lock(mutex);
     const auto active_it = active_clients.find(client_name);
+
     if (active_it != active_clients.end())
     {
       active_clients.erase(active_it);
     }
+
     const auto conf_it = assigned_configurations.find(client_name);
+
     if (conf_it != assigned_configurations.end())
     {
       assigned_configurations.erase(conf_it);
@@ -159,6 +172,7 @@ void RemoteApplicationHandler::bye_client( const std::string& client_name )
   // ------------------------------------------------------------- CASE 1: it was the last client
   {
     std::lock_guard<std::mutex> lock(mutex);
+
     if (active_clients.empty())
     {
       info("Handler ", description.application_name, ": everybody left, resetting the object");
@@ -182,6 +196,7 @@ void RemoteApplicationHandler::bye_client( const std::string& client_name )
   // ------------------------------------------------------------- CASE 2: it was the information client
   {
     std::lock_guard<std::mutex> lock(mutex);
+
     if ( information_client.compare(client_name) == 0)
     {
       // we should hire someone else to do it ( the first on the active list )
@@ -210,6 +225,7 @@ void RemoteApplicationHandler::process_info( const std::string& info_message )
   {
     std::lock_guard<std::mutex> lock(mutex);
     const bool useful = status == ApplicationStatus::LOADING;
+
     if (useful)
     {
       status = ApplicationStatus::GENERATING_DOE;
@@ -227,7 +243,8 @@ void RemoteApplicationHandler::process_info( const std::string& info_message )
   static constexpr int header_size = 10; // characters
   std::stringstream stream(info_message);
   std::string info_element = {};
-  while(std::getline(stream,info_element,line_delimiter))
+
+  while (std::getline(stream, info_element, line_delimiter))
   {
     // make sure to skip void elements
     if (info_element.empty())
@@ -237,6 +254,7 @@ void RemoteApplicationHandler::process_info( const std::string& info_message )
 
     // otherwise get the first character to understand the line
     const std::string line_topic = info_element.substr(0, header_size);
+
     if (line_topic.compare("knob      ") == 0)
     {
       knob_t new_knob = {};
@@ -291,6 +309,7 @@ void RemoteApplicationHandler::process_info( const std::string& info_message )
 
   // we have to generate the doe
   info("Handler ", description.application_name, ": generating and storing the doe");
+
   if (doe_strategy.compare("full_factorial") == 0)
   {
     doe.create<DoeStrategy::FULL_FACTORIAL>(description, number_observations);
@@ -307,14 +326,17 @@ void RemoteApplicationHandler::process_info( const std::string& info_message )
   // dispatch to the clients the required information (if there is someone available)
   {
     std::lock_guard<std::mutex> lock(mutex);
+
     if (status == ApplicationStatus::GENERATING_DOE)
     {
       info("Handler ", description.application_name, ": starting the Design Space Exploration");
       status = ApplicationStatus::EXPLORING;
-      for( const auto& client : pending_clients )
+
+      for ( const auto& client : pending_clients )
       {
         send_configuration(client);
       }
+
       pending_clients.clear();
     }
     else
@@ -367,6 +389,7 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
     {
       // update the doe
       const auto doe_it = doe.required_explorations.find(configuration);
+
       if (doe_it != doe.required_explorations.end())
       {
         // update the counter
@@ -378,8 +401,9 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
         // check if we need to remove the configuration
         if (doe_it->second == 0)
         {
-          info("Handler ", description.application_name, ": terminated the exploration of configuration \"",doe_it->first,"\", ",doe.required_explorations.size()," explorations to model");
+          info("Handler ", description.application_name, ": terminated the exploration of configuration \"", doe_it->first, "\", ", doe.required_explorations.size(), " explorations to model");
           doe.next_configuration = doe.required_explorations.erase(doe_it);
+
           if (doe.next_configuration == doe.required_explorations.end())
           {
             doe.next_configuration = doe.required_explorations.begin();
@@ -388,6 +412,7 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
 
         // check if we need to build the model
         we_have_to_build_the_model = doe.required_explorations.empty();
+
         if (!we_have_to_build_the_model)
         {
           send_configuration(client_id);
@@ -422,6 +447,7 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
     // change the status, we are done (if there is someone alive)
     {
       std::lock_guard<std::mutex> lock(mutex);
+
       if (status == ApplicationStatus::BUILDING_MODEL)
       {
         status = ApplicationStatus::WITH_MODEL;

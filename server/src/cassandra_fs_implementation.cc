@@ -494,7 +494,7 @@ void CassandraClient::store_doe( const application_description_t& description, c
   std::string primary_key = "";
   const int number_of_knobs = description.knobs.size();
 
-  for( int i = 0; i < number_of_knobs; ++i )
+  for ( int i = 0; i < number_of_knobs; ++i )
   {
     table_desc.append(description.knobs[i].name +  " " + description.knobs[i].type + ",");
     primary_key.append(description.knobs[i].name + ",");
@@ -702,19 +702,19 @@ void CassandraClient::store_model( const application_description_t& description,
   const int number_of_features = description.features.size();
   const int number_of_metrics = description.metrics.size();
 
-  for( int i = 0; i < number_of_knobs; ++i )
+  for ( int i = 0; i < number_of_knobs; ++i )
   {
     table_desc.append(description.knobs[i].name +  " " + description.knobs[i].type + ",");
     primary_key.append(description.knobs[i].name + ",");
   }
 
-  for( int i = 0; i < number_of_features; ++i )
+  for ( int i = 0; i < number_of_features; ++i )
   {
     table_desc.append(description.features[i].name +  " " + description.features[i].type + ",");
     primary_key.append(description.features[i].name + ",");
   }
 
-  for( int i = 0; i < number_of_metrics; ++i )
+  for ( int i = 0; i < number_of_metrics; ++i )
   {
     table_desc.append(description.metrics[i].name +  "_avg " + description.metrics[i].type + ",");
     table_desc.append(description.metrics[i].name +  "_std " + description.metrics[i].type + ",");
@@ -730,8 +730,8 @@ void CassandraClient::store_model( const application_description_t& description,
   execute_query_synch("CREATE TABLE " + table_name + " (" + table_desc + " PRIMARY KEY (" + primary_key + ") );");
 
   // set the number of fields to actually set
-  std::string inserted_fields = model.column_size() == number_of_knobs + number_of_features + (2*number_of_metrics) ?
-                                                       primary_key + non_primary_key : primary_key;
+  std::string inserted_fields = model.column_size() == number_of_knobs + number_of_features + (2 * number_of_metrics) ?
+                                primary_key + non_primary_key : primary_key;
 
   // populate the query
   for ( const auto& configuration : model.knowledge )
@@ -912,19 +912,19 @@ void CassandraClient::create_trace_table( const application_description_t& descr
   const int number_of_features = static_cast<int>(description.features.size());
   const int number_of_metrics = static_cast<int>(description.metrics.size());
 
-  for( int i = 0; i < number_of_knobs; ++i )
+  for ( int i = 0; i < number_of_knobs; ++i )
   {
     table_desc.append(description.knobs[i].name +  " " + description.knobs[i].type + ",");
     primary_key.append(description.knobs[i].name + ",");
   }
 
-  for( int i = 0; i < number_of_features; ++i )
+  for ( int i = 0; i < number_of_features; ++i )
   {
     table_desc.append(description.features[i].name +  " " + description.features[i].type + ",");
     primary_key.append(description.features[i].name + ",");
   }
 
-  for( int i = 0; i < number_of_metrics; ++i )
+  for ( int i = 0; i < number_of_metrics; ++i )
   {
     table_desc.append(description.metrics[i].name +  " " + description.metrics[i].type + ",");
   }
@@ -946,15 +946,17 @@ void CassandraClient::insert_trace_entry( const application_description_t& descr
   // compose the table description and the primary keys
   std::string fields = "day,time,client_id,";
 
-  for( const auto& knob : description.knobs )
+  for ( const auto& knob : description.knobs )
   {
     fields.append(knob.name + ",");
   }
-  for( const auto& feature : description.features )
+
+  for ( const auto& feature : description.features )
   {
     fields.append(feature.name + ",");
   }
-  for( const auto& metric : description.metrics )
+
+  for ( const auto& metric : description.metrics )
   {
     fields.append(metric.name + ",");
   }
@@ -964,11 +966,11 @@ void CassandraClient::insert_trace_entry( const application_description_t& descr
 
   // first we have to get the number of seconds and nanoseconds from epoch
   const auto pos_first_coma = values.find_first_of(',', 0);
-  const auto pos_second_coma = values.find_first_of(',', pos_first_coma+1);
+  const auto pos_second_coma = values.find_first_of(',', pos_first_coma + 1);
   time_t secs_since_epoch;
   uint64_t nanosecs_since_secs;
   std::istringstream( values.substr(0, pos_first_coma) ) >> secs_since_epoch;
-  std::istringstream( values.substr(pos_first_coma+1, pos_second_coma - pos_first_coma) ) >> nanosecs_since_secs;
+  std::istringstream( values.substr(pos_first_coma + 1, pos_second_coma - pos_first_coma) ) >> nanosecs_since_secs;
 
   // now we have to convert them in the funny casssandra format
   cass_uint32_t year_month_day = cass_date_from_epoch(secs_since_epoch);
@@ -994,10 +996,12 @@ void CassandraClient::update_doe( const application_description_t& description, 
 
   // compose the table description and the primary keys
   std::string fields = "";
-  for( const auto& knob : description.knobs )
+
+  for ( const auto& knob : description.knobs )
   {
     fields.append(knob.name + ",");
   }
+
   fields.append("counter");
 
   // create the table

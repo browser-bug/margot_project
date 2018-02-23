@@ -30,27 +30,27 @@ namespace margot
   class ModelGenerator
   {
 
-  private:
+    private:
 
-    // this is the path of the root workspace used to
-    // generate an application model
-    std::string workspace_root;
+      // this is the path of the root workspace used to
+      // generate an application model
+      std::string workspace_root;
 
-    // this is the path of the folder that contains all
-    // the available plugin to compute the model
-    std::string plugins_folder;
+      // this is the path of the folder that contains all
+      // the available plugin to compute the model
+      std::string plugins_folder;
 
 
-  public:
+    public:
 
-    inline void initialize( const std::string& workspace_path, const std::string& plugins_path)
-    {
-      workspace_root = workspace_path;
-      plugins_folder = plugins_path;
-    }
+      inline void initialize( const std::string& workspace_path, const std::string& plugins_path)
+      {
+        workspace_root = workspace_path;
+        plugins_folder = plugins_path;
+      }
 
-    // the application description is an input parameter, the model is an input/output parameter
-    void operator()( const application_description_t& application ) const;
+      // the application description is an input parameter, the model is an input/output parameter
+      void operator()( const application_description_t& application ) const;
 
 
   };

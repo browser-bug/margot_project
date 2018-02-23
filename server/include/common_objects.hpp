@@ -48,9 +48,12 @@ namespace margot
       stream >> name;         // get the name
       stream >> type;         // get the type
       std::string value = {};
-      while (std::getline(stream,value,' ')) // get the values
+
+      while (std::getline(stream, value, ' ')) // get the values
         if (!value.empty())
+        {
           values.emplace_back(value);
+        }
     }
     std::string name;
     std::string type;
@@ -79,9 +82,12 @@ namespace margot
       stream >> name;         // get the name
       stream >> type;         // get the type
       std::string value = {};
-      while (std::getline(stream,value,' ')) // get the values
+
+      while (std::getline(stream, value, ' ')) // get the values
         if (!value.empty())
+        {
           values.emplace_back(value);
+        }
     }
     std::string name;
     std::string type;
@@ -111,12 +117,12 @@ namespace margot
 
   struct application_description_t
   {
-    application_description_t( void ){}
+    application_description_t( void ) {}
 
-    application_description_t( const std::string& application_name ):application_name(application_name) {}
+    application_description_t( const std::string& application_name ): application_name(application_name) {}
 
     application_description_t(const std::string& application_name, application_knobs_t k, application_features_t f, application_metrics_t m)
-    : application_name(application_name), knobs(k), features(f), metrics(m)
+      : application_name(application_name), knobs(k), features(f), metrics(m)
     {
       std::sort(knobs.begin(), knobs.end(), sort_fields_operator());
       std::sort(features.begin(), features.end(), sort_fields_operator());
@@ -127,13 +133,15 @@ namespace margot
     design_of_experiments_t get_design_experiement( const bool with_features ) const
     {
       design_space_t design_space;
-      for( const auto& knob : knobs )
+
+      for ( const auto& knob : knobs )
       {
         design_space.emplace_back(knob.values);
       }
+
       if (with_features)
       {
-        for( const auto& feature : features )
+        for ( const auto& feature : features )
         {
           design_space.emplace_back(feature.values);
         }
@@ -177,26 +185,32 @@ namespace margot
       std::string result = "";
       const int number_of_knobs = description.knobs.size();
       const int number_of_features = description.features.size();
-      for( auto entry : knowledge) // we want a copy of the entry
+
+      for ( auto entry : knowledge) // we want a copy of the entry
       {
         std::size_t offset = 0;
         int counter = 0;
+
         do
         {
           offset = entry.find_first_of(',', offset);
+
           if (counter == number_of_knobs)
           {
             entry[offset] = ' ';
           }
+
           if (counter == number_of_knobs + number_of_features)
           {
             entry[offset] = ' ';
             break;
           }
         }
-        while( offset != std::string::npos);
+        while ( offset != std::string::npos);
+
         result.append(entry);
       }
+
       return result;
     }
 

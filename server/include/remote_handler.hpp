@@ -37,6 +37,7 @@ namespace margot
       warning("Input sanitizer: found a non valid character in the topic of the message, i will discard it");
       incoming_string.topic = "margot/error";
     }
+
     if (incoming_string.payload.find_first_not_of("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ01234567890_ .,@") != std::string::npos)
     {
       warning("Input sanitizer: found a non valid character in the payload message, i will discard it");

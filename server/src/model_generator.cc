@@ -50,19 +50,23 @@ void ModelGenerator::operator()( const application_description_t& application ) 
 {
   // create the workspace root folder
   std::string application_workspace = workspace_root;
+
   if (workspace_root.back() != '/')
   {
     application_workspace.append("/");
   }
+
   std::stringstream path_stream(application.application_name);
   std::string&& current_path = "";
-  while(std::getline(path_stream,current_path,'/'))
+
+  while (std::getline(path_stream, current_path, '/'))
   {
     application_workspace.append(current_path + "/");
     const bool is_created = create_folder(application_workspace);
+
     if (!is_created)
     {
-      warning("Model generator: unable to create the folder \"",application_workspace,"\" with errno=",errno);
+      warning("Model generator: unable to create the folder \"", application_workspace, "\" with errno=", errno);
       throw std::runtime_error("Model generator: unable to create the folder \"" + application_workspace + "\" with errno=" + std::to_string(errno) );
     }
   }
@@ -72,7 +76,7 @@ void ModelGenerator::operator()( const application_description_t& application ) 
   std::vector<pid_t> builders;
 
   // loop over the metric that must be pridicted
-  for( const auto& metric : application.metrics )
+  for ( const auto& metric : application.metrics )
   {
     // compute the root path for the given metric, we don't use the metric name for security reason
     const std::string metric_root = application_workspace + "metric_" + std::to_string(metric_counter++);
@@ -83,25 +87,27 @@ void ModelGenerator::operator()( const application_description_t& application ) 
     // now we have to recursively copy the folder from the plugin folder
     // the esiest way is to fork and exec cp
     pid_t cp_pid = fork();
+
     if (cp_pid == 0)
     {
       // we are the child, we need to copy the stuff
-      execlp("cp","cp","-r",plugin_path.c_str(), metric_root.c_str(), (char*)NULL);
-      warning("Model generator: unable to copy the folder \"",plugin_path,"\" into \"",metric_root,"\", errno=",errno);
+      execlp("cp", "cp", "-r", plugin_path.c_str(), metric_root.c_str(), (char*)NULL);
+      warning("Model generator: unable to copy the folder \"", plugin_path, "\" into \"", metric_root, "\", errno=", errno);
       throw std::runtime_error( "Model generator: unable to copy the folder \"" + plugin_path + "\" into \"" + metric_root + "\", errno=" + std::to_string(errno) );
     }
     else if (cp_pid < 0)
     {
-      warning("Model generator: unable to fork to copy the generator errno=",errno);
+      warning("Model generator: unable to fork to copy the generator errno=", errno);
       throw std::runtime_error( "Model generator: unable to fork to copy the generator errno=" + std::to_string(errno) );
     }
 
     // wait until it finishes
     int return_code;
-    pid_t rc = waitpid(cp_pid, &return_code,0);
+    pid_t rc = waitpid(cp_pid, &return_code, 0);
+
     if (rc < 0)
     {
-      warning("Model generator: the cp process terminated with errno=",errno,", return code:",return_code);
+      warning("Model generator: the cp process terminated with errno=", errno, ", return code:", return_code);
       throw std::runtime_error( "Model generator: the cp process terminated with errno=" + std::to_string(errno) + ", return code:" + std::to_string(return_code) );
     }
 
@@ -123,28 +129,30 @@ void ModelGenerator::operator()( const application_description_t& application ) 
     // starts the builder
     const std::string builder_executable_path = metric_root + "/generate_model.sh";
     pid_t builder_pid = fork();
+
     if (builder_pid == 0)
     {
       // we are the child, we need to copy the stuff
-      execlp(builder_executable_path.c_str(),builder_executable_path.c_str(),config_file_path.c_str(), (char*)NULL);
-      warning("Model generator: unable to exec the model builder \"",builder_executable_path,"\", errno=",errno);
+      execlp(builder_executable_path.c_str(), builder_executable_path.c_str(), config_file_path.c_str(), (char*)NULL);
+      warning("Model generator: unable to exec the model builder \"", builder_executable_path, "\", errno=", errno);
       throw std::runtime_error( "Model generator: unable to exec the model builder \"" + builder_executable_path + "\", errno=" + std::to_string(errno) );
     }
     else if (builder_pid < 0)
     {
-      warning("Model generator: unable to fork to exec the model errno=",errno);
+      warning("Model generator: unable to fork to exec the model errno=", errno);
       throw std::runtime_error( "Model generator: unable to fork to copy the generator errno=" + std::to_string(errno) );
     }
   }
 
   // wait until it finish to elaborate
-  for( const auto pid : builders)
+  for ( const auto pid : builders)
   {
     int return_code;
-    auto rc = waitpid(pid, &return_code,0);
+    auto rc = waitpid(pid, &return_code, 0);
+
     if (rc < 0)
     {
-      warning("Model generator: a builder process terminated with errno=",errno,", return code:",return_code);
+      warning("Model generator: a builder process terminated with errno=", errno, ", return code:", return_code);
       throw std::runtime_error( "Model generator: a builder process terminated with errno=" + std::to_string(errno) + ", return code:" + std::to_string(return_code) );
     }
   }

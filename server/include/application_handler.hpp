@@ -81,10 +81,12 @@ namespace margot
       inline configuration_t get_next( void )
       {
         doe.next_configuration++;
+
         if (doe.next_configuration == doe.required_explorations.end())
         {
           doe.next_configuration = doe.required_explorations.begin();
         }
+
         auto configuration_to_send = doe.next_configuration->first;
         return configuration_to_send;
       }
@@ -104,13 +106,13 @@ namespace margot
           std::replace(next_configuration.begin(), next_configuration.end(), ',', ' ' );
 
           // send the configuration
-          io::remote.send_message({{"margot/" + description.application_name + "/" + client_name + "/explore"},next_configuration});
+          io::remote.send_message({{"margot/" + description.application_name + "/" + client_name + "/explore"}, next_configuration});
         }
       }
 
       inline void send_model( const std::string& topic_name ) const
       {
-        io::remote.send_message({topic_name,model.join(description)});
+        io::remote.send_message({topic_name, model.join(description)});
       }
 
     public:
