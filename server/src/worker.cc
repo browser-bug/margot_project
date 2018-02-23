@@ -89,7 +89,7 @@ namespace margot
       const auto application_handler = GlobalView::get_handler(application_name);
 
       // log the event
-      info("Thread ", get_tid(), ": new client \"", client_id, "\" for application \"", application_name);
+      pedantic("Thread ", get_tid(), ": new client \"", client_id, "\" for application \"", application_name);
 
       // handle the message
       application_handler->welcome_client(client_id);
@@ -108,7 +108,7 @@ namespace margot
       const auto application_handler = GlobalView::get_handler(application_name);
 
       // log the event
-      info("Thread ", get_tid(), ": lost client \"", client_id, "\" for application \"", application_name);
+      pedantic("Thread ", get_tid(), ": lost client \"", client_id, "\" for application \"", application_name);
 
       // handle the message
       application_handler->bye_client(client_id);
@@ -127,7 +127,7 @@ namespace margot
       const auto application_handler = GlobalView::get_handler(application_name);
 
       // log the event
-      info("Thread ", get_tid(), ": received information about application \"", application_name, "\"", application_name);
+      pedantic("Thread ", get_tid(), ": received information about application \"", application_name, "\"", application_name);
 
       // handle the message
       application_handler->process_info(application_info);
@@ -146,7 +146,7 @@ namespace margot
       const auto application_handler = GlobalView::get_handler(application_name);
 
       // log the event
-      info("Thread ", get_tid(), ": received a new observation for \"", application_name, "\": \"", observation,"\"");
+      pedantic("Thread ", get_tid(), ": received a new observation for \"", application_name, "\": \"", observation,"\"");
 
       // handle the message
       application_handler->new_observation(observation);
