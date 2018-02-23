@@ -50,7 +50,7 @@ namespace margot
   struct planner<DoeStrategy::FULL_FACTORIAL>
   {
 
-    void explode( design_of_experiments_t& doe_plan, design_space_t input_space, configuration_t&& previous_configuration = {} ) const
+    static void explode( design_of_experiments_t& doe_plan, design_space_t input_space, configuration_t&& previous_configuration = {} )
     {
       // check if there we are done wit the configuration
       if (input_space.empty())
@@ -79,7 +79,7 @@ namespace margot
     }
 
 
-    inline design_of_experiments_t operator()( design_space_t input_space) const
+    static inline design_of_experiments_t generate( design_space_t input_space)
     {
       // this is the output design of experiments
       design_of_experiments_t doe_plan;

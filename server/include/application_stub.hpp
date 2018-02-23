@@ -28,6 +28,8 @@
 #include <random>
 #include <iostream>
 #include <vector>
+#include <algorithm>
+#include <cstdint>
 
 #include "virtual_channel.hpp"
 #include "logger.hpp"
@@ -54,10 +56,11 @@ namespace margot
       // this is a reference to the support thread
       std::thread local_handler;
       VirtualChannel remote;
+      std::string application_name;
 
 
       // this is the function executed by the main thread
-      void local_application_handler( const std::string& application_name )
+      void local_application_handler( void )
       {
         margot::info("mARGOt support thread on duty");
 
@@ -112,6 +115,15 @@ namespace margot
             remote.send_message({{"margot/" + application_name + "/info"},os.str()});
           }
 
+          // handle the configurations incoming from the server
+          if (message_topic.compare("/explore") == 0)
+          {
+            std::stringstream stream(new_incoming_message.payload);
+            stream >> knob1;
+            stream >> knob2;
+            stream >> knob3;
+          }
+
         }
       }
 
@@ -143,13 +155,24 @@ namespace margot
         this->feature1 = feature1;
         this->feature2 = feature2;
         this->execution_time = execution_time;
+
+        int64_t ms = std::chrono::duration_cast< std::chrono::milliseconds >(std::chrono::system_clock::now().time_since_epoch()).count();
+
+        // notify the server about the performance
+        std::string&& payload = std::to_string(ms) + " " + remote.get_my_client_id() + " " + std::to_string(knob1) + "," + std::to_string(knob2) + "," + std::to_string(knob3)
+                                + " " + std::to_string(feature1) + "," + std::to_string(feature2)
+                                + " " + std::to_string(execution_time);
+        remote.send_message({{"margot/" + application_name + "/observation"},payload});
       }
 
       // this function should be parametric and hidden
       void start_support_thread( const std::string& application_name )
       {
+        // get the application name
+        this->application_name = application_name;
+
         // start the thread
-        local_handler = std::thread(&MargotMimicking::local_application_handler, this, application_name);
+        local_handler = std::thread(&MargotMimicking::local_application_handler, this);
       }
 
   };

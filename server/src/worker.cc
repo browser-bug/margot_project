@@ -132,5 +132,24 @@ namespace margot
       // handle the message
       application_handler->process_info(application_info);
     }
+
+    // ---------------------------------------------------------------------------------- handle the observation message
+    if (message_type.compare("/observation") == 0)
+    {
+      // get the name of the application
+      const auto application_name = new_message.topic.substr(7,start_type_pos-7);
+
+      // get the client id
+      const auto observation = new_message.payload;
+
+      // get the application handler
+      const auto application_handler = GlobalView::get_handler(application_name);
+
+      // log the event
+      info("Thread ", get_tid(), ": received a new observation for \"", application_name, "\": \"", observation,"\"");
+
+      // handle the message
+      application_handler->new_observation(observation);
+    }
   }
 }

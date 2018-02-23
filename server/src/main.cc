@@ -36,9 +36,10 @@ int main( int argc, char* argv[] )
   // create a virtual channel to communicate with the applications
   margot::info("Agora main: bootstrap step 1: estabilish a connection with broker");
   margot::io::remote.create<margot::PahoClient>("server", "127.0.0.1:1883", 0);
-  margot::io::remote.subscribe("margot/+/+/+/welcome");  // to welcome new applications
-  margot::io::remote.subscribe("margot/+/+/+/info");     // to receive information about the application
-  margot::io::remote.subscribe("margot/system");         // to receive external commands
+  margot::io::remote.subscribe("margot/+/+/+/welcome");     // to welcome new applications
+  margot::io::remote.subscribe("margot/+/+/+/info");        // to receive information about the application
+  margot::io::remote.subscribe("margot/+/+/+/observation"); // to receive the observations from the clients
+  margot::io::remote.subscribe("margot/system");            // to receive external commands
   margot::io::remote.subscribe("margot/+/+/+/kia"); // we are not subscribed to margot/server/kia
 
   // initialize the virtual fs to store/load the information from hard drive

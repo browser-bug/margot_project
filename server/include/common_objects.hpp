@@ -42,12 +42,12 @@ namespace margot
 
   struct knob_t
   {
-    inline void set( const std::string&& description )
+    inline void set( const std::string description )
     {
       std::stringstream stream(description);
       stream >> name;         // get the name
       stream >> type;         // get the type
-      std::string&& value = {};
+      std::string value = {};
       while (std::getline(stream,value,' ')) // get the values
         if (!value.empty())
           values.emplace_back(value);
@@ -59,7 +59,7 @@ namespace margot
 
   struct metric_t
   {
-    inline void set( const std::string&& description )
+    inline void set( const std::string description )
     {
       std::stringstream stream(description);
       stream >> name;              // get the name
@@ -73,12 +73,12 @@ namespace margot
 
   struct feature_t
   {
-    inline void set( const std::string&& description )
+    inline void set( const std::string description )
     {
       std::stringstream stream(description);
       stream >> name;         // get the name
       stream >> type;         // get the type
-      std::string&& value = {};
+      std::string value = {};
       while (std::getline(stream,value,' ')) // get the values
         if (!value.empty())
           values.emplace_back(value);
@@ -109,136 +109,121 @@ namespace margot
   using application_metrics_t = std::vector<metric_t>;
 
 
-  struct model_t
+  struct application_description_t
   {
+    application_description_t( void ){}
 
-    // this method creates a model given the information of the application
-    template< DoeStrategy policy >
-    void create( application_knobs_t& knobs, application_features_t& features, application_metrics_t& metrics)
+    application_description_t( const std::string& application_name ):application_name(application_name) {}
+
+    application_description_t(const std::string& application_name, application_knobs_t k, application_features_t f, application_metrics_t m)
+    : application_name(application_name), knobs(k), features(f), metrics(m)
     {
-      // declare the design space used to create the application model
-      design_space_t design_space;
-
-      // sort the data structures in lexinographic way
       std::sort(knobs.begin(), knobs.end(), sort_fields_operator());
       std::sort(features.begin(), features.end(), sort_fields_operator());
       std::sort(metrics.begin(), metrics.end(), sort_fields_operator());
+    }
 
-      // fill the name and type for each field
-      for (const auto& knob : knobs)
+    template< DoeStrategy policy >
+    design_of_experiments_t get_design_experiement( const bool with_features ) const
+    {
+      design_space_t design_space;
+      for( const auto& knob : knobs )
       {
-        fields_name.emplace_back("k_" + knob.name);
-        fields_type.emplace_back(knob.type);
         design_space.emplace_back(knob.values);
       }
-
-      for (const auto& feature : features)
+      if (with_features)
       {
-        fields_name.emplace_back("f_" + feature.name);
-        fields_type.emplace_back(feature.type);
-        design_space.emplace_back(feature.values);
+        for( const auto& feature : features )
+        {
+          design_space.emplace_back(feature.values);
+        }
       }
 
-      for (const auto& metric : metrics)
-      {
-        fields_name.emplace_back("m_mean_" + metric.name);
-        fields_type.emplace_back(metric.type);
-        fields_name.emplace_back("m_std_" + metric.name);
-        fields_type.emplace_back(metric.type);
-      }
-
-      // creates the plan according to the given design of experiments
-      struct planner<policy> generator;
-      model_data = generator(design_space);
-    }
-
-    // the number of fields in the configuration
-    inline bool usable( void ) const
-    {
-      const int number_of_theoretical_fields = fields_name.size();
-      return (number_of_theoretical_fields == num_data_fields()) && (number_of_theoretical_fields > 0);
-    }
-
-    inline int num_data_fields( void ) const
-    {
-      return !model_data.empty() ? std::count(model_data[0].begin(), model_data[0].end(), ',') + 1 : 0;
+      // return the doe
+      return planner<policy>::generate(design_space);
     }
 
     inline void clear( void )
     {
-      fields_name.clear();
-      fields_type.clear();
-      model_data.clear();
+      application_name.clear();
+      knobs.clear();
+      features.clear();
+      metrics.clear();
     }
 
-    inline std::string join_model( void ) const
+    std::string application_name;
+    application_knobs_t knobs;
+    application_features_t features;
+    application_metrics_t metrics;
+  };
+
+
+  struct model_t
+  {
+
+    // this method creates a model given the information of the application
+    void create( const application_description_t& description )
     {
-      std::ostringstream os;
-      std::for_each(model_data.begin(), model_data.end(), [&os] ( const std::string& configuration )
-      { os << configuration << '@'; });
-      return os.str();
+      knowledge = description.get_design_experiement<DoeStrategy::FULL_FACTORIAL>(true);
     }
 
-    std::vector< std::string > fields_name;
-    std::vector< std::string > fields_type;  // actually optional when loading from fs
-    std::vector< std::string > model_data;
+    inline int column_size( void ) const
+    {
+      return static_cast<int>(knowledge.empty() ? 0 : knowledge.front().size());
+    }
+
+    std::string join( const application_description_t& description ) const
+    {
+      std::string result = "";
+      const int number_of_knobs = description.knobs.size();
+      const int number_of_features = description.features.size();
+      for( auto entry : knowledge) // we want a copy of the entry
+      {
+        std::size_t offset = 0;
+        int counter = 0;
+        do
+        {
+          offset = entry.find_first_of(',', offset);
+          if (counter == number_of_knobs)
+          {
+            entry[offset] = ' ';
+          }
+          if (counter == number_of_knobs + number_of_features)
+          {
+            entry[offset] = ' ';
+            break;
+          }
+        }
+        while( offset != std::string::npos);
+        result.append(entry);
+      }
+      return result;
+    }
+
+    std::vector< std::string > knowledge;
   };
 
 
   struct doe_t
   {
-    // this method creates a doe given the information of the application
+    // this method creates a doe given the information of the application and doe strategy
     template< DoeStrategy policy >
-    void create( application_knobs_t& knobs, const int required_number_of_observations )
+    void create( const application_description_t& description, const int required_number_of_observations )
     {
       // declare the design space used to create the application model
-      design_space_t design_space;
-
-      // sort the data structures in lexinographic way
-      std::sort(knobs.begin(), knobs.end(), sort_fields_operator());
-
-      // fill the name and type for each field
-      for (const auto& knob : knobs)
-      {
-        fields_name.emplace_back("k_" + knob.name);
-        fields_type.emplace_back(knob.type);
-        design_space.emplace_back(knob.values);
-      }
-
-      // add the last field for the counter
-      fields_name.emplace_back("counter");
-      fields_type.emplace_back("int");
-
-      // creates the plan according to the given design of experiments
-      struct planner<policy> generator;
-      design_of_experiments_t plan = generator(design_space);
+      design_of_experiments_t doe = description.get_design_experiement<policy>(false);
 
       // initialize the actual data structure
-      for ( auto&& configuration : plan )
+      for ( auto configuration : doe )
       {
-        doe.emplace(configuration, required_number_of_observations);
+        required_explorations.emplace(configuration, required_number_of_observations);
       }
 
       // set the correct value for the doe iterator
-      next_configuration = doe.begin();
+      next_configuration = required_explorations.begin();
     }
 
-    inline bool usable( void ) const
-    {
-      return fields_name.size() > 0;
-    }
-
-    inline void clear( void )
-    {
-      fields_name.clear();
-      fields_type.clear();
-      doe.clear();
-      next_configuration = doe.end();
-    }
-
-    std::vector< std::string > fields_name;
-    std::vector< std::string > fields_type;          // actually optional when loading from fs
-    std::unordered_map< configuration_t, int > doe;
+    std::unordered_map< configuration_t, int > required_explorations;
     std::unordered_map< configuration_t, int >::iterator next_configuration;
   };
 

@@ -70,12 +70,6 @@ namespace margot
         cass_future_free(query_future);
       }
 
-
-    public:
-
-      CassandraClient(const std::string& url, const std::string& username = "", const std::string& password = "");
-      ~CassandraClient( void );
-
       void store_metrics( const std::string& application_name, const application_metrics_t& metrics );
       application_metrics_t load_metrics( const std::string& application_name );
 
@@ -85,12 +79,35 @@ namespace margot
       void store_features( const std::string& application_name, const application_features_t& features );
       application_features_t load_features( const std::string& application_name );
 
-      void store_model( const std::string& application_name, const model_t& model );
+
+    public:
+
+      CassandraClient(const std::string& url, const std::string& username = "", const std::string& password = "");
+      ~CassandraClient( void );
+
+      void store_description( const application_description_t& description )
+      {
+        store_metrics(description.application_name, description.metrics);
+        store_features(description.application_name, description.features);
+        store_knobs(description.application_name, description.knobs);
+      }
+      application_description_t load_description( const std::string& application_name )
+      {
+        return { application_name,
+                 load_knobs(application_name),
+                 load_features(application_name),
+                 load_metrics(application_name)};
+      }
+
+      void store_model( const application_description_t& description, const model_t& model );
       model_t load_model( const std::string& application_name );
 
-      void store_doe( const std::string& application_name, const doe_t& doe );
+      void store_doe( const application_description_t& description, const doe_t& doe );
       doe_t load_doe( const std::string& application_name );
+      void update_doe( const application_description_t& description, const std::string& values );
 
+      void create_trace_table( const application_description_t& description );
+      void insert_trace_entry( const application_description_t& description, const std::string& values );
   };
 
 

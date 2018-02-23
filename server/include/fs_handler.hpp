@@ -34,20 +34,18 @@ namespace margot
   {
     public:
 
-      virtual void store_metrics( const std::string& application_name, const application_metrics_t& metrics ) = 0;
-      virtual application_metrics_t load_metrics( const std::string& application_name ) = 0;
+      virtual void store_description( const application_description_t& description ) = 0;
+      virtual application_description_t load_description( const std::string& application_name ) = 0;
 
-      virtual void store_knobs( const std::string& application_name, const application_knobs_t& knobs ) = 0;
-      virtual application_knobs_t load_knobs( const std::string& application_name ) = 0;
-
-      virtual void store_features( const std::string& application_name, const application_features_t& features ) = 0;
-      virtual application_features_t load_features( const std::string& application_name ) = 0;
-
-      virtual void store_doe( const std::string& application_name, const doe_t& doe ) = 0;
+      virtual void store_doe( const application_description_t& description, const doe_t& doe ) = 0;
       virtual doe_t load_doe( const std::string& application_name ) = 0;
+      virtual void update_doe( const application_description_t& description, const std::string& values ) = 0;
 
-      virtual void store_model( const std::string& application_name, const model_t& model ) = 0;
+      virtual void store_model( const application_description_t& description, const model_t& model ) = 0;
       virtual model_t load_model( const std::string& application_name ) = 0;
+
+      virtual void create_trace_table( const application_description_t& description ) = 0;
+      virtual void insert_trace_entry( const application_description_t& description, const std::string& values ) = 0;
 
 
       virtual ~FsHandler( void ) {}

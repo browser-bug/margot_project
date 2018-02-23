@@ -51,8 +51,10 @@ namespace margot
 
     private:
 
+      // to protect the data structure
       std::atomic_flag spinlock;
-      const std::string application_name;
+
+      // to handle the progress of the elaboration
       ApplicationStatus status;
 
       // this table contains all the clients of this application
@@ -71,6 +73,7 @@ namespace margot
 
       // these are the data structures that actually have information
       // about the application behavior
+      application_description_t description;
       model_t model;
       doe_t doe;
 
@@ -89,9 +92,9 @@ namespace margot
       inline configuration_t get_next( void )
       {
         doe.next_configuration++;
-        if (doe.next_configuration == doe.doe.end())
+        if (doe.next_configuration == doe.required_explorations.end())
         {
-          doe.next_configuration = doe.doe.begin();
+          doe.next_configuration = doe.required_explorations.begin();
         }
         auto configuration_to_send = doe.next_configuration->first;
         return configuration_to_send;
@@ -99,26 +102,26 @@ namespace margot
 
       inline void send_configuration( const std::string& client_name )
       {
-        if (!doe.doe.empty())
+        if (!doe.required_explorations.empty())
         {
 
           // get the configuration to explore
-          auto&& next_configuration = get_next();
+          auto next_configuration = get_next();
+
+          // update the assigned configurations
+          assigned_configurations[client_name] = next_configuration;
 
           // replace the coma with spaces
           std::replace(next_configuration.begin(), next_configuration.end(), ',', ' ' );
 
-          // update the assigned configurations
-          assigned_configurations[next_configuration] = client_name;
-
           // send the configuration
-          io::remote.send_message({{"margot/" + application_name + "/" + client_name + "/explore"},next_configuration});
+          io::remote.send_message({{"margot/" + description.application_name + "/" + client_name + "/explore"},next_configuration});
         }
       }
 
       inline void send_model( const std::string& topic_name ) const
       {
-        io::remote.send_message({topic_name,model.join_model()});
+        io::remote.send_message({topic_name,model.join(description)});
       }
 
       void build_model( void );
@@ -136,6 +139,8 @@ namespace margot
 
 
       void process_info( const std::string& info );
+
+      void new_observation( const std::string& values );
 
 
 

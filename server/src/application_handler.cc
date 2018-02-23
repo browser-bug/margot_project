@@ -24,13 +24,15 @@
 using namespace margot;
 
 RemoteApplicationHandler::RemoteApplicationHandler( const std::string& application_name )
-  : spinlock(ATOMIC_FLAG_INIT), application_name(application_name), status(ApplicationStatus::CLUELESS)
+  : spinlock(ATOMIC_FLAG_INIT), status(ApplicationStatus::CLUELESS), description(application_name)
 {}
 
 void RemoteApplicationHandler::build_model( void )
 {
   //TODO
   warning("Application Client: we don't support the model generation yet");
+  //info("Handler ", description.application_name, ": creating and storing the required predictions in the model");
+  //model.create(description);
 }
 
 
@@ -51,29 +53,40 @@ void RemoteApplicationHandler::welcome_client( const std::string& client_name )
   unlock();
   if (clueless)
   {
-    // if we are lucky we already have the model of the application
-    model = io::storage.load_model(application_name);
-    if (model.usable())
+    // first of all we need to load the application description, otherwise we cannot do nothing
+    description = io::storage.load_description(description.application_name);
+    if ( description.knobs.empty() || description.metrics.empty() )
     {
-      info("Handler ", application_name, ": recovered model from storage");
+      info("Handler ", description.application_name, ": asking \"", client_name, "\" to provide information");
+      lock();
+      information_client = client_name;      // we want to know which is the client to speak with
+      pending_clients.emplace(client_name);  // once we have the information, we need to provide to him configurations
+      io::remote.send_message({{"margot/" + description.application_name + "/" + client_name + "/info"}, ""});
+      unlock();
+      return; // we cannot do anything
+    }
+
+
+    // if we are lucky we already have the model of the application
+    model = io::storage.load_model(description.application_name);
+    const int theoretical_number_of_columns = static_cast<int>(description.knobs.size() + description.features.size() + (2*description.metrics.size()));
+    if ( model.column_size() == theoretical_number_of_columns)
+    {
+      info("Handler ", description.application_name, ": recovered model from storage");
       lock();
       status = ApplicationStatus::WITH_MODEL; // change the status to the final one
       pending_clients.clear(); // because we are about to broadcast the model
       unlock();
-      send_model("/margot/" + application_name + "/model");
+      send_model("/margot/" + description.application_name + "/model");
       return; // we have done our work
-    }
-    else
-    {
-      model.clear(); // we don't need it yet
     }
 
     // if we are a bit less lucky we have at least the doe (with model in db)
-    doe = io::storage.load_doe(application_name);
-    if (doe.usable())
+    doe = io::storage.load_doe(description.application_name);
+    if (!doe.required_explorations.empty()) // if the doe is terminated, we must also have the model
     {
       // we configurations yet to explore, we shall start
-      info("Handler ", application_name, ": recovered doe from storage");
+      info("Handler ", description.application_name, ": recovered doe from storage");
       lock();
       status = ApplicationStatus::EXPLORING;
       for( const auto& client : pending_clients )
@@ -86,13 +99,6 @@ void RemoteApplicationHandler::welcome_client( const std::string& client_name )
       return; // we have done our work
     }
 
-    // we are actually clueless
-    info("Handler ", application_name, ": asking \"", client_name, "\" to provide information");
-    lock();
-    information_client = client_name;      // we want to know which is the client to speak with
-    pending_clients.emplace(client_name);  // once we have the information, we need to provide to him configurations
-    io::remote.send_message({{"margot/" + application_name + "/" + client_name + "/info"}, ""});
-    unlock();
     return; // we have fone our work
   }
 
@@ -122,7 +128,7 @@ void RemoteApplicationHandler::welcome_client( const std::string& client_name )
   unlock();
   if (with_model)
   {
-    send_model("margot/" + application_name + "/" + client_name + "/model");
+    send_model("margot/" + description.application_name + "/" + client_name + "/model");
   }
 
 }
@@ -148,14 +154,15 @@ void RemoteApplicationHandler::bye_client( const std::string& client_name )
   lock();
   if (active_clients.empty())
   {
-    info("Handler ", application_name, ": everybody left, resetting the object");
+    info("Handler ", description.application_name, ": everybody left, resetting the object");
 
     // everybody left, we have to reset the object, unless someone is generating the doe
-    if (status != ApplicationStatus::GENERATING_DOE)
+    if ((status != ApplicationStatus::GENERATING_DOE) && (status != ApplicationStatus::BUILDING_MODEL))
     {
       status = ApplicationStatus::CLUELESS;
-      model.clear();
-      doe.clear();
+      model.knowledge.clear();
+      doe.required_explorations.clear();
+      assigned_configurations.clear();
       information_client.clear(); // if this happens when we are in the LOADING state
     }
     else
@@ -172,15 +179,15 @@ void RemoteApplicationHandler::bye_client( const std::string& client_name )
   {
     // we should hire someone else to do it ( the first on the active list )
     information_client = *active_clients.begin();
-    io::remote.send_message({{"margot/" + application_name + "/" + information_client + "/info"}, ""});
+    io::remote.send_message({{"margot/" + description.application_name + "/" + information_client + "/info"}, ""});
 
-    info("Handler ", application_name, ": goodbye client \"", client_name, "\", requesting info at client \"", information_client, "\"");
+    info("Handler ", description.application_name, ": goodbye client \"", client_name, "\", requesting info at client \"", information_client, "\"");
   }
   else
   {
     // ------------------------------------------------------------- CASE 3: it is a random client
     // we don't actually care
-    info("Handler ", application_name, ": goodbye client \"", client_name, "\"");
+    info("Handler ", description.application_name, ": goodbye client \"", client_name, "\"");
   }
   unlock();
 }
@@ -189,10 +196,7 @@ void RemoteApplicationHandler::bye_client( const std::string& client_name )
 void RemoteApplicationHandler::process_info( const std::string& info_message )
 {
   // those information are useful only to build the doe
-  application_knobs_t knobs;
-  application_features_t features;
-  application_metrics_t metrics;
-  std::string&& doe_strategy = "full_factorial";
+  std::string doe_strategy = "full_factorial";
   int number_observations = 1;
 
   // make sure that we want those information
@@ -211,35 +215,42 @@ void RemoteApplicationHandler::process_info( const std::string& info_message )
   }
 
   // otherwise we have to process the string
-  info("Handler ", application_name, ": parsing the information of the application");
+  info("Handler ", description.application_name, ": parsing the information of the application");
   static constexpr char line_delimiter = '@';
   static constexpr int header_size = 10; // characters
   std::stringstream stream(info_message);
-  std::string&& info_element = {};
+  std::string info_element = {};
   while(std::getline(stream,info_element,line_delimiter))
   {
+    // make sure to skip void elements
+    if (info_element.empty())
+    {
+      continue;
+    }
+
+    // otherwise get the first character to understand the line
     const std::string line_topic = info_element.substr(0, header_size);
     if (line_topic.compare("knob      ") == 0)
     {
-      knob_t&& new_knob = {};
+      knob_t new_knob = {};
       new_knob.set(info_element.substr(header_size));
-      knobs.emplace_back(new_knob);
+      description.knobs.emplace_back(new_knob);
     }
     else
     {
       if (line_topic.compare("feature   ") == 0)
       {
-        feature_t&& new_feature = {};
+        feature_t new_feature = {};
         new_feature.set(info_element.substr(header_size));
-        features.emplace_back(new_feature);
+        description.features.emplace_back(new_feature);
       }
       else
       {
         if (line_topic.compare("metric    ") == 0)
         {
-          metric_t&& new_metric = {};
+          metric_t new_metric = {};
           new_metric.set(info_element.substr(header_size));
-          metrics.emplace_back(new_metric);
+          description.metrics.emplace_back(new_metric);
         }
         else
         {
@@ -264,40 +275,32 @@ void RemoteApplicationHandler::process_info( const std::string& info_message )
   information_client.clear();
   unlock();
 
-  // we have to generate and store the model
-  info("Handler ", application_name, ": creating and storing the required predictions in the model");
-  model.create<DoeStrategy::FULL_FACTORIAL>(knobs, features, metrics);
-  io::storage.store_model(application_name, model);
-  model.clear(); // right now we don't need it
+  // first of all we have to store the application description
+  io::storage.store_description(description);
 
-  // free the useless information from memory
-  io::storage.store_features(application_name, features);
-  features.clear();
-  io::storage.store_metrics(application_name, metrics);
-  metrics.clear();
+  // then we need to create the trace table
+  io::storage.create_trace_table(description);
 
   // we have to generate the doe
-  info("Handler ", application_name, ": generating and storing the doe");
+  info("Handler ", description.application_name, ": generating and storing the doe");
   if (doe_strategy.compare("full_factorial") == 0)
   {
-    doe.create<DoeStrategy::FULL_FACTORIAL>(knobs, number_observations);
+    doe.create<DoeStrategy::FULL_FACTORIAL>(description, number_observations);
   }
   else
   {
-    warning("Handler ", application_name, ": unable to create doe strategy \"", doe_strategy, "\", using full-factorial");
-    doe.create<DoeStrategy::FULL_FACTORIAL>(knobs, number_observations);
+    warning("Handler ", description.application_name, ": unable to create doe strategy \"", doe_strategy, "\", using full-factorial");
+    doe.create<DoeStrategy::FULL_FACTORIAL>(description, number_observations);
   }
 
   // we have to store the remaining information
-  io::storage.store_doe(application_name, doe);
-  io::storage.store_knobs(application_name, knobs);
-  knobs.clear();
+  io::storage.store_doe(description, doe);
 
   // dispatch to the clients the required information (if there is someone available)
   lock();
   if (status == ApplicationStatus::GENERATING_DOE)
   {
-    info("Handler ", application_name, ": starting the Design Space Exploration");
+    info("Handler ", description.application_name, ": starting the Design Space Exploration");
     status = ApplicationStatus::EXPLORING;
     for( const auto& client : pending_clients )
     {
@@ -307,9 +310,109 @@ void RemoteApplicationHandler::process_info( const std::string& info_message )
   }
   else
   {
-    info("Handler ", application_name, ": nobody is left, but we have stored the information");
-    doe.clear();
+    info("Handler ", description.application_name, ": nobody is left, but we have stored the information");
+    doe.required_explorations.clear();
+    description.clear();
+    pending_clients.clear();
   }
   unlock();
+
+}
+
+
+void RemoteApplicationHandler::new_observation( const std::string& values )
+{
+  // extract from the values the client_id
+  std::string client_id;
+  std::string timestamp;
+  std::string configuration;
+  std::string features;
+  std::string metrics;
+  std::stringstream stream(values);
+  stream >> timestamp;
+  stream >> client_id;
+  stream >> configuration;
+  stream >> features;
+  stream >> metrics;
+
+  // this is a critical section
+  lock();
+
+  // check if the client_id is actually exploring something
+  const auto it = assigned_configurations.find(client_id);
+
+  // check if this is the assigned configuration
+  const bool is_assigned_conf = it != assigned_configurations.end() ? it->second.compare(configuration) == 0 : false;
+
+  // check if we are able to accept a new configuration
+  const bool we_are_ready = !(description.knobs.empty() || description.features.empty() || description.metrics.empty());
+
+  // check if we are the one that should build the model
+  bool we_have_to_build_the_model = false;
+
+  // check if we need to send another configuration
+  if (is_assigned_conf)
+  {
+    // update the doe
+    const auto doe_it = doe.required_explorations.find(configuration);
+    if (doe_it != doe.required_explorations.end())
+    {
+      // update the counter
+      doe_it->second--;
+
+      // send the query to update also the fs
+      io::storage.update_doe(description, doe_it->first + "," + std::to_string(doe_it->second));
+
+      // check if we need to remove the configuration
+      if (doe_it->second == 0)
+      {
+        doe.next_configuration = doe.required_explorations.erase(doe_it);
+        if (doe.next_configuration == doe.required_explorations.end())
+        {
+          doe.next_configuration = doe.required_explorations.begin();
+        }
+      }
+
+      // check if we need to build the model
+      we_have_to_build_the_model = doe.required_explorations.empty();
+      if (we_have_to_build_the_model)
+      {
+        status = ApplicationStatus::BUILDING_MODEL;
+      }
+
+      // if we don't need to build the model and there is someone, assign a new configuration
+      if ((status != ApplicationStatus::CLUELESS) && (status != ApplicationStatus::BUILDING_MODEL))
+      {
+        send_configuration(client_id);
+      }
+    }
+  }
+  unlock();
+
+  // if we are ready, we can store the information
+  if (we_are_ready)
+  {
+    io::storage.insert_trace_entry(description, timestamp + "," + client_id + "," + configuration + "," + features + "," + metrics);
+  }
+
+  // if we have to build the model, we should start
+  if (we_have_to_build_the_model)
+  {
+    // we actually build the model
+    build_model();
+
+    // change the status, we are done (if there is someone alive)
+    lock();
+    if (status == ApplicationStatus::BUILDING_MODEL)
+    {
+      status = ApplicationStatus::WITH_MODEL;
+    }
+    else
+    {
+      model.knowledge.clear();
+      description.clear();
+    }
+    unlock();
+  }
 
 }

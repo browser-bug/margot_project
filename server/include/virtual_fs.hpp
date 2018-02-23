@@ -44,39 +44,19 @@ namespace margot
         fs.reset( new T(fs_arguments...));
       }
 
-      inline void store_metrics( const std::string& application_name, const application_metrics_t& metrics )
+      inline void store_description( const application_description_t& description )
       {
-        fs->store_metrics(application_name, metrics);
+        fs->store_description(description);
       }
 
-      inline application_metrics_t load_metrics( const std::string& application_name )
+      inline application_description_t load_description( const std::string& application_name )
       {
-        return fs->load_metrics(application_name);
+        return fs->load_description(application_name);
       }
 
-      inline void store_knobs( const std::string& application_name, const application_knobs_t& knobs )
+      inline void store_model( const application_description_t& description, const model_t& model )
       {
-        fs->store_knobs(application_name, knobs);
-      }
-
-      inline application_knobs_t load_knobs( const std::string& application_name )
-      {
-        return fs->load_knobs(application_name);
-      }
-
-      inline void store_features( const std::string& application_name, const application_features_t& features )
-      {
-        fs->store_features(application_name, features);
-      }
-
-      inline application_features_t load_features( const std::string& application_name )
-      {
-        return fs->load_features(application_name);
-      }
-
-      inline void store_model( const std::string& application_name, const model_t& model )
-      {
-        fs->store_model(application_name, model);
+        fs->store_model(description, model);
       }
 
       inline model_t load_model( const std::string& application_name )
@@ -84,14 +64,29 @@ namespace margot
         return fs->load_model(application_name);
       }
 
-      inline void store_doe( const std::string& application_name, const doe_t& doe )
+      inline void store_doe( const application_description_t& description, const doe_t& doe )
       {
-        fs->store_doe(application_name, doe);
+        fs->store_doe(description, doe);
       }
 
       inline doe_t load_doe( const std::string& application_name )
       {
         return fs->load_doe(application_name);
+      }
+
+      inline void update_doe( const application_description_t& description, const std::string& values )
+      {
+        return fs->update_doe(description, values);
+      }
+
+      inline void create_trace_table( const application_description_t& description )
+      {
+        fs->create_trace_table(description);
+      }
+
+      inline void insert_trace_entry( const application_description_t& description, const std::string& values )
+      {
+        fs->insert_trace_entry(description, values);
       }
 
   };

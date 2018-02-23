@@ -487,52 +487,42 @@ application_features_t CassandraClient::load_features( const std::string& applic
 }
 
 
-void CassandraClient::store_doe( const std::string& application_name, const doe_t& doe )
+void CassandraClient::store_doe( const application_description_t& description, const doe_t& doe )
 {
   // compose the name of the table
-  std::string table_name = application_name;
+  std::string table_name = description.application_name;
   std::replace(table_name.begin(), table_name.end(), default_application_separator, table_application_separator );
   std::replace(table_name.begin(), table_name.end(), '.', table_application_separator );
   table_name += "_doe";
 
-  // compose the query that creates the table
-  std::string creation_query = "CREATE TABLE " + table_name + " ( ";
-  std::string primary_key = " PRIMARY KEY (";
-  std::string fields;
-  const int number_of_fields = doe.fields_name.size();
+  // compose the table description and the primary keys
+  std::string table_desc = "";
+  std::string primary_key = "";
+  const int number_of_knobs = description.knobs.size();
 
-  for ( int i = 0; i < number_of_fields; ++i )
+  for( int i = 0; i < number_of_knobs; ++i )
   {
-    // append the field to the query
-    const std::string current_field = doe.fields_name[i];
-    creation_query.append(current_field + " " + doe.fields_type[i] + ",");
-    fields.append(current_field + ",");
-
-    // check if it is a primary key
-    const char field_identifier = current_field.at(0);
-
-    if (field_identifier == 'k')
-    {
-      primary_key.append(current_field + ",");
-    }
+    table_desc.append(description.knobs[i].name +  " " + description.knobs[i].type + ",");
+    primary_key.append(description.knobs[i].name + ",");
   }
 
-  // remove the last coma from the strings
+  // append the counter field in the doe and remove the last coma
+  table_desc.append("counter int");
   primary_key.pop_back();
-  fields.pop_back();
 
   // create the table
-  execute_query_synch(creation_query + primary_key + ") );");
+  execute_query_synch("CREATE TABLE " + table_name + " (" + table_desc + ", PRIMARY KEY (" + primary_key + ") );");
+
 
   // create a secondary index on the number of observations on configuration
   // to improve the efficiency of the queries
   execute_query_synch("CREATE INDEX ON " + table_name + " (counter);");
 
   // populate the query
-  for ( const auto& configuration_pair : doe.doe )
+  for ( const auto& configuration_pair : doe.required_explorations )
   {
     // execute the query
-    execute_query_synch( "INSERT INTO " + table_name + " (" + fields + ") VALUES (" + configuration_pair.first + "," + std::to_string(configuration_pair.second) + " );" );
+    execute_query_synch( "INSERT INTO " + table_name + " (" + primary_key + ",counter) VALUES (" + configuration_pair.first + "," + std::to_string(configuration_pair.second) + " );" );
   }
 }
 
@@ -558,58 +548,15 @@ doe_t CassandraClient::load_doe( const std::string& application_name )
       // this array it is used to store all the types of the columns of the query
       std::vector<CassValueType> column_types;
 
-      // get information on the fields for names and types
+      // get information on the fields
       const size_t number_of_columns = cass_result_column_count(query_result);
 
       for ( size_t i = 0; i < number_of_columns; ++i )
       {
-        // STEP 1: get the information about the specific column
-
-        // get the name of the column
-        const char* field_value_s;
-        size_t lenght_output_string;
-        CassError rc = cass_result_column_name(query_result, i, &field_value_s, &lenght_output_string);
-
-        if (rc != CASS_OK)
-        {
-          warning("Cassandra client: unable to get a column name");
-          output_doe.fields_name.emplace_back("Unkown");
-        }
-        else
-        {
-          output_doe.fields_name.emplace_back(std::string(field_value_s, lenght_output_string));
-        }
-
-        // get the type of the column
-        const auto field_type = cass_result_column_type(query_result, i);
-        column_types.emplace_back(field_type);
-
-        switch (field_type)
-        {
-          case CASS_VALUE_TYPE_INT:
-            output_doe.fields_type.emplace_back("int");
-            break;
-
-          case CASS_VALUE_TYPE_FLOAT:
-            output_doe.fields_type.emplace_back("float");
-            break;
-
-          case CASS_VALUE_TYPE_DOUBLE:
-            output_doe.fields_type.emplace_back("double");
-            break;
-
-          default:
-            output_doe.fields_type.emplace_back("N/A");
-        }
+        column_types.emplace_back(cass_result_column_type(query_result, i));
       }
 
-      // NOTE: the following algotithm assumes that the last field is the counter
-      if (output_doe.fields_name.back().compare("counter") != 0)
-      {
-        throw std::runtime_error("Cassandra client: the last field of the doe is not the counter!");
-      }
-
-      // STEP 2: Get the actual content of table
+      // Get the actual content of table
       CassIterator* row_iterator = cass_iterator_from_result(query_result);
 
       while (cass_iterator_next(row_iterator))
@@ -721,7 +668,7 @@ doe_t CassandraClient::load_doe( const std::string& application_name )
         const auto last_coma_pos = predictor.find_last_of(',');
 
         // append the row to the model
-        output_doe.doe.emplace(predictor.substr(0, last_coma_pos), doe_counter);
+        output_doe.required_explorations.emplace(predictor.substr(0, last_coma_pos), doe_counter);
 
         // free the iterator to the row
         cass_iterator_free(column_iterator);
@@ -734,7 +681,7 @@ doe_t CassandraClient::load_doe( const std::string& application_name )
       cass_result_free(query_result);
 
       // set the iterator of the doe
-      output_doe.next_configuration = output_doe.doe.begin();
+      output_doe.next_configuration = output_doe.required_explorations.begin();
     }
   };
 
@@ -747,54 +694,58 @@ doe_t CassandraClient::load_doe( const std::string& application_name )
 }
 
 
-void CassandraClient::store_model( const std::string& application_name, const model_t& model )
+void CassandraClient::store_model( const application_description_t& description, const model_t& model )
 {
   // compose the name of the table
-  std::string table_name = application_name;
+  std::string table_name = description.application_name;
   std::replace(table_name.begin(), table_name.end(), default_application_separator, table_application_separator );
   std::replace(table_name.begin(), table_name.end(), '.', table_application_separator );
   table_name += "_model";
 
-  // compose the query that creates the table
-  std::string creation_query = "CREATE TABLE " + table_name + " ( ";
-  std::string primary_key = " PRIMARY KEY (";
-  std::string fields;
-  const int number_of_fields = model.fields_name.size();
-  const int num_data_fields = model.num_data_fields();
+  // compose the table description and the primary keys
+  std::string table_desc = "";
+  std::string primary_key = "";
+  std::string non_primary_key = "";
+  const int number_of_knobs = description.knobs.size();
+  const int number_of_metrics = description.features.size();
+  const int number_of_features = description.metrics.size();
 
-  for ( int i = 0; i < number_of_fields; ++i )
+  for( int i = 0; i < number_of_knobs; ++i )
   {
-    // append the field to the query
-    const std::string current_field = model.fields_name[i];
-    creation_query.append(current_field + " " + model.fields_type[i] + ",");
-
-    // store the number of fields in the current model
-    if (i < num_data_fields)
-    {
-      fields.append(current_field + ",");
-    }
-
-    // check if it is a primary key
-    const char field_identifier = current_field.at(0);
-
-    if ((field_identifier == 'k') || (field_identifier == 'f'))
-    {
-      primary_key.append(current_field + ",");
-    }
+    table_desc.append(description.knobs[i].name +  " " + description.knobs[i].type + ",");
+    primary_key.append(description.knobs[i].name + ",");
   }
 
-  // remove the last coma from the strings
+  for( int i = 0; i < number_of_features; ++i )
+  {
+    table_desc.append(description.features[i].name +  " " + description.features[i].type + ",");
+    primary_key.append(description.features[i].name + ",");
+  }
+
+  for( int i = 0; i < number_of_metrics; ++i )
+  {
+    table_desc.append(description.metrics[i].name +  "_avg " + description.metrics[i].type + ",");
+    table_desc.append(description.metrics[i].name +  "_std " + description.metrics[i].type + ",");
+    non_primary_key.append(description.metrics[i].name + "_avg,");
+    non_primary_key.append(description.metrics[i].name + "_std,");
+  }
+
+  // remove the last come from the field list
   primary_key.pop_back();
-  fields.pop_back();
+  non_primary_key.pop_back();
 
   // create the table
-  execute_query_synch(creation_query + primary_key + ") );");
+  execute_query_synch("CREATE TABLE " + table_name + " (" + table_desc + " PRIMARY KEY (" + primary_key + ") );");
+
+  // set the number of fields to actually set
+  std::string inserted_fields = model.column_size() == number_of_knobs + number_of_features + (2*number_of_metrics) ?
+                                                       primary_key + non_primary_key : primary_key;
 
   // populate the query
-  for ( const auto& configuration : model.model_data )
+  for ( const auto& configuration : model.knowledge )
   {
     // execute the query
-    execute_query_synch( "INSERT INTO " + table_name + " (" + fields + ") VALUES (" + configuration + " );" );
+    execute_query_synch( "INSERT INTO " + table_name + " (" + inserted_fields + ") VALUES (" + configuration + " );" );
   }
 }
 
@@ -820,49 +771,14 @@ model_t CassandraClient::load_model( const std::string& application_name )
       // this array it is used to store all the types of the columns of the query
       std::vector<CassValueType> column_types;
 
-      // get information on the fields for names and types
+      // get information on the fields
       const size_t number_of_columns = cass_result_column_count(query_result);
 
       for ( size_t i = 0; i < number_of_columns; ++i )
       {
-        // STEP 1: get the information about the specific column
-
-        // get the name of the column
-        const char* field_value_s;
-        size_t lenght_output_string;
-        CassError rc = cass_result_column_name(query_result, i, &field_value_s, &lenght_output_string);
-
-        if (rc != CASS_OK)
-        {
-          warning("Cassandra client: unable to get a column name");
-          output_model.fields_name.emplace_back("Unkown");
-        }
-        else
-        {
-          output_model.fields_name.emplace_back(std::string(field_value_s, lenght_output_string));
-        }
-
         // get the type of the column
         const auto field_type = cass_result_column_type(query_result, i);
         column_types.emplace_back(field_type);
-
-        switch (field_type)
-        {
-          case CASS_VALUE_TYPE_INT:
-            output_model.fields_type.emplace_back("int");
-            break;
-
-          case CASS_VALUE_TYPE_FLOAT:
-            output_model.fields_type.emplace_back("float");
-            break;
-
-          case CASS_VALUE_TYPE_DOUBLE:
-            output_model.fields_type.emplace_back("double");
-            break;
-
-          default:
-            output_model.fields_type.emplace_back("N/A");
-        }
       }
 
       // STEP 2: Get the actual content of table
@@ -968,7 +884,7 @@ model_t CassandraClient::load_model( const std::string& application_name )
         predictor.pop_back();
 
         // append the row to the model
-        output_model.model_data.emplace_back(predictor);
+        output_model.knowledge.emplace_back(predictor);
 
         // free the iterator to the row
         cass_iterator_free(column_iterator);
@@ -988,4 +904,96 @@ model_t CassandraClient::load_model( const std::string& application_name )
 
 
   return output_model;
+}
+
+
+void CassandraClient::create_trace_table( const application_description_t& description )
+{
+  // compose the name of the table
+  std::string table_name = description.application_name;
+  std::replace(table_name.begin(), table_name.end(), default_application_separator, table_application_separator );
+  std::replace(table_name.begin(), table_name.end(), '.', table_application_separator );
+  table_name += "_trace";
+
+  // compose the table description and the primary keys
+  std::string table_desc = "time timestamp,client_id text,";
+  std::string primary_key = "time,client_id,";
+  const int number_of_knobs = static_cast<int>(description.knobs.size());
+  const int number_of_features = static_cast<int>(description.features.size());
+  const int number_of_metrics = static_cast<int>(description.metrics.size());
+
+  for( int i = 0; i < number_of_knobs; ++i )
+  {
+    table_desc.append(description.knobs[i].name +  " " + description.knobs[i].type + ",");
+    primary_key.append(description.knobs[i].name + ",");
+  }
+
+  for( int i = 0; i < number_of_features; ++i )
+  {
+    table_desc.append(description.features[i].name +  " " + description.features[i].type + ",");
+    primary_key.append(description.features[i].name + ",");
+  }
+
+  for( int i = 0; i < number_of_metrics; ++i )
+  {
+    table_desc.append(description.metrics[i].name +  " " + description.metrics[i].type + ",");
+  }
+
+  // remove the last come from the field list
+  primary_key.pop_back();
+
+  // create the table
+  execute_query_synch("CREATE TABLE " + table_name + " (" + table_desc + " PRIMARY KEY (" + primary_key + ") );");
+}
+
+void CassandraClient::insert_trace_entry( const application_description_t& description, const std::string& values )
+{
+  // compose the name of the table
+  std::string table_name = description.application_name;
+  std::replace(table_name.begin(), table_name.end(), default_application_separator, table_application_separator );
+  std::replace(table_name.begin(), table_name.end(), '.', table_application_separator );
+  table_name += "_trace";
+
+  // compose the table description and the primary keys
+  std::string fields = "time,client_id,";
+
+  for( const auto& knob : description.knobs )
+  {
+    fields.append(knob.name + ",");
+  }
+  for( const auto& feature : description.features )
+  {
+    fields.append(feature.name + ",");
+  }
+  for( const auto& metric : description.metrics )
+  {
+    fields.append(metric.name + ",");
+  }
+
+  // remove the last come from the field list
+  fields.pop_back();
+
+  // perform the quety
+  execute_query_synch("INSERT INTO " + table_name + " (" + fields + ") VALUES (" + values + ");");
+}
+
+
+void CassandraClient::update_doe( const application_description_t& description, const std::string& values )
+{
+  // compose the name of the table
+  std::string table_name = description.application_name;
+  std::replace(table_name.begin(), table_name.end(), default_application_separator, table_application_separator );
+  std::replace(table_name.begin(), table_name.end(), '.', table_application_separator );
+  table_name += "_doe";
+
+  // compose the table description and the primary keys
+  std::string fields = "";
+  for( const auto& knob : description.knobs )
+  {
+    fields.append(knob.name + ",");
+  }
+  fields.append("counter");
+
+  // create the table
+  execute_query_synch("INSERT INTO " + table_name + " (" + fields + ") VALUES (" + values + ");");
 }

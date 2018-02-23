@@ -216,7 +216,7 @@ void PahoClient::send_message( const message_t&& output_message )
   }
 
   // this would be the "id" of the token to check in the log
-  MQTTClient_deliveryToken delivery_token;
+  MQTTClient_deliveryToken delivery_token = 0;
 
   // compose the message using paho facilities
   MQTTClient_message message = MQTTClient_message_initializer;
