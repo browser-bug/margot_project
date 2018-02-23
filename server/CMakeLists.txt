@@ -25,6 +25,7 @@ set( AGORA_HEADERS
      ${HDR_PATH}/doe.hpp
      ${HDR_PATH}/virtual_fs.hpp
      ${HDR_PATH}/virtual_io.hpp
+     ${HDR_PATH}/model_generator.hpp
    )
 include_directories( ${HDR_PATH} )
 
@@ -39,6 +40,7 @@ set( AGORA_SOURCES
      ${SRC_PATH}/worker
      ${SRC_PATH}/virtual_io
      ${SRC_PATH}/global_view
+     ${SRC_PATH}/model_generator
    )
 add_library( ${MARGOT_AGORA_COMMON_LIB} STATIC ${AGORA_HEADERS} ${AGORA_SOURCES} )
 

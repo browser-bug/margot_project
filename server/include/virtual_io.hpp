@@ -22,6 +22,7 @@
 
 #include "virtual_channel.hpp"
 #include "virtual_fs.hpp"
+#include "model_generator.hpp"
 
 namespace margot
 {
@@ -30,6 +31,7 @@ namespace margot
   {
     extern VirtualChannel remote;
     extern VirtualFs storage;
+    extern ModelGenerator builder;
   }
 
 }

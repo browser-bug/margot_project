@@ -113,8 +113,6 @@ namespace margot
         io::remote.send_message({topic_name,model.join(description)});
       }
 
-      void build_model( void );
-
     public:
 
 

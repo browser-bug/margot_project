@@ -29,6 +29,7 @@ using namespace margot;
 
 CassandraClient::CassandraClient(const std::string& url, const std::string& username, const std::string& password)
   : is_connected(false), database_name("agora"), default_application_separator('/'), table_application_separator('_')
+  , address(url), username(username), password(password)
 {
   // initialize the proper data structure
   CassCluster* cluster = cass_cluster_new();
@@ -698,8 +699,8 @@ void CassandraClient::store_model( const application_description_t& description,
   std::string primary_key = "";
   std::string non_primary_key = "";
   const int number_of_knobs = description.knobs.size();
-  const int number_of_metrics = description.features.size();
-  const int number_of_features = description.metrics.size();
+  const int number_of_features = description.features.size();
+  const int number_of_metrics = description.metrics.size();
 
   for( int i = 0; i < number_of_knobs; ++i )
   {

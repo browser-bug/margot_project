@@ -25,5 +25,6 @@ namespace margot
   {
     VirtualChannel remote;
     VirtualFs storage;
+    ModelGenerator builder;
   }
 }

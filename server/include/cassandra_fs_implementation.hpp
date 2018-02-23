@@ -47,6 +47,10 @@ namespace margot
       const char default_application_separator;
       const char table_application_separator;
 
+      std::string address;
+      std::string username;
+      std::string password;
+
 
       // send the query to database and check returning code
       CassFuture* send_query( const std::string& query );
@@ -108,6 +112,49 @@ namespace margot
 
       void create_trace_table( const application_description_t& description );
       void insert_trace_entry( const application_description_t& description, const std::string& values );
+
+
+      std::string get_type( void ) const
+      {
+        return "CASSANDRA";
+      }
+      std::string get_address( void ) const
+      {
+        return address;
+      }
+      std::string get_username( void ) const
+      {
+        return username;
+      }
+      std::string get_password( void ) const
+      {
+        return password;
+      }
+      std::string get_observation_name( const std::string& application_name ) const
+      {
+        std::string table_name = application_name;
+        std::replace(table_name.begin(), table_name.end(), default_application_separator, table_application_separator );
+        return database_name + "." + table_name + "_trace";
+      }
+      std::string get_model_name( const std::string& application_name ) const
+      {
+        std::string table_name = application_name;
+        std::replace(table_name.begin(), table_name.end(), default_application_separator, table_application_separator );
+        return database_name + "." + table_name + "_model";
+      }
+
+      std::string get_knobs_name( const std::string& application_name ) const
+      {
+        std::string table_name = application_name;
+        std::replace(table_name.begin(), table_name.end(), default_application_separator, table_application_separator );
+        return database_name + "." + table_name + "_knobs";
+      }
+      std::string get_features_name( const std::string& application_name ) const
+      {
+        std::string table_name = application_name;
+        std::replace(table_name.begin(), table_name.end(), default_application_separator, table_application_separator );
+        return database_name + "." + table_name + "_features";
+      }
   };
 
 

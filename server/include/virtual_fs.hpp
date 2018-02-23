@@ -89,6 +89,39 @@ namespace margot
         fs->insert_trace_entry(description, values);
       }
 
+      inline std::string get_type( void ) const
+      {
+        return fs->get_type();
+      }
+      inline std::string get_address( void ) const
+      {
+        return fs->get_address();
+      }
+      inline std::string get_username( void ) const
+      {
+        return fs->get_username();
+      }
+      inline std::string get_password( void ) const
+      {
+        return fs->get_password();
+      }
+      inline std::string get_observation_name( const std::string& application_name ) const
+      {
+        return fs->get_observation_name(application_name);
+      }
+      inline std::string get_model_name( const std::string& application_name ) const
+      {
+        return fs->get_model_name(application_name);
+      }
+      inline std::string get_knobs_name( const std::string& application_name ) const
+      {
+        return fs->get_knobs_name(application_name);
+      }
+      inline std::string get_features_name( const std::string& application_name ) const
+      {
+        return fs->get_features_name(application_name);
+      }
+
   };
 
 }

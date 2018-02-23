@@ -47,6 +47,15 @@ namespace margot
       virtual void create_trace_table( const application_description_t& description ) = 0;
       virtual void insert_trace_entry( const application_description_t& description, const std::string& values ) = 0;
 
+      virtual std::string get_type( void ) const = 0;
+      virtual std::string get_address( void ) const = 0;
+      virtual std::string get_username( void ) const = 0;
+      virtual std::string get_password( void ) const = 0;
+      virtual std::string get_observation_name( const std::string& application_name ) const = 0;
+      virtual std::string get_model_name( const std::string& application_name ) const = 0;
+      virtual std::string get_knobs_name( const std::string& application_name ) const = 0;
+      virtual std::string get_features_name( const std::string& application_name ) const = 0;
+
 
       virtual ~FsHandler( void ) {}
   };

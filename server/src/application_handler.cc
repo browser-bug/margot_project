@@ -29,14 +29,6 @@ RemoteApplicationHandler::RemoteApplicationHandler( const std::string& applicati
   : status(ApplicationStatus::CLUELESS), description(application_name)
 {}
 
-void RemoteApplicationHandler::build_model( void )
-{
-  //TODO
-  warning("Application Client: we don't support the model generation yet");
-  //info("Handler ", description.application_name, ": creating and storing the required predictions in the model");
-  //model.create(description);
-}
-
 
 void RemoteApplicationHandler::welcome_client( const std::string& client_name )
 {
@@ -417,10 +409,15 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
   // if we have to build the model, we should start
   if (we_have_to_build_the_model)
   {
-    info("Handler ", description.application_name, ": building the model...");
+    // generate the required predictions
+    info("Handler ", description.application_name, ": generating the required predictions...");
+    model_t temp_model;
+    temp_model.create(description);
+    io::storage.store_model(description, temp_model);
 
-    // we actually build the model
-    build_model();
+    // actually build the model
+    info("Handler ", description.application_name, ": building the model...");
+    io::builder(description);
 
     // change the status, we are done (if there is someone alive)
     {

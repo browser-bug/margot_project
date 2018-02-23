@@ -46,8 +46,12 @@ int main( int argc, char* argv[] )
   margot::info("Agora main: bootstrap step 2: initializing the virtual file system");
   margot::io::storage.create<margot::CassandraClient>("127.0.0.1");
 
+  // initialize the virtual fs to store/load the information from hard drive
+  margot::info("Agora main: bootstrap step 3: initializing the model builder plugin");
+  margot::io::builder.initialize("/home/davide/Projects/margot_project/margot2/build", "/home/davide/Projects/margot_project/margot2/server/plugins");
+
   // start the thread pool of worker that manage the applications
-  margot::info("Agora main: bootstrap step 3: hiring the oompa loompas");
+  margot::info("Agora main: bootstrap step 4: hiring the oompa loompas");
   margot::ThreadPool workers(3, margot::agora_worker_function);
 
 
