@@ -91,7 +91,7 @@ void ModelGenerator::operator()( const application_description_t& application ) 
     if (cp_pid == 0)
     {
       // we are the child, we need to copy the stuff
-      execlp("cp", "cp", "-r", plugin_path.c_str(), metric_root.c_str(), (char*)NULL);
+      execlp("cp", "cp", "-r", "-T", "-u", plugin_path.c_str(), metric_root.c_str(), (char*)NULL);
       warning("Model generator: unable to copy the folder \"", plugin_path, "\" into \"", metric_root, "\", errno=", errno);
       throw std::runtime_error( "Model generator: unable to copy the folder \"" + plugin_path + "\" into \"" + metric_root + "\", errno=" + std::to_string(errno) );
     }
