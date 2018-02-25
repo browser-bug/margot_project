@@ -47,7 +47,7 @@ RemoteApplicationHandler::RemoteApplicationHandler( const std::string& applicati
 void RemoteApplicationHandler::welcome_client( const std::string& client_name, const std::string& application_name )
 {
   // this section is critical ( we need to guard it )
-  std::lock_guard<std::mutex> lock(mutex);
+  std::unique_lock<std::mutex> guard(mutex);
 
   // for sure we have to register the new client
   active_clients.emplace(client_name);
@@ -64,6 +64,9 @@ void RemoteApplicationHandler::welcome_client( const std::string& client_name, c
     // load the object
     info("Handler ", application_name, ": the recovery process is started");
     status = ApplicationStatus::LOADING;
+
+    // since interaction with storage could be long, we need to release the lock
+    guard.unlock();
 
     // first of all we need to load the application description, otherwise we cannot
     // insteract with storage and we need them to generater further data structure
@@ -90,6 +93,9 @@ void RemoteApplicationHandler::welcome_client( const std::string& client_name, c
       we_have_configurations_to_explore = !doe.required_explorations.empty();
     }
 
+    // reaquire the lock to change the data structure
+    guard.lock();
+
     // if we have the model, we should broadcast it to the clients
     if (model_is_usable)
     {
@@ -97,7 +103,6 @@ void RemoteApplicationHandler::welcome_client( const std::string& client_name, c
       status = ApplicationStatus::WITH_MODEL;
       send_model("margot/" + description.application_name + "/model");
       pending_clients.clear();
-      status = ApplicationStatus::WITH_MODEL;
       return;
     }
 
@@ -121,9 +126,8 @@ void RemoteApplicationHandler::welcome_client( const std::string& client_name, c
     if (!description_is_usable)
     {
       info("Handler ", description.application_name, ": this is a shiny new application, ask \"", client_name, "\" information");
-      information_client = client_name;      // we want to know which is the client to speak with
+      ask_information(client_name);
       pending_clients.emplace(client_name);  // once we have the information, we need to provide to him configurations
-      io::remote.send_message({{"margot/" + description.application_name + "/" + client_name + "/info"}, ""});
       return;
     }
 
@@ -133,12 +137,13 @@ void RemoteApplicationHandler::welcome_client( const std::string& client_name, c
     // is to drop all the tables and start again to ask for information.
     warning("Handler ", description.application_name, ": inconsistent storage infromation, drop existing data and ask \"", client_name, "\" information");
     io::storage.erase(description.application_name);
-    io::remote.send_message({{"margot/" + description.application_name + "/" + client_name + "/info"}, ""});
-    pending_clients.emplace(client_name);
+    ask_information(client_name);
+    pending_clients.emplace(client_name);  // once we have the information, we need to provide to him configurations
+
+    // and we migjt destroy the configuration that we have
     description.knobs.clear();
     description.features.clear();
     description.metrics.clear();
-    information_client = client_name;
     return; // we have done what we can...
   }
 
@@ -176,7 +181,7 @@ void RemoteApplicationHandler::process_info( const std::string& info_message )
   int number_observations = 1;
 
   // check if we are actually thinking about getting the information
-  std::lock_guard<std::mutex> lock(mutex);
+  std::unique_lock<std::mutex> guard(mutex);
 
   if ( (status != ApplicationStatus::LOADING) || (information_client.empty()) )
   {
@@ -184,6 +189,7 @@ void RemoteApplicationHandler::process_info( const std::string& info_message )
   }
 
   // free the string with the information client
+  // in this way we are the only one that process that information
   information_client.clear();
 
   // if they are useful, we have to process the string
@@ -252,10 +258,14 @@ void RemoteApplicationHandler::process_info( const std::string& info_message )
   // happens. This statements holds even if we have kust one client
   if ( description.knobs.empty() || description.metrics.empty() )
   {
-    information_client = *std::next(std::begin(active_clients), rand_between(0, active_clients.size()));
-    io::remote.send_message({{"margot/" + description.application_name + "/" + information_client + "/info"}, ""});
+    ask_information(*std::next(std::begin(active_clients), rand_between(0, active_clients.size())));
     return;
   }
+
+  // -- CASE 2: the information are ok
+  // we need to compute and create everything
+  // this could lst long, so we release the lock
+  guard.unlock();
 
 
   // ---------------------------------------------------------------------------------------------- This is to play with doe parameters
@@ -275,6 +285,8 @@ void RemoteApplicationHandler::process_info( const std::string& info_message )
   io::storage.store_doe(description, doe);
   io::storage.create_trace_table(description);
 
+  // we are now ready to change the state and dispatch the configuration to clients
+  guard.lock();
 
   // now, we need to send configurations
   info("Handler ", description.application_name, ": starting the Design Space Exploration");
@@ -365,42 +377,37 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
     return;
   }
 
-
   // otherwise we need to generate the model
-  info("Handler ", description.application_name, ": generating the required predictions...");
-  model_t temp_model;
-  temp_model.create(description);
-
-  // since it takes time, better to unlock it
+  // since it could take a while, we need to
+  // release the lock
   guard.unlock();
-  io::storage.store_model(description, temp_model, "_temporary"); // in this way it doesnt overlap with model
-  temp_model.knowledge.clear();
+
+
+  // let's start filling the model with the required predictions
+  info("Handler ", description.application_name, ": generating the required predictions...");
+  model.create(description);
+
+  // put it in the storage
+  io::storage.store_model(description, model);
+  model.knowledge.clear(); // at this point we don't need it
 
   // actually build the model
   info("Handler ", description.application_name, ": building the model...");
   io::builder(description);
 
   // then read the model from the storage
-  temp_model = io::storage.load_model(description.application_name,  "_temporary");
+  model = io::storage.load_model(description.application_name);
 
 
-  // eventually we have to change the status back
+  // eventually we have to change the status to with model
   guard.lock();
 
   // check if we are still building the model
   if (status == ApplicationStatus::BUILDING_MODEL)
   {
-    model = std::move(temp_model);
-    io::storage.store_model(description, model);
     status = ApplicationStatus::WITH_MODEL;
     send_model("margot/" + description.application_name + "/model");
   }
-  else
-  {
-    model.knowledge.clear();
-    description.clear();
-  }
-
 }
 
 
@@ -432,35 +439,14 @@ void RemoteApplicationHandler::bye_client( const std::string& client_name )
   }
 
   // ------------------------------------------------------------- SPECIAL CASE 1: it was the last client
-  if (active_clients.empty())
-  {
-    info("Handler ", description.application_name, ": everybody left, resetting the object");
-
-    // if nobody is dealing with the application information, we can delete them
-    if ((status != ApplicationStatus::LOADING) && (status != ApplicationStatus::BUILDING_MODEL))
-    {
-      description.clear();
-      model.knowledge.clear();
-      doe.required_explorations.clear();
-      doe.next_configuration = doe.required_explorations.end();
-    }
-
-    // after dealing with the real objects, clear the support structure
-    active_clients.clear();
-    pending_clients.clear();
-    assigned_configurations.clear();
-    information_client.clear();
-
-    // change the status back to clueless
-    status = ApplicationStatus::CLUELESS;
-  }
+  // this case it is ingored in this implementation, since resetting the objecte introduce a great
+  // overhead on synchronization which is not worth.
 
   // ------------------------------------------------------------- SPECIAL CASE 2: it was the information client
   if (information_client.compare(client_name) == 0)
   {
     // we should hire someone else to do it ( the first on the active list )
-    information_client = *active_clients.begin();
-    io::remote.send_message({{"margot/" + description.application_name + "/" + information_client + "/info"}, ""});
+    ask_information(*active_clients.begin());
     info("Handler ", description.application_name, ": \"", information_client, "\" is the new information client");
   }
 }

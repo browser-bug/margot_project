@@ -687,12 +687,12 @@ doe_t CassandraClient::load_doe( const std::string& application_name )
 }
 
 
-void CassandraClient::store_model( const application_description_t& description, const model_t& model, const std::string& suffix )
+void CassandraClient::store_model( const application_description_t& description, const model_t& model )
 {
   // compose the name of the table
   std::string table_name = description.application_name;
   std::replace(table_name.begin(), table_name.end(), default_application_separator, table_application_separator );
-  table_name += "_model" + suffix;
+  table_name += "_model";
 
   // compose the table description and the primary keys
   std::string table_desc = "";
@@ -742,7 +742,7 @@ void CassandraClient::store_model( const application_description_t& description,
 }
 
 
-model_t CassandraClient::load_model( const std::string& application_name, const std::string& suffix )
+model_t CassandraClient::load_model( const std::string& application_name )
 {
   // this will cotain the model
   model_t output_model;
@@ -750,7 +750,7 @@ model_t CassandraClient::load_model( const std::string& application_name, const 
   // compose the name of the table
   std::string table_name = application_name;
   std::replace(table_name.begin(), table_name.end(), default_application_separator, table_application_separator );
-  table_name += "_model" + suffix;
+  table_name += "_model";
 
 
   // how the result of the query will be processed
@@ -892,13 +892,6 @@ model_t CassandraClient::load_model( const std::string& application_name, const 
   // perform the query
   const std::string query = "SELECT * FROM " + table_name + ";";
   execute_query_synch(query, result_handler);
-
-  // if we have a suffix, it means that it is a temporary table, so we need
-  // to drop the table
-  if (!suffix.empty())
-  {
-    execute_query_synch("DROP TABLE " + table_name + ";");
-  }
 
   return output_model;
 }

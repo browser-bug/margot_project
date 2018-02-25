@@ -76,7 +76,6 @@ namespace margot
       model_t model;
       doe_t doe;
 
-
       inline configuration_t get_next( void )
       {
         doe.next_configuration++;
@@ -90,6 +89,9 @@ namespace margot
         return configuration_to_send;
       }
 
+      // these are the function used to communicate using MQTT topics
+
+      // send a configuration to the clinet
       inline void send_configuration( const std::string& client_name )
       {
         if (!doe.required_explorations.empty())
@@ -109,28 +111,30 @@ namespace margot
         }
       }
 
+      // send the model to a specific topic
       inline void send_model( const std::string& topic_name ) const
       {
         io::remote.send_message({topic_name, model.join(description)});
       }
 
-    public:
+      // ask a client to retrieve information about the application
+      inline void ask_information( const std::string& client_name )
+      {
+        information_client = client_name;      // we want to know which is the client to speak with
+        io::remote.send_message({{"margot/" + description.application_name + "/" + client_name + "/info"}, ""});
+      }
 
+    public:
 
       RemoteApplicationHandler( const std::string& application_name );
 
-
       void welcome_client( const std::string& client_name, const std::string& application_name );
 
-
       void bye_client( const std::string& client_name );
-
 
       void process_info( const std::string& info );
 
       void new_observation( const std::string& values );
-
-
 
   };
 

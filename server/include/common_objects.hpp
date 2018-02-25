@@ -152,14 +152,6 @@ namespace margot
       return planner<policy>::generate(design_space);
     }
 
-    inline void clear( void )
-    {
-      application_name.clear();
-      knobs.clear();
-      features.clear();
-      metrics.clear();
-    }
-
     std::string application_name;
     application_knobs_t knobs;
     application_features_t features;
