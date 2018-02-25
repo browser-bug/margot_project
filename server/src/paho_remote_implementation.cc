@@ -98,6 +98,10 @@ PahoClient::PahoClient( const std::string& application_name, const std::string& 
   gethostname(hostname, MAX_HOSTNAME_LENGHT);
   client_id = std::string(hostname) + "_" + std::to_string(::gettid());
 
+  // escape problematic characters
+  std::replace(client_id.begin(), client_id.end(), '.', '_' );
+  std::replace(client_id.begin(), client_id.end(), '-', '_' );
+
   // create the topic name for the last will and testment
   goodbye_topic = "margot/" + application_name + "/kia";
 
