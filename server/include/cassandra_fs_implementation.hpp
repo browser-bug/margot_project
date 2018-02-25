@@ -103,8 +103,8 @@ namespace margot
                  load_metrics(application_name)};
       }
 
-      void store_model( const application_description_t& description, const model_t& model );
-      model_t load_model( const std::string& application_name );
+      void store_model( const application_description_t& description, const model_t& model, const std::string& suffix );
+      model_t load_model( const std::string& application_name, const std::string& suffix );
 
       void store_doe( const application_description_t& description, const doe_t& doe );
       doe_t load_doe( const std::string& application_name );
@@ -112,6 +112,8 @@ namespace margot
 
       void create_trace_table( const application_description_t& description );
       void insert_trace_entry( const application_description_t& description, const std::string& values );
+
+      void erase( const std::string& application_name );
 
 
       std::string get_type( void ) const

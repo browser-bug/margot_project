@@ -45,6 +45,7 @@ namespace margot
   template< DoeStrategy strategy >
   struct planner;
 
+
   // specialization of the struct for the full factorial
   template<>
   struct planner<DoeStrategy::FULL_FACTORIAL>

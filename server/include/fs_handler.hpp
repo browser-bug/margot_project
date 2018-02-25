@@ -41,11 +41,13 @@ namespace margot
       virtual doe_t load_doe( const std::string& application_name ) = 0;
       virtual void update_doe( const application_description_t& description, const std::string& values ) = 0;
 
-      virtual void store_model( const application_description_t& description, const model_t& model ) = 0;
-      virtual model_t load_model( const std::string& application_name ) = 0;
+      virtual void store_model( const application_description_t& description, const model_t& model, const std::string& suffix ) = 0;
+      virtual model_t load_model( const std::string& application_name, const std::string& suffix ) = 0;
 
       virtual void create_trace_table( const application_description_t& description ) = 0;
       virtual void insert_trace_entry( const application_description_t& description, const std::string& values ) = 0;
+
+      virtual void erase( const std::string& application_name ) = 0;
 
       virtual std::string get_type( void ) const = 0;
       virtual std::string get_address( void ) const = 0;

@@ -92,7 +92,7 @@ namespace margot
       pedantic("Thread ", get_tid(), ": new client \"", client_id, "\" for application \"", application_name);
 
       // handle the message
-      application_handler->welcome_client(client_id);
+      application_handler->welcome_client(client_id, application_name);
     }
 
     // ---------------------------------------------------------------------------------- handle the kia message

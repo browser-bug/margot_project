@@ -38,7 +38,6 @@ namespace margot
   {
     CLUELESS,
     LOADING,
-    GENERATING_DOE,
     EXPLORING,
     BUILDING_MODEL, // do not put the client in pending list
     WITH_MODEL,
@@ -121,7 +120,7 @@ namespace margot
       RemoteApplicationHandler( const std::string& application_name );
 
 
-      void welcome_client( const std::string& client_name );
+      void welcome_client( const std::string& client_name, const std::string& application_name );
 
 
       void bye_client( const std::string& client_name );

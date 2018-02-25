@@ -29,6 +29,7 @@
 #include <cstdint>
 #include <algorithm>
 #include <sstream>
+#include <iostream>
 
 #include "doe.hpp"
 
@@ -183,8 +184,8 @@ namespace margot
     std::string join( const application_description_t& description ) const
     {
       std::string result = "";
-      const int number_of_knobs = description.knobs.size();
-      const int number_of_features = description.features.size();
+      const int offset_knobs_separator = description.knobs.size() - 1;
+      const int offset_features_separator = description.knobs.size() + description.features.size() - 1;
 
       for ( auto entry : knowledge) // we want a copy of the entry
       {
@@ -193,22 +194,24 @@ namespace margot
 
         do
         {
-          offset = entry.find_first_of(',', offset);
+          offset = entry.find_first_of(',', offset + 1);
 
-          if (counter == number_of_knobs)
+          if (counter == offset_knobs_separator && offset != std::string::npos)
           {
             entry[offset] = ' ';
           }
 
-          if (counter == number_of_knobs + number_of_features)
+          if (counter == offset_features_separator && offset != std::string::npos)
           {
             entry[offset] = ' ';
             break;
           }
+
+          ++counter;
         }
         while ( offset != std::string::npos);
 
-        result.append(entry);
+        result.append(entry + "@");
       }
 
       return result;

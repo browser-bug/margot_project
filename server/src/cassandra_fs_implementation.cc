@@ -687,12 +687,12 @@ doe_t CassandraClient::load_doe( const std::string& application_name )
 }
 
 
-void CassandraClient::store_model( const application_description_t& description, const model_t& model )
+void CassandraClient::store_model( const application_description_t& description, const model_t& model, const std::string& suffix )
 {
   // compose the name of the table
   std::string table_name = description.application_name;
   std::replace(table_name.begin(), table_name.end(), default_application_separator, table_application_separator );
-  table_name += "_model";
+  table_name += "_model" + suffix;
 
   // compose the table description and the primary keys
   std::string table_desc = "";
@@ -742,7 +742,7 @@ void CassandraClient::store_model( const application_description_t& description,
 }
 
 
-model_t CassandraClient::load_model( const std::string& application_name )
+model_t CassandraClient::load_model( const std::string& application_name, const std::string& suffix )
 {
   // this will cotain the model
   model_t output_model;
@@ -750,7 +750,7 @@ model_t CassandraClient::load_model( const std::string& application_name )
   // compose the name of the table
   std::string table_name = application_name;
   std::replace(table_name.begin(), table_name.end(), default_application_separator, table_application_separator );
-  table_name += "_model";
+  table_name += "_model" + suffix;
 
 
   // how the result of the query will be processed
@@ -893,6 +893,12 @@ model_t CassandraClient::load_model( const std::string& application_name )
   const std::string query = "SELECT * FROM " + table_name + ";";
   execute_query_synch(query, result_handler);
 
+  // if we have a suffix, it means that it is a temporary table, so we need
+  // to drop the table
+  if (!suffix.empty())
+  {
+    execute_query_synch("DROP TABLE " + table_name + ";");
+  }
 
   return output_model;
 }
@@ -1006,4 +1012,19 @@ void CassandraClient::update_doe( const application_description_t& description, 
 
   // create the table
   execute_query_synch("INSERT INTO " + table_name + " (" + fields + ") VALUES (" + values + ");");
+}
+
+
+void CassandraClient::erase( const std::string& application_name )
+{
+  std::string table_name = application_name;
+  std::replace(table_name.begin(), table_name.end(), default_application_separator, table_application_separator );
+
+  // obliterate the information about the application
+  execute_query_synch("DROP TABLE " + table_name + "_knobs;");
+  execute_query_synch("DROP TABLE " + table_name + "_features;");
+  execute_query_synch("DROP TABLE " + table_name + "_metrics;");
+  execute_query_synch("DROP TABLE " + table_name + "_doe;");
+  execute_query_synch("DROP TABLE " + table_name + "_model;");
+  execute_query_synch("DROP TABLE " + table_name + "_trace;");
 }

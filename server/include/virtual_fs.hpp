@@ -54,14 +54,14 @@ namespace margot
         return fs->load_description(application_name);
       }
 
-      inline void store_model( const application_description_t& description, const model_t& model )
+      inline void store_model( const application_description_t& description, const model_t& model, const std::string& suffix = "" )
       {
-        fs->store_model(description, model);
+        fs->store_model(description, model, suffix);
       }
 
-      inline model_t load_model( const std::string& application_name )
+      inline model_t load_model( const std::string& application_name, const std::string& suffix = "" )
       {
-        return fs->load_model(application_name);
+        return fs->load_model(application_name, suffix);
       }
 
       inline void store_doe( const application_description_t& description, const doe_t& doe )
@@ -120,6 +120,10 @@ namespace margot
       inline std::string get_features_name( const std::string& application_name ) const
       {
         return fs->get_features_name(application_name);
+      }
+      inline void erase( const std::string& application_name )
+      {
+        fs->erase(application_name);
       }
 
   };
