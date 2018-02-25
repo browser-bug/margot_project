@@ -135,6 +135,9 @@ void RemoteApplicationHandler::welcome_client( const std::string& client_name, c
     io::storage.erase(description.application_name);
     io::remote.send_message({{"margot/" + description.application_name + "/" + client_name + "/info"}, ""});
     pending_clients.emplace(client_name);
+    description.knobs.clear();
+    description.features.clear();
+    description.metrics.clear();
     information_client = client_name;
     return; // we have done what we can...
   }
