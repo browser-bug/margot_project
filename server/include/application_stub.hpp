@@ -65,9 +65,6 @@ namespace margot
       {
         margot::info("mARGOt support thread on duty");
 
-        // initialize communication channel with the server
-        remote.create<PahoClient>(application_name, "127.0.0.1:1883", 0);
-
         // get my own id
         const std::string my_client_id = remote.get_my_client_id();
 
@@ -107,7 +104,7 @@ namespace margot
               "knob      terzius int 7 8 9@",
               "feature   destrezza float 1 3.5 6@",
               "feature   costituzione float 10 15 20@",
-              "metric    exec_time float rgam@",
+              "metric    exec_time float crs@",
               "doe       full_factorial@",
               "num_obser 5"
             };
@@ -183,6 +180,9 @@ namespace margot
       {
         // get the application name
         this->application_name = application_name;
+
+        // initialize communication channel with the server
+        remote.create<PahoClient>(application_name, "127.0.0.1:1883", 2);
 
         // start the thread
         local_handler = std::thread(&MargotMimicking::local_application_handler, this);

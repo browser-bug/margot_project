@@ -20,7 +20,6 @@
 #include <ctime>
 #include <cassert>
 #include <cstdint>
-#include <random>
 
 #include "application_handler.hpp"
 #include "logger.hpp"
@@ -28,13 +27,7 @@
 
 
 
-inline std::size_t rand_between( const std::size_t min, const std::size_t max )
-{
-  std::random_device rd;
-  std::mt19937 gen(rd());
-  std::uniform_int_distribution<> dis(min, max);
-  return dis(gen);
-}
+
 
 
 using namespace margot;
@@ -54,7 +47,7 @@ void RemoteApplicationHandler::welcome_client( const std::string& client_name, c
 
   // we need to decide which actions we need to do
   const bool need_to_restore_this_object = status == ApplicationStatus::CLUELESS;
-  const bool need_to_store_client = status == ApplicationStatus::LOADING;
+  const bool need_to_ask_information = status == ApplicationStatus::ASKING_FOR_INFORMATION && information_client.empty();
   const bool need_to_send_model = status == ApplicationStatus::WITH_MODEL;
   const bool need_to_send_configuration =  status == ApplicationStatus::EXPLORING;
 
@@ -63,7 +56,7 @@ void RemoteApplicationHandler::welcome_client( const std::string& client_name, c
   {
     // load the object
     info("Handler ", application_name, ": the recovery process is started");
-    status = ApplicationStatus::LOADING;
+    status = ApplicationStatus::RECOVERING;
 
     // since interaction with storage could be long, we need to release the lock
     guard.unlock();
@@ -95,39 +88,46 @@ void RemoteApplicationHandler::welcome_client( const std::string& client_name, c
 
     // reaquire the lock to change the data structure
     guard.lock();
+    info("Handler ", description.application_name, ": recovery process terminated");
+
+    const bool somebody_is_here = !active_clients.empty();
 
     // if we have the model, we should broadcast it to the clients
     if (model_is_usable)
     {
-      info("Handler ", description.application_name, ": recovered a model from storage, broadcasting to clients");
+      info("Handler ", description.application_name, ": recovered a model from storage");
       status = ApplicationStatus::WITH_MODEL;
-      send_model("margot/" + description.application_name + "/model");
-      pending_clients.clear();
+      if (somebody_is_here)
+      {
+        send_model("margot/" + description.application_name + "/model");
+      }
       return;
     }
 
     // if we have configurations to explore, let's start with them
-    if (we_have_configurations_to_explore)
+    if (we_have_configurations_to_explore )
     {
-      info("Handler ", description.application_name, ": recovered a doe from storage, dispatching configurations");
+      info("Handler ", description.application_name, ": recovered a doe from storage");
       status = ApplicationStatus::EXPLORING;
 
-      for ( const auto& client : pending_clients )
+      for ( const auto& client : active_clients )
       {
         send_configuration(client);
       }
-
-      send_configuration(client_name);
-      pending_clients.clear();
       return;
     }
 
-    // ok, check if we have to ask for information
+    // at this point we need to ask for information
+    status = ApplicationStatus::ASKING_FOR_INFORMATION;
+
+    // ok, if this is a new application we are done
     if (!description_is_usable)
     {
-      info("Handler ", description.application_name, ": this is a shiny new application, ask \"", client_name, "\" information");
-      ask_information(client_name);
-      pending_clients.emplace(client_name);  // once we have the information, we need to provide to him configurations
+      info("Handler ", description.application_name, ": this is a shiny new application");
+      if (somebody_is_here)
+      {
+        ask_information();
+      }
       return;
     }
 
@@ -135,12 +135,16 @@ void RemoteApplicationHandler::welcome_client( const std::string& client_name, c
     // description, but we don't have neither a model nor configurations to explore.
     // Something went wrong in the previous run, not sure what, so our only solution
     // is to drop all the tables and start again to ask for information.
-    warning("Handler ", description.application_name, ": inconsistent storage infromation, drop existing data and ask \"", client_name, "\" information");
+    warning("Handler ", description.application_name, ": inconsistent storage infromation, drop existing data");
     io::storage.erase(description.application_name);
-    ask_information(client_name);
-    pending_clients.emplace(client_name);  // once we have the information, we need to provide to him configurations
 
-    // and we migjt destroy the configuration that we have
+    // then we should ask for information
+    if (somebody_is_here)
+    {
+      ask_information();
+    }
+
+    // and we might destroy the configuration that we have
     description.knobs.clear();
     description.features.clear();
     description.metrics.clear();
@@ -148,9 +152,9 @@ void RemoteApplicationHandler::welcome_client( const std::string& client_name, c
   }
 
   // ------------------------------------------------------------- CASE 2: we are recovering the object
-  if (need_to_store_client) // a doe is not available yet
+  if (need_to_ask_information) // a doe is not available yet and we don't have any information
   {
-    pending_clients.emplace(client_name);
+    ask_information();
   }
 
   // ------------------------------------------------------------- CASE 3: we are exploring some configurations
@@ -158,9 +162,6 @@ void RemoteApplicationHandler::welcome_client( const std::string& client_name, c
   {
     send_configuration(client_name);
   }
-
-  // ------------------------------------------------------------- CASE 4: we are building the model
-  // sooner or later we broadcast the model, no need to do anything
 
   // ------------------------------------------------------------- CASE 5: we actually have a model
   if (need_to_send_model)
@@ -177,20 +178,21 @@ void RemoteApplicationHandler::welcome_client( const std::string& client_name, c
 void RemoteApplicationHandler::process_info( const std::string& info_message )
 {
   // those information are useful only to build the doe
-  std::string doe_strategy = "rgam";
+  std::string doe_strategy = "crs";
   int number_observations = 1;
 
   // check if we are actually thinking about getting the information
   std::unique_lock<std::mutex> guard(mutex);
 
-  if ( (status != ApplicationStatus::LOADING) || (information_client.empty()) )
+  if ( status != ApplicationStatus::ASKING_FOR_INFORMATION || (information_client.empty()) )
   {
     return; // we are not interested on this message
   }
 
   // free the string with the information client
-  // in this way we are the only one that process that information
+  // and change the status in building doe
   information_client.clear();
+  status = ApplicationStatus::BUILDING_DOE;
 
   // if they are useful, we have to process the string
   info("Handler ", description.application_name, ": parsing the information of the application");
@@ -258,7 +260,12 @@ void RemoteApplicationHandler::process_info( const std::string& info_message )
   // happens. This statements holds even if we have kust one client
   if ( description.knobs.empty() || description.metrics.empty() )
   {
-    ask_information(*std::next(std::begin(active_clients), rand_between(0, active_clients.size())));
+    status = ApplicationStatus::ASKING_FOR_INFORMATION;
+    if (!active_clients.empty())
+    {
+      ask_information();
+    }
+
     return;
   }
 
@@ -266,6 +273,8 @@ void RemoteApplicationHandler::process_info( const std::string& info_message )
   // we need to compute and create everything
   // this could lst long, so we release the lock
   guard.unlock();
+
+  info("Handler ", description.application_name, ": building the DoE");
 
 
   // ---------------------------------------------------------------------------------------------- This is to play with doe parameters
@@ -292,12 +301,10 @@ void RemoteApplicationHandler::process_info( const std::string& info_message )
   info("Handler ", description.application_name, ": starting the Design Space Exploration");
   status = ApplicationStatus::EXPLORING;
 
-  for ( const auto& client : pending_clients )
+  for ( const auto& client : active_clients )
   {
     send_configuration(client);
   }
-
-  pending_clients.clear();
 }
 
 
@@ -320,8 +327,7 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
   std::unique_lock<std::mutex> guard(mutex);
 
   // check if we can store the information in the application trace
-  const bool store_observation = status != ApplicationStatus::CLUELESS && status != ApplicationStatus::LOADING;
-  if (store_observation)
+  if (status != ApplicationStatus::CLUELESS && status != ApplicationStatus::RECOVERING && status != ApplicationStatus::ASKING_FOR_INFORMATION && status != ApplicationStatus::BUILDING_DOE)
   {
     io::storage.insert_trace_entry(description, timestamp + ",'" + client_id + "'," + configuration + "," + features + "," + metrics);
   }
@@ -402,10 +408,14 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
   // eventually we have to change the status to with model
   guard.lock();
 
-  // check if we are still building the model
-  if (status == ApplicationStatus::BUILDING_MODEL)
+  info("Handler ", description.application_name, ": now we have a model");
+
+  // change the application status
+  status = ApplicationStatus::WITH_MODEL;
+
+  // check if there are still anyone in the application
+  if (!active_clients.empty())
   {
-    status = ApplicationStatus::WITH_MODEL;
     send_model("margot/" + description.application_name + "/model");
   }
 }
@@ -438,17 +448,6 @@ void RemoteApplicationHandler::bye_client( const std::string& client_name )
     }
   }
 
-  // if we are loading, remove the client from the list of pending clients
-  if ( status == ApplicationStatus::CLUELESS || status == ApplicationStatus::LOADING )
-  {
-    const auto client_it = pending_clients.find(client_name);
-
-    if ( client_it != pending_clients.end() )
-    {
-      pending_clients.erase(client_it);
-    }
-  }
-
   // ------------------------------------------------------------- SPECIAL CASE 1: it was the last client
   // this case it is ingored in this implementation, since resetting the objecte introduce a great
   // overhead on synchronization which is not worth.
@@ -456,8 +455,9 @@ void RemoteApplicationHandler::bye_client( const std::string& client_name )
   // ------------------------------------------------------------- SPECIAL CASE 2: it was the information client
   if (information_client.compare(client_name) == 0)
   {
-    // we should hire someone else to do it ( the first on the active list )
-    ask_information(*active_clients.begin());
-    info("Handler ", description.application_name, ": \"", information_client, "\" is the new information client");
+    if (!active_clients.empty())
+    {
+      ask_information();
+    }
   }
 }

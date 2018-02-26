@@ -26,6 +26,7 @@
 #include <unordered_set>
 #include <unordered_map>
 #include <cstdint>
+#include <cassert>
 
 #include "virtual_io.hpp"
 #include "common_objects.hpp"
@@ -37,9 +38,11 @@ namespace margot
   enum class ApplicationStatus : uint_fast8_t
   {
     CLUELESS,
-    LOADING,
+    RECOVERING,
+    ASKING_FOR_INFORMATION,
+    BUILDING_DOE,
     EXPLORING,
-    BUILDING_MODEL, // do not put the client in pending list
+    BUILDING_MODEL,
     WITH_MODEL,
   };
 
@@ -58,10 +61,6 @@ namespace margot
 
       // this table contains all the clients of this application
       application_list_t active_clients;
-
-      // this contains all the applications that are waiting to receive
-      // a configuration from the server
-      application_list_t pending_clients;
 
       // this relates a client with the assigned configuration
       application_map_t assigned_configurations;
@@ -118,10 +117,12 @@ namespace margot
       }
 
       // ask a client to retrieve information about the application
-      inline void ask_information( const std::string& client_name )
+      inline void ask_information( void )
       {
-        information_client = client_name;      // we want to know which is the client to speak with
-        io::remote.send_message({{"margot/" + description.application_name + "/" + client_name + "/info"}, ""});
+        assert( !active_clients.empty() );
+        information_client = *active_clients.begin();
+        io::remote.send_message({{"margot/" + description.application_name + "/" + information_client + "/info"}, ""});
+        info("Handler ", description.application_name, ": asking \"", information_client, "\" information");
       }
 
     public:
