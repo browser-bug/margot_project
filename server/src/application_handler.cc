@@ -438,6 +438,17 @@ void RemoteApplicationHandler::bye_client( const std::string& client_name )
     }
   }
 
+  // if we are loading, remove the client from the list of pending clients
+  if ( status == ApplicationStatus::CLUELESS || status == ApplicationStatus::LOADING )
+  {
+    const auto client_it = pending_clients.find(client_name);
+
+    if ( client_it != pending_clients.end() )
+    {
+      pending_clients.erase(client_it);
+    }
+  }
+
   // ------------------------------------------------------------- SPECIAL CASE 1: it was the last client
   // this case it is ingored in this implementation, since resetting the objecte introduce a great
   // overhead on synchronization which is not worth.
