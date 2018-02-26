@@ -124,6 +124,7 @@ void ModelGenerator::operator()( const application_description_t& application ) 
     config_file << "KNOBS_CONTAINER_NAME=\"" << io::storage.get_knobs_name(application.application_name) << "\"" << std::endl;
     config_file << "FEATURES_CONTAINER_NAME=\"" << io::storage.get_features_name(application.application_name) << "\"" << std::endl;
     config_file << "METRIC_NAME=\"" << metric.name << "\"" << std::endl;
+    config_file << "METRIC_ROOT=\"" << metric_root << "\"" << std::endl;
     config_file.close();
 
     // starts the builder
@@ -142,18 +143,26 @@ void ModelGenerator::operator()( const application_description_t& application ) 
       warning("Model generator: unable to fork to exec the model errno=", errno);
       throw std::runtime_error( "Model generator: unable to fork to copy the generator errno=" + std::to_string(errno) );
     }
+
+    // store the pid of the new process
+    builders.emplace_back(builder_pid);
   }
 
   // wait until it finish to elaborate
   for ( const auto pid : builders)
   {
-    int return_code;
+    int return_code = 0;
     auto rc = waitpid(pid, &return_code, 0);
 
     if (rc < 0)
     {
-      warning("Model generator: a builder process terminated with errno=", errno, ", return code:", return_code);
+      warning("Model generator: unable to wait the child \"", pid, "\" errno=", errno, ", child return code:", return_code);
       throw std::runtime_error( "Model generator: a builder process terminated with errno=" + std::to_string(errno) + ", return code:" + std::to_string(return_code) );
+    }
+    if (return_code != 0)
+    {
+      warning("Model generator: a builder process terminated with return code:", return_code);
+      throw std::runtime_error( "Model generator: a builder process terminated with return code:" + std::to_string(return_code) );
     }
   }
 

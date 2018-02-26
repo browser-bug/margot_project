@@ -28,7 +28,7 @@
 using namespace margot;
 
 CassandraClient::CassandraClient(const std::string& url, const std::string& username, const std::string& password)
-  : is_connected(false), database_name("agora"), default_application_separator('/'), table_application_separator('_')
+  : is_connected(false), database_name("margot"), default_application_separator('/'), table_application_separator('_')
   , address(url), username(username), password(password)
 {
   // initialize the proper data structure
@@ -65,10 +65,10 @@ CassandraClient::CassandraClient(const std::string& url, const std::string& user
   cass_cluster_free(cluster);
 
   // create the database, ehm the key space >.>
-  execute_query_synch("CREATE KEYSPACE IF NOT EXISTS margot WITH REPLICATION = { 'class' : 'SimpleStrategy', 'replication_factor' : 1 };");
+  execute_query_synch("CREATE KEYSPACE IF NOT EXISTS " + database_name + " WITH REPLICATION = { 'class' : 'SimpleStrategy', 'replication_factor' : 1 };");
 
   // switch to the correct database
-  execute_query_synch("USE margot");
+  execute_query_synch("USE " + database_name);
 
 }
 

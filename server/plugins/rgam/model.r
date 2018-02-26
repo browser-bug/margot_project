@@ -24,27 +24,30 @@ library(crs)    # to get the response surface models
 
 # get the command arguments to figure out which is the metric to predict
 args = commandArgs(trailingOnly=TRUE)
-if (length(args) == 0)
+if (length(args) < 2)
 {
   stop("Error: unable to retrieve the name of the target metric (pass the name as program option)", call.=FALSE)
-} else if (length(args) == 1)
-{
-  metric_name <- args[1]
-  correlation_threshold <- 0.2
 } else if (length(args) == 2)
 {
   metric_name <- args[1]
-  correlation_threshold <- args[2]
+  root_path <- args[2]
+  correlation_threshold <- 0.2
+} else if (length(args) == 3)
+{
+  metric_name <- args[1]
+  root_path <- args[2]
+  correlation_threshold <- args[3]
 } else
 {
   metric_name <- args[1]
-  correlation_threshold <- args[2]
-  print(paste("Warning: the following program option are ignored:", args[3:nrow(args)], collapse = ", "))
+  root_path <- args[2]
+  correlation_threshold <- args[3]
+  print(paste("Warning: the following program option are ignored:", args[4:nrow(args)], collapse = ", "))
 }
 
 # read the remainder of the configuration from txt files
-knobs <- read.table("knobs.txt", header = FALSE, stringsAsFactors = FALSE)
-features <-read.table("features.txt", header = FALSE, stringsAsFactors = FALSE)
+knobs <- read.table(paste(root_path, "knobs.txt", sep = "/"), header = FALSE, stringsAsFactors = FALSE)
+features <-read.table(paste(root_path, "features.txt", sep = "/"), header = FALSE, stringsAsFactors = FALSE)
 
 
 #######################################################################
@@ -69,11 +72,11 @@ features <-read.table("features.txt", header = FALSE, stringsAsFactors = FALSE)
 
 
 # load the profile information from the dse
-profiling_df <- read.table("dse.txt", header = TRUE, sep=",", stringsAsFactors = FALSE)
+profiling_df <- read.table(paste(root_path, "dse.txt", sep = "/"), header = TRUE, sep=",", stringsAsFactors = FALSE)
 
 
 # load the requested predictions
-prediction_df <- read.table("prediction_request.txt", header = TRUE, sep=",", stringsAsFactors = FALSE)
+prediction_df <- read.table(paste(root_path, "prediction_request.txt", sep = "/"), header = TRUE, sep=",", stringsAsFactors = FALSE)
 
 
 
@@ -120,7 +123,6 @@ second_order_predictors <- expand.grid(first_order_predictors, first_order_predi
 valid_predictors <- second_order_predictors$Var1 < second_order_predictors$Var2
 second_order_predictors <- second_order_predictors[valid_predictors,]
 
-
 # augment the input data frame with the second oreder predictors and generate
 # also their names attached to the original dataframe
 second_order_predictor_names <- c()
@@ -143,8 +145,8 @@ correlation_matrix <- abs(cor( profiling_df[,terms_to_correlate], profiling_df[,
 
 # prune all the terms below the correlation threshold
 selection_vector <- correlation_matrix > correlation_threshold
-correlation_matrix <- c(correlation_matrix[selection_vector])
 names(correlation_matrix) <- rownames(selection_vector)
+correlation_matrix <- c(correlation_matrix[selection_vector])
 
 # prune all the second order terms which are not better of their first order terms
 valid_predictors <- c()
@@ -179,8 +181,7 @@ for( i in 1:length(correlation_matrix))
 correlation_matrix <- correlation_matrix[valid_predictors]
 print("[INFO]   Useful predictor(s):")
 print(correlation_matrix)
-useful_predictor_names <- names(correlation_matrix[valid_predictors])
-
+useful_predictor_names <- names(correlation_matrix)
 
 
 # ----------- prune the predictors to simplify the problem
@@ -198,7 +199,7 @@ metric_formula <- as.formula(text_of_formula)
 #metric_model <- crs(metric_formula, data = profiling_df, degree = degrees, segments = segments, knots = "quantiles", basis = "additive" )
 metric_model <- crs(metric_formula, data = profiling_df, prune = TRUE, kernel = FALSE )
 print(summary(metric_model))
-pdf(paste("plot_", metric_name, ".pdf", sep = ""))
+pdf(paste(root_path, "/plot_", metric_name, ".pdf", sep = ""))
 plot(metric_model)
 dev.off()
 
@@ -230,8 +231,9 @@ mean_values <- predict(metric_model, newdata = prediction_df)
 stdandard_deviations <- (attr(mean_values, "upr") - mean_values) / 2
 
 # combine the prediction in a single table
-output_df <- cbind(mean_values, stdandard_deviations)
-names(output_df) <- c("mean", "standard_deviation")
+output_df <- prediction_df
+output_df$Mean <- mean_values
+output_df$Std <- stdandard_deviations
 
 
 
@@ -252,4 +254,4 @@ names(output_df) <- c("mean", "standard_deviation")
 # output_df :   The prediction vector
 # metric_name : The name of the target metric
 
-write.table(output_df, file = paste(metric_name, ".txt"), sep = ",", row.names = FALSE, col.names = TRUE)
+write.table(output_df, file = paste(root_path, "prediction.txt", sep = "/"), sep = ",", row.names = FALSE, col.names = TRUE)

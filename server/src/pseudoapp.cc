@@ -30,8 +30,8 @@ int main( int argc, char* argv[] )
 
   // run n istances of the application for m seconds
   margot::Application application_stub;
-  application_stub(std::chrono::seconds(1000));
-  //margot::ThreadPool workers(3, application_stub, std::chrono::seconds(5));
+  //application_stub(std::chrono::seconds(1000));
+  margot::ThreadPool workers(5, application_stub, std::chrono::seconds(1000));
 
   return EXIT_SUCCESS;
 }

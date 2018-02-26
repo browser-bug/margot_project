@@ -107,9 +107,9 @@ namespace margot
               "knob      terzius int 7 8 9@",
               "feature   destrezza float 1 3.5 6@",
               "feature   costituzione float 10 15 20@",
-              "metric    exec_time int rgam@",
+              "metric    exec_time float rgam@",
               "doe       full_factorial@",
-              "num_obser 1"
+              "num_obser 5"
             };
             std::ostringstream os;
             std::for_each(descriptions.begin(), descriptions.end(), [&os] ( const std::string & configuration )
