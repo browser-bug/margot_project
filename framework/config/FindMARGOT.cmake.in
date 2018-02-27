@@ -28,8 +28,19 @@ find_path (MARGOT_HEADERS margot/monitor.hpp
   )
 find_path (MARGOT_HEADERS margot/monitor.hpp)
 
+
+## -----------------------------------------------------------------------------
+## Check for the configuration header file
+
+find_path (MARGOT_CONF_HEADER margot/margot_config.hpp
+  PATHS ${MARGOT_INSTALL_PATH}/include ${MARGOT_BINARY_PATH}/include
+  NO_DEFAULT_PATH
+  )
+find_path (MARGOT_CONF_HEADER margot/margot_config.hpp)
+
+
 # add the paths for the dependecies
-set( MARGOT_INCLUDES ${MARGOT_HEADERS} ${MARGOT_DEPS_HEADERS} )
+set( MARGOT_INCLUDES ${MARGOT_HEADERS} ${MARGOT_CONF_HEADER} ${MARGOT_DEPS_HEADERS} )
 
 
 ## -----------------------------------------------------------------------------
