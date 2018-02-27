@@ -32,10 +32,10 @@ extern "C"
 }
 
 
-#include "remote_handler.hpp"
+#include "agora/remote_handler.hpp"
 
 
-namespace margot
+namespace agora
 {
 
   class PahoClient: public RemoteHandler

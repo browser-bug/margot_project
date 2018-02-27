@@ -24,10 +24,10 @@
 #include <memory>
 #include <cassert>
 
-#include "fs_handler.hpp"
-#include "cassandra_fs_implementation.hpp"
+#include "agora/fs_handler.hpp"
+#include "agora/cassandra_fs_implementation.hpp"
 
-namespace margot
+namespace agora
 {
 
   class VirtualFs

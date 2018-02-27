@@ -22,8 +22,8 @@
 #include <cstdint>
 #include <sstream>
 
-#include "application_handler.hpp"
-#include "logger.hpp"
+#include "agora/application_handler.hpp"
+#include "agora/logger.hpp"
 
 
 
@@ -31,7 +31,7 @@
 
 
 
-using namespace margot;
+using namespace agora;
 
 RemoteApplicationHandler::RemoteApplicationHandler( const std::string& application_name )
   : status(ApplicationStatus::CLUELESS), description(application_name)

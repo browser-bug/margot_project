@@ -31,9 +31,9 @@
 #include <sstream>
 #include <iostream>
 
-#include "doe.hpp"
+#include "agora/doe.hpp"
 
-namespace margot
+namespace agora
 {
   struct message_t
   {

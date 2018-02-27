@@ -1,4 +1,4 @@
-/* agora/pseudoapp.cc
+/* agora/worker.hpp
  * Copyright (C) 2018 Davide Gadioli
  *
  * This library is free software; you can redistribute it and/or
@@ -18,20 +18,18 @@
  */
 
 
-#include <cstdlib>
-#include <chrono>
-
-#include "application_stub.hpp"
-#include "threadpool.hpp"
+#ifndef MARGOT_AGORA_WORKER_HDR
+#define MARGOT_AGORA_WORKER_HDR
 
 
-int main( int argc, char* argv[] )
+#include "agora/virtual_io.hpp"
+
+
+namespace agora
 {
 
-  // run n istances of the application for m seconds
-  margot::Application application_stub;
-  //application_stub(std::chrono::seconds(1000));
-  margot::ThreadPool workers(5, application_stub, std::chrono::seconds(1000));
+  void agora_worker_function( void );
 
-  return EXIT_SUCCESS;
 }
+
+#endif // MARGOT_AGORA_WORKER_HDR

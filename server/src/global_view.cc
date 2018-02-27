@@ -18,9 +18,9 @@
  */
 
 
-#include "global_view.hpp"
+#include "agora/global_view.hpp"
 
-namespace margot
+namespace agora
 {
   std::mutex GlobalView::global_structure;
   std::unordered_map< std::string, GlobalView::RemoteApplicationHandlerPtr > GlobalView::handled_applications;

@@ -28,11 +28,11 @@
 #include <cstdint>
 #include <cassert>
 
-#include "virtual_io.hpp"
-#include "common_objects.hpp"
-#include "doe.hpp"
+#include "agora/virtual_io.hpp"
+#include "agora/common_objects.hpp"
+#include "agora/doe.hpp"
 
-namespace margot
+namespace agora
 {
 
   enum class ApplicationStatus : uint_fast8_t

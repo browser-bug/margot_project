@@ -21,11 +21,11 @@
 #include <algorithm>
 #include <cassert>
 
-#include "logger.hpp"
-#include "cassandra_fs_implementation.hpp"
+#include "agora/logger.hpp"
+#include "agora/cassandra_fs_implementation.hpp"
 
 
-using namespace margot;
+using namespace agora;
 
 CassandraClient::CassandraClient(const std::string& url, const std::string& username, const std::string& password)
   : is_connected(false), database_name("margot"), default_application_separator('/'), table_application_separator('_')

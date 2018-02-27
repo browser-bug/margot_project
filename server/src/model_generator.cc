@@ -31,12 +31,12 @@
 #include <stdexcept>
 #include <fstream>
 
-#include "model_generator.hpp"
-#include "logger.hpp"
-#include "virtual_io.hpp"
+#include "agora/model_generator.hpp"
+#include "agora/logger.hpp"
+#include "agora/virtual_io.hpp"
 
 
-using namespace margot;
+using namespace agora;
 
 inline bool create_folder( const std::string& path )
 {

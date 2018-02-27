@@ -24,7 +24,7 @@
 #include <mutex>
 #include <condition_variable>
 
-namespace margot
+namespace agora
 {
 
   template< class T >

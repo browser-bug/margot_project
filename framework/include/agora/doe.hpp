@@ -25,7 +25,7 @@
 #include <vector>
 
 
-namespace margot
+namespace agora
 {
 
   // common data structures for handling the configurations server side

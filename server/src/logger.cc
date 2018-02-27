@@ -17,13 +17,13 @@
  * USA
  */
 
-#include "logger.hpp"
+#include "agora/logger.hpp"
 
 
 
-using namespace margot;
+using namespace agora;
 
-Logger margot::my_agora_logger;
+Logger agora::my_agora_logger;
 
 Logger::Logger( void )
   : filter_level(static_cast<uint8_t>(LogLevel::DEBUG))
@@ -40,7 +40,7 @@ Logger::~Logger( void )
 }
 
 
-void Logger::set_filter_at(const margot::LogLevel new_minimum_log_level)
+void Logger::set_filter_at(const LogLevel new_minimum_log_level)
 {
   filter_level = static_cast<uint8_t>(new_minimum_log_level);
 }

@@ -21,13 +21,14 @@
 #ifndef MARGOT_AGORA_COMMUNICATOR_GENERIC_HDR
 #define MARGOT_AGORA_COMMUNICATOR_GENERIC_HDR
 
+#include <string>
 
-#include "safe_queue.hpp"
-#include "common_objects.hpp"
-#include "logger.hpp"
+#include "agora/safe_queue.hpp"
+#include "agora/common_objects.hpp"
+#include "agora/logger.hpp"
 
 
-namespace margot
+namespace agora
 {
 
   inline void whitelist( message_t& incoming_string )

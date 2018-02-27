@@ -29,10 +29,10 @@ extern "C"
 }
 
 
-#include "fs_handler.hpp"
-#include "logger.hpp"
+#include "agora/fs_handler.hpp"
+#include "agora/logger.hpp"
 
-namespace margot
+namespace agora
 {
 
 

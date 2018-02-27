@@ -32,10 +32,10 @@
 #include <algorithm>
 #include <cstdint>
 
-#include "virtual_channel.hpp"
-#include "logger.hpp"
+#include "agora/virtual_channel.hpp"
+#include "agora/logger.hpp"
 
-namespace margot
+namespace agora
 {
 
 

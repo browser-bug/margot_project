@@ -25,7 +25,7 @@
 #include <cstdint>
 
 
-namespace margot
+namespace agora
 {
 
   class ThreadPool

@@ -24,12 +24,12 @@
 #include <sstream>
 
 
-#include "logger.hpp"
-#include "paho_remote_implementation.hpp"
-#include "cassandra_fs_implementation.hpp"
-#include "virtual_io.hpp"
-#include "threadpool.hpp"
-#include "worker.hpp"
+#include "agora/logger.hpp"
+#include "agora/paho_remote_implementation.hpp"
+#include "agora/cassandra_fs_implementation.hpp"
+#include "agora/virtual_io.hpp"
+#include "agora/threadpool.hpp"
+#include "agora/worker.hpp"
 
 
 void print_usage( void )
@@ -200,23 +200,23 @@ int main( int argc, char* argv[] )
   // set the level of logging
   if (min_log_level.compare("disabled") == 0)
   {
-    margot::my_agora_logger.set_filter_at(margot::LogLevel::DISABLED);
+    agora::my_agora_logger.set_filter_at(agora::LogLevel::DISABLED);
   }
   else if (min_log_level.compare("warning") == 0)
   {
-    margot::my_agora_logger.set_filter_at(margot::LogLevel::WARNING);
+    agora::my_agora_logger.set_filter_at(agora::LogLevel::WARNING);
   }
   else if (min_log_level.compare("info") == 0)
   {
-    margot::my_agora_logger.set_filter_at(margot::LogLevel::INFO);
+    agora::my_agora_logger.set_filter_at(agora::LogLevel::INFO);
   }
   else if (min_log_level.compare("pedantic") == 0)
   {
-    margot::my_agora_logger.set_filter_at(margot::LogLevel::PEDANTIC);
+    agora::my_agora_logger.set_filter_at(agora::LogLevel::PEDANTIC);
   }
   else if (min_log_level.compare("debug") == 0)
   {
-    margot::my_agora_logger.set_filter_at(margot::LogLevel::DEBUG);
+    agora::my_agora_logger.set_filter_at(agora::LogLevel::DEBUG);
   }
   else
   {
@@ -226,10 +226,10 @@ int main( int argc, char* argv[] )
 
 
   // create a virtual channel to communicate with the applications
-  margot::info("Agora main: bootstrap step 1: estabilish a connection with broker");
+  agora::info("Agora main: bootstrap step 1: estabilish a connection with broker");
   if ( mqtt_implementation.compare("paho") == 0 )
   {
-    margot::io::remote.create<margot::PahoClient>("server", broker_url, mqtt_qos, broker_username, broker_password);
+    agora::io::remote.create<agora::PahoClient>("server", broker_url, mqtt_qos, broker_username, broker_password);
   }
   else
   {
@@ -238,17 +238,17 @@ int main( int argc, char* argv[] )
   }
 
   // subscribe to relevant topics
-  margot::io::remote.subscribe("margot/+/+/+/welcome");     // to welcome new applications
-  margot::io::remote.subscribe("margot/+/+/+/info");        // to receive information about the application
-  margot::io::remote.subscribe("margot/+/+/+/observation"); // to receive the observations from the clients
-  margot::io::remote.subscribe("margot/system");            // to receive external commands
-  margot::io::remote.subscribe("margot/+/+/+/kia"); // we are not subscribed to margot/server/kia
+  agora::io::remote.subscribe("margot/+/+/+/welcome");     // to welcome new applications
+  agora::io::remote.subscribe("margot/+/+/+/info");        // to receive information about the application
+  agora::io::remote.subscribe("margot/+/+/+/observation"); // to receive the observations from the clients
+  agora::io::remote.subscribe("margot/system");            // to receive external commands
+  agora::io::remote.subscribe("margot/+/+/+/kia"); // we are not subscribed to margot/server/kia
 
   // initialize the virtual fs to store/load the information from hard drive
-  margot::info("Agora main: bootstrap step 2: initializing the virtual file system");
+  agora::info("Agora main: bootstrap step 2: initializing the virtual file system");
   if (storage_implementation.compare("cassandra") == 0)
   {
-    margot::io::storage.create<margot::CassandraClient>(storage_address, storage_username, storage_password);
+    agora::io::storage.create<agora::CassandraClient>(storage_address, storage_username, storage_password);
   }
   else
   {
@@ -258,21 +258,21 @@ int main( int argc, char* argv[] )
 
 
   // initialize the virtual fs to store/load the information from hard drive
-  margot::info("Agora main: bootstrap step 3: initializing the model builder plugin");
-  margot::io::builder.initialize(workspace_folder, plugin_folder);
+  agora::info("Agora main: bootstrap step 3: initializing the model builder plugin");
+  agora::io::builder.initialize(workspace_folder, plugin_folder);
 
   // start the thread pool of worker that manage the applications
-  margot::info("Agora main: bootstrap step 4: hiring the oompa loompas");
-  margot::ThreadPool workers(number_of_threads, margot::agora_worker_function);
+  agora::info("Agora main: bootstrap step 4: hiring the oompa loompas");
+  agora::ThreadPool workers(number_of_threads, agora::agora_worker_function);
 
 
   // wain until the workers have done
-  margot::info("Agora main: bootstrap complete, waiting for workers to finish");
+  agora::info("Agora main: bootstrap complete, waiting for workers to finish");
   workers.wait_workers();
 
 
   // ok, the whole server is down, time to go out of business
-  margot::info("Agora main: all the workers have joined me, farewell my friend");
+  agora::info("Agora main: all the workers have joined me, farewell my friend");
 
   return EXIT_SUCCESS;
 }

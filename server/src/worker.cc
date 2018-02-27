@@ -17,6 +17,9 @@
  * USA
  */
 
+ #include <string>
+ #include <iostream>
+
 // those two headers are retrieving the thread id
 #include <unistd.h>
 #include <sys/syscall.h>
@@ -25,13 +28,13 @@ inline int get_tid( void )
   return syscall(SYS_gettid);
 }
 
-#include "worker.hpp"
-#include "virtual_io.hpp"
-#include "logger.hpp"
-#include "global_view.hpp"
+#include "agora/worker.hpp"
+#include "agora/virtual_io.hpp"
+#include "agora/logger.hpp"
+#include "agora/global_view.hpp"
 
 
-namespace margot
+namespace agora
 {
   // declare the prototype of the function that handles the incoming messages
   void handle_incoming_message(const message_t& new_message);
@@ -40,7 +43,7 @@ namespace margot
   void agora_worker_function( void )
   {
     // notify that we are a new thread
-    margot::info("Thread ", get_tid(), " on duty");
+    info("Thread ", get_tid(), " on duty");
 
     // assuming that there is plenty of work for everybody
     while (true)
@@ -51,7 +54,7 @@ namespace margot
 
       if (!io::remote.recv_message(new_incoming_message))
       {
-        margot::info("Thread ", get_tid(), " on retirement");
+        info("Thread ", get_tid(), " on retirement");
         return; // there is no more work available
       }
 

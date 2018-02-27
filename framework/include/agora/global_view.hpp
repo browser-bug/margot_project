@@ -27,10 +27,10 @@
 #include <memory>
 
 
-#include "application_handler.hpp"
+#include "agora/application_handler.hpp"
 
 
-namespace margot
+namespace agora
 {
 
   class GlobalView

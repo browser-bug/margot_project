@@ -24,11 +24,11 @@
 #include <memory>
 #include <cassert>
 
-#include "remote_handler.hpp"
-#include "paho_remote_implementation.hpp"
+#include "agora/remote_handler.hpp"
+#include "agora/paho_remote_implementation.hpp"
 
 
-namespace margot
+namespace agora
 {
 
   class VirtualChannel

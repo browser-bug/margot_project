@@ -24,10 +24,10 @@
 #include <string>
 #include <vector>
 
-#include "common_objects.hpp"
+#include "agora/common_objects.hpp"
 
 
-namespace margot
+namespace agora
 {
 
   class FsHandler

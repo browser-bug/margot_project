@@ -17,9 +17,9 @@
  * USA
  */
 
-#include "virtual_io.hpp"
+#include "agora/virtual_io.hpp"
 
-namespace margot
+namespace agora
 {
   namespace io
   {

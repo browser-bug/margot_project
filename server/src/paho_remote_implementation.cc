@@ -27,10 +27,10 @@
 #define gettid() syscall(SYS_gettid) // glibc wrapper missing
 
 
-#include "paho_remote_implementation.hpp"
-#include "logger.hpp"
+#include "agora/paho_remote_implementation.hpp"
+#include "agora/logger.hpp"
 
-using namespace margot;
+using namespace agora;
 
 #define MAX_HOSTNAME_LENGHT 256
 
@@ -44,7 +44,7 @@ extern "C"
     std::string payload((char*) message->payload, message->payloadlen);
 
     // log the reception of a message
-    margot::pedantic("MQTT callback: received a message on topic \"", topic_c_str, "\" with payload \"", payload, "\"");
+    pedantic("MQTT callback: received a message on topic \"", topic_c_str, "\" with payload \"", payload, "\"");
 
     // compose the actual message
     struct message_t incoming_message = {std::string(topic_c_str), payload};
@@ -67,7 +67,7 @@ extern "C"
   void connlost_callback_function( void* recv_buffer, char* cause )
   {
     // first log that we are in trouble
-    margot::warning("MQTT callback: lost connection with broker due to \"", cause, "\"");
+    warning("MQTT callback: lost connection with broker due to \"", cause, "\"");
 
     // pretend that the error is a normal message
     struct message_t error_message = {"$disconnect$", std::string(cause)};
@@ -83,7 +83,7 @@ extern "C"
   {
     // since we are not willing to explictly deal with tokens, we log this
     // event to be postprocessed externally.
-    margot::pedantic("MQTT callback: succesfully delivered message with token \"", delivered_token, "\"");
+    pedantic("MQTT callback: succesfully delivered message with token \"", delivered_token, "\"");
   }
 
 
@@ -154,7 +154,7 @@ PahoClient::PahoClient( const std::string& application_name, const std::string& 
   if ( return_code == MQTTCLIENT_SUCCESS )
   {
     is_connected = true;
-    margot::info("MQTT client: successfully connected to broker \"", broker_address, "\" as \"", username, "\"");
+    info("MQTT client: successfully connected to broker \"", broker_address, "\" as \"", username, "\"");
   }
   else
   {
@@ -195,7 +195,7 @@ PahoClient::PahoClient( const std::string& application_name, const std::string& 
     }
 
     warning_string += ", due to \"" + error_cause + "\"";
-    margot::warning(warning_string);
+    warning(warning_string);
     throw std::runtime_error("MQTT client: unable to connect with broker due to \"" + error_cause + "\"");
   }
 
@@ -215,7 +215,7 @@ void PahoClient::send_message( const message_t&& output_message )
   // it may happens in the shutdown procedure
   if (!is_connected)
   {
-    margot::warning("MQTT client: attempt to send a message while disconnected");
+    warning("MQTT client: attempt to send a message while disconnected");
     return;
   }
 
@@ -242,7 +242,7 @@ void PahoClient::send_message( const message_t&& output_message )
     throw std::runtime_error("MQTT client: unable to send a message, errno=" + std::to_string(return_code));
   }
 
-  margot::pedantic("MQTT client: sent message on topic \"", output_message.topic, "\" with token \"", delivery_token, "\"");
+  pedantic("MQTT client: sent message on topic \"", output_message.topic, "\" with token \"", delivery_token, "\"");
 }
 
 
@@ -252,7 +252,7 @@ void PahoClient::subscribe( const std::string& topic )
   // it may happens in the shutdown procedure
   if (!is_connected)
   {
-    margot::warning("MQTT client: attempt to subscribe in a topic while disconnected");
+    warning("MQTT client: attempt to subscribe in a topic while disconnected");
     return;
   }
 
@@ -264,7 +264,7 @@ void PahoClient::subscribe( const std::string& topic )
     throw std::runtime_error("MQTT client: unable to subscribe for topic \"" + topic + "\", errno=" + std::to_string(return_code));
   }
 
-  margot::pedantic("MQTT client: subscribed to topic \"", topic, "\"");
+  pedantic("MQTT client: subscribed to topic \"", topic, "\"");
 }
 
 
@@ -274,7 +274,7 @@ void PahoClient::unsubscribe( const std::string& topic )
   // it may happens in the shutdown procedure
   if (!is_connected)
   {
-    margot::warning("MQTT client: attempt to unsubscribe from a topic while disconnected");
+    warning("MQTT client: attempt to unsubscribe from a topic while disconnected");
     return;
   }
 
@@ -285,7 +285,7 @@ void PahoClient::unsubscribe( const std::string& topic )
     throw std::runtime_error("MQTT client: unable to unsubscribe to topic \"" + topic + "\", errno=" + std::to_string(return_code));
   }
 
-  margot::pedantic("MQTT client: unsubscribed to topic \"", topic, "\"");
+  pedantic("MQTT client: unsubscribed to topic \"", topic, "\"");
 }
 
 
@@ -299,17 +299,17 @@ void PahoClient::disconnect( void )
 
     // actually disconnect from the broker
     uint16_t disconnect_timeout_ms = 10000;
-    margot::warning("MQTT client: disconnecting from the broker (timeout ", disconnect_timeout_ms, "ms)");
+    warning("MQTT client: disconnecting from the broker (timeout ", disconnect_timeout_ms, "ms)");
     int return_code = MQTTClient_disconnect(client, disconnect_timeout_ms);
 
     // this is basically for show, since we cannot doing anything
     if (return_code != MQTTCLIENT_SUCCESS)
     {
-      margot::warning("MQTT client: unable to disconnect from client properly");
+      warning("MQTT client: unable to disconnect from client properly");
     }
     else
     {
-      margot::warning("MQTT client: we are now disconnected from the broker");
+      warning("MQTT client: we are now disconnected from the broker");
     }
   }
 
