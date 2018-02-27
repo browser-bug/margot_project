@@ -36,7 +36,8 @@ namespace margot
 
   enum class LogLevel : uint8_t
   {
-    WARNING = 0,
+    DISABLED = 0,
+    WARNING,
     INFO,
     PEDANTIC,
     DEBUG

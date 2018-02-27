@@ -20,6 +20,7 @@
 #include <ctime>
 #include <cassert>
 #include <cstdint>
+#include <sstream>
 
 #include "application_handler.hpp"
 #include "logger.hpp"

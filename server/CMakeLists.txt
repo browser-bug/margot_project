@@ -4,7 +4,7 @@
 
 # set the name of the final library
 set( MARGOT_AGORA_COMMON_LIB "agora-common" )
-set( MARGOT_AGORA_REMOTE_HANDLER "agora-remote-handler" )
+set( MARGOT_AGORA_REMOTE_HANDLER "agora" )
 set( MARGOT_PSEUDOAPP "margot-pseudoapp" )
 
 
