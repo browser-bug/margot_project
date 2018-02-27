@@ -2,6 +2,9 @@
 #### Compile framework library
 ################################
 
+# configure the framework
+add_subdirectory( config )
+
 # set the headers of the margot library
 set( MARGOT_HEADERS
 	${MARGOT_HDR_PATH}/margot/basic_information_block.hpp
@@ -157,7 +160,7 @@ endif ( WITH_AGORA )
 
 
 # install the library
-install( TARGETS ${MARGOT_NAME} DESTINATION lib )
+install( TARGETS ${MARGOT_LIB_NAME} DESTINATION lib )
 
 # install the headers
 install( FILES ${MARGOT_HEADERS} DESTINATION include/margot )
@@ -175,8 +178,6 @@ install( DIRECTORY ${PROJECT_SOURCE_DIR}/margot_heel/margot_heel_cli/margot_heel
 ################################
 #### Build additional stuff
 ################################
-
-add_subdirectory( config )
 
 if ( WITH_TEST )
 	add_subdirectory( test )

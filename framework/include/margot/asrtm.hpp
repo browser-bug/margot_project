@@ -36,7 +36,13 @@
 #include "margot/monitor.hpp"
 #include "margot/state.hpp"
 #include "margot/debug.hpp"
+#include "margot/margot_config.hpp"
 
+#ifdef MARGOT_WITH_AGORA
+  #include <thread>
+  #include <sstream>
+  #include "agora/virtual_channel.hpp"
+#endif // MARGOT_WITH_AGORA
 
 namespace margot
 {
@@ -67,6 +73,11 @@ namespace margot
   template< class OperatingPoint, class state_id_type = std::string, typename priority_type = int, typename error_coef_type = float >
   class Asrtm
   {
+
+      /**
+       * @brief Explicit definition of this Asrtm type
+       */
+      using type = Asrtm<OperatingPoint,state_id_type,priority_type,error_coef_type>;
 
 
       /**
@@ -749,6 +760,8 @@ namespace margot
       template< OperatingPointSegments segment, std::size_t field, class T = float >
       inline T get_mean( void ) const
       {
+        // lock the manger mutex, to ensure a consistent global state
+        std::lock_guard< std::mutex > lock(manger_mutex);
         assert(application_configuration && "Error: AS-RTM attempt to retrieve information from an empty state");
         return static_cast<T>(Evaluator< OperatingPoint, FieldComposer::SIMPLE,
                               OPField< segment, BoundType::LOWER, field, 0> >::evaluate(application_configuration));
@@ -914,9 +927,42 @@ namespace margot
        */
       inline void restore_from_data_feature_switch( void )
       {
+        // lock the manger mutex, to ensure a consistent global state
+        std::lock_guard< std::mutex > lock(manger_mutex);
         status = ApplicationStatus::UNDEFINED;
         application_configuration.reset();
       }
+
+
+
+
+      /******************************************************************
+       *  AGORA LOCAL APPLICATION HANDLER PUBLIC METHODS
+       ******************************************************************/
+
+
+#ifdef MARGOT_WITH_AGORA
+
+      inline void send_measure( const std::string& values )
+      {
+        remote.send_message({{"margot/" + application_name + "/observation"}, values});
+      }
+
+      // this function should be parametric and hidden
+      template< class OpConverter >
+      void start_support_thread( const std::string& application, const std::string& broker_url, const std::string& username, const std::string& password, const int qos_level, const std::string& description )
+      {
+        // get the application name
+        application_name = application;
+
+        // initialize communication channel with the server
+        remote.create<agora::PahoClient>(application_name, broker_url, qos_level, username, password );
+
+        // start the thread
+        local_handler = std::thread(&type::local_application_handler<OpConverter>, this, description);
+      }
+
+#endif // MARGOT_WITH_AGORA
 
 
 
@@ -940,6 +986,136 @@ namespace margot
 
 
     private:
+
+
+
+      /******************************************************************
+       *  AGORA LOCAL APPLICATION HANDLER PRIVATE METHODS
+       ******************************************************************/
+
+
+#ifdef MARGOT_WITH_AGORA
+
+      void set_exploration_point( const OperatingPoint& point )
+      {
+        // lock the asrtm, since we are changing its data structure
+        std::lock_guard<std::mutex> lock(manger_mutex);
+
+        // clear the knowledge base from previous values
+        knowledge.clear();
+
+        // add the Operating Point to the knowledge
+        knowledge.add(point);
+
+        // set the new knowledge to all the states
+        for ( auto& state_pair : application_optimizers )
+        {
+          state_pair.second.set_knowledge_base(knowledge);
+        }
+
+        // reset the state of the asrtm
+        status = ApplicationStatus::UNDEFINED;
+        application_configuration.reset();
+        proposed_best_configuration.reset();
+      }
+
+      void set_model( const std::vector< OperatingPoint >& model )
+      {
+        // lock the asrtm, since we are changing its data structure
+        std::lock_guard<std::mutex> lock(manger_mutex);
+
+        // clear the knowledge base from previous values
+        knowledge.clear();
+
+        // add the Operating Point to the knowledge
+        for( const auto& op : model )
+        {
+          knowledge.add(op);
+        }
+
+        // set the new knowledge to all the states
+        for ( auto& state_pair : application_optimizers )
+        {
+          state_pair.second.set_knowledge_base(knowledge);
+        }
+
+        // reset the state of the asrtm
+        status = ApplicationStatus::UNDEFINED;
+        application_configuration.reset();
+        proposed_best_configuration.reset();
+      }
+
+
+      template< class OpConverter >
+      void local_application_handler( const std::string application_description )
+      {
+        agora::info("mARGOt support thread on duty");
+
+        // declare the the object used to get an Operating Point from a string
+        OpConverter get_op;
+
+        // get my own id
+        const std::string my_client_id = remote.get_my_client_id();
+
+        // register to the application-specific topic (before send the welcome message)
+        remote.subscribe("margot/" + application_name + "/" + my_client_id + "/#");
+
+        // register to the application to receive the model
+        remote.subscribe("margot/" + application_name + "/model");
+
+        // announce to the world that i exist
+        remote.send_message({{"margot/" + application_name + "/welcome"}, my_client_id});
+
+        // remember, this is a thread, it should terminate only when the
+        // client disconnect, so keep running until the application is up
+        while (true)
+        {
+          // declaring the new message
+          agora::message_t new_incoming_message;
+
+          if (!remote.recv_message(new_incoming_message))
+          {
+            agora::info("mARGOt support thread on retirement");
+            return; // there is no more work available
+          }
+
+          // get the "topic" of the message
+          const auto start_type_pos = new_incoming_message.topic.find_last_of('/');
+          const std::string message_topic = new_incoming_message.topic.substr(start_type_pos);
+
+
+          // handle the single configurations coming from the server
+          if (message_topic.compare("/explore") == 0)
+          {
+            set_exploration_point(get_op(new_incoming_message.payload));
+          } else  if (message_topic.compare("/info") == 0) // handle the info message
+          {
+            remote.send_message({{"margot/" + application_name + "/info"}, application_description});
+          }
+          else if (message_topic.compare("/model") == 0) // handle the final model coming from the server
+          {
+            // parse the the incoming message with the model
+            std::vector< OperatingPoint > model;
+            std::stringstream model_stream(new_incoming_message.payload);
+            constexpr char line_delimiter = '@';
+            std::string op_string;
+            while (std::getline(model_stream, op_string, line_delimiter))
+            {
+              std::string knobs;
+              std::string metrics;
+              std::stringstream op_stream(op_string);
+              op_stream >> knobs;
+              op_stream >> metrics;
+              model.emplace_back(get_op(knobs, metrics));
+            }
+
+            // set the model
+            set_model(model);
+          }
+        }
+      }
+
+#endif // MARGOT_WITH_AGORA
 
 
       /**
@@ -986,6 +1162,25 @@ namespace margot
        * @brief The internal state of the AS-RTM
        */
       ApplicationStatus status;
+
+#ifdef MARGOT_WITH_AGORA
+
+      /**
+       * @brief The handler of the local agora application handler
+       */
+      std::thread local_handler;
+
+      /**
+       * @brief This is the virtual channel used to communicate with the agora remote application handler
+       */
+      agora::VirtualChannel remote;
+
+      /**
+       * @brief The name of this application
+       */
+      std::string application_name;
+
+#endif // MARGOT_WITH_AGORA
 
   };
 

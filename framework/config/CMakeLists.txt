@@ -18,7 +18,7 @@ install( FILES "${PROJECT_BINARY_DIR}/finders/margot.pc" DESTINATION lib/pkgconf
 
 
 ###############################################
-##           FindMARGOT cmake file             ##
+##           FindMARGOT cmake file           ##
 ###############################################
 
 
@@ -37,3 +37,16 @@ configure_file(
   )
 
 install( FILES "${PROJECT_BINARY_DIR}/finders/FindMARGOT.cmake" DESTINATION lib/cmake )
+
+
+###############################################
+##             Configure margot              ##
+###############################################
+
+if ( WITH_AGORA )
+  set( MARGOT_WITH_AGORA ON )
+endif ( WITH_AGORA )
+configure_file(
+  "${CMAKE_CURRENT_SOURCE_DIR}/margot_config.hpp.in"
+  "${MARGOT_CONFIG_FILE_PATH}/margot/margot_config.hpp"
+  )

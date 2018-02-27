@@ -264,7 +264,8 @@ set( MARGOT_LIB_NAME "margot")
 
 # set the position of the margot headers
 set( MARGOT_HDR_PATH "${CMAKE_CURRENT_SOURCE_DIR}/framework/include" )
-include_directories( ${MARGOT_HDR_PATH} )
+set( MARGOT_CONFIG_FILE_PATH "${PROJECT_BINARY_DIR}/include" )
+include_directories( ${MARGOT_HDR_PATH} ${MARGOT_CONFIG_FILE_PATH} )
 
 # build the framework
 add_subdirectory( framework )
@@ -277,6 +278,7 @@ endif ( WITH_AGORA)
 # generate auto complete file
 set( AUTOCOMPLETE_FILE_NAME .clang_complete )
 file( WRITE ${AUTOCOMPLETE_FILE_NAME} "-I${PROJECT_SOURCE_DIR}/framework/include\n" )
+file( APPEND ${AUTOCOMPLETE_FILE_NAME} "-I${MARGOT_CONFIG_FILE_PATH}\n" )
 if ( WITH_AGORA )
 	file( APPEND ${AUTOCOMPLETE_FILE_NAME} "-I${MQTT_INCLUDES}\n" )
 	file( APPEND ${AUTOCOMPLETE_FILE_NAME} "-I${CASSANDRA_INCLUDES}\n" )

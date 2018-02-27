@@ -63,7 +63,7 @@ namespace agora
       // this is the function executed by the main thread
       void local_application_handler( void )
       {
-        margot::info("mARGOt support thread on duty");
+        agora::info("mARGOt support thread on duty");
 
         // get my own id
         const std::string my_client_id = remote.get_my_client_id();
@@ -86,7 +86,7 @@ namespace agora
 
           if (!remote.recv_message(new_incoming_message))
           {
-            margot::info("mARGOt support thread on retirement");
+            agora::info("mARGOt support thread on retirement");
             return; // there is no more work available
           }
 
