@@ -67,12 +67,12 @@ if ( USE_TEMPERATURE_MONITOR )
 	find_package( SENSORS )
 endif( USE_TEMPERATURE_MONITOR )
 
-option( BUILD_SERVER "Build agora: the server-side application to manage appication knowledge" ON )
-if ( BUILD_SERVER )
-	list (APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/server/cmake")
+option( WITH_AGORA "With agora: the server-side application to manage appication knowledge" OFF )
+if ( WITH_AGORA )
+	list (APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/framework/cmake")
 	find_package( MQTT )
 	find_package( CASSANDRA )
-endif( BUILD_SERVER )
+endif( WITH_AGORA )
 
 
 
@@ -184,8 +184,8 @@ endif ( USE_TEMPERATURE_MONITOR )
 
 
 # check if we can compile margot agora
-if ( BUILD_SERVER )
-	message( STATUS "Server application agora.............: ENABLED (-DBUILD_SERVER=OFF to disable)" )
+if ( WITH_AGORA )
+	message( STATUS "Server application agora.............: ENABLED (-DWITH_AGORA=OFF to disable)" )
 
 	# check if we have to build some component manually
 	if ( (NOT HAVE_MQTT) OR (NOT HAVE_CASSANDRA) )
@@ -244,9 +244,9 @@ if ( BUILD_SERVER )
 	# eventually include the headers directory
 	include_directories( ${MQTT_INCLUDES})
 	include_directories( ${CASSANDRA_INCLUDES})
-else ( BUILD_SERVER )
-	message( STATUS "Server application agora.............: DISABLED (-DBUILD_SERVER=ON to enable)" )
-endif ( BUILD_SERVER )
+else ( WITH_AGORA )
+	message( STATUS "Server application agora.............: DISABLED (-DWITH_AGORA=ON to enable)" )
+endif ( WITH_AGORA )
 
 
 # this message is just for pretty printing
@@ -259,21 +259,28 @@ message( STATUS "" )
 #### Build section
 ################################
 
+# set the name of the margot library
+set( MARGOT_LIB_NAME "margot")
 
-# build margot agora
-if ( BUILD_SERVER )
-	add_subdirectory( server )
-endif ( BUILD_SERVER)
+# set the position of the margot headers
+set( MARGOT_HDR_PATH "${CMAKE_CURRENT_SOURCE_DIR}/framework/include" )
+include_directories( ${MARGOT_HDR_PATH} )
 
 # build the framework
 add_subdirectory( framework )
 
+# build the remote application handler
+if ( WITH_AGORA )
+	add_subdirectory( agora )
+endif ( WITH_AGORA)
+
 # generate auto complete file
 set( AUTOCOMPLETE_FILE_NAME .clang_complete )
 file( WRITE ${AUTOCOMPLETE_FILE_NAME} "-I${PROJECT_SOURCE_DIR}/framework/include\n" )
-file( APPEND ${AUTOCOMPLETE_FILE_NAME} "-I${PROJECT_SOURCE_DIR}/server/include\n")
-file( APPEND ${AUTOCOMPLETE_FILE_NAME} "-I${MQTT_INCLUDES}\n" )
-file( APPEND ${AUTOCOMPLETE_FILE_NAME} "-I${CASSANDRA_INCLUDES}\n" )
+if ( WITH_AGORA )
+	file( APPEND ${AUTOCOMPLETE_FILE_NAME} "-I${MQTT_INCLUDES}\n" )
+	file( APPEND ${AUTOCOMPLETE_FILE_NAME} "-I${CASSANDRA_INCLUDES}\n" )
+endif ( WITH_AGORA )
 if ( WITH_TEST )
 	file( APPEND ${AUTOCOMPLETE_FILE_NAME} "-I${CXXTEST_INCLUDES}\n" )
 endif ( WITH_TEST )

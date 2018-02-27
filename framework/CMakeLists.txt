@@ -2,46 +2,58 @@
 #### Compile framework library
 ################################
 
-# set the name of the margot library
-set( MARGOT_LIB_NAME "margot")
-
 # set the headers of the margot library
-set( HDR_PATH "${CMAKE_CURRENT_SOURCE_DIR}/include" )
 set( MARGOT_HEADERS
-	${HDR_PATH}/margot/basic_information_block.hpp
-	${HDR_PATH}/margot/hash.hpp
-	${HDR_PATH}/margot/operating_point.hpp
-	${HDR_PATH}/margot/operating_point_segment.hpp
-	${HDR_PATH}/margot/traits.hpp
-	${HDR_PATH}/margot/knowledge_base.hpp
-	${HDR_PATH}/margot/circular_buffer.hpp
-	${HDR_PATH}/margot/statistical_provider.hpp
-	${HDR_PATH}/margot/statistics.hpp
-	${HDR_PATH}/margot/enums.hpp
-	${HDR_PATH}/margot/field_adaptor.hpp
-	${HDR_PATH}/margot/knowledge_adaptor.hpp
-	${HDR_PATH}/margot/evaluator.hpp
-	${HDR_PATH}/margot/view.hpp
-	${HDR_PATH}/margot/monitor.hpp
-	${HDR_PATH}/margot/rank.hpp
-	${HDR_PATH}/margot/goal.hpp
-	${HDR_PATH}/margot/constraint.hpp
-	${HDR_PATH}/margot/state.hpp
-	${HDR_PATH}/margot/asrtm.hpp
-	${HDR_PATH}/margot/energy_monitor.hpp
-	${HDR_PATH}/margot/frequency_monitor.hpp
-	${HDR_PATH}/margot/memory_monitor.hpp
-	${HDR_PATH}/margot/odroid_energy_monitor.hpp
-	${HDR_PATH}/margot/odroid_power_monitor.hpp
-	${HDR_PATH}/margot/process_cpu_usage_monitor.hpp
-	${HDR_PATH}/margot/system_cpu_usage_monitor.hpp
-	${HDR_PATH}/margot/throughput_monitor.hpp
-	${HDR_PATH}/margot/time_monitor.hpp
-	${HDR_PATH}/margot/da_asrtm.hpp
-	${HDR_PATH}/margot/debug.hpp
-	${HDR_PATH}/margot/data_features.hpp
+	${MARGOT_HDR_PATH}/margot/basic_information_block.hpp
+	${MARGOT_HDR_PATH}/margot/hash.hpp
+	${MARGOT_HDR_PATH}/margot/operating_point.hpp
+	${MARGOT_HDR_PATH}/margot/operating_point_segment.hpp
+	${MARGOT_HDR_PATH}/margot/traits.hpp
+	${MARGOT_HDR_PATH}/margot/knowledge_base.hpp
+	${MARGOT_HDR_PATH}/margot/circular_buffer.hpp
+	${MARGOT_HDR_PATH}/margot/statistical_provider.hpp
+	${MARGOT_HDR_PATH}/margot/statistics.hpp
+	${MARGOT_HDR_PATH}/margot/enums.hpp
+	${MARGOT_HDR_PATH}/margot/field_adaptor.hpp
+	${MARGOT_HDR_PATH}/margot/knowledge_adaptor.hpp
+	${MARGOT_HDR_PATH}/margot/evaluator.hpp
+	${MARGOT_HDR_PATH}/margot/view.hpp
+	${MARGOT_HDR_PATH}/margot/monitor.hpp
+	${MARGOT_HDR_PATH}/margot/rank.hpp
+	${MARGOT_HDR_PATH}/margot/goal.hpp
+	${MARGOT_HDR_PATH}/margot/constraint.hpp
+	${MARGOT_HDR_PATH}/margot/state.hpp
+	${MARGOT_HDR_PATH}/margot/asrtm.hpp
+	${MARGOT_HDR_PATH}/margot/energy_monitor.hpp
+	${MARGOT_HDR_PATH}/margot/frequency_monitor.hpp
+	${MARGOT_HDR_PATH}/margot/memory_monitor.hpp
+	${MARGOT_HDR_PATH}/margot/odroid_energy_monitor.hpp
+	${MARGOT_HDR_PATH}/margot/odroid_power_monitor.hpp
+	${MARGOT_HDR_PATH}/margot/process_cpu_usage_monitor.hpp
+	${MARGOT_HDR_PATH}/margot/system_cpu_usage_monitor.hpp
+	${MARGOT_HDR_PATH}/margot/throughput_monitor.hpp
+	${MARGOT_HDR_PATH}/margot/time_monitor.hpp
+	${MARGOT_HDR_PATH}/margot/da_asrtm.hpp
+	${MARGOT_HDR_PATH}/margot/debug.hpp
+	${MARGOT_HDR_PATH}/margot/data_features.hpp
 	)
-include_directories( ${HDR_PATH} )
+set( AGORA_HEADERS
+	${MARGOT_HDR_PATH}/agora/logger.hpp
+	${MARGOT_HDR_PATH}/agora/safe_queue.hpp
+	${MARGOT_HDR_PATH}/agora/remote_handler.hpp
+	${MARGOT_HDR_PATH}/agora/virtual_channel.hpp
+	${MARGOT_HDR_PATH}/agora/threadpool.hpp
+	${MARGOT_HDR_PATH}/agora/fs_handler.hpp
+	${MARGOT_HDR_PATH}/agora/cassandra_fs_implementation.hpp
+	${MARGOT_HDR_PATH}/agora/application_stub.hpp
+	${MARGOT_HDR_PATH}/agora/common_objects.hpp
+	${MARGOT_HDR_PATH}/agora/application_handler.hpp
+	${MARGOT_HDR_PATH}/agora/global_view.hpp
+	${MARGOT_HDR_PATH}/agora/doe.hpp
+	${MARGOT_HDR_PATH}/agora/virtual_fs.hpp
+	${MARGOT_HDR_PATH}/agora/virtual_io.hpp
+	${MARGOT_HDR_PATH}/agora/model_generator.hpp
+)
 
 
 # set the sources of the margot library
@@ -57,7 +69,16 @@ set( MARGOT_SOURCES
 	${SRC_PATH}/throughput_monitor
 	${SRC_PATH}/time_monitor
 )
-
+set( AGORA_SOURCES
+	${SRC_PATH}/logger
+	${SRC_PATH}/paho_remote_implementation
+	${SRC_PATH}/cassandra_fs_implementation
+	${SRC_PATH}/application_handler
+	${SRC_PATH}/worker
+	${SRC_PATH}/virtual_io
+	${SRC_PATH}/global_view
+	${SRC_PATH}/model_generator
+)
 
 # add the collector monitor if enabled
 if ( USE_COLLECTOR_MONITOR )
@@ -85,15 +106,28 @@ if ( USE_TEMPERATURE_MONITOR )
 	include_directories( SENSORS_INCLUDES )
 endif ( USE_TEMPERATURE_MONITOR )
 
+# add header dependency if using agora
+if ( WITH_AGORA )
+	list( APPEND MARGOT_DEPS_INCLUDE_DIRECTORIES "${MQTT_INCLUDES}")
+	list( APPEND MARGOT_DEPS_INCLUDE_DIRECTORIES "${CASSANDRA_INCLUDES}")
+endif ( WITH_AGORA )
 
 
+# create the headers and sources list for the final margot lib
+if ( WITH_AGORA )
+	set( MARGOT_FINAL_HEADERS ${MARGOT_HEADERS} ${AGORA_HEADERS} )
+	set( MARGOT_FINAL_SOURCES ${MARGOT_SOURCES} ${AGORA_SOURCES} )
+else ( WITH_AGORA )
+	set( MARGOT_FINAL_HEADERS ${MARGOT_HEADERS} )
+	set( MARGOT_FINAL_SOURCES ${MARGOT_SOURCES} )
+endif ( WITH_AGORA )
 
 
 # compile the library
 if ( LIB_STATIC )
-	add_library( ${MARGOT_LIB_NAME} STATIC ${MARGOT_HEADERS} ${MARGOT_SOURCES} )
+	add_library( ${MARGOT_LIB_NAME} STATIC ${MARGOT_FINAL_HEADERS} ${MARGOT_FINAL_SOURCES} )
 else ( LIB_STATIC )
-	add_library( ${MARGOT_LIB_NAME} SHARED ${MARGOT_HEADERS} ${MARGOT_SOURCES} )
+	add_library( ${MARGOT_LIB_NAME} SHARED ${MARGOT_FINAL_HEADERS} ${MARGOT_FINAL_SOURCES} )
 endif ( LIB_STATIC )
 
 
@@ -115,12 +149,21 @@ if ( USE_TEMPERATURE_MONITOR )
 	list( APPEND MARGOT_LINK_DEPENDENCIES "${SENSORS_LIBRARIES}")
 endif ( USE_TEMPERATURE_MONITOR )
 
+# add lib dependency if using agora
+if ( WITH_AGORA )
+	list( APPEND MARGOT_LINK_DEPENDENCIES "${MQTT_LIBRARIES}")
+	list( APPEND MARGOT_LINK_DEPENDENCIES "${CASSANDRA_LIBRARIES}")
+endif ( WITH_AGORA )
+
 
 # install the library
 install( TARGETS ${MARGOT_NAME} DESTINATION lib )
 
 # install the headers
 install( FILES ${MARGOT_HEADERS} DESTINATION include/margot )
+if ( WITH_AGORA )
+	install( FILES ${AGORA_HEADERS} DESTINATION include/agora )
+endif ( WITH_AGORA )
 
 
 # install the margot cli stuff
