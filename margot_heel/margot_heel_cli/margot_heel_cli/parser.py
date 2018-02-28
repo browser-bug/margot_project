@@ -35,6 +35,14 @@ class Parser:
     # parse the main XML file
     xml_root, namespace = parse_xml_file(path_margot)
 
+    # get the application name and version
+    application_name = get_parameter(xml_root, "application", required = False)
+    application_version = get_parameter(xml_root, "version", required = False)
+    if application_name is None:
+        application_name = 'foo'
+    if application_version is None:
+        application_version = 'v1'
+
 
     # get all the elements that defines a block
     xml_blocks = get_elements(xml_root, "block", namespace = namespace, exclusive = True)
@@ -44,6 +52,9 @@ class Parser:
 
       # parse it
       block_model = parse_block_xml(xml_block, namespace = namespace )
+
+      # append the application name
+      block_model.application_name = '{0}/{1}/{2}'.format(application_name, application_version, block_model.block_name)
 
       # postprocess it
       block_model.postprocess()

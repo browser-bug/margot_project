@@ -34,6 +34,12 @@ class BlockModel:
     # the list of field adaptors models
     self.field_adaptor_models = []
 
+    # the application name in agora context
+    self.application_name = ''
+
+    # the agora model, to enable online learning
+    self.agora_model = None
+
 
 
   def __str__(self):
@@ -78,6 +84,12 @@ class BlockModel:
       dump_string2 = '{0}\n{1}'.format(dump_string2, state_model)
     dump_string2 = '{0}\n'.format(dump_string2)
 
+
+    dump_string2 = '{0}\n\n------------- AGORA -------------'.format(dump_string2)
+    if self.agora_model is not None:
+        dump_string2 = '{0}\n{1}'.format(dump_string2, self.agora_model)
+    dump_string2 = '{0}\n'.format(dump_string2)
+
     dump_string2 = dump_string2.replace('\n', '\n# ')
     dump_string = '{0}{1}\n#######################################'.format(dump_string,dump_string2)
     dump_string = '{0}\n#######################################\n\n'.format(dump_string)
@@ -88,10 +100,12 @@ class BlockModel:
 
   def postprocess(self):
     """
-    This method is meant to be used to perform the following operations:
+    This method performs the following operations:
       - propagate the name of the field in a static goal toward the state
       - check if all the field adaptors refer to a known monitor and a known metric
       - check if all the goals refer to a known knob or metric
+      - check if the agora model referes to all the metrics, knobs and features of the block
+      - check if all the metrics in agora are observed by at least one monitor
     """
 
     # ----- propagate the target field for a static constraint
@@ -202,3 +216,57 @@ class BlockModel:
         print('[CONSISTENCY ERROR] The adaptor of field "{0}" refer to an unknown metric'.format(param_name))
         print('                    Available metrics: "{0}"'.format('", "'.join([x.name for x in self.metrics])))
         sys.exit(-1)
+
+
+    # ----- enforce the consistency of agora
+
+    if self.agora_model is not None:
+
+        # propagate the application name
+        self.agora_model.application_name = self.application_name
+
+        # get all the knobs, features and metrics from the model
+        block_knobs = sorted([ x.name for x in self.software_knobs ])
+        block_features = sorted([ x.name for x in self.features ])
+        block_metrics = sorted([ x.name for x in self.metrics ])
+
+        # get all the knobs, features and metrics from the model
+        agora_knobs = sorted(self.agora_model.knobs_values.keys())
+        agora_features = sorted(self.agora_model.features_values.keys())
+        agora_metrics = sorted(self.agora_model.metrics_predictors.keys())
+
+        # check the consistency
+        if not agora_knobs == block_knobs:
+            print('[CONSISTENCY ERROR] The software knobs of the block and agora differs!')
+            print('                    Block software-knobs: "{0}"'.format('", "'.join(block_knobs)))
+            print('                    Agora software-knobs: "{0}"'.format('", "'.join(agora_knobs)))
+            sys.exit(-1)
+        if not block_features == agora_features:
+            print('[CONSISTENCY ERROR] The features of the block and agora differs!')
+            print('                    Block features: "{0}"'.format('", "'.join(block_features)))
+            print('                    Agora features: "{0}"'.format('", "'.join(agora_features)))
+            sys.exit(-1)
+        if not block_metrics == agora_metrics:
+            print('[CONSISTENCY ERROR] The metrics of the block and agora differs!')
+            print('                    Block metrics: "{0}"'.format('", "'.join(block_metrics)))
+            print('                    Agora metrics: "{0}"'.format('", "'.join(agora_metrics)))
+            sys.exit(-1)
+
+
+
+    # ----- enforce that all the metrics are observed by a monitor
+
+    if self.agora_model is not None:
+
+        # get all the monitors related to metrics
+        agora_monitors = set([ self.agora_model.metrics_monitors[x] for x in self.agora_model.metrics_monitors ])
+
+        # get all the monitors of the block
+        block_monitors = sorted([x.monitor_name for x in self.monitor_models])
+
+        # check the consistency
+        for monitor in agora_monitors:
+            if monitor not in block_monitors:
+                print('[CONSISTENCY ERROR] A metric is observed by the unknown monitor "{0}"'.format(monitor))
+                print('                    Available monitors: "{0}"'.format('", "'.join(block_monitors)))
+                sys.exit(-1)

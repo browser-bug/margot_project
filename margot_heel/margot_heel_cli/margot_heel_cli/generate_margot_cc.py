@@ -189,6 +189,8 @@ def generate_block_body( block_model, op_lists, cc ):
   # write the stop_monitor function
   cc.write('\n\n\t\tvoid {0}\n'.format(generate_stop_monitor_signature(block_model)))
   cc.write('\t\t{\n')
+
+  # generate the code that stops the monitors
   for monitor_model in block_model.monitor_models:
     if monitor_model.stop_method:
       cc.write('\t\t\tmonitor::{0}.{1}('.format(monitor_model.monitor_name, monitor_model.stop_method))
@@ -196,6 +198,40 @@ def generate_block_body( block_model, op_lists, cc ):
       possible_arguments.extend([str(x.param_value) for x in monitor_model.stop_parameters if x.param_value])
       cc.write(','.join(possible_arguments))
       cc.write(');\n')
+
+  # if we have agora, we need to generate also the code that sends the information
+  if not block_model.agora_model is None:
+      cc.write('\n')
+
+      # get the list of knobs, features and metrics
+      knobs = sorted([x for x in block_model.agora_model.knobs_values])
+      features = sorted([x for x in block_model.agora_model.features_values])
+      metrics = sorted([x for x in block_model.agora_model.metrics_monitors])
+
+      # start to compose the list of terms to send to
+      knob_terms = []
+      for knob in knobs:
+          for knob_model in block_model.software_knobs:
+              if knob_model.name == knob:
+                  knob_var_name = knob_model.var_name
+                  break
+          knob_terms.append('std::to_string(knobs::{0})'.format(knob_var_name))
+      knob_string = ' + "," + '.join(knob_terms)
+      feature_terms = []
+      for feature in features:
+          feature_terms.append('std::to_string(features::{0})'.format(feature))
+      feature_string = ' + "," + '.join(feature_terms)
+      metric_terms = []
+      for metric in metrics:
+          related_monitor = block_model.agora_model.metrics_monitors[metric]
+          metric_terms.append('std::to_string(monitor::{0}.last())'.format(related_monitor))
+      metric_string = ' + "," + '.join(metric_terms)
+      if feature_terms:
+          send_string = ' + " " + '.join([knob_string, feature_string, metric_string])
+      else:
+          send_string = ' + " " + '.join([knob_string, metric_string])
+      cc.write('\t\t\tmanager.send_observation({0});\n'.format(send_string))
+
   cc.write('\n')
   cc.write('\t\t}')
 
@@ -435,6 +471,7 @@ def generate_margot_cc( block_models, op_lists, output_folder ):
   with open(os.path.join(output_folder, 'margot.cc'), 'w') as cc:
 
     # write the include
+    cc.write('#include <string>\n')
     cc.write('#include "margot.hpp"\n')
     cc.write('#include "margot_op_struct.hpp"\n')
     cc.write('#ifdef MARGOT_LOG_STDOUT\n')
@@ -661,6 +698,71 @@ def generate_margot_cc( block_models, op_lists, output_folder ):
           things_to_print.extend(['\t\t\t"Input_{0}"'.format(x.upper()) for x in data_feature_names])
           cc.write('\t\t{0}::file_logger.open("{0}.log", margot::Format::PLAIN,\n{1});\n'.format(block_name, ',\n'.join(things_to_print)))
       cc.write('\t\t#endif // MARGOT_LOG_FILE\n')
+
+
+      # if we have the agora application local handler, we have to spawn the support thread
+      if not block_model.agora_model is None:
+
+          # get all the knobs, metrics and features of the block
+          knob_list = sorted([x.name for x in block_model.software_knobs])
+          metric_list = sorted([x.name for x in block_model.metrics])
+          feature_list = sorted([x.name for x in block_model.features])
+
+          # define the type of a metric
+          metrics_type = []
+          for metric_model in block_model.metrics:
+            metrics_type.append(metric_model.type)
+          if 'int' in metrics_type:
+            metric_type_pod = 'float'
+          if 'float' in metrics_type:
+            metric_type_pod = 'float'
+          if 'double' in metrics_type:
+            metric_type_pod = 'double'
+
+          # define the type of a software knobs
+          knobs_type = []
+          for knob_model in block_model.software_knobs:
+            knobs_type.append(knob_model.var_type)
+          if 'int' in knobs_type:
+            knob_type_pod = 'int'
+          if 'float' in knobs_type:
+            knob_type_pod = 'float'
+          if 'double' in knobs_type:
+            knob_type_pod = 'double'
+
+          # define the type of a feature
+          features_type = []
+          for feature_model in block_model.features:
+            features_type.append(feature_model.type)
+          if 'int' in features_type:
+            feature_type_pod = 'int'
+          if 'float' in features_type:
+            feature_type_pod = 'float'
+          if 'double' in features_type:
+            feature_type_pod = 'double'
+
+          # compose the descrition of the application
+          description_terms = []
+          for knob_name in knob_list:
+               description_terms.append('knob      {0} {1} {2}'.format(knob_name, knob_type_pod, block_model.agora_model.knobs_values[knob_name]))
+          for feature_name in feature_list:
+               description_terms.append('feature   {0} {1} {2}'.format(feature_name, feature_type_pod, block_model.agora_model.features_values[feature_name]))
+          for metric_name in metric_list:
+               description_terms.append('metric    {0} {1} {2}'.format(metric_name, metric_type_pod, block_model.agora_model.metrics_predictors[metric_name]))
+          description_terms.append('doe       {0}'.format(block_model.agora_model.doe))
+          description_terms.append('num_obser {0}'.format(block_model.agora_model.number_observation))
+          description_string = '@'.join(description_terms)
+
+          # generate the argument of the initialization
+          app_name = block_model.agora_model.application_name
+          broker_url = block_model.agora_model.broker_url
+          broker_username = block_model.agora_model.username
+          broker_password = block_model.agora_model.password
+          mqtt_qos = block_model.agora_model.qos
+          parameter_string = '"{0}","{1}","{2}","{3}",{4},"{5}"'.format(app_name,broker_url,broker_username,broker_password,mqtt_qos,description_string )
+
+          # eventually emit the code that starts the agora application local handler
+          cc.write('\t\t{0}::manager.start_support_thread<{0}::operating_point_parser_t>({1});\n'.format(block_name, parameter_string))
 
     cc.write('\t}\n')
 

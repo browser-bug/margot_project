@@ -41,6 +41,8 @@
 #ifdef MARGOT_WITH_AGORA
   #include <thread>
   #include <sstream>
+  #include <chrono>
+  #include <ctime>
   #include "agora/virtual_channel.hpp"
 #endif // MARGOT_WITH_AGORA
 
@@ -197,6 +199,27 @@ namespace margot
       {
         current_optimizer = application_optimizers.end();
       }
+
+#ifdef MARGOT_WITH_AGORA
+
+      /**
+       * @brief Default destructor
+       *
+       * @details
+       * When the AS-RTM interacts directly with the remote application handler,
+       * it uses a separate thread for the synchronization.
+       * This method ensures that when the manager is destroyed, it gracefully
+       * ends the connecction with MQTT and it joins the thread.
+       */
+      ~Asrtm( void )
+      {
+        if (local_handler.joinable())
+        {
+          remote.destroy_channel();
+          local_handler.join();
+        }
+      }
+#endif // MARGOT_WITH_AGORA
 
 
       /**
@@ -762,7 +785,7 @@ namespace margot
       {
         // lock the manger mutex, to ensure a consistent global state
         std::lock_guard< std::mutex > lock(manger_mutex);
-        assert(application_configuration && "Error: AS-RTM attempt to retrieve information from an empty state");
+        assert(application_configuration && "Error: AS-RTM attempt to retrieve information from an empty application configutation");
         return static_cast<T>(Evaluator< OperatingPoint, FieldComposer::SIMPLE,
                               OPField< segment, BoundType::LOWER, field, 0> >::evaluate(application_configuration));
       }
@@ -943,9 +966,22 @@ namespace margot
 
 #ifdef MARGOT_WITH_AGORA
 
-      inline void send_measure( const std::string& values )
+      inline void send_observation( const std::string& measures )
       {
-        remote.send_message({{"margot/" + application_name + "/observation"}, values});
+        // get the timestamp of now
+        auto now = std::chrono::system_clock::now();
+
+        // convert the measure in seconds since epoch and
+        // nanosec since second
+        const auto sec_since_now = std::chrono::duration_cast< std::chrono::seconds >(now.time_since_epoch());
+        const auto almost_epoch = now - sec_since_now;
+        const auto ns_since_sec = std::chrono::duration_cast< std::chrono::nanoseconds >(almost_epoch.time_since_epoch());
+
+        // send the message
+        remote.send_message({{"margot/" + application_name + "/observation"}, std::to_string(sec_since_now.count()) + ","
+                                                                              + std::to_string(ns_since_sec.count()) + " "
+                                                                              + remote.get_my_client_id() + " "
+                                                                              + measures});
       }
 
       // this function should be parametric and hidden
@@ -1015,7 +1051,6 @@ namespace margot
 
         // reset the state of the asrtm
         status = ApplicationStatus::UNDEFINED;
-        application_configuration.reset();
         proposed_best_configuration.reset();
       }
 
@@ -1039,9 +1074,11 @@ namespace margot
           state_pair.second.set_knowledge_base(knowledge);
         }
 
+        // reset the application providers
+        runtime_information.reset();
+
         // reset the state of the asrtm
         status = ApplicationStatus::UNDEFINED;
-        application_configuration.reset();
         proposed_best_configuration.reset();
       }
 
@@ -1067,7 +1104,7 @@ namespace margot
         remote.send_message({{"margot/" + application_name + "/welcome"}, my_client_id});
 
         // remember, this is a thread, it should terminate only when the
-        // client disconnect, so keep running until the application is up
+        // MQTT client disconnect, so keep running
         while (true)
         {
           // declaring the new message

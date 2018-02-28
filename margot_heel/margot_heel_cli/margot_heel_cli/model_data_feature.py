@@ -41,7 +41,7 @@ class DataFeatureModel:
   # the available data features types
   # NOTE: the order of types in this list, specify also the type promotion
   #       for setting the final data features type of the related asrtm
-  available_var_types = ['int', 'float', 'double', 'long double']
+  available_var_types = ['int', 'float', 'double']
 
   # the available distance types
   available_feature_combination = ['NORMALIZED', 'EUCLIDEAN']

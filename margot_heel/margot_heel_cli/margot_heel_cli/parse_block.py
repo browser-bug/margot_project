@@ -7,6 +7,7 @@ from .parse_state import parse_state
 from .parse_adaptors import parse_adaptor
 from .parse_metrics import parse_metric
 from .parse_data_feature import parse_data_feature
+from .parse_agora import parse_agora
 from . import model_block
 
 
@@ -66,7 +67,7 @@ def parse_block_xml( xml_block_root, namespace = '' ):
 
     # get the first element of the data features
     feature_xml_element = feature_xml_element[0]
-  
+
     # get the model of data features
     data_feature_model = parse_data_feature(feature_xml_element, namespace = namespace)
 
@@ -100,6 +101,15 @@ def parse_block_xml( xml_block_root, namespace = '' ):
 
   # get all the states
   state_xml_elements = get_elements(xml_block_root, 'state', namespace = namespace)
+
+  # get the agora xml elements
+  agora_xml_elements = get_elements(xml_block_root, 'agora', namespace = namespace, unique = True)
+
+  #parse the agora information
+  if agora_xml_elements:
+
+      # parse it
+      model.agora_model = parse_agora(agora_xml_elements[0], namespace = namespace )
 
   # parse each state
   for state_xml_element in state_xml_elements:

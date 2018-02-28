@@ -19,6 +19,8 @@ def generate_margot_structure_hpp( block_models, op_lists, output_folder ):
     cc.write('\n#include <string>\n')
     cc.write('#include <unordered_map>\n')
     cc.write('#include <cstddef>\n')
+    cc.write('#include <sstream>\n')
+    cc.write('#include <algorithm>\n')
     cc.write('#include <margot/operating_point.hpp>')
 
     # write the disclaimer
@@ -91,19 +93,19 @@ def generate_margot_structure_hpp( block_models, op_lists, output_folder ):
 
           # perform a type promotion c-like
           if 'int' in metrics_type:
-            metric_type = 'int'
+            metric_type_pod = 'float'
           if 'float' in metrics_type:
-            metric_type = 'float'
+            metric_type_pod = 'float'
           if 'double' in metrics_type:
-            metric_type = 'double'
+            metric_type_pod = 'double'
           if 'long double' in metrics_type:
-            metric_type = 'long double'
+            metric_type_pod = 'long double'
 
           # set the actual type of metric segment
           if metric_are_distribution:
-            metric_type = 'margot::Distribution<{0}>'.format(metric_type)
+            metric_type = 'margot::Distribution<{0}>'.format(metric_type_pod)
           else:
-            metric_type = 'margot::Data<{0}>'.format(metric_type)
+            metric_type = 'margot::Data<{0}>'.format(metric_type_pod)
           metric_segment_type = 'margot::OperatingPointSegment< {0}, {1} >'.format(len(block_models[block_name].metrics), metric_type)
 
 
@@ -114,16 +116,16 @@ def generate_margot_structure_hpp( block_models, op_lists, output_folder ):
 
           # perform a type promotion c-like
           if 'int' in knobs_type:
-            knob_type = 'int'
+            knob_type_pod = 'int'
           if 'float' in knobs_type:
-            knob_type = 'float'
+            knob_type_pod = 'float'
           if 'double' in knobs_type:
-            knob_type = 'double'
+            knob_type_pod = 'double'
           if 'long double' in knobs_type:
-            knob_type = 'long double'
+            knob_type_pod = 'long double'
 
           # set the actual type of the knob segment
-          knob_type = 'margot::Data<{0}>'.format(knob_type)
+          knob_type = 'margot::Data<{0}>'.format(knob_type_pod)
           knob_segment_type = 'margot::OperatingPointSegment< {0}, {1} >'.format(len(block_models[block_name].software_knobs), knob_type)
 
 
@@ -136,6 +138,88 @@ def generate_margot_structure_hpp( block_models, op_lists, output_folder ):
           if metric_are_distribution:
             cc.write('\t\tusing MyMetricType = {0};\n'.format(metric_type))
           cc.write('\t\tusing MyOperatingPoint = {0};\n'.format(op_type))
+
+
+          # write the struct that compute an Operating point from a string representation
+          cc.write('\n\n\t\tstruct operating_point_parser_t\n')
+          cc.write('\t\t{\n')
+
+
+          cc.write('\n\t\t\tMyOperatingPoint operator()( std::string& software_knobs )\n')
+          cc.write('\t\t\t{\n')
+
+          # generate the code that prepare the knob representation
+          cc.write('\t\t\t\t// replace the coma with spaces\n')
+          cc.write('\t\t\t\tstd::replace(software_knobs.begin(), software_knobs.end(), \',\', \' \' );\n')
+
+          # generate the software knobs parser
+          cc.write('\n\t\t\t\t// create the string stream to parse the fields\n')
+          cc.write('\t\t\t\tstd::stringstream knob_stream(software_knobs);\n')
+          cc.write('\n\t\t\t\t// initialize the fields of the softare knobs\n')
+          for knob_name in knob_list:
+              cc.write('\t\t\t\t{0} {1};\n'.format(knob_type_pod, knob_name))
+          cc.write('\n\t\t\t\t// parse the knobs\n')
+          for knob_name in knob_list:
+              cc.write('\t\t\t\tknob_stream >> {0};\n'.format(knob_name))
+
+          # generate the metrics parser (if any)
+          cc.write('\n\t\t\t\t// initialize the fields of the metrics\n')
+          for metric_name in metric_list:
+              cc.write('\t\t\t\t{0} {1} = 1;\n'.format(metric_type_pod, metric_name))
+
+
+          # compose the operating points segment
+          knobs_bit = '{{ {0} }}'.format(', '.join([x for x in knob_list]))
+          metrics_bit = '{{ {0} }}'.format(', '.join( [ '{0}({1})'.format(metric_type, x) for x in metric_list ]  ))
+
+          # generate the return statement
+          cc.write('\n\t\t\t\treturn {{ {0}, {1} }};\n'.format(knobs_bit, metrics_bit))
+          cc.write('\t\t\t}\n')
+
+          cc.write('\n\t\t\tMyOperatingPoint operator()( std::string& software_knobs, std::string& metrics )\n')
+          cc.write('\t\t\t{\n')
+
+          # generate the code that prepare the knob representation
+          cc.write('\t\t\t\t// replace the coma with spaces\n')
+          cc.write('\t\t\t\tstd::replace(software_knobs.begin(), software_knobs.end(), \',\', \' \' );\n')
+          cc.write('\t\t\t\tstd::replace(metrics.begin(), metrics.end(), \',\', \' \' );\n')
+
+          # generate the software knobs parser
+          cc.write('\n\t\t\t\t// create the string stream to parse the fields\n')
+          cc.write('\t\t\t\tstd::stringstream knob_stream(software_knobs);\n')
+          cc.write('\n\t\t\t\t// initialize the fields of the softare knobs\n')
+          for knob_name in knob_list:
+              cc.write('\t\t\t\t{0} {1};\n'.format(knob_type_pod, knob_name))
+          cc.write('\n\t\t\t\t// parse the knobs\n')
+          for knob_name in knob_list:
+              cc.write('\t\t\t\tknob_stream >> {0};\n'.format(knob_name))
+
+          # generate the software knobs parser
+          cc.write('\n\t\t\t\t// create the string stream to parse the fields\n')
+          cc.write('\t\t\t\tstd::stringstream metric_stream(metrics);\n')
+          cc.write('\n\t\t\t\t// initialize the fields of the softare knobs\n')
+          for metric_name in metric_list:
+              cc.write('\t\t\t\t{0} {1};\n'.format(metric_type_pod, metric_name))
+              cc.write('\t\t\t\t{0} {1}_stdev;\n'.format(metric_type_pod, metric_name))
+          cc.write('\n\t\t\t\t// parse the metrics\n')
+          for metric_name in metric_list:
+              cc.write('\t\t\t\tmetric_stream >> {0};\n'.format(metric_name))
+              cc.write('\t\t\t\tmetric_stream >> {0}_stdev;\n'.format(metric_name))
+
+
+          # compose the operating points segment
+          knobs_bit = '{{ {0} }}'.format(', '.join([x for x in knob_list]))
+          if metric_are_distribution:
+              metrics_bit = '{{ {0} }}'.format(', '.join( [ '{0}({1}, {1}_stdev)'.format(metric_type, x) for x in metric_list ]  ))
+          else:
+              metrics_bit = '{{ {0} }}'.format(', '.join( [ x for x in metric_list ]  ))
+
+          # generate the return statement
+          cc.write('\n\t\t\t\treturn {{ {0}, {1} }};\n'.format(knobs_bit, metrics_bit))
+          cc.write('\t\t\t}\n')
+          cc.write('\n')
+
+          cc.write('\t\t};\n')
 
 
 
