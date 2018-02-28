@@ -337,14 +337,24 @@ def print_op_list_csv( op_list ):
   if not op_list.ops:
     return
 
+  # check if we have the standard deviation
+  if op_list.ops[0].metrics_std:
+    with_standard_dev = True
+  else:
+    with_standard_dev = False
+
   # get the list of knobs, features and metrics
   knob_names = sorted(op_list.ops[0].knobs.keys())
-  metric_names = op_list.ops[0].metrics.keys()
+  metric_names = sorted(op_list.ops[0].metrics.keys())
   feature_names = sorted(op_list.ops[0].features.keys())
-  only_metric_names = sorted(list(metric_names))
-  if op_list.ops[0].metrics_std:
-    metric_names.extend( ['{0}_standard_dev'.format(x) for x in metric_names] )
-  metric_names = sorted(metric_names)
+
+  # augment the metric names with standard deviation
+  final_metric_names = []
+  for metric in metric_names:
+    if with_standard_dev:
+      final_metric_names.extend( [ metric, '{0}_standard_dev'.format(metric) ] )
+    else:
+      final_metric_names.append(metric)
 
 
   # revert the translator dictionary
@@ -362,7 +372,7 @@ def print_op_list_csv( op_list ):
   elements.extend(['@{0}'.format(x) for x in feature_names])
 
   # compose the header
-  elements.extend(metric_names)
+  elements.extend(final_metric_names)
 
   # print the header
   print(','.join(elements))
@@ -383,9 +393,9 @@ def print_op_list_csv( op_list ):
       values.append(str(op.features[n]))
 
     # append the metrics
-    for n in only_metric_names:
+    for n in metric_names:
       values.append(str(op.metrics[n]))
-      if op.metrics_std:
+      if with_standard_dev:
         values.append(str(op.metrics_std[n]))
 
     print(','.join(values))

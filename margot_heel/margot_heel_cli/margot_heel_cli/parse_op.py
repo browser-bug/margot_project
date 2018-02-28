@@ -179,6 +179,8 @@ def parse_ops_csv( csv_path, my_delimiter ):
         else:
           if header_token.endswith('_standard_dev'):
             metric_std_dic[header_token.replace('_standard_dev', '')] = col_index
+          else:
+            metric_dic[header_token] = col_index
 
   knob_names = sorted(knob_dic.keys())
   metric_names = sorted(metric_dic.keys())
