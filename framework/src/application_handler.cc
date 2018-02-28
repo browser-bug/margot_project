@@ -311,18 +311,29 @@ void RemoteApplicationHandler::process_info( const std::string& info_message )
 
 void RemoteApplicationHandler::new_observation( const std::string& values )
 {
-  // extract from the values the client_id
+  // declare the fields of the incoming message
   std::string client_id;
   std::string timestamp;
   std::string configuration;
   std::string features;
   std::string metrics;
+
+  // parse the message
   std::stringstream stream(values);
   stream >> timestamp;
   stream >> client_id;
   stream >> configuration;
-  stream >> features;
+  if (!description.features.empty()) // parse the features only if we have them
+  {
+    stream >> features;
+  }
   stream >> metrics;
+
+  // append the coma to connect the different the features with the metrics
+  if (!features.empty())
+  {
+    features.append(",");
+  }
 
   // this is a critical section
   std::unique_lock<std::mutex> guard(mutex);
@@ -330,7 +341,7 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
   // check if we can store the information in the application trace
   if (status != ApplicationStatus::CLUELESS && status != ApplicationStatus::RECOVERING && status != ApplicationStatus::ASKING_FOR_INFORMATION && status != ApplicationStatus::BUILDING_DOE)
   {
-    io::storage.insert_trace_entry(description, timestamp + ",'" + client_id + "'," + configuration + "," + features + "," + metrics);
+    io::storage.insert_trace_entry(description, timestamp + ",'" + client_id + "'," + configuration + "," + features + metrics);
   }
 
   // check if we actually ask client id to explore the given configuration
