@@ -70,17 +70,19 @@ void RemoteApplicationHandler::welcome_client( const std::string& client_name, c
 
     // if we have a description, we might have a model if we are lucky
     bool model_is_usable = false;
+
     if (description_is_usable)
     {
       model = io::storage.load_model(description.application_name);
       const std::size_t theoretical_number_of_columns = description.knobs.size()
-                                                        + description.features.size()
-                                                        + (2 * description.metrics.size());
+          + description.features.size()
+          + (2 * description.metrics.size());
       model_is_usable = static_cast<std::size_t>(model.column_size()) == theoretical_number_of_columns;
     }
 
     // if we don't have a model then we might have a doe going on
     bool we_have_configurations_to_explore = false;
+
     if (description_is_usable && (!model_is_usable))
     {
       doe = io::storage.load_doe(description.application_name);
@@ -98,10 +100,12 @@ void RemoteApplicationHandler::welcome_client( const std::string& client_name, c
     {
       info("Handler ", description.application_name, ": recovered a model from storage");
       status = ApplicationStatus::WITH_MODEL;
+
       if (somebody_is_here)
       {
         send_model("margot/" + description.application_name + "/model");
       }
+
       return;
     }
 
@@ -115,6 +119,7 @@ void RemoteApplicationHandler::welcome_client( const std::string& client_name, c
       {
         send_configuration(client);
       }
+
       return;
     }
 
@@ -125,10 +130,12 @@ void RemoteApplicationHandler::welcome_client( const std::string& client_name, c
     if (!description_is_usable)
     {
       info("Handler ", description.application_name, ": this is a shiny new application");
+
       if (somebody_is_here)
       {
         ask_information();
       }
+
       return;
     }
 
@@ -262,6 +269,7 @@ void RemoteApplicationHandler::process_info( const std::string& info_message )
   if ( description.knobs.empty() || description.metrics.empty() )
   {
     status = ApplicationStatus::ASKING_FOR_INFORMATION;
+
     if (!active_clients.empty())
     {
       ask_information();
@@ -323,10 +331,12 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
   stream >> timestamp;
   stream >> client_id;
   stream >> configuration;
+
   if (!description.features.empty()) // parse the features only if we have them
   {
     stream >> features;
   }
+
   stream >> metrics;
 
   // append the coma to connect the different the features with the metrics
@@ -352,9 +362,11 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
 
   // if assigned, update the doe of the application
   bool we_need_to_build_model = false;
+
   if (is_assigned_conf)
   {
     const auto doe_it = doe.required_explorations.find(configuration);
+
     if (doe_it != doe.required_explorations.end())
     {
       // decrement the doe counter

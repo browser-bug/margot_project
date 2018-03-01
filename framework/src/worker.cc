@@ -17,8 +17,8 @@
  * USA
  */
 
- #include <string>
- #include <iostream>
+#include <string>
+#include <iostream>
 
 // those two headers are retrieving the thread id
 #include <unistd.h>

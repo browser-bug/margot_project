@@ -170,7 +170,7 @@ namespace agora
 
     inline int column_size( void ) const
     {
-      return static_cast<int>(knowledge.empty() ? 0 : std::count(knowledge.front().begin(),knowledge.front().end(),',') + 1);
+      return static_cast<int>(knowledge.empty() ? 0 : std::count(knowledge.front().begin(), knowledge.front().end(), ',') + 1);
     }
 
     std::string join( const application_description_t& description ) const

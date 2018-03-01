@@ -102,27 +102,29 @@ int main( int argc, char* argv[] )
   int number_of_threads = 3;
 
   // parsing the program options
-  static struct option long_options[] = {
-        {"help",                   no_argument      , 0,  0   },
-        {"workspace_folder",       required_argument, 0,  1   },
-        {"plugin_folder",          required_argument, 0,  2   },
-        {"storage_implementation", required_argument, 0,  3   },
-        {"storage_address",        required_argument, 0,  4   },
-        {"storage_username",       required_argument, 0,  5   },
-        {"storage_password",       required_argument, 0,  6   },
-        {"mqtt_implementation",    required_argument, 0,  7   },
-        {"broker_url",             required_argument, 0,  8   },
-        {"broker_username",        required_argument, 0,  9   },
-        {"broker_password",        required_argument, 0,  10   },
-        {"qos",                    required_argument, 0,  11   },
-        {"min_log_level",          required_argument, 0,  12   },
-        {"threads",                required_argument, 0,  13   },
-        {0,                        0,                 0,  0   }
+  static struct option long_options[] =
+  {
+    {"help",                   no_argument, 0,  0   },
+    {"workspace_folder",       required_argument, 0,  1   },
+    {"plugin_folder",          required_argument, 0,  2   },
+    {"storage_implementation", required_argument, 0,  3   },
+    {"storage_address",        required_argument, 0,  4   },
+    {"storage_username",       required_argument, 0,  5   },
+    {"storage_password",       required_argument, 0,  6   },
+    {"mqtt_implementation",    required_argument, 0,  7   },
+    {"broker_url",             required_argument, 0,  8   },
+    {"broker_username",        required_argument, 0,  9   },
+    {"broker_password",        required_argument, 0,  10   },
+    {"qos",                    required_argument, 0,  11   },
+    {"min_log_level",          required_argument, 0,  12   },
+    {"threads",                required_argument, 0,  13   },
+    {0,                        0,                 0,  0   }
   };
 
-  int long_index =0;
-  while ((opt = getopt_long(argc, argv,"h:",
-                 long_options, &long_index )) != -1)
+  int long_index = 0;
+
+  while ((opt = getopt_long(argc, argv, "h:",
+                            long_options, &long_index )) != -1)
   {
     switch (opt)
     {
@@ -131,65 +133,85 @@ int main( int argc, char* argv[] )
         print_usage();
         return EXIT_SUCCESS;
         break;
+
       case 1:
         if (optarg[0] != '/')
         {
           std::cerr << "Error: please use absolute path for the workspace folder" << std::endl;
           return EXIT_FAILURE;
         }
+
         workspace_folder = std::string(optarg);
         break;
+
       case 2:
         if (optarg[0] != '/')
         {
           std::cerr << "Error: please use absolute path for the plugins folder" << std::endl;
           return EXIT_FAILURE;
         }
+
         plugin_folder = std::string(optarg);
         break;
+
       case 3:
         storage_implementation = std::string(optarg);
         break;
+
       case 4:
         storage_address = std::string(optarg);
         break;
+
       case 5:
         storage_username = std::string(optarg);
         break;
+
       case 6:
         storage_password = std::string(optarg);
         break;
+
       case 7:
         mqtt_implementation = std::string(optarg);
         break;
+
       case 8:
         broker_url = std::string(optarg);
         break;
+
       case 9:
         broker_username = std::string(optarg);
         break;
+
       case 10:
         broker_password = std::string(optarg);
         break;
+
       case 11:
         std::istringstream ( optarg ) >> mqtt_qos;
+
         if (mqtt_qos < 0 || mqtt_qos > 2)
         {
           std::cerr << "Error: invalid MQTT quality of service " << mqtt_qos << ", should be [0,3]" << std::endl;
           return EXIT_FAILURE;
         }
+
         break;
+
       case 12:
         min_log_level = std::string(optarg);
         break;
+
       case 13:
         std::istringstream ( optarg ) >> number_of_threads;
+
         if (number_of_threads < 0)
         {
           std::cerr << "Error: invalid number of threads " << number_of_threads << ", it cannot be negative" << std::endl;
           return EXIT_FAILURE;
         }
+
         break;
+
       default:
         std::cerr << "Unable to parse the option \"" << optarg << "\"" << std::endl;
         print_usage();
@@ -227,9 +249,10 @@ int main( int argc, char* argv[] )
 
   // create a virtual channel to communicate with the applications
   agora::info("Agora main: bootstrap step 1: estabilish a connection with broker");
+
   if ( mqtt_implementation.compare("paho") == 0 )
   {
-    agora::io::remote.create<agora::PahoClient>("server", broker_url, mqtt_qos, broker_username, broker_password);
+    agora::io::remote.create<agora::PahoClient>("agora", broker_url, mqtt_qos, broker_username, broker_password);
   }
   else
   {
@@ -244,8 +267,12 @@ int main( int argc, char* argv[] )
   agora::io::remote.subscribe("margot/system");            // to receive external commands
   agora::io::remote.subscribe("margot/+/+/+/kia"); // we are not subscribed to margot/server/kia
 
+  // sends a welcome message to clients
+  agora::io::remote.send_message({"margot/agora/welcome", ""});
+
   // initialize the virtual fs to store/load the information from hard drive
   agora::info("Agora main: bootstrap step 2: initializing the virtual file system");
+
   if (storage_implementation.compare("cassandra") == 0)
   {
     agora::io::storage.create<agora::CassandraClient>(storage_address, storage_username, storage_password);

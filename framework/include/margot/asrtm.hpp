@@ -79,7 +79,7 @@ namespace margot
       /**
        * @brief Explicit definition of this Asrtm type
        */
-      using type = Asrtm<OperatingPoint,state_id_type,priority_type,error_coef_type>;
+      using type = Asrtm<OperatingPoint, state_id_type, priority_type, error_coef_type>;
 
 
       /**
@@ -109,7 +109,16 @@ namespace margot
          * This means, that we are able to take advantage of runtime information coming from the
          * application monitors.
          */
-        TUNED
+        TUNED,
+
+
+        /**
+         * @details
+         * In this state, the application is exploring a configuration, typically using the agora
+         * remote application handler. While in this state, the values of the metrics of the target
+         * Operating Points are meaningless, therefore there is no need to use the information providers
+         */
+        DESIGN_SPACE_EXPLORATION
       };
 
 
@@ -325,7 +334,7 @@ namespace margot
       std::size_t add_operating_points( const T& op_list )
       {
         // lock the manger mutex, to ensure a consistent global state
-        std::lock_guard< std::mutex > lock(manger_mutex);
+        std::lock_guard< std::mutex > lock(manager_mutex);
 
         // this is meant to be the stream with the new Operating Points
         OPStream new_ops;
@@ -382,7 +391,7 @@ namespace margot
       std::size_t remove_operating_points( const T& configuration_list )
       {
         // lock the manger mutex, to ensure a consistent global state
-        std::lock_guard< std::mutex > lock(manger_mutex);
+        std::lock_guard< std::mutex > lock(manager_mutex);
 
         // this is meant to be the stream with the removed Operating Points
         OPStream removed_ops;
@@ -421,7 +430,7 @@ namespace margot
       inline std::size_t get_number_operating_points( void ) const
       {
         // lock the manger mutex, to ensure a consistent global state
-        std::lock_guard< std::mutex > lock(manger_mutex);
+        std::lock_guard< std::mutex > lock(manager_mutex);
         return knowledge.size();
       }
 
@@ -434,8 +443,20 @@ namespace margot
       inline bool is_application_knowledge_empty( void ) const
       {
         // lock the manger mutex, to ensure a consistent global state
-        std::lock_guard< std::mutex > lock(manger_mutex);
+        std::lock_guard< std::mutex > lock(manager_mutex);
         return knowledge.empty();
+      }
+
+
+      /**
+       * @brief Test whether the status of the manager is in design space exploration
+       *
+       * @return True, if we are performing a design space exploration
+       */
+      inline bool in_design_space_exploration( void ) const
+      {
+        std::lock_guard< std::mutex > lock(manager_mutex);
+        return status == ApplicationStatus::DESIGN_SPACE_EXPLORATION;
       }
 
 
@@ -467,7 +488,7 @@ namespace margot
       void create_new_state( const state_id_type& new_state_id )
       {
         // lock the manger mutex, to ensure a consistent global state
-        std::lock_guard< std::mutex > lock(manger_mutex);
+        std::lock_guard< std::mutex > lock(manager_mutex);
 
         // check if the state is already created
         const auto state_it = application_optimizers.find(new_state_id);
@@ -502,7 +523,7 @@ namespace margot
       void remove_state( const state_id_type& state_id )
       {
         // lock the manger mutex, to ensure a consistent global state
-        std::lock_guard< std::mutex > lock(manger_mutex);
+        std::lock_guard< std::mutex > lock(manager_mutex);
 
         // get a reference to the target state
         const auto state_it = application_optimizers.find(state_id);
@@ -535,7 +556,7 @@ namespace margot
       inline void change_active_state( const state_id_type& state_id )
       {
         // lock the manger mutex, to ensure a consistent global state
-        std::lock_guard< std::mutex > lock(manger_mutex);
+        std::lock_guard< std::mutex > lock(manager_mutex);
 
         // change the active state
         current_optimizer = application_optimizers.find(state_id);
@@ -559,7 +580,7 @@ namespace margot
       inline state_id_type which_active_state( void ) const
       {
         // lock the manger mutex, to ensure a consistent global state
-        std::lock_guard< std::mutex > lock(manger_mutex);
+        std::lock_guard< std::mutex > lock(manager_mutex);
         assert( current_optimizer != application_optimizers.end() && "Error: get the id of a non-existent state");
         return current_optimizer->first;
       }
@@ -604,7 +625,7 @@ namespace margot
       void add_runtime_knowledge( const Monitor<T, statistical_t>& monitor )
       {
         // lock the manger mutex, to ensure a consistent global state
-        std::lock_guard< std::mutex > lock(manger_mutex);
+        std::lock_guard< std::mutex > lock(manager_mutex);
 
         // set this information to the knowledge adaptor
         runtime_information.template emplace< target_segment, target_field_index, inertia, T, statistical_t >(monitor);
@@ -636,7 +657,7 @@ namespace margot
       void remove_all_runtime_knowledge( void )
       {
         // lock the manger mutex, to ensure a consistent global state
-        std::lock_guard< std::mutex > lock(manger_mutex);
+        std::lock_guard< std::mutex > lock(manager_mutex);
 
         // remove all the informations
         runtime_information.clear();
@@ -673,7 +694,7 @@ namespace margot
       void find_best_configuration( void )
       {
         // lock the manger mutex, to ensure a consistent global state
-        std::lock_guard< std::mutex > lock(manger_mutex);
+        std::lock_guard< std::mutex > lock(manager_mutex);
 
         // check if we need to take into account runtime information
         if ( status == ApplicationStatus::TUNED )
@@ -710,7 +731,7 @@ namespace margot
       configuration_type get_best_configuration( bool* configuration_changed = nullptr )
       {
         // lock the manger mutex, to ensure a consistent global state
-        std::lock_guard< std::mutex > lock(manger_mutex);
+        std::lock_guard< std::mutex > lock(manager_mutex);
         assert(proposed_best_configuration && "Error: AS-RTM attempt to retrieve the best configuration from an empty state");
 
         if (proposed_best_configuration != application_configuration)
@@ -720,7 +741,7 @@ namespace margot
             *configuration_changed = true;
           }
 
-          status = ApplicationStatus::UNDEFINED;
+          status = status != ApplicationStatus::DESIGN_SPACE_EXPLORATION ? ApplicationStatus::UNDEFINED : ApplicationStatus::DESIGN_SPACE_EXPLORATION;
         }
         else
         {
@@ -746,10 +767,10 @@ namespace margot
       void configuration_applied( void )
       {
         // lock the manger mutex, to ensure a consistent global state
-        std::lock_guard< std::mutex > lock(manger_mutex);
+        std::lock_guard< std::mutex > lock(manager_mutex);
 
         // check if we need to issue a clear on the monitor
-        if (application_configuration != proposed_best_configuration)
+        if ((application_configuration != proposed_best_configuration) && (status != ApplicationStatus::DESIGN_SPACE_EXPLORATION))
         {
           for ( const auto& clear_monitor : monitor_handlers )
           {
@@ -759,7 +780,7 @@ namespace margot
 
         // eventually, set the application configuration as the proposed one
         application_configuration = proposed_best_configuration;
-        status = ApplicationStatus::TUNED;
+        status = status != ApplicationStatus::DESIGN_SPACE_EXPLORATION ? ApplicationStatus::TUNED : ApplicationStatus::DESIGN_SPACE_EXPLORATION;;
       }
 
 
@@ -784,7 +805,7 @@ namespace margot
       inline T get_mean( void ) const
       {
         // lock the manger mutex, to ensure a consistent global state
-        std::lock_guard< std::mutex > lock(manger_mutex);
+        std::lock_guard< std::mutex > lock(manager_mutex);
         assert(application_configuration && "Error: AS-RTM attempt to retrieve information from an empty application configutation");
         return static_cast<T>(Evaluator< OperatingPoint, FieldComposer::SIMPLE,
                               OPField< segment, BoundType::LOWER, field, 0> >::evaluate(application_configuration));
@@ -821,7 +842,7 @@ namespace margot
       void add_constraint( const ConstraintGoal& goal_value, const priority_type priority )
       {
         // lock the manger mutex, to ensure a consistent global state
-        std::lock_guard< std::mutex > lock(manger_mutex);
+        std::lock_guard< std::mutex > lock(manager_mutex);
 
         assert( current_optimizer != application_optimizers.end()
                 && "Error: AS-RTM attempt to add a Constraint when there is no active state");
@@ -846,7 +867,7 @@ namespace margot
       void remove_constraint( const priority_type priority )
       {
         // lock the manger mutex, to ensure a consistent global state
-        std::lock_guard< std::mutex > lock(manger_mutex);
+        std::lock_guard< std::mutex > lock(manager_mutex);
 
         assert( current_optimizer != application_optimizers.end()
                 && "Error: AS-RTM attempt to remove a Constraint when there is no active state");
@@ -882,7 +903,7 @@ namespace margot
       void set_rank( Fields ...values )
       {
         // lock the manger mutex, to ensure a consistent global state
-        std::lock_guard< std::mutex > lock(manger_mutex);
+        std::lock_guard< std::mutex > lock(manager_mutex);
 
         assert( current_optimizer != application_optimizers.end()
                 && "Error: AS-RTM attempt to set the Rank when there is no active state");
@@ -951,8 +972,8 @@ namespace margot
       inline void restore_from_data_feature_switch( void )
       {
         // lock the manger mutex, to ensure a consistent global state
-        std::lock_guard< std::mutex > lock(manger_mutex);
-        status = ApplicationStatus::UNDEFINED;
+        std::lock_guard< std::mutex > lock(manager_mutex);
+        status = status != ApplicationStatus::DESIGN_SPACE_EXPLORATION ? ApplicationStatus::UNDEFINED : ApplicationStatus::DESIGN_SPACE_EXPLORATION;;
         application_configuration.reset();
       }
 
@@ -966,6 +987,21 @@ namespace margot
 
 #ifdef MARGOT_WITH_AGORA
 
+      /**
+       * @brief Send an observation to the agora remote application handler
+       *
+       * @param [in] measures The behavior of the application
+       *
+       * @details
+       * This methods sends to the agora remote application handler the current
+       * observation of the performance of the application.
+       * In particular, the parameter must be composed as following:
+       *    - Global structure: "<knobs> <features> <metrics>"
+       *    - <knobs>: "value_knob_1,value_knob_2,value_knob_n"
+       *    - <features>: "value_f_1,value_f_2,value_f_n"
+       *    - <metrics>: "value_m_1,value_m_2,value_m_n"
+       * If there are no features, they might be omitted
+       */
       inline void send_observation( const std::string& measures )
       {
         // get the timestamp of now
@@ -979,17 +1015,46 @@ namespace margot
 
         // send the message
         remote.send_message({{"margot/" + application_name + "/observation"}, std::to_string(sec_since_now.count()) + ","
-                                                                              + std::to_string(ns_since_sec.count()) + " "
-                                                                              + remote.get_my_client_id() + " "
-                                                                              + measures});
+          + std::to_string(ns_since_sec.count()) + " "
+          + remote.get_my_client_id() + " "
+          + measures
+        });
       }
 
-      // this function should be parametric and hidden
+      /**
+       * @brief starts the support thread that communicate with the remote application handler
+       *
+       * @tparam OpConverter The type of a functor that generates an Operating Point from a string
+       *
+       * @param [in] application The name of the application with format "<name>/<version>/<block>"
+       * @param [in] broker_url The address of the MQTT broker
+       * @param [in] username The username required to authenticate with the broker. Leave empty if it is not required
+       * @param [in] password The passwoed required to authenticate with the broker. Leave empty if it is not required
+       * @param [in] qos_level The level of Quality of Service used to communicate with the broker [0,2]
+       * @param [in] description The information required by agora to handle the application
+       *
+       * @details
+       * The format of the description follow these rules:
+       *   - The description is row base, where each row specify an information
+       *   - The character '@' separates the lines of the description
+       *   - The first 10 characters identify the type of the row
+       *   - In the current implementation, the description might be composed as follows:
+       *      - "metric    <metric_name> <metric_type> <prediction_method>"
+       *      - "knob      <knob_name> <knob_type> <values>"
+       *      - "feature   <feature_name> <feature_type> <values>"
+       *      - "doe       <name_of_doe_strategy>"
+       *      - "num_obser <num_observations>"
+       *   - The field <values> is a coma separated list of values
+       */
       template< class OpConverter >
-      void start_support_thread( const std::string& application, const std::string& broker_url, const std::string& username, const std::string& password, const int qos_level, const std::string& description )
+      void start_support_thread( const std::string& application, const std::string& broker_url, const std::string& username, const std::string& password, const int qos_level,
+                                 const std::string& description )
       {
         // get the application name
         application_name = application;
+
+        // disable the agora logging
+        agora::my_agora_logger.set_filter_at(agora::LogLevel::DISABLED);
 
         // initialize communication channel with the server
         remote.create<agora::PahoClient>(application_name, broker_url, qos_level, username, password );
@@ -1032,10 +1097,16 @@ namespace margot
 
 #ifdef MARGOT_WITH_AGORA
 
-      void set_exploration_point( const OperatingPoint& point )
+
+      /**
+       * @brief Replace the current knowledge base with a single point
+       *
+       * @param [in] point The input Operating Point
+       */
+      void set_sinlgle_point( const OperatingPoint& point )
       {
         // lock the asrtm, since we are changing its data structure
-        std::lock_guard<std::mutex> lock(manger_mutex);
+        std::lock_guard<std::mutex> lock(manager_mutex);
 
         // clear the knowledge base from previous values
         knowledge.clear();
@@ -1050,20 +1121,30 @@ namespace margot
         }
 
         // reset the state of the asrtm
-        status = ApplicationStatus::UNDEFINED;
+        status = ApplicationStatus::DESIGN_SPACE_EXPLORATION;
         proposed_best_configuration.reset();
       }
 
+
+      /**
+       * @brief Replace the current knowledge base with the given Operating Point list
+       *
+       * @param [in] model The input Operating Points list
+       *
+       * @details
+       * To ensure a fresh start with the new list of Operating Points, this function
+       * resets all the information providers.
+       */
       void set_model( const std::vector< OperatingPoint >& model )
       {
         // lock the asrtm, since we are changing its data structure
-        std::lock_guard<std::mutex> lock(manger_mutex);
+        std::lock_guard<std::mutex> lock(manager_mutex);
 
         // clear the knowledge base from previous values
         knowledge.clear();
 
         // add the Operating Point to the knowledge
-        for( const auto& op : model )
+        for ( const auto& op : model )
         {
           knowledge.add(op);
         }
@@ -1074,7 +1155,7 @@ namespace margot
           state_pair.second.set_knowledge_base(knowledge);
         }
 
-        // reset the application providers
+        // reset the information providers
         runtime_information.reset();
 
         // reset the state of the asrtm
@@ -1083,6 +1164,20 @@ namespace margot
       }
 
 
+      /**
+       * @brief The function executed by the agora local application handler
+       *
+       * @tparam OpConverter The type of a functor that generates an Operating Point from a string
+       *
+       * @param [in] application_description The string that describes the application for agora
+       * @see start_support_thread
+       *
+       * @details
+       * This method loops until the communication channel with the broker is destroyed and
+       * process all the messages coming from the remote application handler.
+       * This method is designed to be executed from a separate thread, which destruction is
+       * forced by the destructor of this class.
+       */
       template< class OpConverter >
       void local_application_handler( const std::string application_description )
       {
@@ -1097,8 +1192,11 @@ namespace margot
         // register to the application-specific topic (before send the welcome message)
         remote.subscribe("margot/" + application_name + "/" + my_client_id + "/#");
 
-        // register to the application to receive the model
+        // register to the application topic to receive the model
         remote.subscribe("margot/" + application_name + "/model");
+
+        // register to the server welcome topic
+        remote.subscribe("margot/agora/welcome");
 
         // announce to the world that i exist
         remote.send_message({{"margot/" + application_name + "/welcome"}, my_client_id});
@@ -1124,8 +1222,9 @@ namespace margot
           // handle the single configurations coming from the server
           if (message_topic.compare("/explore") == 0)
           {
-            set_exploration_point(get_op(new_incoming_message.payload));
-          } else  if (message_topic.compare("/info") == 0) // handle the info message
+            set_sinlgle_point(get_op(new_incoming_message.payload));
+          }
+          else  if (message_topic.compare("/info") == 0)   // handle the info message
           {
             remote.send_message({{"margot/" + application_name + "/info"}, application_description});
           }
@@ -1136,6 +1235,7 @@ namespace margot
             std::stringstream model_stream(new_incoming_message.payload);
             constexpr char line_delimiter = '@';
             std::string op_string;
+
             while (std::getline(model_stream, op_string, line_delimiter))
             {
               std::string knobs;
@@ -1148,6 +1248,11 @@ namespace margot
 
             // set the model
             set_model(model);
+          }
+          else if (message_topic.compare("/welcome") == 0) // handle the case where a new agora handler appears
+          {
+            // send a welcome message to restore the communication
+            remote.send_message({{"margot/" + application_name + "/welcome"}, my_client_id});
           }
         }
       }
@@ -1183,7 +1288,7 @@ namespace margot
       /**
        * @brief The mutex used to enforce a consistent interal state
        */
-      mutable std::mutex manger_mutex;
+      mutable std::mutex manager_mutex;
 
       /**
        * @brief A pointer to the Operating Point used by the application

@@ -159,6 +159,7 @@ void ModelGenerator::operator()( const application_description_t& application ) 
       warning("Model generator: unable to wait the child \"", pid, "\" errno=", errno, ", child return code:", return_code);
       throw std::runtime_error( "Model generator: a builder process terminated with errno=" + std::to_string(errno) + ", return code:" + std::to_string(return_code) );
     }
+
     if (return_code != 0)
     {
       warning("Model generator: a builder process terminated with return code:", return_code);
