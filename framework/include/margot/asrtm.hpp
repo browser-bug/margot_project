@@ -50,6 +50,12 @@ namespace margot
 {
 
   /**
+   * @brief forward the declaration of the Data-Aware Application-Specific RunTime Manager
+   */
+  template< class Asrtm, typename T, FeatureDistanceType distance_type, FeatureComparison... cfs >
+  class DataAwareAsrtm;
+
+  /**
    * @brief The Application-Specific RunTime Manger implementation
    *
    * @tparam OperatingPoint The type which defines the Operating Point characteristics
@@ -1004,6 +1010,8 @@ namespace margot
        */
       inline void send_observation( const std::string& measures )
       {
+        std::lock_guard< std::mutex > lock(manager_mutex);
+
         // get the timestamp of now
         auto now = std::chrono::system_clock::now();
 
@@ -1050,6 +1058,8 @@ namespace margot
       void start_support_thread( const std::string& application, const std::string& broker_url, const std::string& username, const std::string& password, const int qos_level,
                                  const std::string& description )
       {
+        std::lock_guard< std::mutex > lock(manager_mutex);
+
         // get the application name
         application_name = application;
 
@@ -1256,6 +1266,16 @@ namespace margot
           }
         }
       }
+
+      /**
+       * @brief Declare the DataAwareAsrtm as a friend class
+       *
+       * @details
+       * The Data-Aware Application-Specific Run-Time Manager needs to set a single Operating Point
+       * or a list to handle the application using agora
+       */
+      template< class Asrtm, typename T, FeatureDistanceType distance_type, FeatureComparison... cfs >
+      friend class DataAwareAsrtm;
 
 #endif // MARGOT_WITH_AGORA
 
