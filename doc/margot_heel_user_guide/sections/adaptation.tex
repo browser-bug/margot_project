@@ -3,7 +3,7 @@
 \begin{figure}
 \lstset{language=XML}
 \begin{lstlisting}
-<margot>
+<margot application="my_application_name" version="my_version">
 
 	<block name="kernel1">
 		<!-- The configuration of block kernel1: -->
@@ -25,6 +25,7 @@
 
 This section describes the adaptation XML file, which define the Monitor and Plan elements for every block of code that will be tuned by mARGOt.
 The root element of the XML configuration file is the \textit{margot} tag, which holds the definition of all the block of code of the application.
+Optionally, the user is encouraged to specify the attributes \textit{application} and \textit{version} to provide further information about the configuration.
 The configuration of each block of code is inserted in the \textit{block} tag, which has also the attribute \textit{name} which holds the name of the block of code.
 The name of the block must be a valid C++ namespace identifier.
 \prettyref{code:min_adaptation} shows a simple example on how it is possible to generate an empty configuration for the blocks depicted in \prettyref{fig:code_example1}.
@@ -221,6 +222,51 @@ The latter element shall define:
 
 
 These information -- together with the software knobs --  are used to compose the signature of the update function, exposed to the user.
+
+
+
+\subsection{Online Design Space Exploration}
+
+
+\begin{figure}
+	\lstset{language=XML}
+	\begin{lstlisting}
+	<agora address="127.0.0.1:1883" username="" password="" qos="2" doe="full_factorial" observations="5">
+		<explore knob_name="num_threads" values="1,2,3,4"/>
+		<explore knob_name="skip_factor" values="5,6,7"/>
+		<predict metric_name="time_ms" prediction="crs" monitor="my_time_monitor"/>
+		<predict metric_name="error" prediction="crs" monitor="my_error_monitor"/>
+		<given feature_name="size_x" values="10,20,30"/>
+		<given feature_name="size_y" values="10,20,30"/>
+	</agora>
+	\end{lstlisting}
+	\caption{Example of information definition for remote application local handler.}
+	\label{code:agora_xml}
+\end{figure}
+
+The autotuning framework provides to the end-user a mechanism to perform a design space exploration at runtime.
+In particular, on one hand a remote application handler typically runs in a dedicated machine and acts as a server.
+Each application may contact the remote application handler to let it handle the Design Space Exploration on its behalf.
+On the other hand, each instance of the application start a service thread, named local application handler, that communicate with the server and manipulates the application knowledge.
+In this way the server will dispatch the configuration of the Design of Experiment to the available instance of the application to shorten the time to knowledge.
+Once the application knowledge is available, the server dispatch it to each application to start the exploitation phase.
+
+If the end user would like to use this mechanism, it is required to state the information of the Design Space Exploration, as depicted in \prettyref{code:agora_xml}.
+In particular, the XML tag \textit{agora} represents the local application handler and shall define:
+\begin{itemize}
+	\item the attribute \textit{address} with the URL of the MQTT broker.
+	\item optionally, the attributes \textit{username} and \textit{password} for the authentication.
+	\item the attribute \textit{qos} to define the quality of service of the MQTT protocol, which is integer between 0 and 2.
+	\item the attribute \textit{doe} to define the Design of Experiments (DoE) technique used by the Design Space Exploration.
+	\item the attribute \textit{observations} to define the number of times to repeat each configuration in the DoE.
+\end{itemize}
+
+Since the remote application handler is designed to interact with unknown applications, the \textit{agora} element must specify information about the available range of software knobs, the required range of data features to bring in the model and the way to observe and predicts the target metrics.
+In particular, for each software knob of the block, the user must insert the XML tag \textit{explore} with the name of knob (attribute \textit{knob\_name}) and the range of possible values (attribute \textit{values}) as coma separated list of numbers.
+Moreover, for each data features, the user must specify the XML tag \textit{given} with the name of the data feature (attribute \textit{feature\_name}) and the values to include in the knowledge base (attribute \textit{values}) as a coma separated list of numbers.
+Finally, for each metric, the user must specify the XML tag \textit{predict} with the name of the metric (attribute \textit{metric\_name}), the name of the plugin used to perform the prediction (attribute \textit{prediction}) and the name of the monitor that observe that metric at runtime (attribute \textit{monitor}).
+	
+
 
 
 \subsection{Describing the plan element}
