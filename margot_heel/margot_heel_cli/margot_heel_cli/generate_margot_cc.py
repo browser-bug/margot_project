@@ -677,6 +677,7 @@ def generate_margot_cc( block_models, op_lists, output_folder ):
 
 
       # store the information to print
+      cc.write('\n\t\t// Initialize the log file\n')
       cc.write('\t\t#ifdef MARGOT_LOG_FILE\n')
       if (block_model.metrics and block_model.software_knobs ):
           data_feature_names = sorted([x.name for x in block_model.features])
@@ -762,6 +763,7 @@ def generate_margot_cc( block_models, op_lists, output_folder ):
           parameter_string = '"{0}","{1}","{2}","{3}",{4},"{5}"'.format(app_name,broker_url,broker_username,broker_password,mqtt_qos,description_string )
 
           # eventually emit the code that starts the agora application local handler
+          cc.write('\n\t\t// Start the agora pocal application handler thread\n')
           cc.write('\t\t{0}::manager.start_support_thread<{0}::operating_point_parser_t>({1});\n'.format(block_name, parameter_string))
 
     cc.write('\t}\n')
