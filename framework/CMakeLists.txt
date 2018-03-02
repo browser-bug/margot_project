@@ -38,21 +38,22 @@ set( MARGOT_HEADERS
 	${MARGOT_HDR_PATH}/margot/data_features.hpp
 	)
 set( AGORA_HEADERS
+  ${MARGOT_HDR_PATH}/agora/application_handler.hpp
+  ${MARGOT_HDR_PATH}/agora/cassandra_fs_implementation.hpp
+  ${MARGOT_HDR_PATH}/agora/common_objects.hpp
+  ${MARGOT_HDR_PATH}/agora/doe.hpp
+  ${MARGOT_HDR_PATH}/agora/fs_handler.hpp
+  ${MARGOT_HDR_PATH}/agora/global_view.hpp
 	${MARGOT_HDR_PATH}/agora/logger.hpp
+  ${MARGOT_HDR_PATH}/agora/model_generator.hpp
+  ${MARGOT_HDR_PATH}/agora/paho_remote_implementation.hpp
+  ${MARGOT_HDR_PATH}/agora/remote_handler.hpp
 	${MARGOT_HDR_PATH}/agora/safe_queue.hpp
-	${MARGOT_HDR_PATH}/agora/remote_handler.hpp
+  ${MARGOT_HDR_PATH}/agora/threadpool.hpp
 	${MARGOT_HDR_PATH}/agora/virtual_channel.hpp
-	${MARGOT_HDR_PATH}/agora/threadpool.hpp
-	${MARGOT_HDR_PATH}/agora/fs_handler.hpp
-	${MARGOT_HDR_PATH}/agora/cassandra_fs_implementation.hpp
-	${MARGOT_HDR_PATH}/agora/application_stub.hpp
-	${MARGOT_HDR_PATH}/agora/common_objects.hpp
-	${MARGOT_HDR_PATH}/agora/application_handler.hpp
-	${MARGOT_HDR_PATH}/agora/global_view.hpp
-	${MARGOT_HDR_PATH}/agora/doe.hpp
 	${MARGOT_HDR_PATH}/agora/virtual_fs.hpp
 	${MARGOT_HDR_PATH}/agora/virtual_io.hpp
-	${MARGOT_HDR_PATH}/agora/model_generator.hpp
+  ${MARGOT_HDR_PATH}/agora/worker.hpp
 )
 
 
