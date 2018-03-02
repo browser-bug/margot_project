@@ -343,6 +343,7 @@ namespace margot
       inline T get_selected_feature( void ) const
       {
         static_assert( index < sizeof...(cfs), "Error: attempt to access an out of bound feature");
+        std::lock_guard<std::mutex> lock(asrtm_mutex);
         return active_manager != managers.end() ? std::get<index>(active_manager->first) : T{};
       }
 
