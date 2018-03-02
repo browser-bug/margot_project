@@ -206,6 +206,9 @@ namespace agora
         result.append(entry + "@");
       }
 
+      // remove the last separator
+      result.pop_back();
+
       return result;
     }
 
