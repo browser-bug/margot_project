@@ -30,6 +30,8 @@ def parse_agora( agora_xml_element, namespace = ''):
     knob_name = get_parameter(knob_xml_element, 'knob_name')
     knob_values = get_parameter(knob_xml_element, 'values')
 
+    # make sure that all the knob names are lowercase
+    knob_name = knob_name.lower()
     # validate the values
     knob_values = knob_values.replace(',', ' ')
     values = knob_values.split(' ')

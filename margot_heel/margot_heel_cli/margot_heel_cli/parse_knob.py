@@ -12,8 +12,8 @@ def parse_knob( knob_xml_element, namespace = ''):
   # create a new model of the knob
   knob_model = model_knob.KnobModel()
 
-  # parse the param name
-  knob_model.name = get_parameter(knob_xml_element, 'name')
+  # parse the param name (make sure that the name is lowercase)
+  knob_model.name = get_parameter(knob_xml_element, 'name').lower()
 
   # parse the variable name
   knob_model.var_name = get_parameter(knob_xml_element, 'var_name')

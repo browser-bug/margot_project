@@ -21,8 +21,8 @@ def parse_data_feature( data_feature_xml_element, namespace = ''):
   # parse each data feature
   for feature_xml_element in feature_xml_elements:
 
-    # parse the feature name
-    feature_name = get_parameter(feature_xml_element, 'name')
+    # parse the feature name (make sure that the name is lowercase)
+    feature_name = get_parameter(feature_xml_element, 'name').lower()
 
     # parse the feature type
     feature_type = get_parameter(feature_xml_element, 'type', prefixed_values = feature_model.available_var_types).lower()
