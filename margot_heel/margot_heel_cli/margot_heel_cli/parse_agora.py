@@ -59,7 +59,7 @@ def parse_agora( agora_xml_element, namespace = ''):
     feature_values = feature_values.replace(',', ' ')
     values = feature_values.split(' ')
     valid_values = [x for x in values if x and x.replace('.','',1).isdigit()]
-    feature_values = ','.join(valid_values)
+    feature_values = ' '.join(valid_values)
 
     # add the information to the agora model
     agora_model.features_values[feature_name] = feature_values
