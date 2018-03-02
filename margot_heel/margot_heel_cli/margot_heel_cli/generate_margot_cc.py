@@ -304,7 +304,7 @@ def generate_block_body( block_model, op_lists, cc ):
 
   cc.write('\n\t\t\t#ifdef MARGOT_LOG_FILE\n')
   if (block_model.metrics and block_model.software_knobs ):
-      cc.write('\t\t\tif (!manager.is_application_knowledge_empty())\n')
+      cc.write('\t\t\tif (!(manager.is_application_knowledge_empty() || manager.in_design_space_exploration()))\n')
       cc.write('\t\t\t{\n')
 
 
@@ -360,7 +360,7 @@ def generate_block_body( block_model, op_lists, cc ):
   cc.write('\n\t\t\t#ifdef MARGOT_LOG_STDOUT\n')
 
   if (block_model.metrics and block_model.software_knobs ):
-      cc.write('\t\t\tif (!manager.is_application_knowledge_empty())\n')
+      cc.write('\t\t\tif (!(manager.is_application_knowledge_empty() || manager.in_design_space_exploration()))\n')
       cc.write('\t\t\t{\n')
 
       # then print the stuff
