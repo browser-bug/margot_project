@@ -178,7 +178,27 @@ namespace margot
       }
 
 
+#ifdef MARGOT_WITH_AGORA
 
+      /**
+       * @brief Default destructor
+       *
+       * @details
+       * When the Data-Aware AS-RTM interacts directly with the remote
+       * application handler, it uses a separate thread for the synchronization.
+       * This method ensures that when the manager is destroyed, it gracefully
+       * ends the connecction with MQTT and it joins the thread.
+       */
+      ~DataAwareAsrtm( void )
+      {
+        if (local_handler.joinable())
+        {
+          remote.destroy_channel();
+          local_handler.join();
+        }
+      }
+
+#endif // MARGOT_WITH_AGORA
 
       /******************************************************************
        *  METHODS TO MANAGE THE FEATURE CLUSTERS
