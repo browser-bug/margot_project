@@ -1132,7 +1132,7 @@ namespace margot
               std::string feature_element;
               std::size_t counter = 0;
 
-              while (std::getline(model_stream, feature_element, ','))
+              while (std::getline(feature_stream, feature_element, ','))
               {
                 std::istringstream( feature_element ) >> this_model_feature[counter++];
               }
