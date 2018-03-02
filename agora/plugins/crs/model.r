@@ -50,9 +50,11 @@ predictor_names <- read.table(paste(root_path, "knobs.txt", sep = "/"), header =
 if (file.size(paste(root_path, "features.txt", sep = "/")) > 1)
 {
   features <-read.table(paste(root_path, "features.txt", sep = "/"), header = FALSE, stringsAsFactors = FALSE)
-  predictor_names <- rbind(first_order_predictors, features)
+  predictor_names <- rbind(predictor_names, features)
 }
 
+# make sure that everything is in lowercase
+predictor_names <- sapply( predictor_names , tolower )
 
 
 #######################################################################
@@ -84,9 +86,11 @@ profiling_df <- read.table(paste(root_path, "dse.txt", sep = "/"), header = TRUE
 prediction_df <- read.table(paste(root_path, "prediction_request.txt", sep = "/"), header = TRUE, sep=",", stringsAsFactors = FALSE)
 
 
-
-
-
+#make sure that all the fields are lowecase for the computations
+original_prediction_names <- names(prediction_df)
+names(profiling_df) <- sapply( names(profiling_df), tolower )
+names(prediction_df) <- sapply( names(prediction_df), tolower )
+original_prediction_names_lower <- names(prediction_df)
 
 
 
@@ -122,82 +126,74 @@ splines_degrees = 3
 
 # unify the software knobs and input features as first order predictors
 #first_order_predictors <- rbind(knobs, features)[[1]]
-first_order_predictors <- predictor_names[[1]]
+first_order_predictors <- predictor_names
 
-# if there is only one predictor, skip this procedure
-if (length(first_order_predictors) > 1)
+
+
+# generate the second order predictor pairs as combination the first order ones
+second_order_predictors <- expand.grid(first_order_predictors, first_order_predictors, stringsAsFactors = FALSE)
+valid_predictors <- second_order_predictors$Var1 < second_order_predictors$Var2
+second_order_predictors <- second_order_predictors[valid_predictors,]
+
+# augment the input data frame with the second oreder predictors and generate
+# also their names attached to the original dataframe
+second_order_predictor_names <- c()
+for( predictor_index in 1:nrow(second_order_predictors))
 {
-  # generate the second order predictor pairs as combination the first order ones
-  second_order_predictors <- expand.grid(first_order_predictors, first_order_predictors, stringsAsFactors = FALSE)
-  valid_predictors <- second_order_predictors$Var1 < second_order_predictors$Var2
-  second_order_predictors <- second_order_predictors[valid_predictors,]
+  first_term_name <- second_order_predictors[predictor_index, 1]
+  second_term_name <- second_order_predictors[predictor_index, 2]
+  this_predictor_name <- paste(first_term_name, second_term_name, sep = second_order_predictors_separator)
+  second_order_predictor_names <- c(second_order_predictor_names, this_predictor_name)
+  profiling_df[this_predictor_name] <- profiling_df[,first_term_name] * profiling_df[,second_term_name]
+}
+print(profiling_df)
 
-  # augment the input data frame with the second oreder predictors and generate
-  # also their names attached to the original dataframe
-  second_order_predictor_names <- c()
-  for( predictor_index in 1:nrow(second_order_predictors))
+
+# ----------- generate the correlation matrix
+terms_to_correlate <- c(first_order_predictors, second_order_predictor_names)
+correlation_matrix <- abs(cor( profiling_df[,terms_to_correlate], profiling_df[,metric_name], method = "spearman"));
+
+# ----------- prune the predictors to simplify the problem
+
+# prune all the terms below the correlation threshold
+selection_vector <- correlation_matrix > correlation_threshold
+names(correlation_matrix) <- rownames(selection_vector)
+correlation_matrix <- c(correlation_matrix[selection_vector])
+
+# prune all the second order terms which are not better of their first order terms
+valid_predictors <- c()
+for( i in 1:length(correlation_matrix))
+{
+  # get the basic component of the term
+  predictor_name <- names(correlation_matrix)[i]
+  terms <- strsplit(predictor_name, second_order_predictors_separator)[[1]]
+
+  # check if it is a second order predictor (NOTE: not sure it is a good thing)
+  if (length(terms) > 1)
   {
-    first_term_name <- second_order_predictors[predictor_index, 1]
-    second_term_name <- second_order_predictors[predictor_index, 2]
-    this_predictor_name <- paste(first_term_name, second_term_name, sep = second_order_predictors_separator)
-    second_order_predictor_names <- c(second_order_predictor_names, this_predictor_name)
-    profiling_df <- cbind(profiling_df, profiling_df[,first_term_name] * profiling_df[,second_term_name])
-    names(profiling_df)[length(profiling_df)] <- this_predictor_name
-  }
+    # get the max correlation of its basic predictors
+    max_correlation_single <- max(correlation_matrix[terms], na.rm = TRUE)
 
-
-  # ----------- generate the correlation matrix
-  terms_to_correlate <- c(first_order_predictors, second_order_predictor_names)
-  correlation_matrix <- abs(cor( profiling_df[,terms_to_correlate], profiling_df[,metric_name], method = "spearman"));
-
-  # ----------- prune the predictors to simplify the problem
-
-  # prune all the terms below the correlation threshold
-  selection_vector <- correlation_matrix > correlation_threshold
-  names(correlation_matrix) <- rownames(selection_vector)
-  correlation_matrix <- c(correlation_matrix[selection_vector])
-
-  # prune all the second order terms which are not better of their first order terms
-  valid_predictors <- c()
-  for( i in 1:length(correlation_matrix))
-  {
-    # get the basic component of the term
-    predictor_name <- names(correlation_matrix)[i]
-    terms <- strsplit(predictor_name, second_order_predictors_separator)[[1]]
-
-    # check if it is a second order predictor (NOTE: not sure it is a good thing)
-    if (length(terms) > 1)
+    # check if the second order predictor should be considered
+    if (correlation_matrix[i] > max_correlation_single)
     {
-      # get the max correlation of its basic predictors
-      max_correlation_single <- max(correlation_matrix[terms], na.rm = TRUE)
-
-      # check if the second order predictor should be considered
-      if (correlation_matrix[i] > max_correlation_single)
-      {
-        valid_predictors <- c( valid_predictors, TRUE )
-      }
-      else
-      {
-        valid_predictors <- c( valid_predictors, FALSE )
-      }
+      valid_predictors <- c( valid_predictors, TRUE )
     }
     else
     {
-      # we must keep the good first order predictors
-      valid_predictors <- c( valid_predictors, TRUE )
+      valid_predictors <- c( valid_predictors, FALSE )
     }
   }
-  correlation_matrix <- correlation_matrix[valid_predictors]
-  print("[INFO]   Useful predictor(s):")
-  print(correlation_matrix)
-  useful_predictor_names <- names(correlation_matrix)
-} else
-{
-  useful_predictor_names <- first_order_predictors
+  else
+  {
+    # we must keep the good first order predictors
+    valid_predictors <- c( valid_predictors, TRUE )
+  }
 }
-
-
-
+correlation_matrix <- correlation_matrix[valid_predictors]
+print("[INFO]   Useful predictor(s):")
+print(correlation_matrix)
+useful_predictor_names <- names(correlation_matrix)
 
 # ----------- prune the predictors to simplify the problem
 # PS: it also plots some informations about it
@@ -246,7 +242,8 @@ mean_values <- predict(metric_model, newdata = prediction_df)
 stdandard_deviations <- (attr(mean_values, "upr") - mean_values) / 2
 
 # combine the prediction in a single table
-output_df <- prediction_df
+output_df <- subset(prediction_df, select=original_prediction_names_lower)
+names(output_df) <- original_prediction_names
 output_df$Mean <- mean_values
 output_df$Std <- stdandard_deviations
 

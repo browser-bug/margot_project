@@ -26,12 +26,12 @@ def update_cassandra_database( args, root_path ):
     # get all the knobs
     knobs_keys = []
     knobs = session.execute('SELECT name FROM {0}'.format(args.knobs))
-    knobs_keys = sorted( [ x[0] for x in knobs ] )
+    knobs_keys = sorted( [ str(x[0]).lower() for x in knobs ] )
 
     # get all the features
     feature_keys = []
     features = session.execute('SELECT name FROM {0}'.format(args.features))
-    feature_keys = sorted( [ x[0] for x in features ] )
+    feature_keys = sorted( [ str(x[0]).lower() for x in features ] )
 
     # compose the predictors
     predictor_columns = knobs_keys
@@ -50,12 +50,12 @@ def update_cassandra_database( args, root_path ):
             if index == 0:
                 header = {}
                 for column_index, column_name in enumerate(row):
-                    header[column_name] = column_index
+                    header[column_name.lower()] = column_index
                 continue
 
             # declare the set clause that update the table
-            mean_value = row[header['Mean']]
-            std_value = row[header['Std']]
+            mean_value = row[header['mean']]
+            std_value = row[header['std']]
             set_clause = '{0}_avg = {1}, {0}_std = {2}'.format(args.metric, mean_value, std_value)
 
             # figure out the configuration

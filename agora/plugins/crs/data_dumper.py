@@ -52,7 +52,7 @@ def dump_cassandra_database( args, root_path ):
     with open(os.path.join(root_path, 'dse.txt'), 'w') as outfile:
         for index, values in enumerate(observations) :
 
-            # first we need to sorte the key of the result, to enforce consistency
+            # first we need to sort the key of the result, to enforce consistency
             row_header = sorted(values.keys())
             row_values = [ str(values[x]) for x in row_header ]
 
