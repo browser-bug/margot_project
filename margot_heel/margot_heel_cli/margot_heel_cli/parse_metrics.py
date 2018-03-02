@@ -12,8 +12,8 @@ def parse_metric( metric_xml_element, namespace = ''):
   # create a new model of the knob
   metric_model = model_metric.MetricModel()
 
-  # parse the param name
-  metric_model.name = get_parameter(metric_xml_element, 'name')
+  # parse the param name (make sure that the name is lowercase)
+  metric_model.name = get_parameter(metric_xml_element, 'name').lower()
 
   # parse the variable name
   metric_model.type = get_parameter(metric_xml_element, 'type', prefixed_values = metric_model.available_types).lower()
@@ -21,7 +21,7 @@ def parse_metric( metric_xml_element, namespace = ''):
   # parse the variable type
   distribution = get_parameter(metric_xml_element, 'distribution', required = False)
   if distribution:
-    if distribution.upper() == 'YES' or distribution == '1' or distribution.upper() == 'ON': 
+    if distribution.upper() == 'YES' or distribution == '1' or distribution.upper() == 'ON':
       metric_model.distribution = True
     else:
       metric_model.distribution = False

@@ -32,6 +32,7 @@ def parse_agora( agora_xml_element, namespace = ''):
 
     # make sure that all the knob names are lowercase
     knob_name = knob_name.lower()
+
     # validate the values
     knob_values = knob_values.replace(',', ' ')
     values = knob_values.split(' ')
@@ -51,14 +52,17 @@ def parse_agora( agora_xml_element, namespace = ''):
     feature_name = get_parameter(feature_xml_element, 'feature_name')
     feature_values = get_parameter(feature_xml_element, 'values')
 
+    # make sure that all the feature names are lowercase
+    feature_name = feature_name.lower()
+
     # validate the values
-    feature_values = feature_values.replace(' ', ',')
-    values = feature_values.split(',')
+    feature_values = feature_values.replace(',', ' ')
+    values = feature_values.split(' ')
     valid_values = [x for x in values if x and x.replace('.','',1).isdigit()]
     feature_values = ','.join(valid_values)
 
     # add the information to the agora model
-    agora_model.features_values[feature_name] = knob_values
+    agora_model.features_values[feature_name] = feature_values
 
 
   # get all the metrics
