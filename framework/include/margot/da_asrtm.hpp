@@ -224,35 +224,32 @@ namespace margot
         // make sure that no one else is going to change the container
         std::lock_guard<std::mutex> lock(asrtm_mutex);
 
-
-        // make a copy of the current key (it might be invalidated)
-        const auto previous_active_key = active_manager->first;
-
         // check if we need to get the optimization problems from another
         // application-specific runtime manager
-        const auto first_cluster = managers.begin();
-
-        if (first_cluster != managers.end())
+        if (!managers.empty())
         {
+          // we need to get a copy of the current key
+          const auto key_actual_cluster = active_manager->first;
+
           // emplace the new asrtm (if it's actually new)
-          managers.emplace_back(key, first_cluster->second.create_sibling());
+          managers.emplace_back(key, managers.begin()->second.create_sibling());
+
+          // reset the iterator to the current manager
+          const auto end_iterator = managers.end();
+
+          for ( active_manager = managers.begin(); active_manager != end_iterator; ++active_manager )
+          {
+            if (active_manager->first == key_actual_cluster)
+            {
+              break;
+            }
+          }
         }
         else
         {
           // it's the first cluster
           managers.emplace_back(key, Asrtm{});
-        }
-
-        // reset the iterator to the current manager
-        const auto end_iterator = managers.end();
-
-        for ( auto it = managers.begin(); it != end_iterator; ++it )
-        {
-          if (it->first == previous_active_key)
-          {
-            active_manager = it;
-            break;
-          }
+          active_manager = managers.begin();
         }
       }
 
