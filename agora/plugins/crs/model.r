@@ -129,117 +129,150 @@ splines_degrees = 3
 first_order_predictors <- predictor_names
 
 
-
-# generate the second order predictor pairs as combination the first order ones
-second_order_predictors <- expand.grid(first_order_predictors, first_order_predictors, stringsAsFactors = FALSE)
-valid_predictors <- second_order_predictors$Var1 < second_order_predictors$Var2
-second_order_predictors <- second_order_predictors[valid_predictors,]
-
-# augment the input data frame with the second oreder predictors and generate
-# also their names attached to the original dataframe
-second_order_predictor_names <- c()
-for( predictor_index in 1:nrow(second_order_predictors))
+if (length(first_order_predictors) > 1)
 {
-  first_term_name <- second_order_predictors[predictor_index, 1]
-  second_term_name <- second_order_predictors[predictor_index, 2]
-  this_predictor_name <- paste(first_term_name, second_term_name, sep = second_order_predictors_separator)
-  second_order_predictor_names <- c(second_order_predictor_names, this_predictor_name)
-  profiling_df[this_predictor_name] <- profiling_df[,first_term_name] * profiling_df[,second_term_name]
+  # generate the second order predictor pairs as combination the first order ones
+  second_order_predictors <- expand.grid(first_order_predictors, first_order_predictors, stringsAsFactors = FALSE)
+  valid_predictors <- second_order_predictors$Var1 < second_order_predictors$Var2
+  second_order_predictors <- second_order_predictors[valid_predictors,]
+
+  # augment the input data frame with the second oreder predictors and generate
+  # also their names attached to the original dataframe
+  second_order_predictor_names <- c()
+
+  # compute the second order terms
+  for( predictor_index in 1:nrow(second_order_predictors))
+  {
+    first_term_name <- second_order_predictors[predictor_index, 1]
+    second_term_name <- second_order_predictors[predictor_index, 2]
+    this_predictor_name <- paste(first_term_name, second_term_name, sep = second_order_predictors_separator)
+    second_order_predictor_names <- c(second_order_predictor_names, this_predictor_name)
+    profiling_df[this_predictor_name] <- profiling_df[,first_term_name] * profiling_df[,second_term_name]
+  }
+
+  # make them in a list for uniform values
+  terms_to_correlate <- c(first_order_predictors, second_order_predictor_names)
+} else
+{
+  terms_to_correlate <- first_order_predictors
 }
-print(profiling_df)
 
 
 # ----------- generate the correlation matrix
-terms_to_correlate <- c(first_order_predictors, second_order_predictor_names)
-correlation_matrix <- abs(cor( profiling_df[,terms_to_correlate], profiling_df[,metric_name], method = "spearman"));
 
-# ----------- prune the predictors to simplify the problem
+correlation_matrix <- abs(cor( profiling_df[,terms_to_correlate], profiling_df[,metric_name], method = "spearman"));
+names(correlation_matrix) <- terms_to_correlate
+
+
+# ----------- prune the predictors to simplify the problem (if needed)
 
 # prune all the terms below the correlation threshold
 selection_vector <- correlation_matrix > correlation_threshold
-names(correlation_matrix) <- rownames(selection_vector)
 correlation_matrix <- c(correlation_matrix[selection_vector])
 
+# prune all the not available terms
+correlation_matrix <- correlation_matrix[!is.na(correlation_matrix)]
+
 # prune all the second order terms which are not better of their first order terms
-valid_predictors <- c()
-for( i in 1:length(correlation_matrix))
+if (length(first_order_predictors) > 1 && length(correlation_matrix) > 0)
 {
-  # get the basic component of the term
-  predictor_name <- names(correlation_matrix)[i]
-  terms <- strsplit(predictor_name, second_order_predictors_separator)[[1]]
-
-  # check if it is a second order predictor (NOTE: not sure it is a good thing)
-  if (length(terms) > 1)
+  valid_predictors <- c()
+  for( i in 1:length(correlation_matrix))
   {
-    # get the max correlation of its basic predictors
-    max_correlation_single <- max(correlation_matrix[terms], na.rm = TRUE)
+    # get the basic component of the term
+    predictor_name <- names(correlation_matrix)[i]
+    terms <- strsplit(predictor_name, second_order_predictors_separator)[[1]]
 
-    # check if the second order predictor should be considered
-    if (correlation_matrix[i] > max_correlation_single)
+    # check if it is a second order predictor (NOTE: not sure it is a good thing)
+    if (length(terms) > 1)
     {
-      valid_predictors <- c( valid_predictors, TRUE )
+      # get the max correlation of its basic predictors
+      max_correlation_single <- max(correlation_matrix[terms], na.rm = TRUE)
+
+      # check if the second order predictor should be considered
+      if (correlation_matrix[i] > max_correlation_single)
+      {
+        valid_predictors <- c( valid_predictors, TRUE )
+      }
+      else
+      {
+        valid_predictors <- c( valid_predictors, FALSE )
+      }
     }
     else
     {
-      valid_predictors <- c( valid_predictors, FALSE )
+      # we must keep the good first order predictors
+      valid_predictors <- c( valid_predictors, TRUE )
     }
   }
-  else
-  {
-    # we must keep the good first order predictors
-    valid_predictors <- c( valid_predictors, TRUE )
-  }
+  correlation_matrix <- correlation_matrix[valid_predictors]
+  useful_predictor_names <- names(correlation_matrix)
+} else
+{
+  useful_predictor_names <- names(correlation_matrix)
 }
-correlation_matrix <- correlation_matrix[valid_predictors]
 print("[INFO]   Useful predictor(s):")
-print(correlation_matrix)
-useful_predictor_names <- names(correlation_matrix)
+print(useful_predictor_names)
 
-# ----------- prune the predictors to simplify the problem
+
+
+
+
+# ----------- generate the model of the application (if we have some predictors)
 # PS: it also plots some informations about it
 
-# compose the text of the formula
-text_of_formula <- paste(metric_name, "~", paste(useful_predictor_names, collapse= " + "), sep = " ")
-
-# generate the actual formula
-metric_formula <- as.formula(text_of_formula)
-
-# generate the model
-#degrees <- rep(splines_degrees, length(correlation_matrix))
-#segments <- rep(5, length(correlation_matrix))
-#metric_model <- crs(metric_formula, data = profiling_df, degree = degrees, segments = segments, knots = "quantiles", basis = "additive" )
-metric_model <- crs(metric_formula, data = profiling_df, prune = TRUE, kernel = FALSE )
-print(summary(metric_model))
-pdf(paste(root_path, "/plot_", metric_name, ".pdf", sep = ""))
-plot(metric_model)
-dev.off()
-
-
-# ----------- perform the predictions according to the generated model
-
-# enhance the output dataframe with infomations regarding the useful predictors
-for ( i in 1:length(useful_predictor_names) )
+# check if we actually have meaningful predictors
+if (length(useful_predictor_names) > 0)
 {
-  predictor_name <- useful_predictor_names[i]
-  terms <- strsplit(predictor_name, second_order_predictors_separator)[[1]]
-  if (length(terms) > 1)
+  # compose the text of the formula
+  text_of_formula <- paste(metric_name, "~", paste(useful_predictor_names, collapse= " + "), sep = " ")
+
+  # generate the actual formula
+  metric_formula <- as.formula(text_of_formula)
+
+  # generate the model
+  #degrees <- rep(splines_degrees, length(correlation_matrix))
+  #segments <- rep(5, length(correlation_matrix))
+  #metric_model <- crs(metric_formula, data = profiling_df, degree = degrees, segments = segments, knots = "quantiles", basis = "additive" )
+  metric_model <- crs(metric_formula, data = profiling_df, prune = TRUE, kernel = FALSE )
+  print(summary(metric_model))
+  pdf(paste(root_path, "/plot_", metric_name, ".pdf", sep = ""))
+  plot(metric_model)
+  dev.off()
+
+  # ----------- perform the predictions according to the generated model
+
+  # enhance the output dataframe with infomations regarding the useful predictors
+  for ( i in 1:length(useful_predictor_names) )
   {
-    prediction_df <- cbind(prediction_df, prediction_df[,terms[1]] * prediction_df[,terms[2]])
-    names(prediction_df)[length(prediction_df)] <- predictor_name
+    predictor_name <- useful_predictor_names[i]
+    terms <- strsplit(predictor_name, second_order_predictors_separator)[[1]]
+    if (length(terms) > 1)
+    {
+      prediction_df <- cbind(prediction_df, prediction_df[,terms[1]] * prediction_df[,terms[2]])
+      names(prediction_df)[length(prediction_df)] <- predictor_name
+    }
   }
+
+  # generate the metric mean value
+  mean_values <- predict(metric_model, newdata = prediction_df)
+
+  # generate the metric standard deviation
+  # by default, rcs computes the upper and lower bound with 95% of
+  # confidence, this knob is not exposed, therefore, since we want the
+  # standard deviation, we kind assume that it is a gaussian, beacuse
+  # it means that the 95% of confidence is 2 sigma. So, with take the
+  # delta between the mean and the upper bound and divide it by half.
+  # crude, but kind of necessary
+  stdandard_deviations <- (attr(mean_values, "upr") - mean_values) / 2
+} else
+{
+  # we don't have any useful predictors.... the best that we can do is
+  # to actually take the average and standard deviation from the observations
+
+  mean_values <- mean(profiling_df[metric_name][[1]])
+  stdandard_deviations <- sd(profiling_df[metric_name][[1]])
 }
-
-# generate the metric mean value
-mean_values <- predict(metric_model, newdata = prediction_df)
-
-# generate the metric standard deviation
-# by default, rcs computes the upper and lower bound with 95% of
-# confidence, this knob is not exposed, therefore, since we want the
-# standard deviation, we kind assume that it is a gaussian, beacuse
-# it means that the 95% of confidence is 2 sigma. So, with take the
-# delta between the mean and the upper bound and divide it by half.
-# crude, but kind of necessary
-stdandard_deviations <- (attr(mean_values, "upr") - mean_values) / 2
 
 # combine the prediction in a single table
 output_df <- subset(prediction_df, select=original_prediction_names_lower)
