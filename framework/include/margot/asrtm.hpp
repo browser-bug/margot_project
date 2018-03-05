@@ -826,7 +826,7 @@ namespace margot
         std::lock_guard< std::mutex > lock(manager_mutex);
         assert(application_configuration && "Error: AS-RTM attempt to retrieve information from an empty application configutation");
         return application_configuration ? static_cast<T>(Evaluator< OperatingPoint, FieldComposer::SIMPLE,
-                              OPField< segment, BoundType::LOWER, field, 0> >::evaluate(application_configuration)) : static_cast<T>(9999);
+               OPField< segment, BoundType::LOWER, field, 0> >::evaluate(application_configuration)) : static_cast<T>(9999);
       }
 
 
