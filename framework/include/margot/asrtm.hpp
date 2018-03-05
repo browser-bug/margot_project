@@ -124,7 +124,16 @@ namespace margot
          * remote application handler. While in this state, the values of the metrics of the target
          * Operating Points are meaningless, therefore there is no need to use the information providers
          */
-        DESIGN_SPACE_EXPLORATION
+        DESIGN_SPACE_EXPLORATION,
+
+
+        /**
+         * @details
+         * In this state, we are no more in the design space exploration, since we have the application
+         * knowledge. However, the application doesn't have used it yet, therefore we are not able to
+         * tell which is the Operating Point used by the application in the previous run
+         */
+        WITH_MODEL
       };
 
 
@@ -462,7 +471,7 @@ namespace margot
       inline bool in_design_space_exploration( void ) const
       {
         std::lock_guard< std::mutex > lock(manager_mutex);
-        return status == ApplicationStatus::DESIGN_SPACE_EXPLORATION;
+        return status == ApplicationStatus::DESIGN_SPACE_EXPLORATION || status = ApplicationStatus::WITH_MODEL;
       }
 
 
@@ -747,7 +756,10 @@ namespace margot
             *configuration_changed = true;
           }
 
-          status = status != ApplicationStatus::DESIGN_SPACE_EXPLORATION ? ApplicationStatus::UNDEFINED : ApplicationStatus::DESIGN_SPACE_EXPLORATION;
+          if ( status != ApplicationStatus::DESIGN_SPACE_EXPLORATION )
+          {
+            status = ApplicationStatus::UNDEFINED;
+          }
         }
         else
         {
@@ -1169,7 +1181,7 @@ namespace margot
         runtime_information.reset();
 
         // reset the state of the asrtm
-        status = ApplicationStatus::UNDEFINED;
+        status = ApplicationStatus::WITH_MODEL;
         proposed_best_configuration.reset();
       }
 
