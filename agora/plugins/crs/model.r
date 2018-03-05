@@ -161,56 +161,18 @@ if (length(first_order_predictors) > 1)
 # ----------- generate the correlation matrix
 
 correlation_matrix <- abs(cor( profiling_df[,terms_to_correlate], profiling_df[,metric_name], method = "spearman"));
-names(correlation_matrix) <- terms_to_correlate
-
 
 # ----------- prune the predictors to simplify the problem (if needed)
 
 # prune all the terms below the correlation threshold
 selection_vector <- correlation_matrix > correlation_threshold
-correlation_matrix <- c(correlation_matrix[selection_vector])
+correlation_matrix <-correlation_matrix[selection_vector,]
 
 # prune all the not available terms
 correlation_matrix <- correlation_matrix[!is.na(correlation_matrix)]
 
-# prune all the second order terms which are not better of their first order terms
-if (length(first_order_predictors) > 1 && length(correlation_matrix) > 0)
-{
-  valid_predictors <- c()
-  for( i in 1:length(correlation_matrix))
-  {
-    # get the basic component of the term
-    predictor_name <- names(correlation_matrix)[i]
-    terms <- strsplit(predictor_name, second_order_predictors_separator)[[1]]
-
-    # check if it is a second order predictor (NOTE: not sure it is a good thing)
-    if (length(terms) > 1)
-    {
-      # get the max correlation of its basic predictors
-      max_correlation_single <- max(correlation_matrix[terms], na.rm = TRUE)
-
-      # check if the second order predictor should be considered
-      if (correlation_matrix[i] > max_correlation_single)
-      {
-        valid_predictors <- c( valid_predictors, TRUE )
-      }
-      else
-      {
-        valid_predictors <- c( valid_predictors, FALSE )
-      }
-    }
-    else
-    {
-      # we must keep the good first order predictors
-      valid_predictors <- c( valid_predictors, TRUE )
-    }
-  }
-  correlation_matrix <- correlation_matrix[valid_predictors]
-  useful_predictor_names <- names(correlation_matrix)
-} else
-{
-  useful_predictor_names <- names(correlation_matrix)
-}
+# get all the useful predictors
+useful_predictor_names <- names(correlation_matrix)
 print("[INFO]   Useful predictor(s):")
 print(useful_predictor_names)
 
