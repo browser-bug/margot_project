@@ -1138,7 +1138,7 @@ namespace margot
               }
 
               // emplace the new element
-              managers.emplace_back(this_model_feature, reference_manager);
+              managers.emplace_back(this_model_feature, reference_manager.create_sibling());
 
               // set the knowledge base
               managers.back().second.set_model(std::move(model_pair.second));
