@@ -101,12 +101,18 @@ class BlockModel:
   def postprocess(self):
     """
     This method performs the following operations:
+      - sort all the knobs, features and metrics by their name
       - propagate the name of the field in a static goal toward the state
       - check if all the field adaptors refer to a known monitor and a known metric
       - check if all the goals refer to a known knob or metric
       - check if the agora model referes to all the metrics, knobs and features of the block
       - check if all the metrics in agora are observed by at least one monitor
     """
+
+    # ----- sort all the knobs, features and metrics
+    self.software_knobs = sorted(self.software_knobs, key = lambda x : x.name)
+    self.features = sorted(self.features, key = lambda x : x.name)
+    self.metrics = sorted(self.metrics, key = lambda x : x.name)
 
     # ----- propagate the target field for a static constraint
 
