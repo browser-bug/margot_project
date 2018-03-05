@@ -471,7 +471,7 @@ namespace margot
       inline bool in_design_space_exploration( void ) const
       {
         std::lock_guard< std::mutex > lock(manager_mutex);
-        return status == ApplicationStatus::DESIGN_SPACE_EXPLORATION || status = ApplicationStatus::WITH_MODEL;
+        return status == ApplicationStatus::DESIGN_SPACE_EXPLORATION || status == ApplicationStatus::WITH_MODEL;
       }
 
 
