@@ -164,15 +164,46 @@ correlation_matrix <- abs(cor( profiling_df[,terms_to_correlate], profiling_df[,
 
 # ----------- prune the predictors to simplify the problem (if needed)
 
-# prune all the terms below the correlation threshold
-selection_vector <- correlation_matrix > correlation_threshold
-correlation_matrix <-correlation_matrix[selection_vector,]
+if (length(correlation_matrix) > 1)
+{
+  # prune all the terms below the correlation threshold
+  selection_vector <- correlation_matrix > correlation_threshold
+  correlation_matrix <-correlation_matrix[selection_vector,]
 
-# prune all the not available terms
-correlation_matrix <- correlation_matrix[!is.na(correlation_matrix)]
+  # prune all the not available terms
+  correlation_matrix <- correlation_matrix[!is.na(correlation_matrix)]
 
-# get all the useful predictors
-useful_predictor_names <- names(correlation_matrix)
+  # get all the useful predictors
+  useful_predictor_names <- names(correlation_matrix)
+} else
+{
+  if (length(correlation_matrix) == 1)
+  {
+    # prune all the terms below the correlation threshold
+    selection_vector <- correlation_matrix > correlation_threshold
+    correlation_matrix <-correlation_matrix[selection_vector]
+
+    # prune all the not available terms
+    correlation_matrix <- correlation_matrix[!is.na(correlation_matrix)]
+
+    # check if we have still something
+    if (length(correlation_matrix) == 1)
+    {
+      useful_predictor_names <- first_order_predictors
+    } else
+    {
+      useful_predictor_names <- c()
+    }
+
+  } else
+  {
+    useful_predictor_names <- c()
+  }
+
+}
+
+
+# print the summary of the work
 print("[INFO]   Useful predictor(s):")
 print(useful_predictor_names)
 
