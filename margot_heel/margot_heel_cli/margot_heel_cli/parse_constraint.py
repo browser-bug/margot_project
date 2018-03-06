@@ -5,31 +5,38 @@ from . import model_constraint
 
 
 def parse_constraint( constraint_xml_element, namespace = ''):
-	"""
-	Parse a constraint from the XML description
-	"""
+  """
+  Parse a constraint from the XML description
+  """
 
-	# create a new model
-	my_constraint_model = model_constraint.ConstraintModel()
+  # create a new model
+  my_constraint_model = model_constraint.ConstraintModel()
 
-	# parse the goal reference
-	my_constraint_model.goal_ref = get_parameter(constraint_xml_element, 'to')
+  # parse the goal reference
+  my_constraint_model.goal_ref = get_parameter(constraint_xml_element, 'to')
 
-	# parse the priority
-	my_constraint_model.priority = get_parameter(constraint_xml_element, 'priority', my_target_type = int)
+  # parse the priority
+  my_constraint_model.priority = get_parameter(constraint_xml_element, 'priority', my_target_type = int)
 
-	# parse the target metric name
-	target_name = get_parameter(constraint_xml_element, 'metric_name', required = False)
+  # parse the confidence
+  confidence = get_parameter(constraint_xml_element, 'confidence', my_target_type = int, required = False)
+  if confidence:
+    my_constraint_model.confidence = confidence
+  else:
+    my_constraint_model.confidence = 0
 
-	if target_name:
-		my_constraint_model.target_metric = target_name
-		my_constraint_model.target_knob = ''
+  # parse the target metric name
+  target_name = get_parameter(constraint_xml_element, 'metric_name', required = False)
 
-	# parse the target knob name
-	target_name = get_parameter(constraint_xml_element, 'knob_name', required = False)
+  if target_name:
+    my_constraint_model.target_metric = target_name
+    my_constraint_model.target_knob = ''
 
-	if target_name:
-		my_constraint_model.target_metric = ''
-		my_constraint_model.target_knob = target_name
+  # parse the target knob name
+  target_name = get_parameter(constraint_xml_element, 'knob_name', required = False)
 
-	return my_constraint_model
+  if target_name:
+    my_constraint_model.target_metric = ''
+    my_constraint_model.target_knob = target_name
+
+  return my_constraint_model

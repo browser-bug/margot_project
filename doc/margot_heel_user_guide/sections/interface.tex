@@ -1,0 +1,61 @@
+\section{High-Level interface}
+
+Section 5 of the mARGOt user manual shows an example of manual integration in the target application.
+Even if the manual integration provides great flexibility, it has two major flaw: it requires a deep knowledge of the internals data structure of mARGOt and it requires a fair amount of code to be inserted in the target application.
+To overcame these limitations, mARGOt heel provides a mechanism to generate a very high-level interface that ease the integration process.
+In particular, starting from XML configuration files, it generates the following main functions:
+\begin{itemize}
+	\item[init] This is a global function that initialize the whole framework objects.
+	This function is meant to be called just once in the application and initialize all the monitors, goals and managers.
+	It may have only input parameters, depending on the constructor parameters of the monitors of interest.
+	\item[start\_monitor] For each region of code managed by mARGOt, it is generated this function which starts all the monitor stated by the user.
+	Each function is meant to be called before the start of each region of code tuned by mARGOt.
+	It may have only input parameters, depending on the start parameters of the monitors of interest.
+	If there are no monitors of interest, this function becomes optional.
+	\item[stop\_monitor] For each region of code managed by mARGOt, it is generated this function which stops all the monitor stated by the user.
+	Each function is meant to be called after the end of each region of code tuned by mARGOt.
+	It may have only input parameters, depending on the stop parameters of the monitors of interest.
+	If there are no monitors of interest, this function becomes optional.
+	\item[log] For each region of code managed by mARGOt, it is generated this function which logs on the standard output and on a log file information regarding observed metrics (if any), the goals value (if any), the expected behavior of the application (if there is the application knowledge) and the selected configuration (if the region of code is tuned and there is an application knowledge).
+	Each function is meant to be called after the stop\_monitor of each region of code tuned by mARGOt.
+	This function is always without any parameter and it is optional, useful only for tracing the behavior of the tuned region of code.
+	\item[update] For each region of code managed by mARGOt, it is generated this function which interact with the manger to solve the optimization problem and fetch the new most suitable configuration of the software knobs.
+	Each function is meant to be called before the start\_monitor of each region of code tuned by mARGOt.
+	It has as output parameter all the software knobs of the related region of code.
+	It has as optional input parameter the features of the current input.
+	The return value of this function is a boolean, which state if the selected configuration is different with respect to the previous one.
+	Please note that whenever the configuration changes, the application should actuate the new configuration and notify the autotuner once the actuation is done.
+	Moreover, if the user is interested only on monitor the application behavior, this function does not change the configuration taken in input and returns always false.
+\end{itemize}
+As reported in their description, the actual prototype of these functions depends on the XML configuration provided by the user.
+Beside generating the definition of these function, the high-level interface expose directly to the application all the objects created in the high-level library, using a standard hierarchy of namespaces.
+In this way, it is possible to use directly the API exposed by the autotuner.
+In particular, this is the used hierarchy of namespaces, under the assumption that the application is composed by only one block of code named ``foo'':
+\begin{itemize}
+	\item[margot] This is the global namespace, to avoid name clashing with other tools, and it defines the global \textit{init} function.
+	\begin{itemize}
+		\item[foo] This is the namespace for the region of code ``foo''. 
+		It defines the start\_monitor, stop\_monitor, log and update function.
+		It holds the definition of the manager, as an object named ``manager''.
+		Moreover, it defines two enums which relate the index of a field of the Operating Point with its name.
+		For example, if this region uses a knob named $knob1$, the related enumerator is margot::foo::Knob::$KNOB1$ and it represents its index.
+		The enum for the metrics of interest is named \textit{Metric}.
+		\begin{itemize}
+			\item[monitor] This is the namespace which holds the definition of the monitor objects.
+			\item[goal] This is the namespace which holds the definition of the goal objects.
+		\end{itemize}
+	\end{itemize}
+\end{itemize}
+
+Since the autotuner framework is written in C++, the complete high-level interface is generated in C++.
+However, margot\_if generates also a small C interface, that expose a C version of the five main functions.
+Since it is not possible to access directly the objects stored in the namespace hierarchy, the C interface declares additional utility functions which cover the most common operations:
+\begin{itemize}
+	\item For each goal, it generates a function that changes its value.
+	\item For each manager, it generates a function that switch the active state.
+	\item For each manager, it generates a function that notify when a configuration is applied
+\end{itemize}
+The signature of the generated functions, try to mimic the namespace hierarchy.
+For example, to change the value of the goal ``goal1'' in the region of code ''foo'' to the value $2$, the C++ statement is \textit{margot::foo:goal::goal1.set($2$)}, while the C statement is \textit{margot\_foo\_goal\_goal1\_set\_value($2$)}.
+
+

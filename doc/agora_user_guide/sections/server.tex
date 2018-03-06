@@ -1,0 +1,39 @@
+\section{Remote application handler}
+
+The remote application handler is designed to orchestrate the Design Space Exploration of an unknown application in a distributed fashion.
+Which means that each instance of the application contributes at building the knowledge, exploring a different configuration, without restarting the server.
+To achieve this goal, we need to define three concepts: how to explore the Design Space (i.e. the Design of Experiments), what is the application knowledge and how to predict the behavior of a metric of interest. 
+
+
+\subsection{Design of Experiments}
+
+Within this context, the Design Space Exploration (DSE) aims at exploring the Design Space to characterize the behavior of the application.
+The Design of Experiments (DoE) aims at selecting which configuration must be explored.
+Given the design space of each software knob of the target application, the most common DoE is exploring all the combinations (named full-factorial).
+However, since the design space grows exponentially with the number of software knobs, and with the admissible values of each software knob, a full-factorial exploration might be unfeasible.
+This is a well known topic in literature, therefore are available different techniques that aims at selecting the most meaningful configurations given the method used to generate the application knowledge.
+
+The remote application handler, enable the user to select which DoE technique to use during the DSE.
+To have a list of all the supported DoE in the current version of AGORA, please refer to help command.
+Moreover, to produce a more robust knowledge of the application, it is possible to set the minimum number of times that each configuration must be observed.
+
+
+\subsection{The application knowledge}
+
+In the mARGOt user guide, the application knowledge was implicitly defined by the list of Operating Points.
+Since we aim at modeling the application behavior at runtime, we define the application knowledge as the full-factorial combination of all the admissible values of all the software knobs and of the features of the application.
+
+Therefore, the final goal of the AGORA framework is to produce a list that relates a configuration, for each possible feature, with the expected value of the metrics of interest.
+In particular, it characterize a metric with its mean value and with its standard deviation.
+Which is delivered to each client of the application.
+
+
+\subsection{How to generate the application knoweldge}
+
+During the DSE, the remote application handler dispatch configuration to explore to the available clients.
+However, since the selected DoE may explore only a subset of the Design Space and since we can't force the exploration of data features, we need a technique to generate the application knowledge.
+
+This topic is a well known topic in literature, therefore are available different techniques that aims at solving this problem.
+Since each technique shines in a particular context, the remote application handler let the user to select its preferred technique, with metric granularity.
+Moreover, since a metric might be totally application specific, e.g. the elaboration error, AGORA implements a plugin system that enable the user to write its own technique to derive a metric.
+To have a list of all the supported prediction methods in the current version of AGORA, please refer to help command.

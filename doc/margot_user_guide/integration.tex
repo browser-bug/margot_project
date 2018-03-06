@@ -1,0 +1,245 @@
+\section{Integration in the target application}
+\label{sec:integration}
+
+In \prettyref{sec:asrtm} we have defined all the elements that compose the core of mARGOt.
+This section aims at explaining by examples, how to integrate the autotuner in a target application.
+We consider a toy application for clarity purpose.
+
+\subsection{The target application}
+
+\begin{figure}[!t]
+	\centering
+	\lstset{language=MyCPP}
+	\begin{lstlisting}
+	// kernel function
+	void do_work( std::vector<float> input_data, const int knob );
+	
+	
+	int main()
+	{
+	
+		while(work_to_do())
+		{
+			const auto current_input = get_work();
+			do_work(current_input, 2);
+		}
+	
+	}
+	\end{lstlisting}
+	\caption{The C++ code of the toy application.}
+	\label{fig:toy_application}
+\end{figure}
+
+\prettyref{fig:toy_application} shows the code of the toy application that we are targeting.
+In particular, line 1 declares the kernel function \textit{do\_work} that we want to tune.
+It takes as input the data, represented as a vector of float and a software knobs that alter the function EFPs.
+In this example, we suppose that the knob performs an approximation of the computation, for instance driving the loop perforation.
+Therefore, by using a small value of the knob we approximate less, while using a large number, we approximate more.
+The application is defined as a main loop (lines 8-12) that continuously elaborates new inputs.
+Due to the expertise of the developers, they have set a one-fit-all default value for the knob, hardcoded to the value $2$.
+Obviously, we would like to manage the body of the loop.
+
+In our example, the application developer is interested in two metrics: the execution time and quality of results.
+In particular, they would like to maximize the quality of results, provided that the execution time is below a certain threshold.
+Suppose that the quality of results is input independent, while the execution time depends on both, the size of the vector and the value of the software knob.
+
+
+\subsection{Integration without data feature}
+
+This section explain how to integrate mARGOt in the target application, without considering any feature of the input.
+Below, it is stated the integration from the code point of view, what it lacks is the integration from the building system point view.
+Since mARGOt wants to be as agnostic as possible regarding the building systems, during the compilation of the library it generates two files to help the integration of mARGOt in the building system of the target application.
+In particular, it creates a \textit{FindMARGOT.cmake} file for integrating the framework in a CMake projects, while it creates a \textit{margot.pc} file for integrating the framework in projects that uses Make/autotools.
+
+
+
+\begin{figure}[!t]
+	\centering
+	\lstset{language=MyCPP}
+	\begin{lstlisting}
+	// defining the Operating Point geometry
+	using software_knob_geometry = OperatingPointSegment< 1, Data<int> >;
+	using metrics_geometry = OperatingPointSegment< 2, Distribution<float> >;
+	using MyOperatingPoint = OperatingPoint< software_knob_geometry, metrics_geometry >;
+	
+	// kernel function
+	void do_work( std::vector<float> input_data, const int knob );
+	
+	int main()
+	{
+		// defining the required objects
+		std::vector< MyOperatingPoint > knowledge = {
+			{ // Operating Point 1
+				{1},
+				{margot::Distribution<float>(75.0, 1.0), margot::Distribution<float>(1.0, 0.0)}
+			},
+			{ // Operating Point 2
+				{2},
+				{margot::Distribution<float>(35.0, 2.0), margot::Distribution<float>(0.6, 0.1)}
+			}
+		};
+		Goal<float, ComparisonFunctions::LESS> my_time_goal(50);
+		TimeMonitor timer(margot::TimeUnit::MILLISECONDS, 3);
+		Asrtm<MyOperatingPoint> manager;
+		
+		// initialize the AS-RTM
+		manager.add_operating_points(knowledge);
+		manager.add_runtime_knowledge<OperatingPointSegments::METRICS, 0, 5>(timer);
+		manager.create_new_state("my_optimization_problem");
+		manager.change_active_state("my_optimization_problem");
+		using my_obj_fun = OPField<OperatingPointSegments::METRICS,
+		                           BoundType::LOWER,
+		                           1,
+		                           0>;
+		manager.set_rank< RankObjective::MAXIMIZE, FieldComposer::SIMPLE, my_obj_fun>(1.0f);
+		manager.add_constraint<OperatingPointSegments::METRICS,0,3>(my_time_goal,10);
+	
+		while(work_to_do())
+		{
+			const auto current_input = get_work();
+			
+			// get the most suitable configuration
+			manager.find_best_configuration();
+			const auto best_configuration = manger.get_best_configuration();
+			manager.configuration_applied();
+			
+			timer.start();
+			do_work(current_input, best_configuration.get_mean<0>());
+			timer.stop();
+		}
+	
+	}
+	\end{lstlisting}
+	\caption{The C++ code of the toy application, integrated with mARGOt without using any data features}
+	\label{fig:toy_application_integration_simple}
+\end{figure}
+
+\prettyref{fig:toy_application_integration_simple} shows the whole code of the application to manually integrate mARGOt in the target application.
+For demonstration purpose, it exploits all the features of the AS-RTM.
+For simplicity purpose we have omitted the required headers and we assume to use the namespace margot.
+As you can see from \prettyref{fig:toy_application_integration_simple}, to minimize the introduced overhead, mARGOt tries to specialize as much as possible its data structures using template arguments.
+ 
+Since in this example mARGOt doesn't use any feature of the input, it leverages the runtime information provider to react to changes in the input.
+If we have few abrupt changes in the input size, mARGOt is able to sense those changes and react accordingly.
+
+\subsubsection*{Declaring the application knowledge}
+The first step to integrate mARGOt is to define the application knowledge.
+In this example, we assume that the application developer performed a Design Space Exploration on the software knob, evaluating the execution time and the error using two values of the knob: $1$ and $2$.
+Before defining the application knowledge, it is required to specify the Operating Point geometry (lines 1-4).
+In particular, line 2 states that the each Operating Point has only one software knob, which is a integer value.
+Therefore, to describe the software knob it is enough to state its mean value.
+Line 3 states that each Operating Point has 2 metrics, which are a distribution of floats.
+Therefore, to describe each metric it is required to state its mean value and its standard deviation.
+
+The actual knowledge is defined later (lines 11-21) and it is composed by two Operating Points.
+The first Operating Point (lines 13-16) states that when the software knob \textit{knob} is equal to $1$, the application has an execution time of $75\pm1ms$ and achieve a quality of results of $1$.
+The whole list of Operating Points define the application knowledge, therefore the autotuner can select for the software knob \textit{knob} either $1$ or $2$.
+In particular, after the declaration of the manger (line 24), we set the knowledge base (line 27).
+
+\subsubsection*{Adding the runtime information provider}
+
+Since we are not using any data feature, we exploit the feedback information of a monitor on the execution time to adapt the knowledge base, working in closed loop.
+In this configuration we are able only to react to changes in the input, therefore we assume that there will be few abrut changes in the size of the input.
+To achieve this behavior, we creates a time monitor with granularity of milliseconds and with a circular buffer that stores the last 3 observation (line 23); while we use an information provider with inertia $5$ on the metric with index $0$ (line 28).
+
+\subsubsection*{Defining the optimization problem}
+
+Given the application requirement, we need only one state which we call ``my optimization''.
+Therefore, we need to create the new state (line 29), select the new state as the active one (line 30).
+From now on, all the commands that alter the state refer to active one.
+
+To define the optimization problem, we first have to define the objective function.
+For simplicity, we have created an alias which refer to the average value of the second metric, thus with index $1$ (lines 31-34).
+Afterward, we have defined the rank to maximize the average value of the second metric (line 35).
+To represent the constraint, we need to define the related goal first (line 22), then we can add the constraint (line 36).
+In particular, the latter statement creates a constraint related to the first metric, thus with index $0$.
+In this example, we would like to have some confidence that the constraint is satisfied by the configuration, we created the constraint taking into account $3$ sigma of its value.
+Since the goal has the relation $<$, the autotuner evaluates the upper bound of each Operating Point.
+For example, the expected execution time of the second Operating Point is $41ms = 35ms + 6ms$.
+
+\subsubsection*{Obtaining the most suitable configuration}
+All the previous code was related to the initialization of the problem, to actually adapt we need to solve the optimization problem (line 43) and to retrieve the most suitable configuration (line 44).
+To take advantage of the observed values, mARGOt must be notified when the application has terminated to actuate the proposed configuration.
+In this example, the actuation of the configuration is trivial (line 48), therefore we can send immediately the notification (line 45).
+To leverage the runtime information about the execution time, we need to profile the tuned region of code (lines 47 and 49).
+The autotuner will automatically adapt according to the observed situation.
+
+
+
+\subsection{Integration with data feature}
+
+
+\begin{figure}[!t]
+	\centering
+	\lstset{language=MyCPP}
+	\begin{lstlisting}
+	// defining the Operating Point geometry
+	using software_knob_geometry = OperatingPointSegment< 1, Data<int> >;
+	using metrics_geometry = OperatingPointSegment< 2, Distribution<float> >;
+	using MyOperatingPoint = OperatingPoint< software_knob_geometry, metrics_geometry >;
+	
+	// kernel function
+	void do_work( std::vector<float> input_data, const int knob );
+	
+	int main()
+	{
+		// defining the required objects
+		std::vector< MyOperatingPoint > knowledge_1 = // definition
+		std::vector< MyOperatingPoint > knowledge_2 = // definition
+		DataAwareAsrtm<MyOperatingPoint,int,
+		               FeatureDistanceType::EUCLIDEAN,FeatureComparison::DONT_CARE> manager;
+		
+		// initialize the AS-RTM
+		manager.add_feature_cluster({{100}});
+		manager.select_feature_cluster({{100}});
+		manager.add_operating_points(knowledge_1);
+		manager.add_feature_cluster({{1000}});
+		manager.select_feature_cluster({{1000}});
+		manager.add_operating_points(knowledge_2);
+		manager.add_runtime_knowledge<OperatingPointSegments::METRICS, 0, 5>(timer);
+		manager.create_new_state("my_optimization_problem");
+		manager.change_active_state("my_optimization_problem");
+		using my_obj_fun = OPField<OperatingPointSegments::METRICS,
+		                           BoundType::LOWER,
+	 	                           1,
+	                               0>;
+		manager.set_rank< RankObjective::MAXIMIZE, FieldComposer::SIMPLE, my_obj_fun>(1.0f);
+		manager.add_constraint<OperatingPointSegments::METRICS,0,3>(my_time_goal,10);
+		
+		while(work_to_do())
+		{
+			const auto current_input = get_work();
+			
+			// get the most suitable configuration
+			manager.select_feature_cluster({{current_input.size()}})
+			manager.find_best_configuration();
+			const auto best_configuration = manger.get_best_configuration();
+			manager.configuration_applied();
+			
+			timer.start();
+			do_work(current_input, best_configuration.get_mean<0>());
+			timer.stop();
+		}
+	}
+	\end{lstlisting}
+	\caption{The C++ code of the toy application, integrated with mARGOt using the data features}
+	\label{fig:toy_application_integration_complex}
+\end{figure}
+
+In this scenario, we don't rely anymore on the assumption of having few abrupt changes in the input, but we allow the possibility that in each iteration of the loop we might have a different size of the input.
+For this reason is not enough to be reactive, but we need to be proactive, taking into account the size of the input.
+\prettyref{fig:toy_application_integration_complex} shows the integration code required.
+In particular, we have defined two clusters that represent the case when we have the array of size $100$ and of size $1000$.
+
+For the implementation point of view, the integration code is very similar.
+The difference is that we need to define an Operating Point list for each cluster (lines 12-13).
+The type of the manager is no more an AS-RTM, but is a DA-ASRTM (line 14,15).
+In particular, beside the geometry of the Operating Points, we need to define the data feature.
+In this example, we have just one data feature, which is the size of the input array, of type integer.
+Moreover, we need to specify the distance type and the validity function.
+In this example, we use the euclidean distance and we are just interested on choosing the closer data cluster, therefore we use the ``don't care'' enumerator.
+
+
+Another difference is that, we need to create and select the data clusters (lines 18,19,21,22).
+Moreover, we have to set the corresponding application knowledge (lines 20,23).
+After the initialization of the autotuner, we are able to leverage the input feature, by selecting the closer data cluster for each input (line 39).

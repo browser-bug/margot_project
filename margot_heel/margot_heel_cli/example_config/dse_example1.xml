@@ -1,0 +1,27 @@
+<application name="mini_app" out_file="log.distance.data" block="distance">
+
+	<!-- Input parameters -->
+	<flag value="--iterations 101"/>
+	<flag value="--molecule 1000"/>
+	<flag value="--ligand 1000"/>
+
+	<!-- Application knobs -->
+	<parameter name="version_distance"    start_value="0"     stop_value="4"            flag="--distance_version"     type="int"/>
+	<parameter name="version_overlap"     start_value="0"     stop_value="4"            flag="--version_overlap"      type="int"/>
+	<parameter name="skip_factor"         start_value="1"     stop_value="5"  step="1"  flag="--skip_factor"            type="int"/>
+
+	<!-- Input variables not knobs that have to be explored -->
+	<!--input_group>
+		<input>
+			<data flag="-h" start_value="0" stop_value="23" step="1" type="int"/>
+			<data flag="-m" start_value="0" stop_value="59" step="15" type="int"/>
+		</input>
+	</input_group-->
+	
+
+	<!-- Metric of interest -->
+	<metric name="exec_time"    field="avg_exec_time"   />
+	<metric name="frequency"    field="avg_frequency"   />
+	<metric name="temperature"  field="avg_temperature" />
+	<metric name="throughput"   field="avg_throughput"  />
+</application>

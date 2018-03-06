@@ -1,126 +1,30 @@
-#ifndef MARGOT_CONFIGURATION_HEADER
-#define MARGOT_CONFIGURATION_HEADER
-
-#include <cstddef>
-
-/**
- * @brief The namespace for the Argo framework
+/* agora/margot_config.hpp
+ * Copyright (C) 2018 Davide Gadioli
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301
+ * USA
  */
-namespace margot
-{
-	/**
-	 * @brief Define the type used internally by the monitor module
-	 */
-	using statistical_properties_t = float;
+
+#ifndef MARGOT_CONFIG_HDR
+#define MARGOT_CONFIG_HDR
 
 
+  /**
+   * @brief Defines if clock_gettime is available (i.e. on MacOS it is not)
+   */
+#cmakedefine MARGOT_WITH_AGORA
 
 
-	/**
-	 * @brief Define the type used internally by the AS-RTM module
-	 */
-	using margot_value_t = statistical_properties_t;
-
-
-
-	/**
-	 * @brief Define the type used to express a priority
-	 */
-	using priority_t = std::size_t;
-
-
-
-
-	/**
-	 * @brief Used to determine the type of cast used by the monitor
-	 *
-	 * @details
-	 * It might be possible to downgrade a pointer reference with and
-	 * without type checking.
-	 * If this type is setted to True, it means the the compilation
-	 * performs a dynamic type checking.
-	 */
-	constexpr inline bool safe_cast( void ) { return @MARGOT_SAFE_CASTING@; }
-
-
-
-
-
-
-	/**
-	 * @brief Used to skip pedantic checks in the code
-	 *
-	 * @details
-	 * This function is used to perform pendatic checks to assure that
-	 * the framework is operating correctly (i.e. type safe cast and
-	 * null pointer checks).
-	 * However, once the code is debugged, those checks are no more
-	 * required, thus they can be safetly removed.
-	 */
-	constexpr inline bool pedantic_check( void ) { return @MARGOT_PEDANTIC_CHECKS@; }
-
-
-
-	/**
-	 * @brief Defines if clock_gettime is available (i.e. on MacOS it is not)
-	 */
-#cmakedefine WITH_HARDWARE_COUNTER
-
-
-	/**
-	 * @brief Defines if the reward computation is enabled
-	 */
-#cmakedefine MARGOT_ENABLE_REWARD_COMPUTATION
-
-
-
-	/**
-	 * @brief Defines if the reward computation is enabled
-	 */
-#cmakedefine MARGOT_LEARNING_ENABLE_FILE_LOG
-
-
-	/**
-	 * @brief Defines if the reward computation is enabled
-	 */
-#cmakedefine MARGOT_LEARNING_ENABLE_STATE
-
-
-
-	/**
-	 * @brief States if the compiler support nullptr
-	 */
-#cmakedefine WITH_NULLPTR
-#ifndef WITH_NULLPTR
-#define nullptr NULL
-#endif
-
-
-
-
-	/**
-	 * @brief States if the compiler support the chrono steady_clock
-	 */
-#cmakedefine WITH_STEADY_CLOCK
-#ifndef WITH_STEADY_CLOCK
-#define steady_clock monotonic_clock
-#endif
-
-
-	/**
-	 * @brief Defines if the PAPI monitor is available
-	 */
-#cmakedefine WITH_PAPI
-
-
-	/**
-	 * @brief Defines if the sensors library is available
-	 */
-#cmakedefine WITH_SENSORS
-
-
-
-}
-
-
-#endif //MARGOT_CONFIGURATION_HEADER
+#endif //MARGOT_CONFIG_HDR

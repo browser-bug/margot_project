@@ -4,9 +4,9 @@ import errno                             # for checking before creating a path
 
 def generate_margot_logger_hpp( output_folder ):
 
-	# open the output file
-	with open(os.path.join(output_folder, 'margot_logger.hpp'), 'w') as cc:
-		cc.write("""#ifndef MARGOT_LOGGER_H
+  # open the output file
+  with open(os.path.join(output_folder, 'margot_logger.hpp'), 'w') as cc:
+    cc.write("""#ifndef MARGOT_LOGGER_H
 #define MARGOT_LOGGER_H
 
 #include <fstream>
@@ -25,7 +25,7 @@ def generate_margot_logger_hpp( output_folder ):
  * and re-generate this file.
  */
 
-#define MAXIMUM_FIELD_SIZE 20
+#define MAXIMUM_FIELD_SIZE 40
 
 
 namespace margot

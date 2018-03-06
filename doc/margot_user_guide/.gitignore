@@ -1,0 +1,15 @@
+# Ignore every file in this directory
+/*
+
+# Except those one
+!Makefile
+!main.tex
+!margot_user_guide.pdf
+!introduction.tex
+!monitor.tex
+!application_knowledge.tex
+!asrtm.tex
+!integration.tex
+!conclusion.tex
+!pictures/
+!picture_sources/

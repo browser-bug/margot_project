@@ -96,7 +96,7 @@ set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -march=native -Ofast -fu
 ################################
 
 message(STATUS "Generating the glue code")
-execute_process( COMMAND "python"  "${MARGOT_CLI_COMMAND}/margot_cli" "generate" "--margot" "${CMAKE_CURRENT_SOURCE_DIR}/config/${MARGOT_CONF_FILE}" "--out" "${CMAKE_CURRENT_SOURCE_DIR}" ${OP_LIST_FILES_FOUND}
+execute_process( COMMAND "python"  "${MARGOT_CLI_COMMAND}" "generate" "--margot" "${CMAKE_CURRENT_SOURCE_DIR}/config/${MARGOT_CONF_FILE}" "--out" "${CMAKE_CURRENT_SOURCE_DIR}" ${OP_LIST_FILES_FOUND}
                  RESULT_VARIABLE GENERATE_RESULT
 )
 if(NOT ${GENERATE_RESULT} EQUAL "0")
@@ -105,14 +105,11 @@ endif(NOT ${GENERATE_RESULT} EQUAL "0")
 
 
 
-
-
-
 ################################
 #### Build the library
 ################################
 
-set( LIB_NAME "margot_heel_if")
+set( MARGOT_HEEL_LIB_NAME "margot_heel")
 
 # get the list of all the source files
 file(GLOB GLUE_CODE_SOURCE_FILES "*.cc")
@@ -123,10 +120,10 @@ file(GLOB CPP_HEADERS "*.hpp")
 include_directories(${CMAKE_CURRENT_SOURCE_DIR} ${MARGOT_INCLUDES})
 
 # compile the library
-add_library( ${LIB_NAME} STATIC ${GLUE_CODE_SOURCE_FILES} )
+add_library( ${MARGOT_HEEL_LIB_NAME} STATIC ${GLUE_CODE_SOURCE_FILES} )
 
 # link the library
-target_link_libraries( ${LIB_NAME} ${MARGOT_LIBRARIES} )
+target_link_libraries( ${MARGOT_HEEL_LIB_NAME} ${MARGOT_LIBRARIES} )
 
 
 
@@ -136,10 +133,20 @@ target_link_libraries( ${LIB_NAME} ${MARGOT_LIBRARIES} )
 #### Configure this module
 ################################
 
+
+# forward the dependencies from margot
+set( MARGOT_DEPS_HEADERS ${MARGOT_INCLUDES} )
+set( MARGOT_DEPS_LIBS ${MARGOT_LIBRARIES} )
+string (REPLACE ";" " " MARGOT_DEPS_LIBS_STR "${MARGOT_DEPS_LIBS}")
+string (REPLACE ";" " -I" MARGOT_DEPS_HEADERS_STR "${MARGOT_DEPS_HEADERS}")
+
+
+
+
 # customizing the pkg-config file
 configure_file(
-  "${CMAKE_CURRENT_SOURCE_DIR}/heel.pc.in"
-  "${CMAKE_CURRENT_BINARY_DIR}/heel.pc"
+  "${CMAKE_CURRENT_SOURCE_DIR}/margot_heel.pc.in"
+  "${CMAKE_CURRENT_BINARY_DIR}/margot_heel.pc"
   @ONLY
   )
 
@@ -147,13 +154,13 @@ configure_file(
 
 # ccustomizing the FindHEEL.cmake
 configure_file(
-  "${CMAKE_CURRENT_SOURCE_DIR}/FindHEEL.cmake.in"
-  "${CMAKE_CURRENT_BINARY_DIR}/FindHEEL.cmake"
+  "${CMAKE_CURRENT_SOURCE_DIR}/FindMARGOT_HEEL.cmake.in"
+  "${CMAKE_CURRENT_BINARY_DIR}/FindMARGOT_HEEL.cmake"
   @ONLY
   )
 configure_file(
-  "${CMAKE_CURRENT_SOURCE_DIR}/FindHEEL.cmake.in"
-  "${CMAKE_CURRENT_SOURCE_DIR}/cmake/FindHEEL.cmake"
+  "${CMAKE_CURRENT_SOURCE_DIR}/FindMARGOT_HEEL.cmake.in"
+  "${CMAKE_CURRENT_SOURCE_DIR}/cmake/FindMARGOT_HEEL.cmake"
   @ONLY
   )
 
@@ -166,5 +173,5 @@ configure_file(
 install(TARGETS ${LIB_NAME} DESTINATION lib )
 install(FILES ${C_HEADERS} DESTINATION include )
 install(FILES ${CPP_HEADERS} DESTINATION include )
-install(FILES "${CMAKE_CURRENT_BINARY_DIR}/heel.pc" DESTINATION lib/pkgconfig )
-install(FILES "${CMAKE_CURRENT_BINARY_DIR}/FindHEEL.cmake" DESTINATION lib/cmake )
+install(FILES "${CMAKE_CURRENT_BINARY_DIR}/margot_heel.pc" DESTINATION lib/pkgconfig )
+install(FILES "${CMAKE_CURRENT_BINARY_DIR}/FindMARGOT_HEEL.cmake" DESTINATION lib/cmake )

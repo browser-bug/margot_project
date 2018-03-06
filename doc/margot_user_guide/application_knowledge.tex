@@ -1,0 +1,65 @@
+\section{Application knowledge}
+
+The application knowledge describes the expected behavior of the application, in terms of its EFP of interest.
+To represent the latter concept, mARGOt uses Operating Point objects.
+An Operating Point is composed by two segments: the \textit{software knobs} segment and the \textit{metrics} segment.
+The former represents a configuration of the application, the latter represents the performance reached by the application, using the related configuration.
+The collection of several Operating Points define the application knowledge.
+Which means that, any configuration provided by the autotuner, must be part of the application knowledge.
+
+
+\subsection{Operating Point geometry}
+
+mARGOt implements each segment of the Operating Point as an array of DataType.
+The DataType is a type suitable to describe a value of either a configuration or a metric.
+In particular, if the target field of the Operating Point has a known static value, we can represent such field using just its mean value.
+For examples, the number of threads or the quality of the results may be fully described with a single number.
+If the target field of the Operating Point is a measured metric, with a stochastic component, we must represent such field using (at least) its mean and standard deviation values.
+For examples, the execution time of the kernel or its process CPU usage are a random variable, with a mean and a standard deviation.
+
+\begin{figure}[!t]
+	\centering
+	\lstset{language=MyCPP}
+	\begin{lstlisting}
+	// define the Operating Point geometry
+	using KnobsType = margot::OperatingPointSegment< 2, margot::Data<int> >;
+	using MetricsType = margot::OperatingPointSegment< 2, margot::Distribution<float> >;
+	using MyOperatingPoints = margot::OperatingPoint<KnobsType, MetricsType>
+	
+	// declare the application knowledge
+	std::vector< MyOperatingPoints > application_knowledge = {
+		{ // first Operating Point
+			{1, 2},
+			{margot::Distribution<float>(1, 0.1), margot::Distribution<float>(1, 0.1)}
+		},
+		{ // second Operating Point
+			{2, 3},
+			{margot::Distribution<float>(1, 0.1), margot::Distribution<float>(2, 0.1)}
+		}
+	};
+	\end{lstlisting}
+	\caption{Example of C++ code to define the application knowledge.}
+	\label{fig:operating_point_examples}
+\end{figure}
+
+To improve the efficiency of the framework, the geometry (the C type) of the Operating Point must be known at compile-time.
+In this way, mARGOt is able to exploit C++ features, to specialize the implementation of the framework according to the application knowledge.
+\prettyref{fig:operating_point_examples} shows an example on how it is possible to define the application knowledge.
+In particular, lines 1-4 defines the geometry of the Operating Point, while lines lines 7-16 defines the actual knowledge of the application.
+In this example, the kernel has two software knobs, which values might be defined using only integer numbers (line 2).
+Moreover, the application developer is interest on only two EFP, represented as a distribution of floats (line 3).
+Finally, the global geometry of the Operating Point is defined in line 4.
+The actual application knowledge might be represented using any STL container.
+In this example, we have chosen a std::vector, brace-enclosed initialized lines(6-16).
+For a full description of the Operating Point implementation, please refer to the Doxygen documentation.
+
+
+\subsection{How to obtain the application knowledge}
+
+The application knowledge is considered as an input of the framework, usually derived from a Design Space Exploration.
+Since this is a well known topic in literature, the application developer is free to choose the most suitable approach to derive the application knowledge.
+For example, if the design space is small, it is possible to perform a full-factorial Design of Experiment and evaluate all the possible configuration of the software knobs.
+If the design space is too big, to perform an exhaustive search, it is possible to employ response surface modeling technique to derive the application knowledge.
+For example, it is possible to evaluate only a subset of the design space and then interpolate the missing point.
+
+

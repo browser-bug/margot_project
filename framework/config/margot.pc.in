@@ -8,5 +8,5 @@ includedir=${prefix}/include
 Name: mARGOt Framework
 Description: Enhance an application with an adaption layer
 Version: @PROJECT_VERSION_MAJOR@.@PROJECT_VERSION_MINOR@
-Libs:  -L${libdir} -l@ASRTM_LIB_NAME@ -l@MONITOR_LIB_NAME@
-Cflags: -I${includedir}
+Libs:  "-L${libdir} -l@MARGOT_LIB_NAME@ @MARGOT_LINK_DEPENDENCIES_STR@"
+Cflags: "-I${includedir} -I@HDR_PATH@ -I@MARGOT_DEPS_INCLUDE_DIRECTORIES_STR@"

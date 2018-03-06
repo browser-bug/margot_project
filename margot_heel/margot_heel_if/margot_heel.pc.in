@@ -1,0 +1,12 @@
+# Package Information for pkg-config
+
+prefix=@CMAKE_INSTALL_PREFIX@
+exec_prefix=${prefix}
+libdir=${prefix}/lib
+includedir=${prefix}/include
+
+Name: mARGOt heel Interface
+Description: Provides an application-specific high-level interface for the mARGOt framework
+Version: @PROJECT_VERSION_MAJOR@.@PROJECT_VERSION_MINOR@
+Libs:  "-L${libdir} -l@MARGOT_HEEL_LIB_NAME@ @MARGOT_DEPS_LIBS_STR@"
+Cflags: "-I${includedir} -I@CMAKE_CURRENT_SOURCE_DIR@ -I@MARGOT_DEPS_HEADERS_STR@
