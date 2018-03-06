@@ -22,15 +22,21 @@ The repository is organized as follow:
 |                            It uses margot_heel_cli to generate the glue code
 |
 ├── framework/
-|   ├── cmake/             -> CMake files used to find dependecy libraries (for some monitors)
-│   ├── config/            -> Framework configuration files to find mARGOt in the target application:
-|   |                          - the template used to generate FinMARGOT.cmake for cmake
-|   |                          - the template of mARGOt ".pc" file for pkg-config
+|   ├── cmake/            -> CMake files used to find dependecy libraries (for some monitors)
+│   ├── config/           -> Framework configuration files to find mARGOt in the target application:
+|   |                         - the template used to generate FinMARGOT.cmake for cmake
+|   |                         - the template of mARGOt ".pc" file for pkg-config
 |   |
-|   ├── doc/               -> Configuration files to generate Doxygen documentation
-|   ├── include/           -> Header files of the mARGOt autotuner
-|   ├── src/               -> Source files of the mARGOt autotuner
-|   ├── test/              -> Test suite files, exploiting cxxtest
+|   ├── doc/              -> Configuration files to generate Doxygen documentation
+|   ├── include/          -> Header files of the mARGOt autotuner and AGORA application handler
+|   ├── src/              -> Source files of the mARGOt autotuner and AGORA application handler
+|   ├── test/             -> Test suite files, exploiting cxxtest
+|
+├── agora/
+|   ├── plugins/          -> Collection of tools to build the application knowledge from observations
+|   |                         - crs: leverage nonparametric regression splines
+|   |
+│   ├── src/              -> The AGORA remote application handler source files
 ```
 
 ### Compiling instructions
@@ -59,6 +65,17 @@ However, it is possible to change this behavior using the CMake configuration op
 | USE_COLLECTOR_MONITOR    |   ON , [OFF]       | Include the wrapper monitor for Examon (by ETHz)            |
 | USE_PAPI_MONITOR         |   ON , [OFF]       | Include the monitor of Perf events (using PAPI interface)   |
 | USE_TEMPERATURE_MONITOR  |   ON , [OFF]       | Include the temperature monitor (requires lm_sensors)       |
+| WITH_AGORA               |   ON , [OFF]       | Enable the AGORA application handler (see NOTE below)       |
+
+NOTE: if you are interested on using the AGORA application handler to perform an online Design Space Exploration, the module adds several dependencies:
+ - The C/C++ Cassandra driver ( http://datastax.github.io/cpp-driver/ )
+ - The C/C++ MQTT client implementation ( https://www.eclipse.org/paho/ )
+
+The build system is able to automatically download and compile those libraries if they are not available, which is the preferred option.
+However, to compile them, we have the following requirements:
+ - The uv library ( https://github.com/libuv/libuv ), on fedora is available in the repositories
+ - The OpenSSL libraries, usually they are available on the repositories
+ - The pthread library, usually already installed in most distributions
 
 
 ### Contribution guidelines
