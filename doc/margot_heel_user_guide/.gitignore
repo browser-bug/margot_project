@@ -1,0 +1,11 @@
+# Ignore every file in this directory
+/*
+
+# Except those ones
+!.gitignore
+!Makefile
+!main.tex
+!margot_heel_user_guide.pdf
+!pictures/
+!picture_sources/
+!sections/

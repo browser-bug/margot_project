@@ -1,8 +1,0 @@
-{
-  "execPath": "/usr/bin/g++",
-  "gccDefaultCFlags": "-Wall",
-  "gccDefaultCppFlags": "-Wall -std=c++11",
-  "gccErrorLimit": 15,
-  "gccIncludePaths": "@MONITOR_HDR_PATH@,@CONFIGURATION_HDR_PATH@,@ASRTM_HDR_PATH@",
-  "gccSuppressWarnings": true
-}

@@ -2,6 +2,7 @@
 /*
 
 # Except those one
+!.gitignore
 !Makefile
 !main.tex
 !margot_user_guide.pdf
