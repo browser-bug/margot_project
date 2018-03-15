@@ -202,8 +202,12 @@ def generate_margot_hpp( block_models, op_lists, output_folder ):
 
     # write the output flags
     cc.write('\n\n// decomment/comment these macros to enable/disable features\n')
+    cc.write('#ifndef MARGOT_DISABLE_LOG_STDOUT\n')
     cc.write('#define MARGOT_LOG_STDOUT\n')
+    cc.write('#endif // MARGOT_DISABLE_LOG_STDOUT\n')
+    cc.write('#ifndef MARGOT_DISABLE_LOG_FILE\n')
     cc.write('#define MARGOT_LOG_FILE\n')
+    cc.write('#endif // MARGOT_DISABLE_LOG_FILE')
 
     # put some new lines
     cc.write('\n\n')

@@ -34,6 +34,24 @@ else ( LOG_USE_PID )
 	message ( STATUS "Margot uniques log file names...................: DISABLED!   (-DLOG_USE_PID=ON to enable)" )
 endif ( LOG_USE_PID )
 
+# tell MARGOT interface to disable the log on the standard output
+option( WITH_LOG_STDOUT "Enable the log on the standard output" ON )
+if ( WITH_LOG_STDOUT )
+	message ( STATUS "Log on the standard output......................: ENABLED!    (-WITH_LOG_STDOUT=OFF to disable)" )
+else ( WITH_LOG_STDOUT )
+	set( MARGOT_EXTRA_CXXFLAGS "${MARGOT_EXTRA_CXXFLAGS} -DMARGOT_DISABLE_LOG_STDOUT" )
+	message ( STATUS "Log on the standard output......................: DISABLED!   (-WITH_LOG_STDOUT=ON to enable)" )
+endif ( WITH_LOG_STDOUT )
+
+# tell MARGOT interface to disable the log on the standard output
+option( WITH_LOG_FILE "Enable the log on file" ON )
+if ( WITH_LOG_FILE )
+	message ( STATUS "Log on file.....................................: ENABLED!    (-WITH_LOG_FILE=OFF to disable)" )
+else ( WITH_LOG_FILE )
+	set( MARGOT_EXTRA_CXXFLAGS "${MARGOT_EXTRA_CXXFLAGS} -DMARGOT_DISABLE_LOG_FILE" )
+	message ( STATUS "Log on file.....................................: DISABLED!   (-WITH_LOG_FILE=ON to enable)" )
+endif ( WITH_LOG_FILE )
+
 # tell the MARGOT file from the op_list ones
 file(GLOB CONF_FILES_FOUND RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}/config config/*.conf)
 list(SORT CONF_FILES_FOUND)
