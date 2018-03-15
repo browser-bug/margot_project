@@ -51,7 +51,7 @@ class ExperimentModel:
       data_per_experiment_horizontal = []
       data_per_experiment_vertical = []
 
-      min_length_data = sys.maxint
+      min_length_data = float("inf")
       for field in self.field_mask:
         data = experiment.get_column(field)
         min_length_data = min(min_length_data, len(data))
