@@ -637,6 +637,7 @@ def generate_margot_cc( block_models, op_lists, output_folder ):
 
         # get the rank coefs
         rank_coefs = [str(float(x.coefficient)) for x in state_model.rank_fields]
+        funcion_coefs = ', '.join(rank_coefs)
 
         # set the template arguments
         template_args = '{0}, {1}, {2} '.format(
@@ -644,6 +645,11 @@ def generate_margot_cc( block_models, op_lists, output_folder ):
           state_model.rank_available_combination_types[state_model.rank_type],
           ', '.join(rank_fields)
           )
+
+        # print the template args
+        if rank_fields:
+            cc.write('\n\t\t // Defining the application rank\n')
+            cc.write('\t\t{0}::manager.set_rank<{1}>({2});\n'.format(block_name, template_args, funcion_coefs))
 
         # loop over the constraints
         for constraint_model in state_model.constraint_list:

@@ -183,13 +183,13 @@ class Parser:
           sys.exit(-1)
 
         # extract the name of the managed data features
-        managed_data_features = set([x.name for x in self.block_models[block_name].features])
+        managed_data_features = sorted(set([x.name for x in self.block_models[block_name].features]))
 
         # remove from the op list the data features not managed by the margot
         for op_model in self.ops[block_name].ops:
 
           # get their data features
-          op_data_features = [x for x in op_model.features.keys()]
+          op_data_features = sorted([x for x in op_model.features.keys()])
 
           # compute the difference
           feature_to_eliminate = [ x for x in op_data_features if x not in managed_data_features ]

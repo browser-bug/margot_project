@@ -74,8 +74,8 @@ def parse_op( op_xml_element, namespace = ''):
     features_xml_element = get_elements( feature_xml_element[0], 'feature', namespace = namespace, required = True )
     for feature_xml_element in features_xml_element:
 
-      # parse the name and value
-      feature_name = get_parameter(feature_xml_element, 'name')
+      # parse the name and value (make sure to lower the feature name)
+      feature_name = get_parameter(feature_xml_element, 'name').lower()
       feature_value = get_parameter(feature_xml_element, 'value')
 
       # make sure that the data feature is numeric
