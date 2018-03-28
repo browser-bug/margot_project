@@ -540,8 +540,8 @@ namespace margot
       const normalize_datafeatures<DataFeature> normalize = normalize_datafeatures<DataFeature>();
 
       // check the validity
-      const bool is_best_valid = is_valid(best->it, origin);
-      const bool is_target_valid = is_valid(target->it, origin);
+      const bool is_best_valid = is_valid(best->first, origin);
+      const bool is_target_valid = is_valid(target->first, origin);
 
       // compare them wrt their validity
       if (is_best_valid && !is_target_valid)
