@@ -1,26 +1,3 @@
-################################
-#### Application general section
-################################
-
-# check the minimum version
-cmake_minimum_required( VERSION 2.8 )
-
-
-
-################################
-#### Dependencies check
-################################
-
-
-# Load additional CMake modules
-list (APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../cmake")
-
-
-# check for the papi framework
-find_package(MARGOT)
-if (NOT HAVE_MARGOT)
-  message(FATAL_ERROR "Unable to compile the application without the mARGOt framework")
-endif (NOT HAVE_MARGOT)
 
 
 ################################
@@ -39,15 +16,10 @@ set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x" )
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall -g3 -O0")
 
 # setting release with debug info flags
-set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} -march=native -g3 -O2 -flto")
+set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} -march=native -g3 -O2")
 
 # setting release flags
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -march=native -Ofast -funroll-loops -fprefetch-loop-arrays -flto")
-
-
-# include the autotuner directories
-include_directories(${MARGOT_INCLUDES})
-include_directories(${CMAKE_CURRENT_SOURCE_DIR})
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -march=native -Ofast -funroll-loops -fprefetch-loop-arrays")
 
 
 
@@ -56,26 +28,30 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 ################################
 
 # define the name of the executable
-set( EXE_NAME "margot_benchmark")
+set( BENCHMARK_NAME "margot_benchmark")
 
 # set the source file of the application
-set( APP_SRC ${CMAKE_CURRENT_SOURCE_DIR}/main.cc
+set( BENCHMARK_SRC ${CMAKE_CURRENT_SOURCE_DIR}/main.cc
    )
 
 
 # set the source file of the application
-set( APP_HDR ${CMAKE_CURRENT_SOURCE_DIR}/file_logger.hpp
-             ${CMAKE_CURRENT_SOURCE_DIR}/bench_base.hpp
-             ${CMAKE_CURRENT_SOURCE_DIR}/benchmark_knowledge_base.hpp
-             ${CMAKE_CURRENT_SOURCE_DIR}/benchmark_state.hpp
-             ${CMAKE_CURRENT_SOURCE_DIR}/benchmark_asrtm.hpp
+set( BENCHMARK_HDR
+  ${CMAKE_CURRENT_SOURCE_DIR}/result_printer.hpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/evaluator.hpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/test_add_constraint.hpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/test_add_ops.hpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/test_select_data_feature.hpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/test_set_rank.hpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/test_update_scaling.hpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/test_update.hpp
   )
 
 # add the target
-add_executable( ${EXE_NAME} ${APP_SRC} ${APP_HDR} )
+add_executable( ${BENCHMARK_NAME} ${BENCHMARK_SRC} ${BENCHMARK_HDR} )
 
 # link the autotuner
-target_link_libraries( ${EXE_NAME} ${MARGOT_LIBRARIES} )
+target_link_libraries( ${BENCHMARK_NAME} ${MARGOT_LIB_NAME} )
 
 # install command
-install(TARGETS ${EXE_NAME} DESTINATION bin )
+install(TARGETS ${BENCHMARK_NAME} DESTINATION bin )

@@ -75,6 +75,9 @@ if ( WITH_AGORA )
 endif( WITH_AGORA )
 
 
+option( WITH_BENCHMARK "Build a benchmark to evaluate the overheads" OFF)
+
+
 
 ################################
 #### Dependency check
@@ -249,6 +252,14 @@ else ( WITH_AGORA )
 endif ( WITH_AGORA )
 
 
+# check if we must compile the benchmark
+if ( WITH_BENCHMARK )
+	message( STATUS "Build framework benchmark............: ENABLED (-DWITH_BENCHMARK=OFF to disable)" )
+else ( WITH_BENCHMARK )
+	message( STATUS "Build framework benchmark............: DISABLED (-DWITH_BENCHMARK=ON to enable)" )
+endif ( WITH_BENCHMARK )
+
+
 # this message is just for pretty printing
 message( STATUS "" )
 
@@ -274,6 +285,11 @@ add_subdirectory( framework )
 if ( WITH_AGORA )
 	add_subdirectory( agora )
 endif ( WITH_AGORA)
+
+# build the benchmark
+if ( WITH_BENCHMARK )
+	add_subdirectory( extra/benchmark )
+endif ( WITH_BENCHMARK )
 
 # generate auto complete file
 set( AUTOCOMPLETE_FILE_NAME .clang_complete )
