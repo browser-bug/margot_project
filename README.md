@@ -37,6 +37,9 @@ The repository is organized as follow:
 |   |                         - crs: leverage nonparametric regression splines
 |   |
 │   ├── src/              -> The AGORA remote application handler source files
+|
+├── extra/
+|   ├── benchmark/        -> A benchmark application to evaluate the framework overheads
 ```
 
 ### Compiling instructions
@@ -66,6 +69,7 @@ However, it is possible to change this behavior using the CMake configuration op
 | USE_PAPI_MONITOR         |   ON , [OFF]       | Include the monitor of Perf events (using PAPI interface)   |
 | USE_TEMPERATURE_MONITOR  |   ON , [OFF]       | Include the temperature monitor (requires lm_sensors)       |
 | WITH_AGORA               |   ON , [OFF]       | Enable the AGORA application handler (see NOTE below)       |
+| WITH_BENCHMARK           |   ON , [OFF]       | Build a benchmark to evaluate the overheads                 |
 
 NOTE: if you are interested on using the AGORA application handler to perform an online Design Space Exploration, the module adds several dependencies:
  - The C/C++ Cassandra driver ( http://datastax.github.io/cpp-driver/ )
