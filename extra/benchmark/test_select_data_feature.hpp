@@ -17,7 +17,7 @@ class SelectDataFeature
   using avg_metric_0 = margot::OPField<margot::OperatingPointSegments::METRICS, margot::BoundType::LOWER, 0, 0>;
 
   std::vector< MyOperatingPoint > op_list;
-  margot::DataAwareAsrtm<margot::Asrtm<MyOperatingPoint>, int, distance_type, margot::FeatureComparison::LESS_OR_EQUAL, margot::FeatureComparison::LESS_OR_EQUAL, margot::FeatureComparison::LESS_OR_EQUAL> manager;
+  margot::DataAwareAsrtm<margot::Asrtm<MyOperatingPoint>, int, distance_type, margot::FeatureComparison::DONT_CARE, margot::FeatureComparison::DONT_CARE, margot::FeatureComparison::DONT_CARE> manager;
   margot::Goal< float, margot::ComparisonFunctions::GREATER > goal;
 
   const int number_of_clusters;
