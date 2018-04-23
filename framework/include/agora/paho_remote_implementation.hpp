@@ -52,7 +52,9 @@ namespace agora
 
     public:
 
-      PahoClient( const std::string& application_name, const std::string& broker_address, const uint8_t qos_level = 1, const std::string& username = "", const std::string& password = "");
+      PahoClient( const std::string& application_name, const std::string& broker_address,
+        const uint8_t qos_level = 1, const std::string& username = "", const std::string& password = "",
+        const std::string& trust_store = "", const std::string& client_certificate = "", const std::string& client_key = "");
       ~PahoClient( void );
 
       // don't copy or move this object, things explode otherwise

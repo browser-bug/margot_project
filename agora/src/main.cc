@@ -63,6 +63,12 @@ void print_usage( void )
   std::cout << "                                DEFAULT = \"\"" << std::endl;
   std::cout << " --broker_password <str>        The password for authentication purpose, if any" << std::endl;
   std::cout << "                                DEFAULT = \"\"" << std::endl;
+  std::cout << " --broker_ca <str>              The path to the broker certificate (e.g. ca.crt), if any" << std::endl;
+  std::cout << "                                DEFAULT = \"\"" << std::endl;
+  std::cout << " --client_certificate <str>     The path to the client certificate (e.g. client.crt), if any" << std::endl;
+  std::cout << "                                DEFAULT = \"\"" << std::endl;
+  std::cout << " --client_private_key <str>     The path to the private key (e.g. client.key), if any" << std::endl;
+  std::cout << "                                DEFAULT = \"\"" << std::endl;
   std::cout << " --qos int                      The MQTT quality of service level [0-2]" << std::endl;
   std::cout << "                                DEFAULT = \"2\"" << std::endl;
   std::cout << "--------------------------------------------------------------------------------" << std::endl;
@@ -94,6 +100,9 @@ int main( int argc, char* argv[] )
   std::string broker_url = "127.0.0.1:1883";
   std::string broker_username = "";
   std::string broker_password = "";
+  std::string broker_trust_store = "";
+  std::string client_certificate = "";
+  std::string client_key = "";
   int mqtt_qos = 2;
 
   std::string workspace_folder;
@@ -115,9 +124,12 @@ int main( int argc, char* argv[] )
     {"broker_url",             required_argument, 0,  8   },
     {"broker_username",        required_argument, 0,  9   },
     {"broker_password",        required_argument, 0,  10   },
-    {"qos",                    required_argument, 0,  11   },
-    {"min_log_level",          required_argument, 0,  12   },
-    {"threads",                required_argument, 0,  13   },
+    {"broker_ca",              required_argument, 0,  11   },
+    {"client_certificate",     required_argument, 0,  12   },
+    {"client_key",             required_argument, 0,  13   },
+    {"qos",                    required_argument, 0,  14   },
+    {"min_log_level",          required_argument, 0,  15   },
+    {"threads",                required_argument, 0,  16   },
     {0,                        0,                 0,  0   }
   };
 
@@ -187,6 +199,18 @@ int main( int argc, char* argv[] )
         break;
 
       case 11:
+        broker_trust_store = std::string(optarg);
+        break;
+
+      case 12:
+        client_certificate = std::string(optarg);
+        break;
+
+      case 13:
+        client_key = std::string(optarg);
+        break;
+
+      case 14:
         std::istringstream ( optarg ) >> mqtt_qos;
 
         if (mqtt_qos < 0 || mqtt_qos > 2)
@@ -197,11 +221,11 @@ int main( int argc, char* argv[] )
 
         break;
 
-      case 12:
+      case 15:
         min_log_level = std::string(optarg);
         break;
 
-      case 13:
+      case 16:
         std::istringstream ( optarg ) >> number_of_threads;
 
         if (number_of_threads < 0)
@@ -252,7 +276,7 @@ int main( int argc, char* argv[] )
 
   if ( mqtt_implementation.compare("paho") == 0 )
   {
-    agora::io::remote.create<agora::PahoClient>("agora", broker_url, mqtt_qos, broker_username, broker_password);
+    agora::io::remote.create<agora::PahoClient>("agora", broker_url, mqtt_qos, broker_username, broker_password, broker_trust_store, client_certificate, client_key);
   }
   else
   {

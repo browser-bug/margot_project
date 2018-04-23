@@ -1052,6 +1052,9 @@ namespace margot
        * @param [in] password The passwoed required to authenticate with the broker. Leave empty if it is not required
        * @param [in] qos_level The level of Quality of Service used to communicate with the broker [0,2]
        * @param [in] description The information required by agora to handle the application
+       * @param [in] broker_ca The path to the broker Certificate Authority. Leave empty if it is not required
+       * @param [in] client_cert The path to the client certificate. Leave empty if it is not required
+       * @param [in] client_key The path to the client provate key. Leave empty if it is not required
        *
        * @details
        * The format of the description follow these rules:
@@ -1068,7 +1071,7 @@ namespace margot
        */
       template< class OpConverter >
       void start_support_thread( const std::string& application, const std::string& broker_url, const std::string& username, const std::string& password, const int qos_level,
-                                 const std::string& description )
+                                 const std::string& description, const std::string& broker_ca, const std::string& client_cert, const std::string& client_key )
       {
         std::lock_guard< std::mutex > lock(manager_mutex);
 
@@ -1079,7 +1082,7 @@ namespace margot
         agora::my_agora_logger.set_filter_at(agora::LogLevel::DISABLED);
 
         // initialize communication channel with the server
-        remote.create<agora::PahoClient>(application_name, broker_url, qos_level, username, password );
+        remote.create<agora::PahoClient>(application_name, broker_url, qos_level, username, password, broker_ca, client_cert, client_key );
 
         // start the thread
         local_handler = std::thread(&type::local_application_handler<OpConverter>, this, description);
