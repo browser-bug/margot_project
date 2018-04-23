@@ -26,12 +26,12 @@ find_path (MQTT_INCLUDES MQTTClient.h)
 ## -----------------------------------------------------------------------------
 ## Check for the paho mqtt library
 
-find_library (MQTT_LIBRARY libpaho-mqtt3c-static.a paho-mqtt3c
+find_library (MQTT_LIBRARY libpaho-mqtt3cs-static.a paho-mqtt3cs
   PATHS ${MQTT_ROOT}/lib ${MQTT_ROOT}/lib64 ${PROJECT_SOURCE_DIR}/extern/install/lib ${PROJECT_SOURCE_DIR}/extern/install/lib64
   NO_DEFAULT_PATH
   )
 
-find_library (MQTT_LIBRARY libpaho-mqtt3c-static.a paho-mqtt3c)
+find_library (MQTT_LIBRARY libpaho-mqtt3cs-static.a paho-mqtt3cs)
 
 
 ## -----------------------------------------------------------------------------
