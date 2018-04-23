@@ -10,7 +10,7 @@
 		<!--    - Description of the Monitor element -->
 		<!--    - Description of the Plan element -->
 	</block>
-	
+
 	<block name="kernel2">
 		<!-- The configuration of block kernel2: -->
 		<!--    - Description of the Monitor element -->
@@ -53,13 +53,13 @@ However, the configuration file is able to handle custom monitors as well.
 		<stop_method name="my_stop" />
 		<start_method name="my_start" />
 	</spec>
-	
+
 	<creation>
 		<param name="window_size">
 			<fixed value="1" />
 		</param>
 	</creation>
-	
+
 	<start>
 		<param>
 			<local_var name="start_param" type="int" />
@@ -149,17 +149,17 @@ The following is the list of the available statistical properties:
 	<!-- SW-KNOB SECTION -->
 	<knob name="num_threads" var_name="threads" var_type="int"/>
 	<knob name="num_trials" var_name="trials" var_type="int"/>
-	
+
 	<!-- METRIC SECTION -->
 	<metric name="throughput" type="float" distribution="yes"/>
 	<metric name="quality" type="float" distribution="no"/>
-	
+
 	<!-- FEATURE SECTION -->
 	<features distance="euclidean">
 		<feature name="size_x" type="int" comparison="LE"/>
 		<feature name="size_y" type="int" comparison="-"/>
 	</features>
-	
+
 	\end{lstlisting}
 	\caption{Example of definition for the geometry of the application knowledge.}
 	\label{code:geometry_xml}
@@ -192,7 +192,7 @@ In particular, each metric is represented by the XML tag \textit{metric} and mus
 	\item the attribute \textit{distribution}, which states whether the metric is a distribution or not. If a metric is declared as distribution, the application knowledge shall define also the standard deviation of the metric. If a metric is not declared as distribution, any information about its standard deviation in the application knowledge is discarded.
 \end{itemize}
 
-Heterogeneous metrics will be automatically handled when the high-level library is generated. 
+Heterogeneous metrics will be automatically handled when the high-level library is generated.
 
 
 
@@ -204,7 +204,7 @@ The latter shall define the attribute \textit{distance}, which states how the fr
 In the current version, the available values are:
 \begin{itemize}
 	\item[NORMALIZED] For computing a normalized distance between data feature, useful if the data features have values which differs by orders of magnitudes
-	\item[EUCLIDEAN] For computing a classic euclidean distance. 
+	\item[EUCLIDEAN] For computing a classic euclidean distance.
 \end{itemize}
 
 As child of the \textit{features} element, each XML tag \textit{feature} represents a data feature.
@@ -231,7 +231,8 @@ These information -- together with the software knobs --  are used to compose th
 \begin{figure}
 	\lstset{language=XML}
 	\begin{lstlisting}
-	<agora address="127.0.0.1:1883" username="" password="" qos="2" doe="full_factorial" observations="5">
+	<agora address="tcp://127.0.0.1:1883" username="" password="" qos="2"
+        doe="full_factorial" observations="5" broker_ca="" client_cert="" client_key="">
 		<explore knob_name="num_threads" values="1,2,3,4"/>
 		<explore knob_name="skip_factor" values="5,6,7"/>
 		<predict metric_name="time_ms" prediction="crs" monitor="my_time_monitor"/>
@@ -254,18 +255,21 @@ Once the application knowledge is available, the server dispatch it to each appl
 If the end user would like to use this mechanism, it is required to state the information of the Design Space Exploration, as depicted in \prettyref{code:agora_xml}.
 In particular, the XML tag \textit{agora} represents the local application handler and shall define:
 \begin{itemize}
-	\item the attribute \textit{address} with the URL of the MQTT broker.
-	\item optionally, the attributes \textit{username} and \textit{password} for the authentication.
+	\item the attribute \textit{address} with the URI of the MQTT broker, in the form ``<protocol>://<address>:<port>'', where the supported protocols are \textit{tcp} and \textit{ssl}.
+	\item the attributes \textit{username} and \textit{password} for the authentication. Leave empty if it is not required.
 	\item the attribute \textit{qos} to define the quality of service of the MQTT protocol, which is integer between 0 and 2.
 	\item the attribute \textit{doe} to define the name of the Design of Experiments (DoE) technique used by the Design Space Exploration.
 	\item the attribute \textit{observations} to define the number of times to repeat each configuration in the DoE.
+  \item the attribute \textit{broker\_ca} with the path to the broker CA. Leave empty if it is not required.
+  \item the attribute \textit{client\_crt} with the path to the client certificate. Leave empty if it is not required.
+  \item the attribute \textit{client\_key} with the path to the client key. Leave empty if it is not required.
 \end{itemize}
 
 Since the remote application handler is designed to interact with unknown applications, the \textit{agora} element must specify information about the available range of software knobs, the required range of data features to bring in the model and the way to observe and predicts the target metrics.
 In particular, for each software knob of the block, the user must insert the XML tag \textit{explore} with the name of knob (attribute \textit{knob\_name}) and the range of possible values (attribute \textit{values}) as coma separated list of numbers.
 Moreover, for each data features, the user must specify the XML tag \textit{given} with the name of the data feature (attribute \textit{feature\_name}) and the values to include in the knowledge base (attribute \textit{values}) as a coma separated list of numbers.
 Finally, for each metric, the user must specify the XML tag \textit{predict} with the name of the metric (attribute \textit{metric\_name}), the name of the plugin used to perform the prediction (attribute \textit{prediction}) and the name of the monitor that observe that metric at runtime (attribute \textit{monitor}).
-	
+
 
 
 
@@ -273,7 +277,7 @@ Finally, for each metric, the user must specify the XML tag \textit{predict} wit
 
 The main goal of the plan element to state the concept of ``best'' for the application developer.
 Internally, mARGOt represent such definition as a constrained multi-objective optimization problem.
-Since the application might have different definitions of ``best'', according to its evolution or external events, it is possible to state more than one optimization problem (or states in mARGOt context). 
+Since the application might have different definitions of ``best'', according to its evolution or external events, it is possible to state more than one optimization problem (or states in mARGOt context).
 
 
 
@@ -330,7 +334,7 @@ The available comparison functions are:
 	\item[GT] For the ``greater than'' comparison function.
 	\item[GE] For the ``greater or equal than'' comparison function.
 	\item[LT] For the ``less than'' comparison function.
-	\item[LE] For the ``less or equal than'' comparison function. 
+	\item[LE] For the ``less or equal than'' comparison function.
 \end{enumerate}
 
 For the generation of the high-level interface, the goal subject is a field (either a metric or a software-knob) of the application knowledge.
@@ -348,7 +352,7 @@ The latter XML element shall define the following attributes:
 	\item \textit{metric\_name} to identify the target metric in the application knowledge geometry. In particular, its value shall be the name of a metric stated in the metrics section.
 	\item \textit{using} to identify the target monitor. In particular, its value shall be the name of the monitor stated in the monitors section.
 	\item \textit{inertia} to define the inertia of the adaptation. This field shall be a positive integer number.
-\end{itemize} 
+\end{itemize}
 
 
 
@@ -379,24 +383,3 @@ The list of constraints is represented by the list of XML tags \textit{subject},
 The priority is a number used to order by importance the constraints, therefore it is required that each constraint of a state must have a different priority.
 If the constraints relates to a goal whose subject is a monitored value, it is required to specify the name of the related metric in the application knowledge, using the attribute \textit{metric\_name}.
 The confidence is the number of times to take into account the standard deviation in the Operating Point evaluation, therefore it must be an integer number.
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
