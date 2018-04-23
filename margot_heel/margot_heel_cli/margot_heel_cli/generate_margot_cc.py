@@ -765,8 +765,11 @@ def generate_margot_cc( block_models, op_lists, output_folder ):
           broker_url = block_model.agora_model.broker_url
           broker_username = block_model.agora_model.username
           broker_password = block_model.agora_model.password
+          broker_ca = block_model.agora_model.broker_ca
+          client_cert = block_model.agora_model.client_cert
+          client_key = block_model.agora_model.client_key
           mqtt_qos = block_model.agora_model.qos
-          parameter_string = '"{0}","{1}","{2}","{3}",{4},"{5}"'.format(app_name,broker_url,broker_username,broker_password,mqtt_qos,description_string )
+          parameter_string = '"{0}","{1}","{2}","{3}",{4},"{5}","{6}","{7}","{8}"'.format(app_name,broker_url,broker_username,broker_password,mqtt_qos,description_string,broker_ca,client_cert,client_key )
 
           # eventually emit the code that starts the agora application local handler
           cc.write('\n\t\t// Start the agora pocal application handler thread\n')

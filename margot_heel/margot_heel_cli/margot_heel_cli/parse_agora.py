@@ -12,10 +12,13 @@ def parse_agora( agora_xml_element, namespace = ''):
   # create a new model
   agora_model = model_agora.AgoraModel()
 
-  # pare all the agora attributes
+  # parse all the agora attributes
   agora_model.broker_url = get_parameter(agora_xml_element, 'address')
   agora_model.username = get_parameter(agora_xml_element, 'username')
   agora_model.password = get_parameter(agora_xml_element, 'password')
+  agora_model.broker_ca = get_parameter(agora_xml_element, 'broker_ca')
+  agora_model.client_cert = get_parameter(agora_xml_element, 'client_cert')
+  agora_model.client_key = get_parameter(agora_xml_element, 'client_key')
   agora_model.qos = get_parameter(agora_xml_element, 'qos')
   agora_model.doe = get_parameter(agora_xml_element, 'doe', prefixed_values = agora_model.available_does).lower()
   agora_model.number_observation = get_parameter(agora_xml_element, 'observations')
