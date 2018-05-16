@@ -179,7 +179,7 @@ def generate_margot_c( block_models, op_lists, output_folder ):
     cc.write('\t\tmargot::init(')
     signature = ', '.join(['{1}'.format(x.var_type, x.var_name) for x in creation_parameters if x.var_name])
     if not signature:
-      signature = 'void'
+      signature = ''
     cc.write('{0} );\n'.format(signature))
     cc.write('\t}\n')
 
