@@ -178,7 +178,7 @@ class BlockModel:
         # check if we found a monitor
         if not found:
           print('[CONSISTENCY ERROR] The goal "{0}" has a reference to a metric "{1}"'.format(goal_model.name, metric_name))
-          print('                    Available knobs: "{0}"'.format('", "'.join([x.name for x in self.metrics])))
+          print('                    Available metrics: "{0}"'.format('", "'.join([x.name for x in self.metrics])))
           sys.exit(-1)
 
 
