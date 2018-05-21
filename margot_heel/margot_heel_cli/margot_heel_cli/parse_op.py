@@ -22,7 +22,7 @@ def parse_op( op_xml_element, namespace = ''):
   for param_xml_element in params_xml_element:
 
     # parse the name and value
-    knob_name = get_parameter(param_xml_element, 'name')
+    knob_name = get_parameter(param_xml_element, 'name').lower()
     knob_value = get_parameter(param_xml_element, 'value')
 
     # add it to the parameters
@@ -36,7 +36,7 @@ def parse_op( op_xml_element, namespace = ''):
   for metric_xml_element in metrics_xml_element:
 
     # parse the name and value
-    metric_name = get_parameter(metric_xml_element, 'name')
+    metric_name = get_parameter(metric_xml_element, 'name').lower()
     try:
 
       # parse the metric value
