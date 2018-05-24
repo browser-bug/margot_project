@@ -213,10 +213,11 @@ def plot_op_list( op_list, x_metric, y_metric, color_metric = '' ):
   print('set terminal pdf size 7,5 enhanced font "Verdana,20"')
   #print('set output "oplist.svg"')
   print('unset key')
+  print('set grid xtics ytics front')
   print('set style line 11 lc rgb "#808080" lt 1')
-  print('set border 3 back ls 11')
-  print('set tics nomirror out scale 0.75')
-  print('set size square')
+  print('set border 3 front ls 11')
+  print('set tics nomirror in scale 0.75')
+  #print('set size square')
   print('set style circle radius screen 0.005')
   print('set palette negative defined ( \\')
   print('\t0 "#D53E4F",\\')
@@ -237,13 +238,13 @@ def plot_op_list( op_list, x_metric, y_metric, color_metric = '' ):
     print('set xtics 0,1,{0}'.format(len(tics)-1))
     for tic in tics:
       print('set xtics add ({0})'.format(tic))
-  else:
-    x_min = min(x_values)
-    x_max = max(x_values)
-    x_delta = abs(max(abs(x_min), abs(x_max))*0.1)
-    x_max = x_max + x_delta
-    x_min = x_min - x_delta
-    print('set xrange [{0}:{1}]'.format(x_min, x_max))
+  #else:
+    #x_min = min(x_values)
+    #x_max = max(x_values)
+    #x_delta = abs(max(abs(x_min), abs(x_max))*0.1)
+    #x_max = x_max + x_delta
+    #x_min = x_min - x_delta
+    #print('set xrange [{0}:{1}]'.format(x_min, x_max))
 
   # handle the y-axis
   if y_metric in op_list.translator:
@@ -252,13 +253,13 @@ def plot_op_list( op_list, x_metric, y_metric, color_metric = '' ):
     print('set ytics -1,1,{0}'.format(len(tics)-1))
     for tic in tics:
       print('set ytics add ({0})'.format(tic))
-  else:
-    y_min = min(y_values)
-    y_max = max(y_values)
-    y_delta = abs(max(abs(y_min), abs(y_max))*0.1)
-    y_min = y_min - y_delta
-    y_max = y_max + y_delta
-    print('set yrange [{0}:{1}]'.format(y_min, y_max))
+  #else:
+    #y_min = min(y_values)
+    #y_max = max(y_values)
+    #y_delta = abs(max(abs(y_min), abs(y_max))*0.1)
+    #y_min = y_min - y_delta
+    #y_max = y_max + y_delta
+    #print('set yrange [{0}:{1}]'.format(y_min, y_max))
 
   # handle the cb-tics
   if color_metric in op_list.translator:
