@@ -1155,6 +1155,21 @@ namespace margot
 
 
       /**
+       * @brief Force the state of the Asrtm to Design Space Exploration
+       *
+       * @details
+       * This method is supposed to be called by DA-ASRTM once it starts
+       * the local application handler.
+       */
+      inline void set_autotuner_in_dse( void )
+      {
+        // lock the asrtm, since we are changing its status
+        std::lock_guard<std::mutex> lock(manager_mutex);
+        status = ApplicationStatus::DESIGN_SPACE_EXPLORATION;
+      }
+
+
+      /**
        * @brief Replace the current knowledge base with the given Operating Point list
        *
        * @param [in] model The input Operating Points list

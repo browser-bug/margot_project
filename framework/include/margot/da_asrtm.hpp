@@ -966,6 +966,12 @@ namespace margot
         // disable the agora logging
         agora::my_agora_logger.set_filter_at(agora::LogLevel::DISABLED);
 
+        // set the Design Space Exploration state in the cluster managers
+        for ( auto& asrtm_pair : managers )
+        {
+          asrtm_pair.second.set_autotuner_in_dse();
+        }
+
         // initialize communication channel with the server
         remote.create<agora::PahoClient>(application_name, broker_url, qos_level, username, password, broker_ca, client_cert, client_key );
 
