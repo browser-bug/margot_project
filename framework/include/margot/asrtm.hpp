@@ -1081,6 +1081,9 @@ namespace margot
         // disable the agora logging
         agora::my_agora_logger.set_filter_at(agora::LogLevel::DISABLED);
 
+        // set the status of the autotuner to DSE
+        status = ApplicationStatus::UNDEFINED;
+
         // initialize communication channel with the server
         remote.create<agora::PahoClient>(application_name, broker_url, qos_level, username, password, broker_ca, client_cert, client_key );
 
