@@ -493,6 +493,18 @@ namespace margot
         std::lock_guard< std::mutex > lock(asrtm_mutex);
         return active_manager != managers.end() ? active_manager->second.in_design_space_exploration() : true;
       }
+      
+      
+      /**
+       * @brief Test whether the current manager has the model
+       *
+       * @return True, if we have the model
+       */
+      inline bool has_model( void ) const
+      {
+        std::lock_guard< std::mutex > lock(asrtm_mutex);
+        return active_manager != managers.end() ? active_manager->second.has_model() : true;
+      }      
 
 
 

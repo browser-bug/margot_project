@@ -473,6 +473,18 @@ namespace margot
         std::lock_guard< std::mutex > lock(manager_mutex);
         return status == ApplicationStatus::DESIGN_SPACE_EXPLORATION || status == ApplicationStatus::WITH_MODEL;
       }
+      
+      
+      /**
+       * @brief Test whether the model is available
+       *
+       * @return True, if the model of the application is available
+       */
+      inline bool has_model( void ) const
+      {
+        std::lock_guard< std::mutex > lock(manager_mutex);
+        return status == ApplicationStatus::WITH_MODEL || status == ApplicationStatus::TUNED;
+      }      
 
 
 

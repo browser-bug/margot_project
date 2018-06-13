@@ -480,6 +480,12 @@ def generate_margot_cc( block_models, op_lists, output_folder ):
     cc.write('#ifdef MARGOT_LOG_FILE\n')
     cc.write('#include "margot_logger.hpp"\n')
     cc.write('#endif // MARGOT_LOG_FILE\n')
+    
+    #if we have the "pause" element in agora we need to add these includes
+    #if not block_model.agora_model is None:
+    #  if not block_model.agora_model.pause_polling:
+    cc.write('#include <chrono>\n')
+    cc.write('#include <thread>\n')
 
     # write the disclaimer
     cc.write('\n\n\n/**\n')
@@ -774,6 +780,31 @@ def generate_margot_cc( block_models, op_lists, output_folder ):
           # eventually emit the code that starts the agora application local handler
           cc.write('\n\t\t// Start the agora pocal application handler thread\n')
           cc.write('\t\t{0}::manager.start_support_thread<{0}::operating_point_parser_t>({1});\n'.format(block_name, parameter_string))
+          
+          
+          #if we have the "pause" element in agora we need to create the busy waiting according to the polling and timeout set by the user
+          if not block_model.agora_model.pause_polling == "":
+            #without timeout
+            if block_model.agora_model.pause_timeout == "-1":
+              cc.write('\n\t\t// Busy waiting: wait for agora synchronization')
+              cc.write('\n\t\twhile ({0}::manager.is_application_knowledge_empty())'.format(block_name))
+              cc.write('\n\t\t{')
+              cc.write('\n\t\t\tstd::this_thread::sleep_for(std::chrono::milliseconds({0}));'.format(block_model.agora_model.pause_polling))
+              cc.write('\n\t\t}\n')
+            else:
+              #with timeout
+              cc.write('\n\t\t// Busy waiting: wait for agora synchronization')
+              cc.write('\n\t\tint timeout = {0};'.format(block_model.agora_model.pause_timeout))
+              cc.write('\n\t\twhile ({0}::manager.is_application_knowledge_empty())'.format(block_name))
+              cc.write('\n\t\t{')
+              cc.write('\n\t\t\tstd::this_thread::sleep_for(std::chrono::milliseconds({0}));'.format(block_model.agora_model.pause_polling))
+              cc.write('\n\t\t\ttimeout = timeout - {0};'.format(block_model.agora_model.pause_polling))
+              cc.write('\n\t\t\tif (timeout < 0)')
+              cc.write('\n\t\t\t{')
+              cc.write('\n\t\t\t\tbreak;')
+              cc.write('\n\t\t\t}')
+              cc.write('\n\t\t}\n')
+            
 
     cc.write('\t}\n')
 

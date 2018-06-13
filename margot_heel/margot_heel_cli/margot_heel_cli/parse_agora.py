@@ -22,6 +22,20 @@ def parse_agora( agora_xml_element, namespace = ''):
   agora_model.qos = get_parameter(agora_xml_element, 'qos')
   agora_model.doe = get_parameter(agora_xml_element, 'doe', prefixed_values = agora_model.available_does).lower()
   agora_model.number_observation = get_parameter(agora_xml_element, 'observations')
+  
+  # get (all) the "pause" element, even though it should be just one element
+  pause_xml_elements = get_elements(agora_xml_element, 'pause', namespace = namespace, unique = True)
+
+  #parse the pause information
+  if pause_xml_elements:
+
+      # parse it
+      agora_model.pause_polling = get_parameter(pause_xml_elements[0], 'polling_time', required = True)
+      if int(agora_model.pause_polling)<0:
+        raise Exception("Invalid pause polling value. Please insert an integer > 0!")
+      agora_model.pause_timeout = get_parameter(pause_xml_elements[0], 'timeout', required = True)
+      if int(agora_model.pause_timeout)<-1:
+        raise Exception("Invalid pause timeout value. Please insert an integer > -2!")
 
   # get all the knobs
   knobs_xml_elements = get_elements(agora_xml_element, 'explore', namespace = namespace, required = True )
@@ -82,5 +96,6 @@ def parse_agora( agora_xml_element, namespace = ''):
     # add the information to the agora model
     agora_model.metrics_predictors[metric_name] = metric_predictor
     agora_model.metrics_monitors[metric_name] = metric_monitor
+    
 
   return agora_model
