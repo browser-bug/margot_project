@@ -233,7 +233,14 @@ def generate_block_body( block_model, op_lists, cc ):
       cc.write('\t\t\tmanager.send_observation({0});\n'.format(send_string))
 
   cc.write('\n')
-  cc.write('\t\t}')
+  cc.write('\t\t}\n')
+  
+  
+  # write the "has_model()" function
+  cc.write('\n\n\t\tbool has_model()\n')
+  cc.write('\t\t{\n')
+  cc.write('\t\t\t return manager.has_model();\n')
+  cc.write('\t\t}\n')  
 
 
   # write the log function

@@ -29,6 +29,9 @@ def generate_block_body( block_model, op_list, cc ):
 
   # write the stop_monitor function
   cc.write('\n\nvoid margot_{0}_{1};\n'.format(block_model.block_name, generate_stop_monitor_signature(block_model)))
+  
+  # write the "has_model()" function
+  cc.write('\n\nint has_model( void );\n')
 
   # write the configuration applied function
   cc.write('\n\nvoid margot_{0}_configuration_applied( void );\n'.format(block_model.block_name))

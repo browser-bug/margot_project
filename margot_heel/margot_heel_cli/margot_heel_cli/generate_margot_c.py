@@ -41,6 +41,12 @@ def generate_block_body( block_model, op_list, cc ):
   cc.write('\t{\n')
   cc.write('\t\tmargot::{0}::{1};\n'.format(block_model.block_name, generate_stop_monitor_signature(block_model, True)))
   cc.write('\t}')
+  
+  # write the "has_model()" function
+  cc.write('\n\n\tint margot_{0}_has_model( void )\n'.format(block_model.block_name))
+  cc.write('\t{\n')
+  cc.write('\t\t return static_cast<int>(margot::{0}::has_model());\n'.format(block_model.block_name))
+  cc.write('\t}')  
 
   # write the configuration applied function
   if (block_model.metrics and block_model.software_knobs ):

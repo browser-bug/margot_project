@@ -144,6 +144,10 @@ def generate_block_body( block_model, op_lists, cc ):
 
   # write the stop_monitor function
   cc.write('\n\n\t\tvoid {0};\n'.format(generate_stop_monitor_signature(block_model)))
+  
+  
+  # write the "has_model()" function
+  cc.write('\n\n\t\tbool has_model( void );\n')
 
 
   # write the log function
