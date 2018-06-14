@@ -8,6 +8,7 @@ from .parse_adaptors import parse_adaptor
 from .parse_metrics import parse_metric
 from .parse_data_feature import parse_data_feature
 from .parse_agora import parse_agora
+from .parse_dataset import parse_dataset
 from . import model_block
 
 
@@ -110,6 +111,22 @@ def parse_block_xml( xml_block_root, namespace = '' ):
 
       # parse it
       model.agora_model = parse_agora(agora_xml_elements[0], namespace = namespace )
+
+  # get the datasets xml elements
+  datasets_xml_elements = get_elements(xml_block_root, 'datasets', namespace = namespace, unique = True)
+
+  #parse the datasets element
+  if datasets_xml_elements:
+    dataset_xml_elements = get_elements(datasets_xml_elements[0], 'dataset', required=True, namespace = namespace)
+    
+    #if the user does not provide exactly 2 datasets (training/production) then an exception is raised
+    if len(dataset_xml_elements)!=2:
+      raise Exception("Wrong number of datasets provided. Insert just one training and one production dataset!")
+    
+    #parse each dataset element and add it to the model
+    for dataset_xml_element in dataset_xml_elements:
+      dataset_model = parse_dataset(dataset_xml_element, namespace = namespace )
+      model.datasets_model.append(dataset_model)
 
   # parse each state
   for state_xml_element in state_xml_elements:

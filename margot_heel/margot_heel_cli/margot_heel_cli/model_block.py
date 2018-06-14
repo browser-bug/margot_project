@@ -40,6 +40,9 @@ class BlockModel:
     # the agora model, to enable online learning
     self.agora_model = None
 
+    # the datasets model
+    self.datasets_model = []
+
 
 
   def __str__(self):
@@ -88,6 +91,16 @@ class BlockModel:
     dump_string2 = '{0}\n\n------------- AGORA -------------'.format(dump_string2)
     if self.agora_model is not None:
         dump_string2 = '{0}\n{1}'.format(dump_string2, self.agora_model)
+    dump_string2 = '{0}\n'.format(dump_string2)
+
+
+    dump_string2 = '{0}\n\n------------- DATASETS -------------'.format(dump_string2)
+    if len(self.datasets_model)==2:
+      for dataset_model in self.datasets_model:
+        dump_string2 = '{0}\n{1}'.format(dump_string2, dataset_model)
+    else:
+      dump_string2 = '{0}\n\n  Datasets not provided.'.format(dump_string2)
+      dump_string2 = '{0}\n  Wrapper not available!'.format(dump_string2)
     dump_string2 = '{0}\n'.format(dump_string2)
 
     dump_string2 = dump_string2.replace('\n', '\n# ')
