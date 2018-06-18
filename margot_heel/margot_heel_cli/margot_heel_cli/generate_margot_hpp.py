@@ -133,6 +133,35 @@ def generate_block_body( block_model, op_lists, cc ):
   for monitor_model in block_model.monitor_models:
     for exposed_var_what in monitor_model.exposed_metrics:
       cc.write('\n\t\textern {1}::statistical_type {0};\n'.format(monitor_model.exposed_metrics[exposed_var_what], monitor_model.monitor_class))
+      
+  # write the datasets structs (if the detasets are provided) with built-in check if the training and production datasets have the same data structure
+  if len(block_model.datasets_model)==2:
+      cc.write('\n\n\t\tstruct dataset {\n')
+      thereIsString = False
+      for input_data_model in block_model.datasets_model[0].input_data_models:
+          if (input_data_model.type == "string"):
+              cc.write('\t\t\tstd::{0} {1};\n'.format(input_data_model.type, input_data_model.name))
+              thereIsString = True
+          else:
+              cc.write('\t\t\t{0} {1};\n'.format(input_data_model.type, input_data_model.name))
+      cc.write('\t\t};\n')
+          
+      #write the wrapper's functions signature
+      #get_dataset()
+      cc.write('\n\n\t\tdataset get_dataset( void );\n')
+      
+      #get_datasetC()
+      cc.write('\n\n\t\tdatasetC_{0} get_datasetC( void );\n'.format(block_model.block_name))
+      
+      #next()()
+      cc.write('\n\n\t\tvoid next( void );\n')
+      
+      #to_do()
+      cc.write('\n\n\t\tbool to_do( void );\n')
+      
+      #dataset_type_switch()
+      cc.write('\n\n\t\tbool dataset_type_switch( void );\n')
+      
 
   # write the update function
   cc.write('\n\n\t\tbool {0};\n'.format(generate_update_signature(block_model)))
@@ -148,6 +177,9 @@ def generate_block_body( block_model, op_lists, cc ):
   
   # write the "has_model()" function
   cc.write('\n\n\t\tbool has_model( void );\n')
+  
+  # write the "compute_error()" function
+  cc.write('\n\n\t\tbool compute_error( void );\n')
 
 
   # write the log function
@@ -203,6 +235,13 @@ def generate_margot_hpp( block_models, op_lists, output_folder ):
     for h in required_headers:
       cc.write('#include {0}\n'.format(h))
 
+    # if we have the wrapper we need to add this include
+    for block_name in block_models:
+      if len(block_models[block_name].datasets_model)==2:
+          cc.write('\nextern "C" {')
+          cc.write('\n\t#include <datasetC.h>')
+          cc.write('\n}')
+          break
 
     # write the output flags
     cc.write('\n\n// decomment/comment these macros to enable/disable features\n')
@@ -212,6 +251,7 @@ def generate_margot_hpp( block_models, op_lists, output_folder ):
     cc.write('#ifndef MARGOT_DISABLE_LOG_FILE\n')
     cc.write('#define MARGOT_LOG_FILE\n')
     cc.write('#endif // MARGOT_DISABLE_LOG_FILE')
+    
 
     # put some new lines
     cc.write('\n\n')

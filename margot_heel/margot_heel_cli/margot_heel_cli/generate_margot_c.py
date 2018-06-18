@@ -14,6 +14,34 @@ def generate_block_body( block_model, op_list, cc ):
   """
 
   cc.write('\n\n\t// The interface for the managed block "{0}"\n'.format(block_model.block_name))
+  
+  # write the datasets structs (if the detasets are provided) with built-in check if the training and production datasets have the same data structure
+  if len(block_model.datasets_model)==2:
+      
+      #write the wrapper's functions signature
+      #get_dataset()
+      cc.write('\n\tdatasetC_{0} margot_{0}_get_dataset( void )\n'.format(block_model.block_name))
+      cc.write('\t{\n')
+      cc.write('\t\treturn margot::{0}::get_datasetC();\n'.format(block_model.block_name))
+      cc.write('\t}')
+      
+      #next()()
+      cc.write('\n\n\tvoid margot_{0}_next( void )\n'.format(block_model.block_name))
+      cc.write('\t{\n')
+      cc.write('\t\tmargot::{0}::next();\n'.format(block_model.block_name))
+      cc.write('\t}')
+      
+      #to_do()
+      cc.write('\n\n\tint margot_{0}_to_do( void )\n'.format(block_model.block_name))
+      cc.write('\t{\n')
+      cc.write('\t\treturn static_cast<int>(margot::{0}::to_do());\n'.format(block_model.block_name))
+      cc.write('\t}')
+      
+      #dataset_type_switch()
+      cc.write('\n\n\tint margot_{0}_dataset_type_switch( void )\n'.format(block_model.block_name))
+      cc.write('\t{\n')
+      cc.write('\t\treturn static_cast<int>(margot::{0}::dataset_type_switch());\n'.format(block_model.block_name))
+      cc.write('\t}')
 
   # write the update function
   cc.write('\n\n\tint margot_{0}_{1}\n'.format(block_model.block_name, generate_update_signature(block_model, c_language = True)))
@@ -46,6 +74,12 @@ def generate_block_body( block_model, op_list, cc ):
   cc.write('\n\n\tint margot_{0}_has_model( void )\n'.format(block_model.block_name))
   cc.write('\t{\n')
   cc.write('\t\t return static_cast<int>(margot::{0}::has_model());\n'.format(block_model.block_name))
+  cc.write('\t}')  
+  
+  # write the "compute_error()" function
+  cc.write('\n\n\tint margot_main_kmeans_compute_error( void )\n'.format(block_model.block_name))
+  cc.write('\t{\n')
+  cc.write('\t\t return static_cast<int>(margot::{0}::compute_error());\n'.format(block_model.block_name))
   cc.write('\t}')  
 
   # write the configuration applied function

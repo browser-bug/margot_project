@@ -128,6 +128,25 @@ def parse_block_xml( xml_block_root, namespace = '' ):
       dataset_model = parse_dataset(dataset_xml_element, namespace = namespace )
       model.datasets_model.append(dataset_model)
 
+    # datasets validity checker
+    valid = True
+    if not (len(model.datasets_model[0].input_data_models) == len(model.datasets_model[1].input_data_models)):
+        valid = False
+    if not valid:
+        raise Exception("The training and production datasets must have the same structure in terms of parameters quantity!")
+    for x in range(len(model.datasets_model[0].input_data_models)):
+        if not (model.datasets_model[0].input_data_models[x].name == model.datasets_model[1].input_data_models[x].name):
+            valid = False
+            break
+    if not valid:
+        raise Exception("The training and production datasets must have the same structure in terms of parameters name!")
+    for x in range(len(model.datasets_model[0].input_data_models)):
+        if not (model.datasets_model[0].input_data_models[x].type == model.datasets_model[1].input_data_models[x].type):
+            valid = False
+            break
+    if not valid:
+        raise Exception("The training and production datasets must have the same structure in terms of parameters type!")
+
   # parse each state
   for state_xml_element in state_xml_elements:
 

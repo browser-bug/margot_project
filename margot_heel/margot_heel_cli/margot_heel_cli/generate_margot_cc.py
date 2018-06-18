@@ -131,6 +131,130 @@ def generate_block_body( block_model, op_lists, cc ):
   for monitor_model in block_model.monitor_models:
     for exposed_var_what in monitor_model.exposed_metrics:
       cc.write('\n\t\t{1}::statistical_type {0};\n'.format(monitor_model.exposed_metrics[exposed_var_what], monitor_model.monitor_class))
+      
+  # write the datasets structs (if the detasets are provided) with built-in check if the training and production datasets have the same data structure
+  if len(block_model.datasets_model)==2:
+      thereIsString = False
+      for input_data_model in block_model.datasets_model[0].input_data_models:
+          if (input_data_model.type == "string"):
+              thereIsString = True
+      
+      #write the two vectors of struct already filled with data
+      for dataset_model in block_model.datasets_model:
+          if dataset_model.type == "training":
+             structName = "std::vector<dataset> trainingStruct = {"
+             cc.write('\n\t\t{0}\n'.format(structName))
+             for x in range(len(dataset_model.input_data_models[0].values)):
+                 cc.write('\t\t\t{')
+                 for y in range(len(dataset_model.input_data_models)):
+                     # manage the final comma and the quotes for the strings
+                     if (dataset_model.input_data_models[y].type == "string"):
+                         cc.write('"{0}"'.format(dataset_model.input_data_models[y].values[x]))
+                     else:
+                         cc.write('{0}'.format(dataset_model.input_data_models[y].values[x]))
+                     if not (y == (len(dataset_model.input_data_models)-1)):
+                         cc.write(', ')
+                 if (x == (len(dataset_model.input_data_models[0].values)-1)):
+                     cc.write('}\n')
+                 else:
+                     cc.write('},\n')
+             cc.write('\t\t};\n')
+          else:
+             structName = "std::vector<dataset> productionStruct = {" 
+             cc.write('\n\t\t{0}\n'.format(structName))
+             for x in range(len(dataset_model.input_data_models[0].values)):
+                 cc.write('\t\t\t{')
+                 for y in range(len(dataset_model.input_data_models)):
+                     # manage the final comma and the quotes for the strings
+                     if (dataset_model.input_data_models[y].type == "string"):
+                         cc.write('"{0}"'.format(dataset_model.input_data_models[y].values[x]))
+                     else:
+                         cc.write('{0}'.format(dataset_model.input_data_models[y].values[x]))
+                     if not (y == (len(dataset_model.input_data_models)-1)):
+                         cc.write(', ')
+                 if (x == (len(dataset_model.input_data_models[0].values)-1)):
+                     cc.write('}\n')
+                 else:
+                     cc.write('},\n')
+             cc.write('\t\t};\n')
+             
+      #generate iterators for datasets
+      cc.write("\n\t\tstd::vector<dataset>::iterator itTrain = trainingStruct.begin();")  
+      cc.write("\n\t\tstd::vector<dataset>::iterator itProd = productionStruct.begin();")
+      
+      #generate other helper variables
+      cc.write("\n\n\t\tbool work_to_do = true;")
+      cc.write("\n\t\tbool lastDatasetPassedWasTraining;")
+      
+      #generate the helper data structures
+      cc.write("\n\n\t\tdataset currentDataset;")
+      cc.write("\n\t\tdataset currentDatasetTemp;")
+      #if thereIsString:
+      cc.write("\n\t\tdatasetC_{0} currentDatasetC;".format(block_model.block_name))
+          
+      
+      #write the getDataset function
+      cc.write("\n\n\t\tdataset get_dataset(){")
+      cc.write("\n\t\t\tif (!manager.has_model()){")
+      cc.write("\n\t\t\t\tlastDatasetPassedWasTraining = true;")
+      cc.write("\n\t\t\t\tcurrentDataset = *itTrain;")
+      cc.write("\n\t\t\t\treturn currentDataset;")
+      cc.write("\n\t\t\t} else {")
+      cc.write("\n\t\t\t\tlastDatasetPassedWasTraining = false;")
+      cc.write("\n\t\t\t\tcurrentDataset = *itProd;")
+      cc.write("\n\t\t\t\treturn currentDataset;")
+      cc.write("\n\t\t\t}")
+      cc.write("\n\t\t}")
+      
+      #TODO: write the getDatasetForC
+      cc.write("\n\n\t\tdatasetC_{0} get_datasetC()".format(block_model.block_name))
+      cc.write('\n\t\t{')
+      cc.write("\n\t\t\tcurrentDatasetTemp = get_dataset();")
+      for x in range(len(dataset_model.input_data_models)):
+          if (dataset_model.input_data_models[x].type == "string"):
+              cc.write("\n\t\t\tcurrentDatasetC.{0} = const_cast<char*>(currentDatasetTemp.{0}.c_str());".format(dataset_model.input_data_models[x].name))
+          else:
+              cc.write("\n\t\t\tcurrentDatasetC.{0} = currentDatasetTemp.{0};".format(dataset_model.input_data_models[x].name))
+      cc.write("\n\t\t\treturn currentDatasetC;")
+      cc.write("\n\t\t}")
+      
+      #write the next function
+      cc.write("\n\n\t\tvoid next(){")
+      cc.write("\n\t\t\tif (lastDatasetPassedWasTraining){")
+      cc.write("\n\t\t\t\tif ((itTrain+1) != trainingStruct.end()){")
+      cc.write("\n\t\t\t\t\titTrain++;")
+      cc.write("\n\t\t\t\t} else {")
+      cc.write("\n\t\t\t\t\titTrain = trainingStruct.begin();")
+      cc.write("\n\t\t\t\t}")
+      cc.write("\n\t\t\t} else {")
+      cc.write("\n\t\t\t\tif ((itProd+1) != productionStruct.end()){")
+      cc.write("\n\t\t\t\t\titProd++;")
+      cc.write("\n\t\t\t\t} else {")
+      cc.write("\n\t\t\t\t\twork_to_do = false;")
+      cc.write("\n\t\t\t\t}")
+      cc.write("\n\t\t\t}")
+      cc.write("\n\t\t}")
+      
+      #write the toDo function
+      cc.write("\n\n\t\tbool to_do(){")
+      cc.write("\n\t\t\treturn work_to_do;")
+      cc.write("\n\t\t}")
+      
+      
+      #write the dataset_type_switch function
+      cc.write("\n\n\t\t//TODO:check if we need to use the 'has_model()' or the 'in_design_space_exploration' function")
+      cc.write("\n\t\tbool dataset_type_switch(){")
+      cc.write("\n\t\t\tif ((lastDatasetPassedWasTraining && (manager.has_model())) || (!lastDatasetPassedWasTraining && (!manager.has_model()))){")
+      cc.write("\n\t\t\t\treturn true;")
+      cc.write("\n\t\t\t} else {")
+      cc.write("\n\t\t\t\treturn false;")
+      cc.write("\n\t\t\t}")
+      cc.write("\n\t\t}")
+      
+      
+      #TODO: update header.hpp with new methods
+      
+             
 
   # write the update function
   cc.write('\n\n\t\tbool {0}\n'.format(generate_update_signature(block_model)))
@@ -241,6 +365,12 @@ def generate_block_body( block_model, op_lists, cc ):
   cc.write('\t\t{\n')
   cc.write('\t\t\t return manager.has_model();\n')
   cc.write('\t\t}\n')  
+  
+  #write the compute_error function
+  cc.write("\n\n\t\tbool compute_error()")
+  cc.write("\n\t\t{")
+  cc.write("\n\t\t\treturn false;")
+  cc.write("\n\t\t}")
 
 
   # write the log function
@@ -488,11 +618,19 @@ def generate_margot_cc( block_models, op_lists, output_folder ):
     cc.write('#include "margot_logger.hpp"\n')
     cc.write('#endif // MARGOT_LOG_FILE\n')
     
-    #if we have the "pause" element in agora we need to add these includes
-    #if not block_model.agora_model is None:
-    #  if not block_model.agora_model.pause_polling:
-    cc.write('#include <chrono>\n')
-    cc.write('#include <thread>\n')
+    # if we have the "pause" element in agora we need to add these includes
+    for block_name in block_models:
+      if not block_models[block_name].agora_model.pause_polling == "":
+          cc.write('#include <chrono>\n')
+          cc.write('#include <thread>\n')  
+          break
+          
+    # if we have the wrapper we need to add these includes
+    for block_name in block_models:
+      if len(block_models[block_name].datasets_model)==2:
+          cc.write('#include <vector>\n')
+          cc.write('#include <iterator>\n') 
+          break
 
     # write the disclaimer
     cc.write('\n\n\n/**\n')

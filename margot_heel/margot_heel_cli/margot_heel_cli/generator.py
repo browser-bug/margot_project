@@ -9,6 +9,7 @@ from .generate_op_list import generate_op_lists
 from .generate_margot_h import generate_margot_h
 from .generate_margot_c import generate_margot_c
 from .generate_margot_logger_hpp import generate_margot_logger_hpp
+from .generate_datasetC import generate_datasetC_h
 
 
 def mkdir_p(p):
@@ -59,3 +60,9 @@ def generate_source_files( block_models, op_lists, output_folder ):
 
   # generate the margot.cc source file
   generate_margot_cc(block_models, op_lists, output_folder)
+  
+  # generate the datasetC.h source file if at least a block uses the wrapper
+  for block_name in block_models:
+      if len(block_models[block_name].datasets_model)==2:
+          generate_datasetC_h(block_models, output_folder)
+          break

@@ -14,6 +14,22 @@ def generate_block_body( block_model, op_list, cc ):
   """
 
   cc.write('\n\n// The interface for the managed block "{0}"\n'.format(block_model.block_name))
+  
+  # write the datasets structs (if the detasets are provided) with built-in check if the training and production datasets have the same data structure
+  if len(block_model.datasets_model)==2:
+          
+      #write the wrapper's functions signature
+      #get_dataset()
+      cc.write('\n\ndatasetC_{0} margot_{0}_get_dataset( void );\n'.format(block_model.block_name))
+      
+      #next()()
+      cc.write('\n\nvoid margot_{0}_next( void );\n'.format(block_model.block_name))
+      
+      #to_do()
+      cc.write('\n\nint margot_{0}_to_do( void );\n'.format(block_model.block_name))
+      
+      #dataset_type_switch()
+      cc.write('\n\nint margot_{0}_dataset_type_switch( void );\n'.format(block_model.block_name))
 
   # write the update function
   cc.write('\n\nint margot_{0}_{1};\n'.format(block_model.block_name, generate_update_signature(block_model, c_language = True)))
@@ -31,7 +47,10 @@ def generate_block_body( block_model, op_list, cc ):
   cc.write('\n\nvoid margot_{0}_{1};\n'.format(block_model.block_name, generate_stop_monitor_signature(block_model)))
   
   # write the "has_model()" function
-  cc.write('\n\nint has_model( void );\n')
+  cc.write('\n\nint margot_{0}_has_model( void );\n'.format(block_model.block_name))
+  
+  # write the "compute_error()" function
+  cc.write('\n\nint margot_{0}_compute_error( void );\n'.format(block_model.block_name))
 
   # write the configuration applied function
   cc.write('\n\nvoid margot_{0}_configuration_applied( void );\n'.format(block_model.block_name))
@@ -116,6 +135,12 @@ def generate_margot_h( block_models, op_lists, output_folder ):
     cc.write('#include <stddef.h>\n')
     cc.write('#include <inttypes.h>\n')
     cc.write('\n\n')
+    
+    # if we have the wrapper we need to add this include
+    for block_name in block_models:
+      if len(block_models[block_name].datasets_model)==2:
+          cc.write('#include <datasetC.h>')
+          break
 
     # write the disclaimer
     cc.write('\n\n\n/**\n')
