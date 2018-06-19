@@ -57,6 +57,7 @@ namespace agora
       virtual std::string get_model_name( const std::string& application_name ) const = 0;
       virtual std::string get_knobs_name( const std::string& application_name ) const = 0;
       virtual std::string get_features_name( const std::string& application_name ) const = 0;
+      virtual std::string get_doe_name( const std::string& application_name) const = 0;
 
 
       virtual ~FsHandler( void ) {}
