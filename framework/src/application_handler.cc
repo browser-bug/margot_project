@@ -295,6 +295,9 @@ void RemoteApplicationHandler::process_info( const std::string& info_message )
   // create the table required to store the execution trace of the application
   io::storage.create_trace_table(description);
 
+  // create the table required to store the Design of Experiment
+  io::storage.store_doe(description, {});
+
   // create and store the requested predictions
   info("Handler ", description.application_name, ": building the DoE - generating the required predictions...");
   model.create(description);
