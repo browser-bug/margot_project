@@ -265,7 +265,7 @@ void RemoteApplicationHandler::process_info( const std::string& info_message )
   // -- CASE 1: the information are not ok
   // there is no a trivial solution to this case, the best that we can
   // do is to keep asking information to random clients until something ok
-  // happens. This statements holds even if we have kust one client
+  // happens. This statements holds even if we have just one client
   if ( description.knobs.empty() || description.metrics.empty() )
   {
     status = ApplicationStatus::ASKING_FOR_INFORMATION;
@@ -280,7 +280,7 @@ void RemoteApplicationHandler::process_info( const std::string& info_message )
 
   // -- CASE 2: the information are ok
   // we need to compute and create everything
-  // this could lst long, so we release the lock
+  // this could last long, so we release the lock
   guard.unlock();
 
   info("Handler ", description.application_name, ": building the DoE");
