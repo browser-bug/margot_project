@@ -905,8 +905,8 @@ void CassandraClient::create_trace_table( const application_description_t& descr
   table_name += "_trace";
 
   // compose the table description and the primary keys
-  std::string table_desc = "day date,time time,client_id text,";
-  std::string primary_key = "day,time,client_id,";
+  std::string table_desc = "day date,timestamp time,client_id text,";
+  std::string primary_key = "day,timestamp,client_id,";
   const int number_of_knobs = static_cast<int>(description.knobs.size());
   const int number_of_features = static_cast<int>(description.features.size());
   const int number_of_metrics = static_cast<int>(description.metrics.size());
@@ -943,7 +943,7 @@ void CassandraClient::insert_trace_entry( const application_description_t& descr
   table_name += "_trace";
 
   // compose the table description and the primary keys
-  std::string fields = "day,time,client_id,";
+  std::string fields = "day,timestamp,client_id,";
 
   for ( const auto& knob : description.knobs )
   {
