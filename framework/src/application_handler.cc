@@ -242,20 +242,6 @@ void RemoteApplicationHandler::process_info( const std::string& info_message )
           new_metric.set(info_element.substr(header_size));
           description.metrics.emplace_back(new_metric);
         }
-        else
-        {
-          if (line_topic.compare("doe       ") == 0)
-          {
-            doe_strategy = info_element.substr(header_size);
-          }
-          else
-          {
-            if (line_topic.compare("num_obser ") == 0)
-            {
-              std::istringstream ( info_element.substr(header_size) ) >> number_observations;
-            }
-          }
-        }
       }
     }
   }

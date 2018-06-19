@@ -13,15 +13,13 @@ def parse_agora( agora_xml_element, namespace = ''):
   agora_model = model_agora.AgoraModel()
 
   # parse all the agora attributes
-  agora_model.broker_url = get_parameter(agora_xml_element, 'address')
-  agora_model.username = get_parameter(agora_xml_element, 'username')
-  agora_model.password = get_parameter(agora_xml_element, 'password')
-  agora_model.broker_ca = get_parameter(agora_xml_element, 'broker_ca')
-  agora_model.client_cert = get_parameter(agora_xml_element, 'client_cert')
-  agora_model.client_key = get_parameter(agora_xml_element, 'client_key')
-  agora_model.qos = get_parameter(agora_xml_element, 'qos')
-  agora_model.doe = get_parameter(agora_xml_element, 'doe', prefixed_values = agora_model.available_does).lower()
-  agora_model.number_observation = get_parameter(agora_xml_element, 'observations')
+  agora_model.broker_url = get_parameter(agora_xml_element, 'address', required = False)
+  agora_model.username = get_parameter(agora_xml_element, 'username', required = False)
+  agora_model.password = get_parameter(agora_xml_element, 'password', required = False )
+  agora_model.broker_ca = get_parameter(agora_xml_element, 'broker_ca', required = False )
+  agora_model.client_cert = get_parameter(agora_xml_element, 'client_cert', required = False)
+  agora_model.client_key = get_parameter(agora_xml_element, 'client_key', required = False)
+  agora_model.qos = get_parameter(agora_xml_element, 'qos', required = False)
 
   # get all the knobs
   knobs_xml_elements = get_elements(agora_xml_element, 'explore', namespace = namespace, required = True )
