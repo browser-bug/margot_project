@@ -13,13 +13,29 @@ def parse_agora( agora_xml_element, namespace = ''):
   agora_model = model_agora.AgoraModel()
 
   # parse all the agora attributes
-  agora_model.broker_url = get_parameter(agora_xml_element, 'address', required = False)
-  agora_model.username = get_parameter(agora_xml_element, 'username', required = False)
-  agora_model.password = get_parameter(agora_xml_element, 'password', required = False )
-  agora_model.broker_ca = get_parameter(agora_xml_element, 'broker_ca', required = False )
-  agora_model.client_cert = get_parameter(agora_xml_element, 'client_cert', required = False)
-  agora_model.client_key = get_parameter(agora_xml_element, 'client_key', required = False)
-  agora_model.qos = get_parameter(agora_xml_element, 'qos', required = False)
+  broker_url = get_parameter(agora_xml_element, 'address', required = False)
+  username = get_parameter(agora_xml_element, 'username', required = False)
+  password = get_parameter(agora_xml_element, 'password', required = False )
+  broker_ca = get_parameter(agora_xml_element, 'broker_ca', required = False )
+  client_cert = get_parameter(agora_xml_element, 'client_cert', required = False)
+  client_key = get_parameter(agora_xml_element, 'client_key', required = False)
+  qos = get_parameter(agora_xml_element, 'qos', required = False)
+
+  # update the model
+  if broker_url:
+      agora_model.broker_url = broker_url
+  if username:
+      agora_model.username = username
+  if password:
+      agora_model.password = password
+  if broker_ca:
+      agora_model.broker_ca = broker_ca
+  if client_cert:
+      agora_model.client_cert = client_cert
+  if client_key:
+      agora_model.client_key = client_key
+  if qos:
+      agora_model.qos = qos
 
   # get all the knobs
   knobs_xml_elements = get_elements(agora_xml_element, 'explore', namespace = namespace, required = True )
