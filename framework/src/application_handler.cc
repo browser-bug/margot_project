@@ -283,36 +283,85 @@ void RemoteApplicationHandler::process_info( const std::string& info_message )
   // this could last long, so we release the lock
   guard.unlock();
 
-  info("Handler ", description.application_name, ": building the DoE");
+  info("Handler ", description.application_name, ": building the DoE - storing required information... ");
 
 
-  // ---------------------------------------------------------------------------------------------- This is to play with doe parameters
-  if (doe_strategy.compare("full_factorial") == 0)
+  // We let the plugins that model the metrics to generate the configurations
+  // required to drive the model, therefore we need to:
+
+  // store the description of the application
+  io::storage.store_description(description);
+
+  // create the table required to store the execution trace of the application
+  io::storage.create_trace_table(description);
+
+  // create and store the requested predictions
+  info("Handler ", description.application_name, ": building the DoE - generating the required predictions...");
+  model.create(description);
+  io::storage.store_model(description, model);
+  model.knowledge.clear();
+
+  // now we call the model of the application
+  info("Handler ", description.application_name, ": building the DoE - calling the plugins...");
+  io::builder(description);
+
+  // now we need to retrieve the required configuration to explore
+  info("Handler ", description.application_name, ": building the DoE - recovering the information...");
+  doe = io::storage.load_doe(description.application_name);
+
+  // check if we actually have configuration to explore
+  const bool with_configuration_to_explore = !doe.required_explorations.empty();
+  bool with_model = false;
+
+  // if we don't have any configuration we could be in truble
+  if (!with_configuration_to_explore)
   {
-    doe.create<DoeStrategy::FULL_FACTORIAL>(description, number_observations);
+    // maybe we have already the model, so there is no need to explore anything
+    model = io::storage.load_model(description.application_name);
+
+    // check if it is alredy like that
+    const std::size_t theoretical_number_of_columns = description.knobs.size()
+        + description.features.size()
+        + (2 * description.metrics.size());
+    with_model = static_cast<std::size_t>(model.column_size()) == theoretical_number_of_columns;
+  }
+
+  // we are now ready to change the state and see what happens
+  guard.lock();
+
+  // in this case we have configuration to send to the clients
+  if (with_configuration_to_explore)
+  {
+    info("Handler ", description.application_name, ": starting the Design Space Exploration");
+    status = ApplicationStatus::EXPLORING;
+
+    for ( const auto& client : active_clients )
+    {
+      send_configuration(client);
+    }
   }
   else
   {
-    warning("Handler ", description.application_name, ": unable to create doe strategy \"", doe_strategy, "\", using full-factorial");
-    doe.create<DoeStrategy::FULL_FACTORIAL>(description, number_observations);
-  }
+    // if we have a model it is fine
+    if (with_model)
+    {
+      info("Handler ", description.application_name, ": we have a model without a DSE... woa, that's fortunate, i was about to panic");
 
+      // change the application status
+      status = ApplicationStatus::WITH_MODEL;
 
-  // once that we have creatd the doe, we need to create or store infomation
-  io::storage.store_description(description);
-  io::storage.store_doe(description, doe);
-  io::storage.create_trace_table(description);
-
-  // we are now ready to change the state and dispatch the configuration to clients
-  guard.lock();
-
-  // now, we need to send configurations
-  info("Handler ", description.application_name, ": starting the Design Space Exploration");
-  status = ApplicationStatus::EXPLORING;
-
-  for ( const auto& client : active_clients )
-  {
-    send_configuration(client);
+      // check if there is still anyone in the application
+      if (!active_clients.empty())
+      {
+        send_model("margot/" + description.application_name + "/model");
+      }
+    }
+    else
+    {
+      // no one has generated any configuration for me and i don't have a model
+      // i don't know what to do, i just panic and start to cry...
+      warning("Handler ", description.application_name, ": nobody has configurations for me to explore and neither a model to use... i give up and start crying :(");
+    }
   }
 }
 
@@ -412,35 +461,72 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
   // release the lock
   guard.unlock();
 
-
-  // let's start filling the model with the required predictions
-  info("Handler ", description.application_name, ": generating the required predictions...");
-  model.create(description);
-
-  // put it in the storage
-  io::storage.store_model(description, model);
-  model.knowledge.clear(); // at this point we don't need it
-
   // actually build the model
-  info("Handler ", description.application_name, ": building the model...");
+  info("Handler ", description.application_name, ": building the knowledge - calling the plugins...");
   io::builder(description);
 
   // then read the model from the storage
   model = io::storage.load_model(description.application_name);
 
 
+  // now we need to retrieve the required configuration to explore
+  info("Handler ", description.application_name, ": building the knowledge - recovering the information...");
+  doe = io::storage.load_doe(description.application_name);
+
+  // check if we actually have configuration to explore
+  const bool with_configuration_to_explore = !doe.required_explorations.empty();
+  bool with_model = false;
+
+  // if we don't have any configuration we could be in truble
+  if (!with_configuration_to_explore)
+  {
+    // maybe we have already the model, so there is no need to explore anything
+    model = io::storage.load_model(description.application_name);
+
+    // check if it is alredy like that
+    const std::size_t theoretical_number_of_columns = description.knobs.size()
+        + description.features.size()
+        + (2 * description.metrics.size());
+    with_model = static_cast<std::size_t>(model.column_size()) == theoretical_number_of_columns;
+  }
+
+
   // eventually we have to change the status to with model
   guard.lock();
 
-  info("Handler ", description.application_name, ": now we have a model");
-
-  // change the application status
-  status = ApplicationStatus::WITH_MODEL;
-
-  // check if there are still anyone in the application
-  if (!active_clients.empty())
+  // in this case we have configuration to send to the clients
+  if (with_configuration_to_explore)
   {
-    send_model("margot/" + description.application_name + "/model");
+    info("Handler ", description.application_name, ": restarting the Design Space Exploration");
+    status = ApplicationStatus::EXPLORING;
+
+    for ( const auto& client : active_clients )
+    {
+      send_configuration(client);
+    }
+  }
+  else
+  {
+    // if we have a model it is fine
+    if (with_model)
+    {
+      info("Handler ", description.application_name, ": we have a model without a DSE... woa, that's fortunate, i was about to panic");
+
+      // change the application status
+      status = ApplicationStatus::WITH_MODEL;
+
+      // check if there is still anyone in the application
+      if (!active_clients.empty())
+      {
+        send_model("margot/" + description.application_name + "/model");
+      }
+    }
+    else
+    {
+      // no one has generated any configuration for me and i don't have a model
+      // i don't know what to do, i just panic and start to cry...
+      warning("Handler ", description.application_name, ": nobody has configurations for me to explore and neither a model to use... i give up and start crying :(");
+    }
   }
 }
 
