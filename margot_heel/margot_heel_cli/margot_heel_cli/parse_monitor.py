@@ -65,6 +65,20 @@ def parse_monitor( monitor_xml_element, namespace = ''):
     monitor_spec.monitor_name = my_monitor_model.monitor_name
     my_monitor_model = monitor_spec
 
+  # error monitor specific parameters
+  if monitor_type.lower() == "error":
+     enable_xml_elements = get_elements(monitor_xml_element, 'enable', required = True, namespace = namespace, unique = True)
+
+     if enable_xml_elements:
+       # get the known frequency type
+       known_frequency_types = model_monitor.available_frequencies
+       my_monitor_model.frequency = get_parameter(enable_xml_elements[0], 'frequency', required = True, prefixed_values = known_frequency_types)
+
+       if my_monitor_model.frequency == "periodic":
+         my_monitor_model.period = get_parameter(enable_xml_elements[0], 'period', required = True)
+         if not my_monitor_model.period.isdigit():
+           raise Exception("The period for the error monitor activation must be a positive integer!")
+
 
   ###################################
   ## PARSING THE IN/OUT PARAMETERS

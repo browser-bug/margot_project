@@ -43,6 +43,10 @@ class MonitorModel:
     # The output parameters key -> what, value -> var name
     self.exposed_metrics = {}
 
+    # Error monitor specific parameters
+    self.frequency = ''
+    self.period = ''
+
 
   def check_consistency(self):
     """
@@ -91,6 +95,11 @@ class MonitorModel:
     for exposed_var in self.exposed_metrics:
       dump_string = '{0}\n    "{1}" in a variable with name "{2}"'.format(dump_string, exposed_var.upper(), self.exposed_metrics[exposed_var])
 
+    if self.frequency:
+      dump_string = '{0}\n    Error monitor frequency: {1}'.format(dump_string, self.frequency)
+    if self.period:
+      dump_string = '{0}\n    Error monitor period: {1}'.format(dump_string, self.period)
+
     return dump_string
 
 
@@ -112,8 +121,11 @@ know_monitor_spec = [
   'ENERGY',
   'ODROID_POWER',
   'ODROID_ENERGY',
-  'COLLECTOR'
+  'COLLECTOR',
+  'ERROR'
 ]
+
+available_frequencies = ['never', 'always', 'periodic', 'auto']
 
 
 def get_monitor_spec( monitor_type ):
@@ -276,6 +288,18 @@ def get_monitor_spec( monitor_type ):
     my_monitor.monitor_type = 'margot::OdroidEnergyMonitor::value_type'
     my_monitor.stop_method = 'stop'
     my_monitor.start_method = 'start'
+
+    return my_monitor
+
+  if monitor_type.upper() == 'ERROR':
+    # create the model
+    my_monitor = MonitorModel()
+
+    # set the spec
+    my_monitor.monitor_class = 'margot::ErrorMonitor'
+    my_monitor.monitor_header = '<margot/error_monitor.hpp>'
+    my_monitor.stop_method = 'stop'
+
 
     return my_monitor
 

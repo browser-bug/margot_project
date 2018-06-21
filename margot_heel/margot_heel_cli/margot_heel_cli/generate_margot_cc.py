@@ -42,8 +42,24 @@ def generate_block_body( block_model, op_lists, cc ):
     cc.write('\n\t\tnamespace monitor {\n')
 
     # loop over the monitor
+    thereIsErrorMonitor = False
+    errorIsPeriodic = False
+    errorIsAlways = False
+    errorIsNever = False
+    errorPeriod = 0
     for monitor_model in block_model.monitor_models:
       cc.write('\t\t\t{0} {1};\n'.format(monitor_model.monitor_class, monitor_model.monitor_name))
+      
+      # look for the error monitor and prepare the information about it
+      if "ERROR" in monitor_model.monitor_class.upper():
+        thereIsErrorMonitor = True
+        if monitor_model.frequency == "periodic":
+          errorIsPeriodic = True
+          errorPeriod = monitor_model.period
+        elif monitor_model.frequency == "always":
+          errorIsAlways = True
+        elif monitor_model.frequency == "never":
+          errorIsNever = True
 
     # close the monitor namespace
     cc.write('\t\t} // namespace monitor\n')
@@ -132,6 +148,14 @@ def generate_block_body( block_model, op_lists, cc ):
     for exposed_var_what in monitor_model.exposed_metrics:
       cc.write('\n\t\t{1}::statistical_type {0};\n'.format(monitor_model.exposed_metrics[exposed_var_what], monitor_model.monitor_class))
       
+      
+  # write the helper variables for the error management
+  if thereIsErrorMonitor:
+    cc.write('\n\t\tbool expectingErrorReturn = false;\n')
+    if errorIsPeriodic:
+      cc.write('\n\t\tint errorIterationCounter = 0;\n')
+      
+  
   # write the datasets structs (if the detasets are provided) with built-in check if the training and production datasets have the same data structure
   if len(block_model.datasets_model)==2:
       thereIsString = False
@@ -367,10 +391,27 @@ def generate_block_body( block_model, op_lists, cc ):
   cc.write('\t\t}\n')  
   
   #write the compute_error function
-  cc.write("\n\n\t\tbool compute_error()")
-  cc.write("\n\t\t{")
-  cc.write("\n\t\t\treturn false;")
-  cc.write("\n\t\t}")
+  if thereIsErrorMonitor:
+    cc.write("\n\n\t\tbool compute_error()")
+    cc.write("\n\t\t{")
+    if errorIsAlways:
+      cc.write("\n\t\t\texpectingErrorReturn = true;")
+      cc.write("\n\t\t\treturn true;")
+    if errorIsNever:
+      cc.write("\n\t\t\texpectingErrorReturn = !(manager.has_model());")
+      cc.write("\n\t\t\treturn !(manager.has_model());")
+    if errorIsPeriodic:
+      cc.write("\n\t\t\tif (errorIterationCounter == {0})".format(errorPeriod))
+      cc.write("\n\t\t\t{")
+      cc.write("\n\t\t\t\texpectingErrorReturn = true;")
+      cc.write("\n\t\t\t\terrorIterationCounter = 0;")
+      cc.write("\n\t\t\t\treturn true;")
+      cc.write("\n\t\t\t} else {")
+      cc.write("\n\t\t\t\texpectingErrorReturn = false;")
+      cc.write("\n\t\t\t\terrorIterationCounter++;")
+      cc.write("\n\t\t\t\treturn false;")
+      cc.write("\n\t\t\t}")
+    cc.write("\n\t\t}")
 
 
   # write the log function
