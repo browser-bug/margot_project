@@ -30,6 +30,7 @@ void plot( const std::string& file_basename, const std::vector< data_serie_t >& 
 
   // figuring out the suffix of the unit of measures for times
   std::string time_suffix;
+
   if ( std::is_same<TimeType, std::chrono::nanoseconds>::value )
   {
     time_suffix = "[ns]";
@@ -86,7 +87,8 @@ void plot( const std::string& file_basename, const std::vector< data_serie_t >& 
 
   // write the plot command for the dataseries
   int serie_counter = 0;
-  for( const data_serie_t& serie : data_series )
+
+  for ( const data_serie_t& serie : data_series )
   {
     const std::string title_bit = serie.name.empty() ? "notitle" : "title \"" + serie.name + "\"";
     //plot << "\"" << file_basename << serie_counter << ".data\" u 1:2:4 with filledcu ls " << serie_counter + 1 << " notitle, ";
@@ -103,7 +105,8 @@ void plot( const std::string& file_basename, const std::vector< data_serie_t >& 
 
   // loop over the data serie
   serie_counter = 0;
-  for( const data_serie_t& serie : data_series )
+
+  for ( const data_serie_t& serie : data_series )
   {
     // open the datafile
     std::ofstream df;
@@ -117,13 +120,14 @@ void plot( const std::string& file_basename, const std::vector< data_serie_t >& 
     // cluster the data according to the number of Operating Points
     std::map< int, std::vector< uint64_t > > clustered_data;
 
-    for( const auto data_pair : serie.data )
+    for ( const auto data_pair : serie.data )
     {
       // insert the data
       const auto it = clustered_data.find(data_pair.first);
+
       if (it == clustered_data.end())
       {
-        auto result = clustered_data.emplace(data_pair.first, std::vector< uint64_t >{});
+        auto result = clustered_data.emplace(data_pair.first, std::vector< uint64_t > {});
         result.first->second.emplace_back(data_pair.second);
       }
       else
@@ -134,7 +138,7 @@ void plot( const std::string& file_basename, const std::vector< data_serie_t >& 
 
 
     // loop over the values
-    for( const auto pair : clustered_data)
+    for ( const auto pair : clustered_data)
     {
       // compute the statistics with high precision
       const auto average_value = margot::average< std::vector< uint64_t >, double>(pair.second);

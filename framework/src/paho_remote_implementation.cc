@@ -92,8 +92,8 @@ extern "C"
 
 
 PahoClient::PahoClient( const std::string& application_name, const std::string& broker_address,
-  const uint8_t qos_level, const std::string& username, const std::string& password,
-  const std::string& trust_store, const std::string& client_certificate, const std::string& client_key)
+                        const uint8_t qos_level, const std::string& username, const std::string& password,
+                        const std::string& trust_store, const std::string& client_certificate, const std::string& client_key)
   : RemoteHandler(), is_connected(false), qos_level(qos_level)
 {
   // create the client id as unique-ish in the network
@@ -115,20 +115,25 @@ PahoClient::PahoClient( const std::string& application_name, const std::string& 
 
   // initialize the connection with ssl certicates
   MQTTClient_SSLOptions ssl = MQTTClient_SSLOptions_initializer;
+
   if (!trust_store.empty())
   {
     ssl.trustStore = trust_store.c_str();
+
     if (!client_certificate.empty())
     {
       ssl.keyStore = client_certificate.c_str();
     }
+
     if (!client_key.empty())
     {
       ssl.privateKey = client_key.c_str();
     }
+
     ssl.enableServerCertAuth = true;
     conn_opts.ssl = &ssl;
   }
+
   std::cout << "Broker address: " << broker_address << std::endl;
 
   // set the last will and testment

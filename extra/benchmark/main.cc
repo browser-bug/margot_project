@@ -14,7 +14,7 @@
 
 int main(int argc, char* argv[])
 {
-	std::cout << "Running framework benchmark:" << std::endl;
+  std::cout << "Running framework benchmark:" << std::endl;
 
   // test adding Operating Points
   {
@@ -71,5 +71,5 @@ int main(int argc, char* argv[])
     l.run< UpdateScaling<4> >("4 constraints");
   }
 
-	return EXIT_SUCCESS;
+  return EXIT_SUCCESS;
 }
