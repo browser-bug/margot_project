@@ -483,7 +483,7 @@ namespace margot
       inline bool has_model( void ) const
       {
         std::lock_guard< std::mutex > lock(manager_mutex);
-        return status == ApplicationStatus::WITH_MODEL || status == ApplicationStatus::TUNED;
+        return status == ApplicationStatus::WITH_MODEL || status == ApplicationStatus::TUNED || status == ApplicationStatus::UNDEFINED;
       }      
 
 
