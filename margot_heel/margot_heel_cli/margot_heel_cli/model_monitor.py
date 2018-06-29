@@ -23,6 +23,8 @@ class MonitorModel:
     # The available output metrics
     self.output_available_metrics = ['AVERAGE', 'STDDEV', 'MAX', 'MIN']
 
+    # The known_monitor type
+    self.type = ''
 
     # The monitor specs
     self.monitor_name = 'my_default_monitor'
@@ -73,6 +75,7 @@ class MonitorModel:
     """
     dump_string = '\n'
 
+    dump_string = '{0}\n  {1} Monitor:'.format(dump_string, self.type)
     dump_string = '{0}\n  Monitor specification'.format(dump_string)
     dump_string = '{0}\n    Name:   {1}'.format(dump_string, self.monitor_name)
     dump_string = '{0}\n    Class:  {1}'.format(dump_string, self.monitor_class)
@@ -296,9 +299,8 @@ def get_monitor_spec( monitor_type ):
     my_monitor = MonitorModel()
 
     # set the spec
-    my_monitor.monitor_class = 'margot::ErrorMonitor'
-    my_monitor.monitor_header = '<margot/error_monitor.hpp>'
-    my_monitor.stop_method = 'stop'
+    my_monitor.monitor_header = '<margot/monitor.hpp>'
+    my_monitor.stop_method = 'push'
 
 
     return my_monitor

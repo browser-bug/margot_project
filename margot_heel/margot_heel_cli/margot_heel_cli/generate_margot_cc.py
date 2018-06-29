@@ -51,7 +51,7 @@ def generate_block_body( block_model, op_lists, cc ):
       cc.write('\t\t\t{0} {1};\n'.format(monitor_model.monitor_class, monitor_model.monitor_name))
       
       # look for the error monitor and prepare the information about it
-      if "ERROR" in monitor_model.monitor_class.upper():
+      if monitor_model.type.upper() == "ERROR":
         thereIsErrorMonitor = True
         if monitor_model.frequency == "periodic":
           errorIsPeriodic = True

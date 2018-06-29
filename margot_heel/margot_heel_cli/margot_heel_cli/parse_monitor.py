@@ -28,6 +28,7 @@ def parse_monitor( monitor_xml_element, namespace = ''):
   # retrieve the spec of the monitor
   monitor_spec = model_monitor.get_monitor_spec(monitor_type)
 
+
   # check if it is not known
   if not monitor_spec:
 
@@ -65,20 +66,8 @@ def parse_monitor( monitor_xml_element, namespace = ''):
     monitor_spec.monitor_name = my_monitor_model.monitor_name
     my_monitor_model = monitor_spec
 
-  # error monitor specific parameters
-  if monitor_type.lower() == "error":
-     enable_xml_elements = get_elements(monitor_xml_element, 'enable', required = True, namespace = namespace, unique = True)
-
-     if enable_xml_elements:
-       # get the known frequency type
-       known_frequency_types = model_monitor.available_frequencies
-       my_monitor_model.frequency = get_parameter(enable_xml_elements[0], 'frequency', required = True, prefixed_values = known_frequency_types)
-
-       if my_monitor_model.frequency == "periodic":
-         my_monitor_model.period = get_parameter(enable_xml_elements[0], 'period', required = True)
-         if not my_monitor_model.period.isdigit():
-           raise Exception("The period for the error monitor activation must be a positive integer!")
-
+  # set the monitor type
+  my_monitor_model.type = monitor_type.upper()
 
   ###################################
   ## PARSING THE IN/OUT PARAMETERS
@@ -117,8 +106,35 @@ def parse_monitor( monitor_xml_element, namespace = ''):
       exposed_var_what = get_parameter(exposed_metric_xml, 'what', prefixed_values = my_monitor_model.output_available_metrics )
       my_monitor_model.exposed_metrics[exposed_var_what] = exposed_var_name
 
+
+  # error monitor specific parameters
+  if monitor_type.upper() == "ERROR":
+
+     # parse the type and set the custom monitor's class and type
+     if not (len(my_monitor_model.stop_parameters) == 1 ):
+       raise Exception("Please specify at least one and only one stop parameter for the error monitor!")
+     #error_type = my_monitor_model.stop_parameters[0].
+
+     #get error monitor parameter type and set the error monitor accordingly
+     my_monitor_model.monitor_type = my_monitor_model.stop_parameters[0].var_type
+     my_monitor_model.monitor_class = 'margot::Monitor<{0}>'.format(my_monitor_model.stop_parameters[0].var_type)
+
+     # parse the enable element
+     enable_xml_elements = get_elements(monitor_xml_element, 'enable', required = True, namespace = namespace, unique = True)
+
+     if enable_xml_elements:
+       # get the known frequency type
+       known_frequency_types = model_monitor.available_frequencies
+       my_monitor_model.frequency = get_parameter(enable_xml_elements[0], 'frequency', required = True, prefixed_values = known_frequency_types)
+
+       if my_monitor_model.frequency == "periodic":
+         my_monitor_model.period = get_parameter(enable_xml_elements[0], 'period', required = True)
+         if not my_monitor_model.period.isdigit():
+           raise Exception("The period for the error monitor activation must be a positive integer!")
+
+
   # check the consistency for the monitor
   my_monitor_model.check_consistency()
-
+  
   # return it
   return my_monitor_model
