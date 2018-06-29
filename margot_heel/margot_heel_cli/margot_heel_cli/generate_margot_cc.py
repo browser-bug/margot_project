@@ -391,9 +391,11 @@ def generate_block_body( block_model, op_lists, cc ):
   cc.write('\t\t}\n')  
   
   #write the compute_error function
-  if thereIsErrorMonitor:
-    cc.write("\n\n\t\tbool compute_error()")
-    cc.write("\n\t\t{")
+  cc.write("\n\n\t\tbool compute_error()")
+  cc.write("\n\t\t{")
+  if not thereIsErrorMonitor:
+    cc.write("\n\t\t\treturn false;")
+  else:
     if errorIsAlways:
       cc.write("\n\t\t\texpectingErrorReturn = true;")
       cc.write("\n\t\t\treturn true;")
@@ -401,17 +403,22 @@ def generate_block_body( block_model, op_lists, cc ):
       cc.write("\n\t\t\texpectingErrorReturn = !(manager.has_model());")
       cc.write("\n\t\t\treturn !(manager.has_model());")
     if errorIsPeriodic:
-      cc.write("\n\t\t\tif (errorIterationCounter == {0})".format(errorPeriod))
-      cc.write("\n\t\t\t{")
-      cc.write("\n\t\t\t\texpectingErrorReturn = true;")
-      cc.write("\n\t\t\t\terrorIterationCounter = 0;")
-      cc.write("\n\t\t\t\treturn true;")
+      cc.write("\n\t\t\tif (manager.has_model()) {")
+      cc.write("\n\t\t\t\tif (errorIterationCounter == {0})".format(errorPeriod))
+      cc.write("\n\t\t\t\t{")
+      cc.write("\n\t\t\t\t\texpectingErrorReturn = true;")
+      cc.write("\n\t\t\t\t\terrorIterationCounter = 0;")
+      cc.write("\n\t\t\t\t\treturn true;")
+      cc.write("\n\t\t\t\t} else {")
+      cc.write("\n\t\t\t\t\texpectingErrorReturn = false;")
+      cc.write("\n\t\t\t\t\terrorIterationCounter++;")
+      cc.write("\n\t\t\t\t\treturn false;")
+      cc.write("\n\t\t\t\t}")
       cc.write("\n\t\t\t} else {")
-      cc.write("\n\t\t\t\texpectingErrorReturn = false;")
-      cc.write("\n\t\t\t\terrorIterationCounter++;")
-      cc.write("\n\t\t\t\treturn false;")
+      cc.write("\n\t\t\t\texpectingErrorReturn = true;")
+      cc.write("\n\t\t\t\treturn true;")
       cc.write("\n\t\t\t}")
-    cc.write("\n\t\t}")
+  cc.write("\n\t\t}")
 
 
   # write the log function
