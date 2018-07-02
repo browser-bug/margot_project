@@ -327,6 +327,7 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
   std::string configuration;
   std::string features;
   std::string metrics;
+  std::string metric_fields;
 
   // parse the message
   std::stringstream stream(values);
@@ -340,20 +341,26 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
   }
 
   stream >> metrics;
+  stream >> metric_fields; // gets the name of the fields of the metric to be filled in (if any, if empty fills in all the metrics of the table normally)
 
   // append the coma to connect the different the features with the metrics
   if (!features.empty())
   {
     features.append(",");
   }
-
+  
   // this is a critical section
   std::unique_lock<std::mutex> guard(mutex);
 
   // check if we can store the information in the application trace
   if (status != ApplicationStatus::CLUELESS && status != ApplicationStatus::RECOVERING && status != ApplicationStatus::ASKING_FOR_INFORMATION && status != ApplicationStatus::BUILDING_DOE)
   {
-    io::storage.insert_trace_entry(description, timestamp + ",'" + client_id + "'," + configuration + "," + features + metrics);
+    if (!(metric_fields.empty()) && !(metric_fields=="\n") && !(metric_fields==" ")) // if the name of the metrics to be filled in are provided
+    {
+      io::storage.insert_trace_entry(description, timestamp + ",'" + client_id + "'," + configuration + "," + features + metrics + "/" + metric_fields); // appends "/" as a separator between the usual message and the metric names
+    } else {
+      io::storage.insert_trace_entry(description, timestamp + ",'" + client_id + "'," + configuration + "," + features + metrics); // behaves normally
+    }
   }
 
   // state the boolean variable to state if the client has been assigned to us

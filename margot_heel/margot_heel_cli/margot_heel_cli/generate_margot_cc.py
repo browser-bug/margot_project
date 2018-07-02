@@ -339,46 +339,164 @@ def generate_block_body( block_model, op_lists, cc ):
   cc.write('\t\t{\n')
 
   # generate the code that stops the monitors
-  for monitor_model in block_model.monitor_models:
-    if monitor_model.stop_method:
-      cc.write('\t\t\tmonitor::{0}.{1}('.format(monitor_model.monitor_name, monitor_model.stop_method))
-      possible_arguments = [x.var_name for x in monitor_model.stop_parameters if x.var_name]
-      possible_arguments.extend([str(x.param_value) for x in monitor_model.stop_parameters if x.param_value])
-      cc.write(','.join(possible_arguments))
-      cc.write(');\n')
+  # version if there is a monitor which can be disables (just error monitor by now)
+  if thereIsErrorMonitor:
+    # write the c++ if-else runtime logic to manage if the monitor is currently enabled/disables
+    # if we do NOT expect the monitor because it is currently disabled
+    cc.write('\t\t\tif (!(expectingErrorReturn)) {\n')
+    for monitor_model in block_model.monitor_models:
+      # if the current monitor in analysis is the disabled one then discard it. The value that the user provides will be discarded too.
+      if monitor_model.type.upper() == "ERROR":
+        continue
+      if monitor_model.stop_method:
+        cc.write('\t\t\t\tmonitor::{0}.{1}('.format(monitor_model.monitor_name, monitor_model.stop_method))
+        possible_arguments = [x.var_name for x in monitor_model.stop_parameters if x.var_name]
+        possible_arguments.extend([str(x.param_value) for x in monitor_model.stop_parameters if x.param_value])
+        cc.write(','.join(possible_arguments))
+        cc.write(');\n')
 
-  # if we have agora, we need to generate also the code that sends the information
-  if not block_model.agora_model is None:
-      cc.write('\n')
+    # if we have agora, we need to generate also the code that sends the information
+    if not block_model.agora_model is None:
+        cc.write('\n')
 
-      # get the list of knobs, features and metrics
-      knobs = sorted([x for x in block_model.agora_model.knobs_values])
-      features = sorted([x for x in block_model.agora_model.features_values])
-      metrics = sorted([x for x in block_model.agora_model.metrics_monitors])
+        # get the list of knobs, features and metrics
+        knobs = sorted([x for x in block_model.agora_model.knobs_values])
+        features = sorted([x for x in block_model.agora_model.features_values])
+        metrics = sorted([x for x in block_model.agora_model.metrics_monitors])
 
-      # start to compose the list of terms to send to
-      knob_terms = []
-      for knob in knobs:
-          for knob_model in block_model.software_knobs:
-              if knob_model.name == knob:
-                  knob_var_name = knob_model.var_name
+        # start to compose the list of terms to send to
+        knob_terms = []
+        for knob in knobs:
+            for knob_model in block_model.software_knobs:
+                if knob_model.name == knob:
+                    knob_var_name = knob_model.var_name
+                    break
+            knob_terms.append('std::to_string(knobs::{0})'.format(knob_var_name))
+        knob_string = ' + "," + '.join(knob_terms)
+        feature_terms = []
+        for feature in features:
+            feature_terms.append('std::to_string(features::{0})'.format(feature))
+        feature_string = ' + "," + '.join(feature_terms)
+        metric_terms = []
+        # prepare a list also for the currently enabled metric names
+        metric_name_list = []
+        
+        # NB:  the following "for-else-break" structure is to "continue" the outer loop when we meet the disabled monitor.
+        #      This is needed to not enque the disabled monitor's value in the message
+        # NB2: we need to "connect" the metric to the related "monitors", in particular we need to disable the metrics
+        #      which are related to the currently disabled monitors.
+        #      This is needed because we will save into Cassandra the metrics and not the monitors' values,
+        #      but we disable the monitors in the XML and not the metrics.
+        #      In the "disabled" case we need to disable both the monitor and the metric.
+        #NB3:  The "double" cycle over the metric and the monitors is needed because the metrics's monitor (below "related_monitor")
+        #      is just a string and it is not the monitor object of which we can query the type.
+        for metric in metrics: # for each metric
+            related_monitor = block_model.agora_model.metrics_monitors[metric] # get the monitor to which the metric is referring to
+            for monitor_model in block_model.monitor_models: # for each monitor
+              if monitor_model.monitor_name == related_monitor: # if we match the metric's monitor (string) with the monitor's name (string) in the cycle we are analyzing
+                # we query the monitor object's type and if this is the disabled monitor then discard it and go to the next one.
+                if monitor_model.type.upper() == "ERROR":
                   break
-          knob_terms.append('std::to_string(knobs::{0})'.format(knob_var_name))
-      knob_string = ' + "," + '.join(knob_terms)
-      feature_terms = []
-      for feature in features:
-          feature_terms.append('std::to_string(features::{0})'.format(feature))
-      feature_string = ' + "," + '.join(feature_terms)
-      metric_terms = []
-      for metric in metrics:
-          related_monitor = block_model.agora_model.metrics_monitors[metric]
-          metric_terms.append('std::to_string(monitor::{0}.last())'.format(related_monitor))
-      metric_string = ' + "," + '.join(metric_terms)
-      if feature_terms:
-          send_string = ' + " " + '.join([knob_string, feature_string, metric_string])
-      else:
-          send_string = ' + " " + '.join([knob_string, metric_string])
-      cc.write('\t\t\tmanager.send_observation({0});\n'.format(send_string))
+            else:
+              # if the current metric is one of the enabled ones then append the monitor's value to the list of metric values
+              metric_terms.append('std::to_string(monitor::{0}.last())'.format(related_monitor))
+              # if the current metric is one of the enabled ones then append the metric's name to the list of metric names
+              metric_name_list.append('"{0}"'.format(metric))
+        metric_string = ' + "," + '.join(metric_terms)
+        # use the same technique of join also for the currently enabled metric names 
+        metric_names = ' + "," + '.join(metric_name_list)
+        # append also the metric names to the message that will be sent
+        if feature_terms:
+            send_string = ' + " " + '.join([knob_string, feature_string, metric_string, metric_names])
+        else:
+            send_string = ' + " " + '.join([knob_string, metric_string, metric_names])
+        cc.write('\t\t\t\tmanager.send_observation({0});\n'.format(send_string))
+        
+    #if we are in training and we expect a return value for all the monitor, then we behave as if all the monitors are always enabled (else below)
+    cc.write('\t\t\t} else {\n')
+    for monitor_model in block_model.monitor_models:
+      if monitor_model.stop_method:
+        cc.write('\t\t\t\tmonitor::{0}.{1}('.format(monitor_model.monitor_name, monitor_model.stop_method))
+        possible_arguments = [x.var_name for x in monitor_model.stop_parameters if x.var_name]
+        possible_arguments.extend([str(x.param_value) for x in monitor_model.stop_parameters if x.param_value])
+        cc.write(','.join(possible_arguments))
+        cc.write(');\n')
+
+    # if we have agora, we need to generate also the code that sends the information
+    if not block_model.agora_model is None:
+        cc.write('\n')
+
+        # get the list of knobs, features and metrics
+        knobs = sorted([x for x in block_model.agora_model.knobs_values])
+        features = sorted([x for x in block_model.agora_model.features_values])
+        metrics = sorted([x for x in block_model.agora_model.metrics_monitors])
+
+        # start to compose the list of terms to send to
+        knob_terms = []
+        for knob in knobs:
+            for knob_model in block_model.software_knobs:
+                if knob_model.name == knob:
+                    knob_var_name = knob_model.var_name
+                    break
+            knob_terms.append('std::to_string(knobs::{0})'.format(knob_var_name))
+        knob_string = ' + "," + '.join(knob_terms)
+        feature_terms = []
+        for feature in features:
+            feature_terms.append('std::to_string(features::{0})'.format(feature))
+        feature_string = ' + "," + '.join(feature_terms)
+        metric_terms = []
+        for metric in metrics:
+            related_monitor = block_model.agora_model.metrics_monitors[metric]
+            metric_terms.append('std::to_string(monitor::{0}.last())'.format(related_monitor))
+        metric_string = ' + "," + '.join(metric_terms)
+        if feature_terms:
+            send_string = ' + " " + '.join([knob_string, feature_string, metric_string])
+        else:
+            send_string = ' + " " + '.join([knob_string, metric_string])
+        cc.write('\t\t\t\tmanager.send_observation({0});\n'.format(send_string))
+    cc.write('\t\t\t}')
+  # version if all the monitors are always enabled
+  else:
+    for monitor_model in block_model.monitor_models:
+      if monitor_model.stop_method:
+        cc.write('\t\t\tmonitor::{0}.{1}('.format(monitor_model.monitor_name, monitor_model.stop_method))
+        possible_arguments = [x.var_name for x in monitor_model.stop_parameters if x.var_name]
+        possible_arguments.extend([str(x.param_value) for x in monitor_model.stop_parameters if x.param_value])
+        cc.write(','.join(possible_arguments))
+        cc.write(');\n')
+
+    # if we have agora, we need to generate also the code that sends the information
+    if not block_model.agora_model is None:
+        cc.write('\n')
+
+        # get the list of knobs, features and metrics
+        knobs = sorted([x for x in block_model.agora_model.knobs_values])
+        features = sorted([x for x in block_model.agora_model.features_values])
+        metrics = sorted([x for x in block_model.agora_model.metrics_monitors])
+
+        # start to compose the list of terms to send to
+        knob_terms = []
+        for knob in knobs:
+            for knob_model in block_model.software_knobs:
+                if knob_model.name == knob:
+                    knob_var_name = knob_model.var_name
+                    break
+            knob_terms.append('std::to_string(knobs::{0})'.format(knob_var_name))
+        knob_string = ' + "," + '.join(knob_terms)
+        feature_terms = []
+        for feature in features:
+            feature_terms.append('std::to_string(features::{0})'.format(feature))
+        feature_string = ' + "," + '.join(feature_terms)
+        metric_terms = []
+        for metric in metrics:
+            related_monitor = block_model.agora_model.metrics_monitors[metric]
+            metric_terms.append('std::to_string(monitor::{0}.last())'.format(related_monitor))
+        metric_string = ' + "," + '.join(metric_terms)
+        if feature_terms:
+            send_string = ' + " " + '.join([knob_string, feature_string, metric_string])
+        else:
+            send_string = ' + " " + '.join([knob_string, metric_string])
+        cc.write('\t\t\tmanager.send_observation({0});\n'.format(send_string))
 
   cc.write('\n')
   cc.write('\t\t}\n')
