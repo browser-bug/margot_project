@@ -42,11 +42,8 @@ def generate_block_body( block_model, op_lists, cc ):
     cc.write('\n\t\tnamespace monitor {\n')
 
     # loop over the monitor
+    error_monitor = {}
     thereIsErrorMonitor = False
-    errorIsPeriodic = False
-    errorIsAlways = False
-    errorIsNever = False
-    errorPeriod = 0
     for monitor_model in block_model.monitor_models:
       cc.write('\t\t\t{0} {1};\n'.format(monitor_model.monitor_class, monitor_model.monitor_name))
       
@@ -54,12 +51,48 @@ def generate_block_body( block_model, op_lists, cc ):
       if monitor_model.type.upper() == "ERROR":
         thereIsErrorMonitor = True
         if monitor_model.frequency == "periodic":
-          errorIsPeriodic = True
-          errorPeriod = monitor_model.period
-        elif monitor_model.frequency == "always":
-          errorIsAlways = True
-        elif monitor_model.frequency == "never":
-          errorIsNever = True
+          error_monitor[monitor_model.monitor_name] = monitor_model.period
+        else:
+          error_monitor[monitor_model.monitor_name] = monitor_model.frequency
+    
+    uniqueErrorMonitor = False
+    errorType = None
+    errorPeriod = None
+    errorPeriodicDictionary = None
+    
+    if thereIsErrorMonitor:
+      # if we have just one error monitor
+      if (len(error_monitor) == 1):
+        uniqueErrorMonitor = True
+        # if the error monitor is periodic
+        if ((error_monitor[error_monitor.keys()[0]]).isdigit()):
+          errorType = "periodic"
+          errorPeriod = error_monitor[error_monitor.keys()[0]] # save the frequency
+        else:
+          errorType = error_monitor[error_monitor.keys()[0]]
+      # if all the error monitors are "never" then treat it as just a single "never" monitor
+      elif (len(error_monitor) == list(error_monitor.values()).count("never")):
+        errorType = error_monitor[error_monitor.keys()[0]]
+        uniqueErrorMonitor = True
+      # if there exists even only just one error monitor which is "always" then treat it as a single "always" monitor
+      elif list(error_monitor.values()).count("always") >= 1:
+        errorType = "always"
+        uniqueErrorMonitor = True
+      else:
+        # remove all the "never" error monitors and just keep the periodic ones (those are the only one which can still remain after these checks)
+        errorPeriodicDictionary = {k:v for k,v in error_monitor.items() if v != 'never'}
+        # now we only have "periodic" monitors
+        tempPeriod = errorPeriodicDictionary[errorPeriodicDictionary.keys()[0]]
+        uniqueErrorMonitor = True
+        for k,v in errorPeriodicDictionary.items():
+          if not (tempPeriod == v):
+            uniqueErrorMonitor = False
+        if uniqueErrorMonitor == True: # all the error monitors are periodic with the same period
+          errorType = "periodic"
+          errorPeriod = errorPeriodicDictionary[errorPeriodicDictionary.keys()[0]] # save the frequency
+        # we are in the case in which all the error monitors are periodic but with different periods
+        else:
+          errorType = "periodic"    
 
     # close the monitor namespace
     cc.write('\t\t} // namespace monitor\n')
@@ -152,8 +185,14 @@ def generate_block_body( block_model, op_lists, cc ):
   # write the helper variables for the error management
   if thereIsErrorMonitor:
     cc.write('\n\t\tbool expectingErrorReturn = false;\n')
-    if errorIsPeriodic:
+    # write the counters for the period(s)
+    # if there is a single period
+    if ((errorType == "periodic") and uniqueErrorMonitor):
       cc.write('\n\t\tint errorIterationCounter = 0;\n')
+    # if there are multiple periods append the name of the corresponding monitor
+    elif (errorType == "periodic"):
+      for elem in errorPeriodicDictionary.keys():
+        cc.write('\n\t\tint errorIterationCounter_{0} = 0;\n'.format(elem))
       
   
   # write the datasets structs (if the detasets are provided) with built-in check if the training and production datasets have the same data structure
@@ -339,7 +378,7 @@ def generate_block_body( block_model, op_lists, cc ):
   cc.write('\t\t{\n')
 
   # generate the code that stops the monitors
-  # version if there is a monitor which can be disables (just error monitor by now)
+  # version if there is (at least) a monitor which can be disables (just error monitor by now)
   if thereIsErrorMonitor:
     # write the c++ if-else runtime logic to manage if the monitor is currently enabled/disables
     # if we do NOT expect the monitor because it is currently disabled
@@ -382,7 +421,7 @@ def generate_block_body( block_model, op_lists, cc ):
         metric_name_list = []
         
         # NB:  the following "for-else-break" structure is to "continue" the outer loop when we meet the disabled monitor.
-        #      This is needed to not enque the disabled monitor's value in the message
+        #      This is needed NOT to enque the disabled monitor's value in the message
         # NB2: we need to "connect" the metric to the related "monitors", in particular we need to disable the metrics
         #      which are related to the currently disabled monitors.
         #      This is needed because we will save into Cassandra the metrics and not the monitors' values,
@@ -412,7 +451,7 @@ def generate_block_body( block_model, op_lists, cc ):
             send_string = ' + " " + '.join([knob_string, metric_string, metric_names])
         cc.write('\t\t\t\tmanager.send_observation({0});\n'.format(send_string))
         
-    #if we are in training and we expect a return value for all the monitor, then we behave as if all the monitors are always enabled (else below)
+    #if we are in training and we expect a return value for all the monitors, then we behave as if all the monitors are always enabled (else below)
     cc.write('\t\t\t} else {\n')
     for monitor_model in block_model.monitor_models:
       if monitor_model.stop_method:
@@ -514,28 +553,68 @@ def generate_block_body( block_model, op_lists, cc ):
   if not thereIsErrorMonitor:
     cc.write("\n\t\t\treturn false;")
   else:
-    if errorIsAlways:
+    if errorType == "always":
       cc.write("\n\t\t\texpectingErrorReturn = true;")
       cc.write("\n\t\t\treturn true;")
-    if errorIsNever:
+    if errorType == "never":
       cc.write("\n\t\t\texpectingErrorReturn = !(manager.has_model());")
       cc.write("\n\t\t\treturn !(manager.has_model());")
-    if errorIsPeriodic:
-      cc.write("\n\t\t\tif (manager.has_model()) {")
-      cc.write("\n\t\t\t\tif (errorIterationCounter == {0})".format(errorPeriod))
-      cc.write("\n\t\t\t\t{")
-      cc.write("\n\t\t\t\t\texpectingErrorReturn = true;")
-      cc.write("\n\t\t\t\t\terrorIterationCounter = 0;")
-      cc.write("\n\t\t\t\t\treturn true;")
-      cc.write("\n\t\t\t\t} else {")
-      cc.write("\n\t\t\t\t\texpectingErrorReturn = false;")
-      cc.write("\n\t\t\t\t\terrorIterationCounter++;")
-      cc.write("\n\t\t\t\t\treturn false;")
-      cc.write("\n\t\t\t\t}")
-      cc.write("\n\t\t\t} else {")
-      cc.write("\n\t\t\t\texpectingErrorReturn = true;")
-      cc.write("\n\t\t\t\treturn true;")
-      cc.write("\n\t\t\t}")
+    if errorType == "periodic":
+      # if the error monitor is unique or all the error monitors have the same period
+      if uniqueErrorMonitor:
+        cc.write("\n\t\t\tif (manager.has_model()) {")
+        cc.write("\n\t\t\t\tif (errorIterationCounter == {0})".format(errorPeriod))
+        cc.write("\n\t\t\t\t{")
+        cc.write("\n\t\t\t\t\texpectingErrorReturn = true;")
+        cc.write("\n\t\t\t\t\terrorIterationCounter = 0;")
+        cc.write("\n\t\t\t\t\treturn true;")
+        cc.write("\n\t\t\t\t} else {")
+        cc.write("\n\t\t\t\t\texpectingErrorReturn = false;")
+        cc.write("\n\t\t\t\t\terrorIterationCounter++;")
+        cc.write("\n\t\t\t\t\treturn false;")
+        cc.write("\n\t\t\t\t}")
+        cc.write("\n\t\t\t} else {")
+        cc.write("\n\t\t\t\texpectingErrorReturn = true;")
+        cc.write("\n\t\t\t\treturn true;")
+        cc.write("\n\t\t\t}")
+      # if the error monitors have different periods
+      else:
+        cc.write("\n\t\t\tif (manager.has_model()) {")
+        # compose the line for the C++ "if" clause
+        cPeriodMatch = ""
+        for k, v in errorPeriodicDictionary.items():
+          cPeriodMatch = ("{0}errorIterationCounter_{1} == {2} || ".format(cPeriodMatch,k,v))
+        cPeriodMatch = cPeriodMatch[:-4]       
+        cc.write("\n\t\t\t\tif ({0})".format(cPeriodMatch))
+        cc.write("\n\t\t\t\t{")
+        cc.write("\n\t\t\t\t\texpectingErrorReturn = true;")
+        cc.write("\n\t\t\t\t\tstd::vector<std::string> tempCounterIncreased;")
+        # reset all the period counters for the monitors which have triggered the error computation in this run
+        for k, v in errorPeriodicDictionary.items():
+          cc.write("\n\t\t\t\t\tif (errorIterationCounter_{0} == {1})".format(k,v))
+          cc.write("\n\t\t\t\t\t{")
+          cc.write("\n\t\t\t\t\t\terrorIterationCounter_{0} = 0;".format(k))
+          cc.write("\n\t\t\t\t\t\ttempCounterIncreased.push_back(\"errorIterationCounter_{0}\");".format(k))
+          cc.write("\n\t\t\t\t\t}")
+        # increase the period counter for all the monitors which have NOT triggered the error computation in this run
+        for k, v in errorPeriodicDictionary.items():
+          cc.write("\n\t\t\t\t\tif (!(std::find(tempCounterIncreased.begin(), tempCounterIncreased.end(), \"errorIterationCounter_{0}\") != tempCounterIncreased.end()))".format(k,v))
+          cc.write("\n\t\t\t\t\t{")
+          cc.write("\n\t\t\t\t\t\terrorIterationCounter_{0}++;".format(k))
+          cc.write("\n\t\t\t\t\t}")        
+        cc.write("\n\t\t\t\t\treturn true;")
+        cc.write("\n\t\t\t\t} else {")
+        cc.write("\n\t\t\t\t\texpectingErrorReturn = false;")
+        # increase the period counter for all the monitors
+        for k, v in errorPeriodicDictionary.items():
+          cPeriodIncrease = ("errorIterationCounter_{0}++".format(k))
+          cc.write("\n\t\t\t\t\t{0};".format(cPeriodIncrease))
+        cc.write("\n\t\t\t\t\treturn false;")
+        cc.write("\n\t\t\t\t}")
+        cc.write("\n\t\t\t} else {")
+        cc.write("\n\t\t\t\texpectingErrorReturn = true;")
+        cc.write("\n\t\t\t\treturn true;")
+        cc.write("\n\t\t\t}") 
   cc.write("\n\t\t}")
 
 
