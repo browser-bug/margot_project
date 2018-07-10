@@ -23,6 +23,7 @@
 #include <sstream>
 #include <algorithm>
 #include <limits>
+#include <cmath>
 
 #include "agora/application_handler.hpp"
 #include "agora/logger.hpp"
