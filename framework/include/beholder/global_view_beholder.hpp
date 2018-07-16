@@ -1,4 +1,4 @@
-/* agora/global_view.hpp
+/* beholder/global_view_beholder.hpp
  * Copyright (C) 2018 Davide Gadioli
  *
  * This library is free software; you can redistribute it and/or
@@ -17,8 +17,8 @@
  * USA
  */
 
-#ifndef MARGOT_AGORA_GLOBAL_VIEW_HDR
-#define MARGOT_AGORA_GLOBAL_VIEW_HDR
+#ifndef MARGOT_BEHOLDER_GLOBAL_VIEW_HDR
+#define MARGOT_BEHOLDER_GLOBAL_VIEW_HDR
 
 
 #include <mutex>
@@ -27,14 +27,15 @@
 #include <memory>
 
 
-#include "agora/application_handler.hpp"
+#include "beholder/application_handler_beholder.hpp"
 
 
-namespace agora
+namespace beholder
 {
 
   class GlobalView
   {
+      static bool with_agora;
 
     public:
 
@@ -66,29 +67,46 @@ namespace agora
         }
       }
 
-      // returns a string with the list of application_names which have active clients with the model.
-      static inline std::string get_handlers_with_active_model()
+      // TODO: check if this method can be deleted
+      static inline void remove_all_handlers()
       {
         std::lock_guard<std::mutex> lock(global_structure);
 
-        std::string temp_list = "";
-
         for (auto iterator = handled_applications.begin(); iterator != handled_applications.end(); iterator++)
         {
-          if ((iterator->second->get_status() == ApplicationStatus::WITH_MODEL) && (!(iterator->second->active_clients_empty())))
-          {
-            if (temp_list.length() == 0)
-            {
-              temp_list = temp_list.append(iterator->second->get_application_name());
-            }
-            else
-            {
-              temp_list = temp_list.append("@" + iterator->second->get_application_name());
-            }
-          }
+          handled_applications.erase(iterator);
+        }
+      }
+
+      static inline bool is_managing( const std::string& application_name )
+      {
+        std::lock_guard<std::mutex> lock(global_structure);
+        auto iterator = handled_applications.find(application_name);
+
+        if (iterator != handled_applications.end())
+        {
+          return true;
         }
 
-        return temp_list;
+        return false;
+      }
+
+      static inline bool is_with_agora()
+      {
+        std::lock_guard<std::mutex> lock(global_structure);
+        return with_agora;
+      }
+
+      static inline void set_with_agora_true()
+      {
+        std::lock_guard<std::mutex> lock(global_structure);
+        with_agora = true;
+      }
+
+      static inline void set_with_agora_false()
+      {
+        std::lock_guard<std::mutex> lock(global_structure);
+        with_agora = false;
       }
 
     private:
@@ -99,4 +117,4 @@ namespace agora
 
 }
 
-#endif // MARGOT_AGORA_GLOBAL_VIEW_HDR
+#endif // MARGOT_BEHOLDER_GLOBAL_VIEW_HDR

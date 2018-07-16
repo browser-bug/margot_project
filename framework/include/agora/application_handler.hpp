@@ -90,7 +90,7 @@ namespace agora
 
       // these are the function used to communicate using MQTT topics
 
-      // send a configuration to the clinet
+      // send a configuration to the client
       inline void send_configuration( const std::string& client_name )
       {
         if (!doe.required_explorations.empty())
@@ -136,6 +136,24 @@ namespace agora
       void process_info( const std::string& info );
 
       void new_observation( const std::string& values );
+
+      inline ApplicationStatus get_status()
+      {
+        std::unique_lock<std::mutex> guard(mutex);
+        return status;
+      }
+
+      inline bool active_clients_empty()
+      {
+        std::unique_lock<std::mutex> guard(mutex);
+        return active_clients.empty();
+      }
+
+      inline std::string get_application_name()
+      {
+        std::unique_lock<std::mutex> guard(mutex);
+        return description.application_name;
+      }
 
   };
 

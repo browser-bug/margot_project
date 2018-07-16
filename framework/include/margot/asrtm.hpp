@@ -473,8 +473,8 @@ namespace margot
         std::lock_guard< std::mutex > lock(manager_mutex);
         return status == ApplicationStatus::DESIGN_SPACE_EXPLORATION || status == ApplicationStatus::WITH_MODEL;
       }
-      
-      
+
+
       /**
        * @brief Test whether the model is available
        *
@@ -484,7 +484,18 @@ namespace margot
       {
         std::lock_guard< std::mutex > lock(manager_mutex);
         return status == ApplicationStatus::WITH_MODEL || status == ApplicationStatus::TUNED || status == ApplicationStatus::UNDEFINED;
-      }      
+      }
+
+      /**
+       * @brief Test whether the metrics (indirectly controlled by the beholder) are to be enabled
+       *
+       * @return True, if the potentially disabled metrics are to be computed (e.g. error)
+       */
+      inline bool are_metrics_on ( void ) const
+      {
+        std::lock_guard< std::mutex > lock(manager_mutex);
+        return metrics_on;
+      }
 
 
 
@@ -1250,6 +1261,8 @@ namespace margot
         // register to the application topic to receive the model
         remote.subscribe("margot/" + application_name + "/model");
 
+        remote.subscribe("margot/" + application_name + "/commands");
+
         // register to the server welcome topic
         remote.subscribe("margot/agora/welcome");
 
@@ -1308,6 +1321,14 @@ namespace margot
           {
             // send a welcome message to restore the communication
             remote.send_message({{"margot/" + application_name + "/welcome"}, my_client_id});
+          }
+          // handle the messages coming from the beholder
+          else if (message_topic.compare("/commands") == 0)
+          {
+            if (new_incoming_message.payload.compare("metrics_on") == 0)
+            {
+              metrics_on = true;
+            }
           }
         }
       }
@@ -1386,6 +1407,11 @@ namespace margot
        * @brief The name of this application
        */
       std::string application_name;
+
+      /**
+       * @brief The boolean controlled by the beholder (indirectly through mqtt)
+       */
+      bool metrics_on = false;
 
 #endif // MARGOT_WITH_AGORA
 

@@ -56,6 +56,12 @@ set( AGORA_HEADERS
   ${MARGOT_HDR_PATH}/agora/worker.hpp
 )
 
+set( BEHOLODER_HEADERS
+  ${MARGOT_HDR_PATH}/beholder/worker_beholder.hpp
+  ${MARGOT_HDR_PATH}/beholder/global_view_beholder.hpp
+  ${MARGOT_HDR_PATH}/beholder/application_handler_beholder.hpp
+)
+
 
 # set the sources of the margot library
 set( SRC_PATH "${CMAKE_CURRENT_SOURCE_DIR}/src" )
@@ -79,6 +85,11 @@ set( AGORA_SOURCES
 	${SRC_PATH}/virtual_io
 	${SRC_PATH}/global_view
 	${SRC_PATH}/model_generator
+)
+set( BEHOLDER_SOURCES
+	${SRC_PATH}/worker_beholder
+	${SRC_PATH}/global_view_beholder
+	${SRC_PATH}/application_handler_beholder
 )
 
 # add the collector monitor if enabled
@@ -116,8 +127,8 @@ endif ( WITH_AGORA )
 
 # create the headers and sources list for the final margot lib
 if ( WITH_AGORA )
-	set( MARGOT_FINAL_HEADERS ${MARGOT_HEADERS} ${AGORA_HEADERS} )
-	set( MARGOT_FINAL_SOURCES ${MARGOT_SOURCES} ${AGORA_SOURCES} )
+	set( MARGOT_FINAL_HEADERS ${MARGOT_HEADERS} ${AGORA_HEADERS} ${BEHOLDER_HEADERS})
+	set( MARGOT_FINAL_SOURCES ${MARGOT_SOURCES} ${AGORA_SOURCES} ${BEHOLDER_SOURCES})
 else ( WITH_AGORA )
 	set( MARGOT_FINAL_HEADERS ${MARGOT_HEADERS} )
 	set( MARGOT_FINAL_SOURCES ${MARGOT_SOURCES} )
@@ -164,6 +175,7 @@ install( FILES ${MARGOT_HEADERS} DESTINATION include/margot )
 install( FILES ${MARGOT_CONFIG_FILE_PATH}/margot/margot_config.hpp DESTINATION include/margot )
 if ( WITH_AGORA )
 	install( FILES ${AGORA_HEADERS} DESTINATION include/agora )
+	install( FILES ${BEHOLDER_HEADERS} DESTINATION include/beholder )
 endif ( WITH_AGORA )
 
 

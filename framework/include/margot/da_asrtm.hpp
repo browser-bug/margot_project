@@ -493,8 +493,8 @@ namespace margot
         std::lock_guard< std::mutex > lock(asrtm_mutex);
         return active_manager != managers.end() ? active_manager->second.in_design_space_exploration() : true;
       }
-      
-      
+
+
       /**
        * @brief Test whether the current manager has the model
        *
@@ -504,7 +504,19 @@ namespace margot
       {
         std::lock_guard< std::mutex > lock(asrtm_mutex);
         return active_manager != managers.end() ? active_manager->second.has_model() : true;
-      }      
+      }
+
+
+      /**
+       * @brief Test whether the metrics (indirectly controlled by the beholder) are to be enabled
+       *
+       * @return True, if the potentially disabled metrics are to be computed (e.g. error)
+       */
+      inline bool are_metrics_on ( void ) const
+      {
+        std::lock_guard< std::mutex > lock(manager_mutex);
+        return active_manager != managers.end() ? active_manager->second.are_metrics_on() : true;
+      }
 
 
 
@@ -1173,6 +1185,14 @@ namespace margot
           {
             // send a welcome message to restore the communication
             remote.send_message({{"margot/" + application_name + "/welcome"}, my_client_id});
+          }
+          // handle the messages coming from the beholder
+          else if (message_topic.compare("/commands") == 0)
+          {
+            if (new_incoming_message.payload.compare("metrics_on") == 0)
+            {
+              metrics_on = true;
+            }
           }
         }
       }

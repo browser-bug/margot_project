@@ -79,7 +79,7 @@ namespace margot
     return std::sqrt(
     std::accumulate(c.cbegin(), c.cend(), decltype(statistics_t{} / typename T::value_type{}) {},
     [average] (const decltype(statistics_t {} / typename T::value_type{}) & summ,
-    const typename T::value_type & d)
+               const typename T::value_type & d)
     {
       return summ + ((static_cast < decltype(statistics_t{} / typename T::value_type{}) > (d) - average) *
                      (static_cast < decltype(statistics_t{} / typename T::value_type{}) > (d) - average));

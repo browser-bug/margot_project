@@ -154,5 +154,21 @@ namespace agora
       // handle the message
       application_handler->new_observation(observation);
     }
+
+    // ---------------------------------------------------------------------------------- handle the beholder status message
+    if (message_type.compare("/status") == 0)
+    {
+      // log the event
+      info("Thread ", get_tid(), ": Received beholder status request");
+
+      // get the list of applications which currently have the model and whose clients' list is not empty
+      const auto app_list = GlobalView::get_handlers_with_active_model();
+
+      io::remote.send_message({"beholder/status", app_list});
+
+      // log the event
+      info("Thread ", get_tid(), ": status summary message sent to beholder");
+
+    }
   }
 }

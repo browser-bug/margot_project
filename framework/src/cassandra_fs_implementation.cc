@@ -958,13 +958,15 @@ void CassandraClient::insert_trace_entry( const application_description_t& descr
   // first we have to get the number of seconds and nanoseconds from epoch
   const auto pos_first_coma = values.find_first_of(',', 0);
   const auto pos_second_coma = values.find_first_of(',', pos_first_coma + 1);
-  
+
   // compute the length of the actual data of the "values" string
   int values_lenght = values.length() - pos_second_coma;
-  
+
   // get the names of the metrics for the query if provided, otherwise use all the metrics in the db
-  const auto pos_slash = values.find_first_of('/',pos_second_coma+1); // find the slash separator if present
-  if (pos_slash == std::string::npos){ // if no metric names provided
+  const auto pos_slash = values.find_first_of('/', pos_second_coma + 1); // find the slash separator if present
+
+  if (pos_slash == std::string::npos)  // if no metric names provided
+  {
     for ( const auto& metric : description.metrics ) // use all the metrics in the db
     {
       fields.append(metric.name + ",");
@@ -972,11 +974,13 @@ void CassandraClient::insert_trace_entry( const application_description_t& descr
 
     // remove the last comma from the field list
     fields.pop_back();
-  } else { // get the metrics names
-    fields.append(values.substr((pos_slash+1), std::string::npos));
+  }
+  else     // get the metrics names
+  {
+    fields.append(values.substr((pos_slash + 1), std::string::npos));
     values_lenght = values_lenght - (values.length() - pos_slash); // update the length of the final actual data of the "values" string "cutting" away the metric names
   }
-  
+
   time_t secs_since_epoch;
   uint64_t nanosecs_since_secs;
   std::istringstream( values.substr(0, pos_first_coma) ) >> secs_since_epoch;
@@ -991,7 +995,7 @@ void CassandraClient::insert_trace_entry( const application_description_t& descr
 
   // now we have to compose again the values string
   std::string&& actual_data = std::to_string(year_month_day) + "," + std::to_string(time_of_day) + values.substr(pos_second_coma, values_lenght);
-  
+
   // create the table
   execute_query_synch("INSERT INTO " + table_name + " (" + fields + ") VALUES (" + actual_data + ");");
 }

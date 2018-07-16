@@ -67,7 +67,7 @@ if ( USE_TEMPERATURE_MONITOR )
 	find_package( SENSORS )
 endif( USE_TEMPERATURE_MONITOR )
 
-option( WITH_AGORA "With agora: the server-side application to manage appication knowledge" OFF )
+option( WITH_AGORA "With agora (and beholder): the server-side application to manage appication knowledge" OFF )
 if ( WITH_AGORA )
 	list (APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/framework/cmake")
 	find_package( MQTT )
@@ -284,6 +284,7 @@ add_subdirectory( framework )
 # build the remote application handler
 if ( WITH_AGORA )
 	add_subdirectory( agora )
+	add_subdirectory( beholder )
 endif ( WITH_AGORA)
 
 # build the benchmark

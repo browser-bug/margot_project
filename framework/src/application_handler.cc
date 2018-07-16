@@ -42,6 +42,10 @@ RemoteApplicationHandler::RemoteApplicationHandler( const std::string& applicati
 
 void RemoteApplicationHandler::welcome_client( const std::string& client_name, const std::string& application_name )
 {
+
+  // notify the fact
+  info("Handler ", description.application_name, ": welcome client \"", client_name, "\"");
+
   // this section is critical ( we need to guard it )
   std::unique_lock<std::mutex> guard(mutex);
 
@@ -348,17 +352,20 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
   {
     features.append(",");
   }
-  
+
   // this is a critical section
   std::unique_lock<std::mutex> guard(mutex);
 
   // check if we can store the information in the application trace
   if (status != ApplicationStatus::CLUELESS && status != ApplicationStatus::RECOVERING && status != ApplicationStatus::ASKING_FOR_INFORMATION && status != ApplicationStatus::BUILDING_DOE)
   {
-    if (!(metric_fields.empty()) && !(metric_fields=="\n") && !(metric_fields==" ")) // if the name of the metrics to be filled in are provided
+    if (!(metric_fields.empty()) && !(metric_fields == "\n") && !(metric_fields == " ")) // if the name of the metrics to be filled in are provided
     {
-      io::storage.insert_trace_entry(description, timestamp + ",'" + client_id + "'," + configuration + "," + features + metrics + "/" + metric_fields); // appends "/" as a separator between the usual message and the metric names
-    } else {
+      io::storage.insert_trace_entry(description, timestamp + ",'" + client_id + "'," + configuration + "," + features + metrics + "/" +
+                                     metric_fields); // appends "/" as a separator between the usual message and the metric names
+    }
+    else
+    {
       io::storage.insert_trace_entry(description, timestamp + ",'" + client_id + "'," + configuration + "," + features + metrics); // behaves normally
     }
   }
