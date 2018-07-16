@@ -37,7 +37,7 @@ find_library (CASSANDRA_LIBRARY libcassandra_static.a cassandra_static libcassan
 ## -----------------------------------------------------------------------------
 ## Check for the libvu library
 
-find_library (CLIBVU_LIBRARY uv libuv )
+find_package ( LIBUV )
 
 
 ## -----------------------------------------------------------------------------
@@ -49,7 +49,7 @@ find_package ( OpenSSL )
 ## -----------------------------------------------------------------------------
 ## Compose the libraries
 
-set ( CASSANDRA_LIBRARIES ${CASSANDRA_LIBRARY} ${CLIBVU_LIBRARY} ${OPENSSL_LIBRARIES} )
+set ( CASSANDRA_LIBRARIES ${CASSANDRA_LIBRARY} ${LIBUV_LIBRARIES} ${OPENSSL_LIBRARIES} )
 
 
 ## -----------------------------------------------------------------------------
