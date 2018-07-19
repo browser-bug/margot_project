@@ -65,10 +65,17 @@ namespace beholder
       // these are the function used to communicate using MQTT topics
 
       // send a command to all the clients running the application
-      inline void send_command( const std::string& command )
+      inline void send_margot_command( const std::string& command )
       {
         // send the command
         agora::io::remote.send_message({{"margot/" + description.application_name + "/commands"}, command});
+      }
+
+      // send an application-specific command to agora
+      inline void send_agora_command( const std::string& command )
+      {
+        // send the command
+        agora::io::remote.send_message({{"agora/" + description.application_name + "/commands"}, command});
       }
 
     public:

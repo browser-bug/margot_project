@@ -46,7 +46,7 @@ def generate_block_body( block_model, op_lists, cc ):
     thereIsErrorMonitor = False
     for monitor_model in block_model.monitor_models:
       cc.write('\t\t\t{0} {1};\n'.format(monitor_model.monitor_class, monitor_model.monitor_name))
-      
+
       # look for the error monitor and prepare the information about it
       if monitor_model.type.upper() == "ERROR":
         thereIsErrorMonitor = True
@@ -54,12 +54,12 @@ def generate_block_body( block_model, op_lists, cc ):
           error_monitor[monitor_model.monitor_name] = monitor_model.period
         else:
           error_monitor[monitor_model.monitor_name] = monitor_model.frequency
-    
+
     uniqueErrorMonitor = False
     errorType = None
     errorPeriod = None
     errorPeriodicDictionary = None
-    
+
     if thereIsErrorMonitor:
       # if we have just one error monitor
       if (len(error_monitor) == 1):
@@ -92,7 +92,7 @@ def generate_block_body( block_model, op_lists, cc ):
           errorPeriod = errorPeriodicDictionary[errorPeriodicDictionary.keys()[0]] # save the frequency
         # we are in the case in which all the error monitors are periodic but with different periods
         else:
-          errorType = "periodic"    
+          errorType = "periodic"
 
     # close the monitor namespace
     cc.write('\t\t} // namespace monitor\n')
@@ -180,8 +180,8 @@ def generate_block_body( block_model, op_lists, cc ):
   for monitor_model in block_model.monitor_models:
     for exposed_var_what in monitor_model.exposed_metrics:
       cc.write('\n\t\t{1}::statistical_type {0};\n'.format(monitor_model.exposed_metrics[exposed_var_what], monitor_model.monitor_class))
-      
-      
+
+
   # write the helper variables for the error management
   if thereIsErrorMonitor:
     cc.write('\n\t\tbool expectingErrorReturn = false;\n')
@@ -193,15 +193,15 @@ def generate_block_body( block_model, op_lists, cc ):
     elif (errorType == "periodic"):
       for elem in errorPeriodicDictionary.keys():
         cc.write('\n\t\tint errorIterationCounter_{0} = 0;\n'.format(elem))
-      
-  
+
+
   # write the datasets structs (if the detasets are provided) with built-in check if the training and production datasets have the same data structure
   if len(block_model.datasets_model)==2:
       thereIsString = False
       for input_data_model in block_model.datasets_model[0].input_data_models:
           if (input_data_model.type == "string"):
               thereIsString = True
-      
+
       #write the two vectors of struct already filled with data
       for dataset_model in block_model.datasets_model:
           if dataset_model.type == "training":
@@ -223,7 +223,7 @@ def generate_block_body( block_model, op_lists, cc ):
                      cc.write('},\n')
              cc.write('\t\t};\n')
           else:
-             structName = "std::vector<dataset> productionStruct = {" 
+             structName = "std::vector<dataset> productionStruct = {"
              cc.write('\n\t\t{0}\n'.format(structName))
              for x in range(len(dataset_model.input_data_models[0].values)):
                  cc.write('\t\t\t{')
@@ -240,22 +240,22 @@ def generate_block_body( block_model, op_lists, cc ):
                  else:
                      cc.write('},\n')
              cc.write('\t\t};\n')
-             
+
       #generate iterators for datasets
-      cc.write("\n\t\tstd::vector<dataset>::iterator itTrain = trainingStruct.begin();")  
+      cc.write("\n\t\tstd::vector<dataset>::iterator itTrain = trainingStruct.begin();")
       cc.write("\n\t\tstd::vector<dataset>::iterator itProd = productionStruct.begin();")
-      
+
       #generate other helper variables
       cc.write("\n\n\t\tbool work_to_do = true;")
       cc.write("\n\t\tbool lastDatasetPassedWasTraining;")
-      
+
       #generate the helper data structures
       cc.write("\n\n\t\tdataset currentDataset;")
       cc.write("\n\t\tdataset currentDatasetTemp;")
       #if thereIsString:
       cc.write("\n\t\tdatasetC_{0} currentDatasetC;".format(block_model.block_name))
-          
-      
+
+
       #write the getDataset function
       cc.write("\n\n\t\tdataset get_dataset(){")
       cc.write("\n\t\t\tif (!manager.has_model()){")
@@ -268,7 +268,7 @@ def generate_block_body( block_model, op_lists, cc ):
       cc.write("\n\t\t\t\treturn currentDataset;")
       cc.write("\n\t\t\t}")
       cc.write("\n\t\t}")
-      
+
       #TODO: write the getDatasetForC
       cc.write("\n\n\t\tdatasetC_{0} get_datasetC()".format(block_model.block_name))
       cc.write('\n\t\t{')
@@ -280,7 +280,7 @@ def generate_block_body( block_model, op_lists, cc ):
               cc.write("\n\t\t\tcurrentDatasetC.{0} = currentDatasetTemp.{0};".format(dataset_model.input_data_models[x].name))
       cc.write("\n\t\t\treturn currentDatasetC;")
       cc.write("\n\t\t}")
-      
+
       #write the next function
       cc.write("\n\n\t\tvoid next(){")
       cc.write("\n\t\t\tif (lastDatasetPassedWasTraining){")
@@ -297,13 +297,13 @@ def generate_block_body( block_model, op_lists, cc ):
       cc.write("\n\t\t\t\t}")
       cc.write("\n\t\t\t}")
       cc.write("\n\t\t}")
-      
+
       #write the toDo function
       cc.write("\n\n\t\tbool to_do(){")
       cc.write("\n\t\t\treturn work_to_do;")
       cc.write("\n\t\t}")
-      
-      
+
+
       #write the dataset_type_switch function
       cc.write("\n\n\t\t//TODO:check if we need to use the 'has_model()' or the 'in_design_space_exploration' function")
       cc.write("\n\t\tbool dataset_type_switch(){")
@@ -313,11 +313,11 @@ def generate_block_body( block_model, op_lists, cc ):
       cc.write("\n\t\t\t\treturn false;")
       cc.write("\n\t\t\t}")
       cc.write("\n\t\t}")
-      
-      
+
+
       #TODO: update header.hpp with new methods
-      
-             
+
+
 
   # write the update function
   cc.write('\n\n\t\tbool {0}\n'.format(generate_update_signature(block_model)))
@@ -419,7 +419,7 @@ def generate_block_body( block_model, op_lists, cc ):
         metric_terms = []
         # prepare a list also for the currently enabled metric names
         metric_name_list = []
-        
+
         # NB:  the following "for-else-break" structure is to "continue" the outer loop when we meet the disabled monitor.
         #      This is needed NOT to enque the disabled monitor's value in the message
         # NB2: we need to "connect" the metric to the related "monitors", in particular we need to disable the metrics
@@ -442,7 +442,7 @@ def generate_block_body( block_model, op_lists, cc ):
               # if the current metric is one of the enabled ones then append the metric's name to the list of metric names
               metric_name_list.append('"{0}"'.format(metric))
         metric_string = ' + "," + '.join(metric_terms)
-        # use the same technique of join also for the currently enabled metric names 
+        # use the same technique of join also for the currently enabled metric names
         metric_names = ' + "," + '.join(metric_name_list)
         # append also the metric names to the message that will be sent
         if feature_terms:
@@ -450,7 +450,7 @@ def generate_block_body( block_model, op_lists, cc ):
         else:
             send_string = ' + " " + '.join([knob_string, metric_string, metric_names])
         cc.write('\t\t\t\tmanager.send_observation({0});\n'.format(send_string))
-        
+
     #if we are in training and we expect a return value for all the monitors, then we behave as if all the monitors are always enabled (else below)
     cc.write('\t\t\t} else {\n')
     for monitor_model in block_model.monitor_models:
@@ -539,14 +539,14 @@ def generate_block_body( block_model, op_lists, cc ):
 
   cc.write('\n')
   cc.write('\t\t}\n')
-  
-  
+
+
   # write the "has_model()" function
   cc.write('\n\n\t\tbool has_model()\n')
   cc.write('\t\t{\n')
   cc.write('\t\t\t return manager.has_model();\n')
-  cc.write('\t\t}\n')  
-  
+  cc.write('\t\t}\n')
+
   #write the compute_error function
   cc.write("\n\n\t\tbool compute_error()")
   cc.write("\n\t\t{")
@@ -557,7 +557,7 @@ def generate_block_body( block_model, op_lists, cc ):
       cc.write("\n\t\t\texpectingErrorReturn = true;")
       cc.write("\n\t\t\treturn true;")
     if errorType == "never":
-      cc.write("\n\t\t\texpectingErrorReturn = !(manager.has_model());")
+      cc.write("\n\t\t\texpectingErrorReturn = (!(manager.has_model()) || (manager.are_metrics_on()));")
       cc.write("\n\t\t\treturn !(manager.has_model());")
     if errorType == "periodic":
       # if the error monitor is unique or all the error monitors have the same period
@@ -568,11 +568,18 @@ def generate_block_body( block_model, op_lists, cc ):
         cc.write("\n\t\t\t\t\texpectingErrorReturn = true;")
         cc.write("\n\t\t\t\t\terrorIterationCounter = 0;")
         cc.write("\n\t\t\t\t\treturn true;")
+        # check whether the beholder ordered to enable the metrics
+        cc.write("\n\t\t\t\t} else if (manager.are_metrics_on()) {")
+        cc.write("\n\t\t\t\t\texpectingErrorReturn = true;")
+        cc.write("\n\t\t\t\t\terrorIterationCounter++;")
+        cc.write("\n\t\t\t\t\treturn true;")
+        # metrics are disabled, just increase the period counter
         cc.write("\n\t\t\t\t} else {")
         cc.write("\n\t\t\t\t\texpectingErrorReturn = false;")
         cc.write("\n\t\t\t\t\terrorIterationCounter++;")
         cc.write("\n\t\t\t\t\treturn false;")
         cc.write("\n\t\t\t\t}")
+        # we are in training and the metrics are always enabled
         cc.write("\n\t\t\t} else {")
         cc.write("\n\t\t\t\texpectingErrorReturn = true;")
         cc.write("\n\t\t\t\treturn true;")
@@ -584,7 +591,7 @@ def generate_block_body( block_model, op_lists, cc ):
         cPeriodMatch = ""
         for k, v in errorPeriodicDictionary.items():
           cPeriodMatch = ("{0}errorIterationCounter_{1} == {2} || ".format(cPeriodMatch,k,v))
-        cPeriodMatch = cPeriodMatch[:-4]       
+        cPeriodMatch = cPeriodMatch[:-4]
         cc.write("\n\t\t\t\tif ({0})".format(cPeriodMatch))
         cc.write("\n\t\t\t\t{")
         cc.write("\n\t\t\t\t\texpectingErrorReturn = true;")
@@ -601,8 +608,17 @@ def generate_block_body( block_model, op_lists, cc ):
           cc.write("\n\t\t\t\t\tif (!(std::find(tempCounterIncreased.begin(), tempCounterIncreased.end(), \"errorIterationCounter_{0}\") != tempCounterIncreased.end()))".format(k,v))
           cc.write("\n\t\t\t\t\t{")
           cc.write("\n\t\t\t\t\t\terrorIterationCounter_{0}++;".format(k))
-          cc.write("\n\t\t\t\t\t}")        
+          cc.write("\n\t\t\t\t\t}")
         cc.write("\n\t\t\t\t\treturn true;")
+        # check whether the beholder ordered to enable the metrics
+        cc.write("\n\t\t\t\t} else if (manager.are_metrics_on()) {")
+        cc.write("\n\t\t\t\t\texpectingErrorReturn = true;")
+        # increase the period counter for all the monitors
+        for k, v in errorPeriodicDictionary.items():
+          cPeriodIncrease = ("errorIterationCounter_{0}++".format(k))
+          cc.write("\n\t\t\t\t\t{0};".format(cPeriodIncrease))
+        cc.write("\n\t\t\t\t\treturn true;")
+        # metrics are disabled, just increase the period counters
         cc.write("\n\t\t\t\t} else {")
         cc.write("\n\t\t\t\t\texpectingErrorReturn = false;")
         # increase the period counter for all the monitors
@@ -611,10 +627,11 @@ def generate_block_body( block_model, op_lists, cc ):
           cc.write("\n\t\t\t\t\t{0};".format(cPeriodIncrease))
         cc.write("\n\t\t\t\t\treturn false;")
         cc.write("\n\t\t\t\t}")
+        # we are in training and the metrics are always enabled
         cc.write("\n\t\t\t} else {")
         cc.write("\n\t\t\t\texpectingErrorReturn = true;")
         cc.write("\n\t\t\t\treturn true;")
-        cc.write("\n\t\t\t}") 
+        cc.write("\n\t\t\t}")
   cc.write("\n\t\t}")
 
 
@@ -862,19 +879,19 @@ def generate_margot_cc( block_models, op_lists, output_folder ):
     cc.write('#ifdef MARGOT_LOG_FILE\n')
     cc.write('#include "margot_logger.hpp"\n')
     cc.write('#endif // MARGOT_LOG_FILE\n')
-    
+
     # if we have the "pause" element in agora we need to add these includes
     for block_name in block_models:
       if not block_models[block_name].agora_model.pause_polling == "":
           cc.write('#include <chrono>\n')
-          cc.write('#include <thread>\n')  
+          cc.write('#include <thread>\n')
           break
-          
+
     # if we have the wrapper we need to add these includes
     for block_name in block_models:
       if len(block_models[block_name].datasets_model)==2:
           cc.write('#include <vector>\n')
-          cc.write('#include <iterator>\n') 
+          cc.write('#include <iterator>\n')
           break
 
     # write the disclaimer
@@ -1170,8 +1187,8 @@ def generate_margot_cc( block_models, op_lists, output_folder ):
           # eventually emit the code that starts the agora application local handler
           cc.write('\n\t\t// Start the agora pocal application handler thread\n')
           cc.write('\t\t{0}::manager.start_support_thread<{0}::operating_point_parser_t>({1});\n'.format(block_name, parameter_string))
-          
-          
+
+
           #if we have the "pause" element in agora we need to create the busy waiting according to the polling and timeout set by the user
           if not block_model.agora_model.pause_polling == "":
             #without timeout
@@ -1194,7 +1211,7 @@ def generate_margot_cc( block_models, op_lists, output_folder ):
               cc.write('\n\t\t\t\tbreak;')
               cc.write('\n\t\t\t}')
               cc.write('\n\t\t}\n')
-            
+
 
     cc.write('\t}\n')
 

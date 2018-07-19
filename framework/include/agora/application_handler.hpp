@@ -137,6 +137,8 @@ namespace agora
 
       void new_observation( const std::string& values );
 
+      void retraining( void );
+
       inline ApplicationStatus get_status()
       {
         std::unique_lock<std::mutex> guard(mutex);

@@ -167,7 +167,33 @@ namespace agora
       io::remote.send_message({"beholder/status", app_list});
 
       // log the event
-      info("Thread ", get_tid(), ": status summary message sent to beholder");
+      pedantic("Thread ", get_tid(), ": status summary message sent to beholder");
+
+    }
+
+    // ---------------------------------------------------------------------------------- handle the application-specific beholder commands
+    if (message_type.compare("/commands") == 0)
+    {
+      // log the event
+      info("Thread ", get_tid(), ": Received beholder command");
+
+      // get the name of the application
+      const auto application_name = new_message.topic.substr(6, start_type_pos - 6);
+
+      // get the client id
+      const auto observation = new_message.payload;
+
+      if (observation.compare("retraining") == 0)
+      {
+        // get the application handler
+        const auto application_handler = GlobalView::get_handler(application_name);
+
+        // log the event
+        pedantic("Thread ", get_tid(), ": received retraining command for application: \"", application_name);
+
+        // handle the message
+        application_handler->retraining();
+      }
 
     }
   }

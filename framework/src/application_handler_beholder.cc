@@ -71,7 +71,12 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
 
   if (false /*need to enable metrics*/)
   {
-    send_command("metrics_on");
+    send_margot_command("metrics_on");
+  }
+
+  if (false /*need to trigger RE-training*/)
+  {
+    send_agora_command("retraining");
   }
 
 }

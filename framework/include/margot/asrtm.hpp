@@ -486,10 +486,17 @@ namespace margot
         return status == ApplicationStatus::WITH_MODEL || status == ApplicationStatus::TUNED || status == ApplicationStatus::UNDEFINED;
       }
 
+
+
+      /******************************************************************
+       *  METHODS TO MANAGE THE BEHOLDER'S COMMANDS
+       ******************************************************************/
+
+#ifdef MARGOT_WITH_AGORA
       /**
-       * @brief Test whether the metrics (indirectly controlled by the beholder) are to be enabled
+       * @brief Test whether the metrics are to be enabled (indirectly controlled by the beholder)
        *
-       * @return True, if the potentially disabled metrics are to be computed (e.g. error)
+       * @return True, if the (potentially disabled) metrics are to be computed (e.g. error)
        */
       inline bool are_metrics_on ( void ) const
       {
@@ -497,6 +504,17 @@ namespace margot
         return metrics_on;
       }
 
+#else
+      /**
+       * @brief Test whether the metrics are to be enabled (indirectly controlled by the beholder)
+       *
+       * @return True, if the (potentially disabled) metrics are to be computed (e.g. error)
+       */
+      inline bool are_metrics_on ( void ) const
+      {
+        return false;
+      }
+#endif
 
 
 
@@ -1101,6 +1119,8 @@ namespace margot
         // get the application name
         application_name = application;
 
+        metrics_on = false;
+
         // disable the agora logging
         agora::my_agora_logger.set_filter_at(agora::LogLevel::DISABLED);
 
@@ -1148,6 +1168,15 @@ namespace margot
 
 #ifdef MARGOT_WITH_AGORA
 
+
+      /**
+       * @brief Enables the metrics to be computed (indirectly controlled by the beholder)
+       */
+      inline void set_metrics_on ( void )
+      {
+        std::lock_guard< std::mutex > lock(manager_mutex);
+        metrics_on = true;
+      }
 
       /**
        * @brief Replace the current knowledge base with a single point
@@ -1261,6 +1290,7 @@ namespace margot
         // register to the application topic to receive the model
         remote.subscribe("margot/" + application_name + "/model");
 
+        // register to the application topic to receive the beholder's commands
         remote.subscribe("margot/" + application_name + "/commands");
 
         // register to the server welcome topic
@@ -1325,9 +1355,10 @@ namespace margot
           // handle the messages coming from the beholder
           else if (message_topic.compare("/commands") == 0)
           {
+            // enables all the metrics (which could be potentially disabled)
             if (new_incoming_message.payload.compare("metrics_on") == 0)
             {
-              metrics_on = true;
+              set_metrics_on();
             }
           }
         }
@@ -1411,7 +1442,7 @@ namespace margot
       /**
        * @brief The boolean controlled by the beholder (indirectly through mqtt)
        */
-      bool metrics_on = false;
+      bool metrics_on;
 
 #endif // MARGOT_WITH_AGORA
 

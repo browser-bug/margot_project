@@ -503,21 +503,26 @@ namespace margot
       inline bool has_model( void ) const
       {
         std::lock_guard< std::mutex > lock(asrtm_mutex);
-        return active_manager != managers.end() ? active_manager->second.has_model() : true;
+        return active_manager != managers.end() ? active_manager->second.has_model() : false;
       }
+
+
+
+      /******************************************************************
+       *  METHODS TO MANAGE THE BEHOLDER'S COMMANDS
+       ******************************************************************/
 
 
       /**
-       * @brief Test whether the metrics (indirectly controlled by the beholder) are to be enabled
+       * @brief Test whether the metrics are to be enabled (indirectly controlled by the beholder)
        *
-       * @return True, if the potentially disabled metrics are to be computed (e.g. error)
+       * @return True, if the (potentially disabled) metrics are to be computed (e.g. error)
        */
       inline bool are_metrics_on ( void ) const
       {
-        std::lock_guard< std::mutex > lock(manager_mutex);
-        return active_manager != managers.end() ? active_manager->second.are_metrics_on() : true;
+        std::lock_guard< std::mutex > lock(asrtm_mutex);
+        return active_manager != managers.end() ? active_manager->second.are_metrics_on() : false;
       }
-
 
 
 
@@ -1033,6 +1038,25 @@ namespace margot
 
 
       /**
+       * @brief
+       * Enables the metrics to be computed (indirectly controlled by the beholder)
+       *
+       * @details
+       * It calls the corresponding asrtm function on the AS-RTM of all the feature clusters
+       * independently of which is the active_manager which is not modified
+       */
+      inline void set_metrics_on ( void )
+      {
+        std::lock_guard< std::mutex > lock(asrtm_mutex);
+
+        for ( auto& asrtm_pair : managers )
+        {
+          asrtm_pair.second.set_metrics_on();
+        }
+      }
+
+
+      /**
        * @brief The function executed by the agora local application handler
        *
        * @tparam OpConverter The type of a functor that generates an Operating Point from a string
@@ -1062,6 +1086,9 @@ namespace margot
 
         // register to the application topic to receive the model
         remote.subscribe("margot/" + application_name + "/model");
+
+        // register to the application topic to receive the beholder's commands
+        remote.subscribe("margot/" + application_name + "/commands");
 
         // register to the server welcome topic
         remote.subscribe("margot/agora/welcome");
@@ -1189,9 +1216,10 @@ namespace margot
           // handle the messages coming from the beholder
           else if (message_topic.compare("/commands") == 0)
           {
+            // enables all the metrics (which could be potentially disabled)
             if (new_incoming_message.payload.compare("metrics_on") == 0)
             {
-              metrics_on = true;
+              set_metrics_on();
             }
           }
         }
