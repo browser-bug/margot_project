@@ -1,5 +1,5 @@
 /* beholder/application_handler_beholder.cc
- * Copyright (C) 2018 Davide Gadioli
+ * Copyright (C) 2018 Alberto Bendin
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
