@@ -569,15 +569,10 @@ def generate_block_body( block_model, op_lists, cc ):
         cc.write("\n\t\t\t\t\terrorIterationCounter = 0;")
         cc.write("\n\t\t\t\t\treturn true;")
         # check whether the beholder ordered to enable the metrics
-        cc.write("\n\t\t\t\t} else if (manager.are_metrics_on()) {")
-        cc.write("\n\t\t\t\t\texpectingErrorReturn = true;")
-        cc.write("\n\t\t\t\t\terrorIterationCounter++;")
-        cc.write("\n\t\t\t\t\treturn true;")
-        # metrics are disabled, just increase the period counter
         cc.write("\n\t\t\t\t} else {")
-        cc.write("\n\t\t\t\t\texpectingErrorReturn = false;")
+        cc.write("\n\t\t\t\t\texpectingErrorReturn = manager.are_metrics_on();")
         cc.write("\n\t\t\t\t\terrorIterationCounter++;")
-        cc.write("\n\t\t\t\t\treturn false;")
+        cc.write("\n\t\t\t\t\treturn manager.are_metrics_on();")
         cc.write("\n\t\t\t\t}")
         # we are in training and the metrics are always enabled
         cc.write("\n\t\t\t} else {")
@@ -611,21 +606,13 @@ def generate_block_body( block_model, op_lists, cc ):
           cc.write("\n\t\t\t\t\t}")
         cc.write("\n\t\t\t\t\treturn true;")
         # check whether the beholder ordered to enable the metrics
-        cc.write("\n\t\t\t\t} else if (manager.are_metrics_on()) {")
-        cc.write("\n\t\t\t\t\texpectingErrorReturn = true;")
-        # increase the period counter for all the monitors
-        for k, v in errorPeriodicDictionary.items():
-          cPeriodIncrease = ("errorIterationCounter_{0}++".format(k))
-          cc.write("\n\t\t\t\t\t{0};".format(cPeriodIncrease))
-        cc.write("\n\t\t\t\t\treturn true;")
-        # metrics are disabled, just increase the period counters
         cc.write("\n\t\t\t\t} else {")
-        cc.write("\n\t\t\t\t\texpectingErrorReturn = false;")
+        cc.write("\n\t\t\t\t\texpectingErrorReturn = manager.are_metrics_on();")
         # increase the period counter for all the monitors
         for k, v in errorPeriodicDictionary.items():
           cPeriodIncrease = ("errorIterationCounter_{0}++".format(k))
           cc.write("\n\t\t\t\t\t{0};".format(cPeriodIncrease))
-        cc.write("\n\t\t\t\t\treturn false;")
+        cc.write("\n\t\t\t\t\treturn manager.are_metrics_on();")
         cc.write("\n\t\t\t\t}")
         # we are in training and the metrics are always enabled
         cc.write("\n\t\t\t} else {")
