@@ -19,6 +19,7 @@
 
 #include <stdexcept>
 #include <algorithm>
+#include <cstring>
 #include <cassert>
 
 #include "agora/logger.hpp"
@@ -504,6 +505,9 @@ void CassandraClient::store_doe( const application_description_t& description, c
   table_desc.append("counter int");
   primary_key.pop_back();
 
+  // append a copy of the counter field that will not be modified and can be used to reset the real counter
+  table_desc.append(",original_counter int");
+
   // create the table
   execute_query_synch("CREATE TABLE " + table_name + " (" + table_desc + ", PRIMARY KEY (" + primary_key + ") );");
 
@@ -516,7 +520,7 @@ void CassandraClient::store_doe( const application_description_t& description, c
   for ( const auto& configuration_pair : doe.required_explorations )
   {
     // execute the query
-    execute_query_synch( "INSERT INTO " + table_name + " (" + primary_key + ",counter) VALUES (" + configuration_pair.first + "," + std::to_string(configuration_pair.second) + " );" );
+    execute_query_synch( "INSERT INTO " + table_name + " (" + primary_key + ",counter,original_counter) VALUES (" + configuration_pair.first + "," + std::to_string(configuration_pair.second) + "," + std::to_string(configuration_pair.second) + " );" );
   }
 }
 
@@ -542,12 +546,17 @@ doe_t CassandraClient::load_doe( const std::string& application_name )
       std::vector<CassValueType> column_types;
 
       // get information on the fields
-      const size_t number_of_columns = cass_result_column_count(query_result);
+      const size_t temp_number_of_columns = cass_result_column_count(query_result);
+
+      // subtract the "original_counter" column, we do not need to send that
+      const size_t number_of_columns = temp_number_of_columns - 1;
 
       for ( size_t i = 0; i < number_of_columns; ++i )
       {
         column_types.emplace_back(cass_result_column_type(query_result, i));
       }
+
+      debug("column types succeded with number of columns: ",number_of_columns);
 
       // Get the actual content of table
       CassIterator* row_iterator = cass_iterator_from_result(query_result);
@@ -565,8 +574,31 @@ doe_t CassandraClient::load_doe( const std::string& application_name )
         CassIterator* column_iterator = cass_iterator_from_row(row);
         auto type_iterator = column_types.cbegin();
 
-        while (cass_iterator_next(column_iterator))
+        for ( size_t i = 0; i < number_of_columns; ++i )
+        //while (cass_iterator_next(column_iterator))
         {
+            /*
+          // retrieve the column's metadata
+          const CassColumnMeta* column_meta = cass_iterator_get_column_meta(column_iterator);
+
+
+
+          const char* column_name;
+          size_t name_length;
+
+          debug("after get meta succeded");
+
+          // retrieve the column's name
+          cass_column_meta_name(column_meta, &column_name, &name_length);
+
+          debug("before continue succeded");
+
+          // if the column is the "original_counter" then skip it, we do not need to send that
+          if (strcmp(column_name,"original_counter") == 0) {
+              continue;
+          }*/
+          cass_iterator_next(column_iterator);
+
           // retrieve the field value
           const CassValue* field_value = cass_iterator_get_column(column_iterator);
 
