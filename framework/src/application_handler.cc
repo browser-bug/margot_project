@@ -544,4 +544,28 @@ void RemoteApplicationHandler::bye_client( const std::string& client_name )
 void RemoteApplicationHandler::retraining( void )
 {
 
+    if (status != ApplicationStatus::WITH_MODEL){
+        warning("Handler ", description.application_name, ": ignoring the re-training request because there is no model yet!");
+        return;
+    }
+
+    // this is a critical section
+    std::unique_lock<std::mutex> guard(mutex);
+
+    // update db DoE and erase the model
+    io::storage.reset_doe(description);
+
+    // update doe in RAM
+    doe = io::storage.load_doe(description.application_name);
+
+    info("Handler ", description.application_name, ": reset the doe from storage");
+    status = ApplicationStatus::EXPLORING;
+
+    for ( const auto& client : active_clients )
+    {
+      send_configuration(client);
+    }
+
+    return;
+
 }

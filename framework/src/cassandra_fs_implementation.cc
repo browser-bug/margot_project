@@ -556,8 +556,6 @@ doe_t CassandraClient::load_doe( const std::string& application_name )
         column_types.emplace_back(cass_result_column_type(query_result, i));
       }
 
-      debug("column types succeded with number of columns: ",number_of_columns);
-
       // Get the actual content of table
       CassIterator* row_iterator = cass_iterator_from_result(query_result);
 
@@ -574,29 +572,9 @@ doe_t CassandraClient::load_doe( const std::string& application_name )
         CassIterator* column_iterator = cass_iterator_from_row(row);
         auto type_iterator = column_types.cbegin();
 
+        // cycle over the row values except for the last "original_counter" column, we do not need to send that
         for ( size_t i = 0; i < number_of_columns; ++i )
-        //while (cass_iterator_next(column_iterator))
         {
-            /*
-          // retrieve the column's metadata
-          const CassColumnMeta* column_meta = cass_iterator_get_column_meta(column_iterator);
-
-
-
-          const char* column_name;
-          size_t name_length;
-
-          debug("after get meta succeded");
-
-          // retrieve the column's name
-          cass_column_meta_name(column_meta, &column_name, &name_length);
-
-          debug("before continue succeded");
-
-          // if the column is the "original_counter" then skip it, we do not need to send that
-          if (strcmp(column_name,"original_counter") == 0) {
-              continue;
-          }*/
           cass_iterator_next(column_iterator);
 
           // retrieve the field value
@@ -1052,6 +1030,149 @@ void CassandraClient::update_doe( const application_description_t& description, 
 
   // create the table
   execute_query_synch("INSERT INTO " + table_name + " (" + fields + ") VALUES (" + values + ");");
+}
+
+void CassandraClient::reset_doe( const application_description_t& description)
+{
+
+  // compose the name of the table
+  std::string table_name = description.application_name;
+  std::replace(table_name.begin(), table_name.end(), default_application_separator, table_application_separator );
+  table_name += "_doe";
+
+  // this will contain the original number of observations for the doe
+  int num_observations;
+
+  // how the result of the query will be processed
+  const auto result_handler = [&num_observations] ( const CassResult * query_result )
+  {
+    // check if we actually have a result, i.e. table not created yet
+    if (query_result != nullptr)
+    {
+
+      // get the number of columns
+      const size_t number_of_columns = cass_result_column_count(query_result);
+
+      // if we have more than one column there is an error because we expect just one column
+      if (number_of_columns != (size_t)1){
+          warning("Cassandra client: error, we too many \"original_counter\" rows!");
+          throw std::runtime_error("Cassandra client error: wrong \"original_counter\" structure.");
+      }
+
+      // to store the type of the column of the query
+      CassValueType column_type = cass_result_column_type(query_result, 0);
+
+
+      // Get the first row
+      const CassRow* row = cass_result_first_row(query_result);
+
+      // iterate over the column (we know there is just one column, see above)
+      CassIterator* column_iterator = cass_iterator_from_row(row);
+
+      // point to the unique column (of the unique row)
+      cass_iterator_next(column_iterator);
+
+      // retrieve the field value
+      const CassValue* field_value = cass_iterator_get_column(column_iterator);
+
+      // check if the value is actually missing
+      if (cass_value_is_null(field_value))
+      {
+        warning("Cassandra client: error, we have an \"original_counter\" row");
+        throw std::runtime_error("Cassandra client error: empty \"original_counter\" row");
+      }
+
+      // check if the value is an integer, which is what we expect
+      switch (column_type)
+      {
+        case CASS_VALUE_TYPE_INT:
+        {
+          int32_t out_value32;
+          CassError rc = cass_value_get_int32(field_value, &out_value32);
+
+          if (rc == CASS_OK)
+          {
+            num_observations = out_value32; // for the counter should be enough
+          }
+          else
+          {
+            int64_t out_value64;
+            CassError rc = cass_value_get_int64(field_value, &out_value64);
+
+            if (rc == CASS_OK)
+            {
+              num_observations = out_value64; // for the counter should be enough
+            }
+            else
+            {
+              warning("Cassandra client: i have a huge int, can't handle it :(");
+              num_observations = -1; // we know that the counter is the last field
+            }
+          }
+        }
+        break;
+
+        default:
+          warning("Cassandra client: i am reading an unknown value from the db");
+      }
+
+      // free the iterator to the row
+      cass_iterator_free(column_iterator);
+
+      // free the result
+      cass_result_free(query_result);
+    }
+  };
+
+  /** Perform the query:
+   * get the number of observations for the doe originally set by the user
+   * since this number is the same for all the rows in the table,
+   * we limit the query to the first result obtained
+   */
+  const std::string query = "SELECT original_counter FROM " + table_name + " limit 1;";
+  execute_query_synch(query, result_handler);
+
+  debug("RESTORING DOE NUM OBSERVATION TO: ", num_observations);
+/*
+  // compose the table description and the primary keys
+  std::string fields = "";
+
+  for ( const auto& knob : description.knobs )
+  {
+    fields.append(knob.name + ",");
+  }
+
+  fields.append("counter");
+
+  // create the table
+  execute_query_synch("INSERT INTO " + table_name + " (" + fields + ") VALUES (" + values + ");");
+*/
+
+/*
+// compose the name of the table
+std::string table_name = description.application_name;
+std::replace(table_name.begin(), table_name.end(), default_application_separator, table_application_separator );
+table_name += "_doe";
+
+
+// compose the table description and the primary keys
+std::string fields = "";
+
+for ( const auto& knob : description.knobs )
+{
+  fields.append(knob.name + ",");
+}
+
+fields.append("counter");
+
+// create the table
+execute_query_synch("UPDATE " + table_name + " (" + fields + ") VALUES (" + values + ");");
+*/
+
+    // erase the model tbefore computing the new one
+    //execute_query_synch("DROP TABLE " + table_name + "_model;");
+
+
 }
 
 
