@@ -419,6 +419,8 @@ def generate_block_body( block_model, op_lists, cc ):
         metric_terms = []
         # prepare a list also for the currently enabled metric names
         metric_name_list = []
+        # prepare a list also for the currently enabled metric predictions
+        metric_prediction_list = []
 
         # NB:  the following "for-else-break" structure is to "continue" the outer loop when we meet the disabled monitor.
         #      This is needed NOT to enque the disabled monitor's value in the message
@@ -440,16 +442,25 @@ def generate_block_body( block_model, op_lists, cc ):
               # if the current metric is one of the enabled ones then append the monitor's value to the list of metric values
               metric_terms.append('std::to_string(monitor::{0}.last())'.format(related_monitor))
               # if the current metric is one of the enabled ones then append the metric's name to the list of metric names
-              metric_name_list.append('"{0}"'.format(metric))
+              metric_name_list.append('std::string("{0}")'.format(metric))
+              # if the current metric is one of the enabled ones then append the metric's prediction from the model to the list of metric predictions
+              metric_prediction_list.append('std::to_string({0}::manager.get_mean<OperatingPointSegments::METRICS, static_cast<std::size_t>({0}::Metric::{1})>())'.format(block_model.block_name, metric.upper()))
         metric_string = ' + "," + '.join(metric_terms)
         # use the same technique of join also for the currently enabled metric names
         metric_names = ' + "," + '.join(metric_name_list)
-        # append also the metric names to the message that will be sent
+
+        # use the same technique of join also for the currently enabled metric predictions
+        metric_predictions = ' + "," + '.join(metric_prediction_list)
+
+        #build the message for the beholder
+        send_beholder_string = ' + " " + '.join([metric_names, metric_string, metric_predictions])
+
+        # append also the metric names to the message that will be sent to agora
         if feature_terms:
             send_string = ' + " " + '.join([knob_string, feature_string, metric_string, metric_names])
         else:
             send_string = ' + " " + '.join([knob_string, metric_string, metric_names])
-        cc.write('\t\t\t\tmanager.send_observation({0});\n'.format(send_string))
+        cc.write('\t\t\t\tmanager.send_observation({0},{1});\n'.format(send_string,send_beholder_string))
 
     #if we are in training and we expect a return value for all the monitors, then we behave as if all the monitors are always enabled (else below)
     cc.write('\t\t\t} else {\n')
@@ -484,15 +495,33 @@ def generate_block_body( block_model, op_lists, cc ):
             feature_terms.append('std::to_string(features::{0})'.format(feature))
         feature_string = ' + "," + '.join(feature_terms)
         metric_terms = []
+        # prepare a list also for the currently enabled metric names
+        metric_name_list = []
+        # prepare a list also for the currently enabled metric predictions
+        metric_prediction_list = []
         for metric in metrics:
             related_monitor = block_model.agora_model.metrics_monitors[metric]
             metric_terms.append('std::to_string(monitor::{0}.last())'.format(related_monitor))
+            # if the current metric is one of the enabled ones then append the metric's name to the list of metric names
+            metric_name_list.append('std::string("{0}")'.format(metric))
+            # if the current metric is one of the enabled ones then append the metric's prediction from the model to the list of metric predictions
+            metric_prediction_list.append('std::to_string({0}::manager.get_mean<OperatingPointSegments::METRICS, static_cast<std::size_t>({0}::Metric::{1})>())'.format(block_model.block_name, metric.upper()))
         metric_string = ' + "," + '.join(metric_terms)
+
+        # use the same technique of join also for the currently enabled metric names
+        metric_names = ' + "," + '.join(metric_name_list)
+
+        # use the same technique of join also for the currently enabled metric predictions
+        metric_predictions = ' + "," + '.join(metric_prediction_list)
+
+        #build the message for the beholder
+        send_beholder_string = ' + " " + '.join([metric_names, metric_string, metric_predictions])
+
         if feature_terms:
             send_string = ' + " " + '.join([knob_string, feature_string, metric_string])
         else:
             send_string = ' + " " + '.join([knob_string, metric_string])
-        cc.write('\t\t\t\tmanager.send_observation({0});\n'.format(send_string))
+        cc.write('\t\t\t\tmanager.send_observation({0},{1});\n'.format(send_string,send_beholder_string))
     cc.write('\t\t\t}')
   # version if all the monitors are always enabled
   else:
@@ -527,15 +556,33 @@ def generate_block_body( block_model, op_lists, cc ):
             feature_terms.append('std::to_string(features::{0})'.format(feature))
         feature_string = ' + "," + '.join(feature_terms)
         metric_terms = []
+        # prepare a list also for the currently enabled metric names
+        metric_name_list = []
+        # prepare a list also for the currently enabled metric predictions
+        metric_prediction_list = []
         for metric in metrics:
             related_monitor = block_model.agora_model.metrics_monitors[metric]
             metric_terms.append('std::to_string(monitor::{0}.last())'.format(related_monitor))
+            # if the current metric is one of the enabled ones then append the metric's name to the list of metric names
+            metric_name_list.append('std::string("{0}")'.format(metric))
+            # if the current metric is one of the enabled ones then append the metric's prediction from the model to the list of metric predictions
+            metric_prediction_list.append('std::to_string({0}::manager.get_mean<OperatingPointSegments::METRICS, static_cast<std::size_t>({0}::Metric::{1})>())'.format(block_model.block_name, metric.upper()))
         metric_string = ' + "," + '.join(metric_terms)
+
+        # use the same technique of join also for the currently enabled metric names
+        metric_names = ' + "," + '.join(metric_name_list)
+
+        # use the same technique of join also for the currently enabled metric predictions
+        metric_predictions = ' + "," + '.join(metric_prediction_list)
+
+        #build the message for the beholder
+        send_beholder_string = ' + " " + '.join([metric_names, metric_string, metric_predictions])
+
         if feature_terms:
             send_string = ' + " " + '.join([knob_string, feature_string, metric_string])
         else:
             send_string = ' + " " + '.join([knob_string, metric_string])
-        cc.write('\t\t\tmanager.send_observation({0});\n'.format(send_string))
+        cc.write('\t\t\tmanager.send_observation({0},{1});\n'.format(send_string,send_beholder_string))
 
   cc.write('\n')
   cc.write('\t\t}\n')

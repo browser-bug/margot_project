@@ -1138,148 +1138,148 @@ void CassandraClient::reset_doe( const application_description_t& description)
   debug("RESTORING DOE NUM OBSERVATION TO: ", num_observations);
 
 
- // Get all the primary keys for the final query
- std::vector<std::string> primary_keys;
+  // Get all the primary keys for the final query
+  std::vector<std::string> primary_keys;
 
- // how the result of the query will be processed
- const auto result_handler_combinations = [&primary_keys] ( const CassResult * query_result )
- {
-   // check if we actually have a result, i.e. table not created yet
-   if (query_result != nullptr)
-   {
-     // this array it is used to store all the types of the columns of the query
-     std::vector<CassValueType> column_types;
+  // how the result of the query will be processed
+  const auto result_handler_combinations = [&primary_keys] ( const CassResult * query_result )
+  {
+    // check if we actually have a result, i.e. table not created yet
+    if (query_result != nullptr)
+    {
+      // this array it is used to store all the types of the columns of the query
+      std::vector<CassValueType> column_types;
 
-     // get information on the fields
-     const size_t number_of_columns = cass_result_column_count(query_result);
+      // get information on the fields
+      const size_t number_of_columns = cass_result_column_count(query_result);
 
-     for ( size_t i = 0; i < number_of_columns; ++i )
-     {
-       column_types.emplace_back(cass_result_column_type(query_result, i));
-     }
+      for ( size_t i = 0; i < number_of_columns; ++i )
+      {
+        column_types.emplace_back(cass_result_column_type(query_result, i));
+      }
 
-     // Get the actual content of table
-     CassIterator* row_iterator = cass_iterator_from_result(query_result);
+      // Get the actual content of table
+      CassIterator* row_iterator = cass_iterator_from_result(query_result);
 
-     while (cass_iterator_next(row_iterator))
-     {
-       // get the reference from the row
-       const CassRow* row = cass_iterator_get_row(row_iterator);
+      while (cass_iterator_next(row_iterator))
+      {
+        // get the reference from the row
+        const CassRow* row = cass_iterator_get_row(row_iterator);
 
-       // initialize the string for the row
-       std::string current_row_keys = "";
+        // initialize the string for the row
+        std::string current_row_keys = "";
 
-       // iterate over the column
-       CassIterator* column_iterator = cass_iterator_from_row(row);
-       auto type_iterator = column_types.cbegin();
+        // iterate over the column
+        CassIterator* column_iterator = cass_iterator_from_row(row);
+        auto type_iterator = column_types.cbegin();
 
-       // cycle over the row values
-       for ( size_t i = 0; i < number_of_columns; ++i )
-       {
-         cass_iterator_next(column_iterator);
+        // cycle over the row values
+        for ( size_t i = 0; i < number_of_columns; ++i )
+        {
+          cass_iterator_next(column_iterator);
 
-         // retrieve the field value
-         const CassValue* field_value = cass_iterator_get_column(column_iterator);
+          // retrieve the field value
+          const CassValue* field_value = cass_iterator_get_column(column_iterator);
 
-         // check if the value is actually missing
-         if (cass_value_is_null(field_value))
-         {
-           warning("Cassandra client: error, we have an empty doe row");
-           throw std::runtime_error("Cassandra client error: empty doe row");
-         }
+          // check if the value is actually missing
+          if (cass_value_is_null(field_value))
+          {
+            warning("Cassandra client: error, we have an empty doe row");
+            throw std::runtime_error("Cassandra client error: empty doe row");
+          }
 
-         // store it as a string
-         switch (*type_iterator)
-         {
-           case CASS_VALUE_TYPE_INT:
-           {
-             int32_t out_value32;
-             CassError rc = cass_value_get_int32(field_value, &out_value32);
+          // store it as a string
+          switch (*type_iterator)
+          {
+            case CASS_VALUE_TYPE_INT:
+            {
+              int32_t out_value32;
+              CassError rc = cass_value_get_int32(field_value, &out_value32);
 
-             if (rc == CASS_OK)
-             {
-               current_row_keys.append(std::to_string(out_value32) + ",");
-             }
-             else
-             {
-               int64_t out_value64;
-               CassError rc = cass_value_get_int64(field_value, &out_value64);
+              if (rc == CASS_OK)
+              {
+                current_row_keys.append(std::to_string(out_value32) + ",");
+              }
+              else
+              {
+                int64_t out_value64;
+                CassError rc = cass_value_get_int64(field_value, &out_value64);
 
-               if (rc == CASS_OK)
-               {
-                 current_row_keys.append(std::to_string(out_value64) + ",");
-               }
-               else
-               {
-                 warning("Cassandra client: i have a huge int, can't handle it :(");
-                 current_row_keys.append("N/A,");
-               }
-             }
-           }
-           break;
+                if (rc == CASS_OK)
+                {
+                  current_row_keys.append(std::to_string(out_value64) + ",");
+                }
+                else
+                {
+                  warning("Cassandra client: i have a huge int, can't handle it :(");
+                  current_row_keys.append("N/A,");
+                }
+              }
+            }
+            break;
 
-           case CASS_VALUE_TYPE_FLOAT:
-           {
-             float out_value_f;
-             CassError rc = cass_value_get_float(field_value, &out_value_f);
+            case CASS_VALUE_TYPE_FLOAT:
+            {
+              float out_value_f;
+              CassError rc = cass_value_get_float(field_value, &out_value_f);
 
-             if (rc == CASS_OK)
-             {
-               current_row_keys.append(std::to_string(out_value_f) + ",");
-             }
-             else
-             {
-               warning("Cassandra client: i have a float which is not a float... yeah, exactly...");
-               current_row_keys.append("N/A,");
-             }
-           }
-           break;
+              if (rc == CASS_OK)
+              {
+                current_row_keys.append(std::to_string(out_value_f) + ",");
+              }
+              else
+              {
+                warning("Cassandra client: i have a float which is not a float... yeah, exactly...");
+                current_row_keys.append("N/A,");
+              }
+            }
+            break;
 
-           case CASS_VALUE_TYPE_DOUBLE:
-           {
-             double out_value_d;
-             CassError rc = cass_value_get_double(field_value, &out_value_d);
+            case CASS_VALUE_TYPE_DOUBLE:
+            {
+              double out_value_d;
+              CassError rc = cass_value_get_double(field_value, &out_value_d);
 
-             if (rc == CASS_OK)
-             {
-               current_row_keys.append(std::to_string(out_value_d) + ",");
-             }
-             else
-             {
-               warning("Cassandra client: i have a double which is not a double... yeah, exactly...");
-               current_row_keys.append("N/A,");
-             }
-           }
-           break;
+              if (rc == CASS_OK)
+              {
+                current_row_keys.append(std::to_string(out_value_d) + ",");
+              }
+              else
+              {
+                warning("Cassandra client: i have a double which is not a double... yeah, exactly...");
+                current_row_keys.append("N/A,");
+              }
+            }
+            break;
 
-           default:
-             warning("Cassandra client: i am reading an unknown value from the db");
-             current_row_keys.append("N/A,");
-         }
+            default:
+              warning("Cassandra client: i am reading an unknown value from the db");
+              current_row_keys.append("N/A,");
+          }
 
-         // increment the type counter
-         ++type_iterator;
-       }
+          // increment the type counter
+          ++type_iterator;
+        }
 
 
-       // pop the last comma from the string
-       current_row_keys.pop_back();
+        // pop the last comma from the string
+        current_row_keys.pop_back();
 
-       // append the row to the vector
-       primary_keys.emplace_back(current_row_keys);
+        // append the row to the vector
+        primary_keys.emplace_back(current_row_keys);
 
-       // free the iterator to the row
-       cass_iterator_free(column_iterator);
-     }
+        // free the iterator to the row
+        cass_iterator_free(column_iterator);
+      }
 
-     // free the iterator through the rows
-     cass_iterator_free(row_iterator);
+      // free the iterator through the rows
+      cass_iterator_free(row_iterator);
 
-     // free the result
-     cass_result_free(query_result);
+      // free the result
+      cass_result_free(query_result);
 
-   }
- };
+    }
+  };
 
 
   // compose the table primary keys
@@ -1302,11 +1302,12 @@ void CassandraClient::reset_doe( const application_description_t& description)
   execute_query_synch(query_combinations, result_handler_combinations);
 
 
-  for ( const auto i : primary_keys ){
-      debug("PRIMARY KEYS: ", i);
-      // execute the query
-      execute_query_synch( "INSERT INTO " + table_name + " (" + fields + ",counter) VALUES (" + i + "," + std::to_string(
-                             num_observations) + " );" );
+  for ( const auto i : primary_keys )
+  {
+    debug("PRIMARY KEYS: ", i);
+    // execute the query
+    execute_query_synch( "INSERT INTO " + table_name + " (" + fields + ",counter) VALUES (" + i + "," + std::to_string(
+                           num_observations) + " );" );
 
   }
 

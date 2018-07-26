@@ -945,7 +945,7 @@ namespace margot
        *
        * @see Asrtm
        */
-      inline void send_observation( const std::string& measures )
+      inline void send_observation( const std::string& measures, const std::string& beholder_measures )
       {
         std::lock_guard< std::mutex > lock(asrtm_mutex);
 
@@ -964,6 +964,9 @@ namespace margot
           + remote.get_my_client_id() + " "
           + measures
         });
+
+        // send the message to beholder
+        remote.send_message({{"beholder/" + application_name + "/observation"}, beholder_measures});
       }
 
       /**
