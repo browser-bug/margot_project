@@ -59,9 +59,17 @@ def dump_cassandra_database( args, root_path ):
             # if it is the first step, we need to print the table header
             if index == 0:
                 outfile.write('{0}\n'.format(','.join(row_header)))
-
-            # then we might want to print the actual values
-            outfile.write('{0}\n'.format(','.join(row_values)))
+                
+            print("PRINTING ROW VALUES X:\n")
+            # NB: the following "for-else-break" structure is to "continue" the outer loop when we meet the "null" (="None" exported) metric.
+            for x in row_values:
+                print(x + "\n")
+                if (x == "null" or x == "None" or x == None or x == "NULL" or x == ''):
+                    print("SKIPPING LAST NUMBER, x: " + x)
+                    break; 
+            else:
+                # then we might want to print the actual values
+                outfile.write('{0}\n'.format(','.join(row_values)))
 
     # get all the required predictions
     model = session.execute('SELECT {1} FROM {0}'.format(args.model, ','.join(predictor_columns)))

@@ -147,7 +147,7 @@ namespace beholder
     if (message_type.compare("/observation") == 0)
     {
       // get the name of the application
-      const auto application_name = new_message.topic.substr(7, start_type_pos - 7);
+      const auto application_name = new_message.topic.substr(9, start_type_pos - 9);
 
       // check if agora is online
       if (!(GlobalView::is_with_agora()))

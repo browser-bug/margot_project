@@ -61,6 +61,8 @@ namespace beholder
       // about the application behavior
       application_description_t description;
 
+      std::vector<std::string> metric_names;
+
 
       // these are the function used to communicate using MQTT topics
 
