@@ -544,6 +544,7 @@ void RemoteApplicationHandler::bye_client( const std::string& client_name )
 void RemoteApplicationHandler::retraining( void )
 {
 
+  // if the application has no model, and we received the re-training message, something is not right
   if (status != ApplicationStatus::WITH_MODEL)
   {
     warning("Handler ", description.application_name, ": ignoring the re-training request because there is no model yet!");
@@ -559,9 +560,12 @@ void RemoteApplicationHandler::retraining( void )
   // update doe in RAM
   doe = io::storage.load_doe(description.application_name);
 
-  info("Handler ", description.application_name, ": reset the doe from storage");
+  info("Handler ", description.application_name, ": the doe has been reset to its original status.");
+
+  // re-set the application to EXPLORING status
   status = ApplicationStatus::EXPLORING;
 
+  // update all the active clients
   for ( const auto& client : active_clients )
   {
     send_configuration(client);

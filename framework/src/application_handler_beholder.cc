@@ -34,7 +34,8 @@ RemoteApplicationHandler::RemoteApplicationHandler( const std::string& applicati
   : status(ApplicationStatus::CLUELESS), description(application_name)
 {
   agora::info("New beholder application handler created for application: ", application_name);
-  //description.metrics = agora::io::storage.load_metrics(application_name);
+
+  // load the application description, even though we are just interested in the metrics
   description = agora::io::storage.load_description(application_name);
 }
 

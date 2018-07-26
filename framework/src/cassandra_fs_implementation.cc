@@ -1033,6 +1033,7 @@ void CassandraClient::update_doe( const application_description_t& description, 
   execute_query_synch("INSERT INTO " + table_name + " (" + fields + ") VALUES (" + values + ");");
 }
 
+// reset the doe to its initial status and drop the model
 void CassandraClient::reset_doe( const application_description_t& description)
 {
 
@@ -1310,14 +1311,13 @@ void CassandraClient::reset_doe( const application_description_t& description)
   }
 
   // erase the model before computing the new one
-
   table_name = description.application_name;
   std::replace(table_name.begin(), table_name.end(), default_application_separator, table_application_separator );
 
   execute_query_synch("DROP TABLE " + table_name + "_model;");
+
+
   //execute_query_synch("TRUNCATE TABLE " + table_name + "_trace;");
-
-
 }
 
 

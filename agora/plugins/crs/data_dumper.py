@@ -60,12 +60,9 @@ def dump_cassandra_database( args, root_path ):
             if index == 0:
                 outfile.write('{0}\n'.format(','.join(row_header)))
                 
-            print("PRINTING ROW VALUES X:\n")
-            # NB: the following "for-else-break" structure is to "continue" the outer loop when we meet the "null" (="None" exported) metric.
+            # NB: the following "for-else-break" structure is to "continue" the outer loop when we meet the "null" (="None" exported) metric in Cassandra's trace.
             for x in row_values:
-                print(x + "\n")
-                if (x == "null" or x == "None" or x == None or x == "NULL" or x == ''):
-                    print("SKIPPING LAST NUMBER, x: " + x)
+                if (x == "None"):
                     break; 
             else:
                 # then we might want to print the actual values
