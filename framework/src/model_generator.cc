@@ -119,6 +119,7 @@ void ModelGenerator::operator()( const application_description_t& application ) 
     config_file << "STORAGE_ADDRESS=\"" << io::storage.get_address() << "\"" << std::endl;
     config_file << "STORAGE_USERNAME=\"" << io::storage.get_username() << "\"" << std::endl;
     config_file << "STORAGE_PASSWORD=\"" << io::storage.get_password() << "\"" << std::endl;
+    config_file << "APPLICATION_NAME=\"" << application.application_name << "\"" << std::endl;
     config_file << "OBSERVATION_CONTAINER_NAME=\"" << io::storage.get_observation_name(application.application_name) << "\"" << std::endl;
     config_file << "MODEL_CONTAINER_NAME=\"" << io::storage.get_model_name(application.application_name) << "\"" << std::endl;
     config_file << "KNOBS_CONTAINER_NAME=\"" << io::storage.get_knobs_name(application.application_name) << "\"" << std::endl;
