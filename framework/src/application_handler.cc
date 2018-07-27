@@ -21,6 +21,9 @@
 #include <cassert>
 #include <cstdint>
 #include <sstream>
+#include <algorithm>
+#include <limits>
+#include <cmath>
 
 #include "agora/application_handler.hpp"
 #include "agora/logger.hpp"
@@ -392,18 +395,56 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
     io::storage.insert_trace_entry(description, timestamp + ",'" + client_id + "'," + configuration + "," + features + metrics);
   }
 
-  // check if we actually ask client id to explore the given configuration
+  // state the boolean variable to state if the client has been assigned to us
+  // we start assuming that they are the same
+  bool is_assigned_conf = true;
+
+  // search for the client in our records
   const auto configuration_it = assigned_configurations.find(client_id);
-  const bool is_assigned_conf = configuration_it != assigned_configurations.end() ?
-                                configuration_it->second.compare(configuration) == 0 : false;
 
+  // check if we assigned to him a configuration
+  if ( configuration_it != assigned_configurations.end())
+  {
+    // get the configurations
+    std::string observed_configuration = configuration;
+    std::string assigned_configuration = configuration_it->second;
 
-  // if assigned, update the doe of the application
+    // get the configuration in a parsable format
+    std::replace(observed_configuration.begin(), observed_configuration.end(), ',', ' ' );
+    std::replace(assigned_configuration.begin(), assigned_configuration.end(), ',', ' ' );
+
+    // parse the configuration values
+    std::stringstream oc(observed_configuration);
+    std::stringstream ac(assigned_configuration);
+
+    // loop over the sowtware knobs
+    for ( const auto& knob : description.knobs )
+    {
+      // parse the knob as double
+      double obs_val, ass_val;
+      oc >> obs_val;
+      ac >> ass_val;
+
+      // check if they are the same
+      if (std::abs(obs_val - ass_val) > std::numeric_limits<double>::epsilon())
+      {
+        is_assigned_conf = false; // due to different configuration
+        break;
+      }
+    }
+  }
+  else
+  {
+    is_assigned_conf = false; // due to unknown client
+  }
+
+  // this variable states if we need to rebuild the model
   bool we_need_to_build_model = false;
 
+  // if assigned, update the doe of the application
   if (is_assigned_conf)
   {
-    const auto doe_it = doe.required_explorations.find(configuration);
+    const auto doe_it = doe.required_explorations.find(configuration_it->second);
 
     if (doe_it != doe.required_explorations.end())
     {

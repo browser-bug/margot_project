@@ -10,7 +10,7 @@ set( SRC_PATH "${CMAKE_CURRENT_SOURCE_DIR}/src" )
 add_executable( ${MARGOT_AGORA_REMOTE_HANDLER} ${SRC_PATH}/main )
 
 # link the libraries
-target_link_libraries( ${MARGOT_AGORA_REMOTE_HANDLER} ${MARGOT_LIB_NAME} ${MQTT_LIBRARIES} ${CASSANDRA_LIBRARIES}  )
+target_link_libraries( ${MARGOT_AGORA_REMOTE_HANDLER} ${MARGOT_LIB_NAME} ${MQTT_LIBRARIES} ${CASSANDRA_LIBRARIES} m )
 
 # add the install command
 install( TARGETS ${MARGOT_AGORA_REMOTE_HANDLER} DESTINATION bin )
