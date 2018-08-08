@@ -1,6 +1,11 @@
 # library(crs, quietly = TRUE)    # to get the response surface models
 library("RJDBC") # connect to database using JDBC codecs
+library("mda")
+library("polspline")
+library("dplyr")
 # source("R/create_discrete_doe.R")
+# source("R/CV_mod.R")
+# source("R/get_knobs_config_list.R")
 
 
 options(scipen = 100)
@@ -49,6 +54,10 @@ if (length(args) < 5)
 
 setwd(root_path)
 source("create_discrete_doe.R")
+# source("CV_mod.R")
+# source("R2_adj.R")
+source("get_knobs_config_list.R")
+source("fit_models_agora.R")
 
 application_name <- gsub("/", "_", application_name)
 
@@ -72,7 +81,19 @@ if(storage_type == "CASSANDRA")
 
 # read the remainder of the configuration from cassandra
 knobs_names <- dbGetQuery(conn, paste("SELECT name FROM ", knobs_container_name, sep = ""))
-features <- dbGetQuery(conn, paste("SELECT name FROM ", features_container_name, sep = ""))
+features_names <- dbGetQuery(conn, paste("SELECT name FROM ", features_container_name, sep = ""))
+
+nknobs <- dim(knobs_names)[1]
+
+if(nknobs == 0)
+{
+  stop("Error: no knobs found. Please specify the knobs.")
+}
+
+if(dim(features_names)[1] == 0)
+{
+  features_names <- NULL
+}
 # predictor_names <- rbind(predictor_names, features)
 
 # make sure that everything is in lowercase
@@ -100,54 +121,66 @@ knobs_names <- sapply( knobs_names , tolower )
 
 # get filter for columns in the dse table
 
-dse_columns <- c(knobs_names, metric_name)
-
+dse_columns <- c(knobs_names, features_names, metric_name)
+input_columns <- c(knobs_names, features_names)
 # Check if there are any results already
 
 # load the profile information from the dse
-profiling_df <- dbGetQuery(conn, paste("SELECT ", paste(dse_columns, collapse = ","), " FROM ", observation_container_name, sep = ""))
+observation_df <- dbGetQuery(conn, paste("SELECT ", paste(dse_columns, collapse = ","), " FROM ", observation_container_name, sep = ""))
 
-if(dim(profiling_df)[1] == 0)
+# get the boolean vector of complete rows (no NAs)
+ind_complete <- complete.cases(observation_df)
+
+# discard incomplete cases if any 
+if(any(!ind_complete))
 {
-  knobs_config_list <- dbGetQuery(conn, paste("SELECT values FROM ", knobs_container_name, sep = ""))
+  warning("Some observations are incomplete and are discarded for the model learning.")
+  print("I discarded following observations: ")
+  print(observation_df[!ind_complete,])
+  observation_df <- observation_df[ind_complete,]
+}
 
-  # Get numeric vectors out of list of character list of values for the knobs
-  # knobs_config_list <- unlist(apply(as.matrix(knobs_config_list, nrow = 1),
-  #                                   1,
-  #                                   function(x)
-  #                                   {
-  #                                     as.numeric(
-  #                                      strsplit(
-  #                                       substring(
-  #                                         as.character( x ),
-  #                                         2,
-  #                                         nchar( as.character( x ) ) -1 ),
-  #                                         ", " )
-  #                                       )
-  #                                    }
-  #                                   ),
-  #                             recursive = FALSE)
-  
-  knobs_config_list <- unlist(apply(as.matrix(knobs_config_list, nrow = 1),
-                                    1,
-                                    function(x)
-                                    {
-                                      lapply(
-                                        strsplit(
-                                          substring(
-                                            as.character( x ),
-                                            2,
-                                            nchar( as.character( x ) ) -1 ),
-                                          ", " ),
-                                        function(y)as.numeric(y)
-                                      )
-                                    }
-  ),
-  recursive = FALSE)
-  
+# BEWARE does not account for the features !!!!!!
+
+# Get the grid configuration
+knobs_config_list <- get_knobs_config_list(conn, knobs_container_name)
+
+# Transform information from the knobs_config_list into matrix
+knob_transform <- sapply(knobs_config_list,
+                         function(knob_config)
+                         {
+                           knob_adjusted_max <- max(knob_config) - min(knob_config)
+                           knob_min <- min(knob_config)
+                           return(c(knob_min, knob_adjusted_max))
+                         })
+
+# Create matrix of all the possible knob design points 
+design_space_grid <- expand.grid(knobs_config_list)
+
+# design_space_grid <- as.data.frame(design_space_grid)
+colnames(design_space_grid) <- knobs_names
+
+#Forcefully set map_to_input = TRUE for now
+map_to_input = TRUE
+if(map_to_input == TRUE)
+{
+  nobserved_orig <- dim(observation_df)[1]
+  # Discard observation which are not on the grid
+  observation_df <- inner_join(observation_df, design_space_grid, by = input_columns)
+  if(nobserved_orig > dim(observation_df)[1])
+  {
+    warning("There were some observation were out of the design grid and were discarded.")
+  }
+}
+
+# Set nobserved the number of observation in the obsercation_df
+nobserved <- dim(observation_df)[1]
+
+if(nobserved == 0)
+{
   # Need to add this options to margot/agora ...
-  doe_options <- list(nobs = 2, eps = 0.2)
-
+  doe_options <- list(nobs = nknobs * 5, eps = 0.2)
+  
   # Propose DOE design points
   doe_design <-  create_doe(knobs_config_list, doe_options, map_to_input = TRUE, algorithm = "lhs")
   doe_names <- c(knobs_names, "counter")
@@ -168,230 +201,178 @@ if(dim(profiling_df)[1] == 0)
     # set_statement <- paste(doe_names, " = ", doe_design[row.ind, ], sep = "", collapse = ", ")
     dbSendUpdate(conn, paste("INSERT INTO ", doe_container_name, "(", set_columns, ") VALUES (", set_values, ")", sep = ""))
   }
+  
+  # Quit to let the AGORA ask for the results at the specific points
+  q(save = "no")
 }
 
-observation_df <- dbGetQuery(conn, paste("SELECT ", paste(dse_columns, collapse = ","), " FROM ", observation_container_name, sep = ""))
 
+# Create models ---------------------------------------------------------------------------------------------------------------
+print("I fit models now.")
+
+# Permute observation_df should prevent same observation being in the test fold for cross validation
+observation_df <- observation_df[sample(1:nobserved, nobserved), ]
+
+validation <- fit_models_agora(observation_df, input_columns, metric_name, nobserved)
+
+
+
+# Check if there is a good model ----------------------------------------------------------------------------------------
+model_selection_features <- c("R2", "MAE")
+
+if( "R2" %in% model_selection_features )
+{
+  model_R2 <-sapply(validation,
+                    function(model)
+                     {median(model$R2[2:length(model$R2)], na.rm = TRUE)}
+  )
+  
+  
+  model_R2_ind <- rep(NA, length(model_R2))
+  
+  model_R2_ind[model_R2 > 0.7] <- 2
+  model_R2_ind[model_R2 >= 0.5 & model_R2 <= 0.7] <- 1
+  model_R2_ind[model_R2 < 0.5] <- 0
+}
+
+if( "MAE" %in% model_selection_features )
+{
+  model_MAE <-sapply(validation,
+                    function(model)
+                    {median(model$MAE[2:length(model$MAE)])}
+  )
+  model_MAE <- model_MAE / max(observation_df[, metric_name])
+  
+  model_MAE_ind <- rep(NA, length(model_MAE))
+  
+  model_MAE_ind[model_MAE < 0.1] <- -2
+  model_MAE_ind[model_MAE >= 0.1 & model_MAE <= 0.3] <- -1
+  model_MAE_ind[model_MAE > 0.3] <- 0
+  model_MAE_ind <- abs(model_MAE_ind)
+}
+
+models_for_selection <- rep(0, length(validation))
+
+for(selection_feature in model_selection_features)
+  switch(selection_feature,
+         "R2" = {models_for_selection <- models_for_selection + (model_R2_ind == 2)},
+         "MAE" = {models_for_selection <- models_for_selection + (model_MAE_ind == 2)})
+
+models_for_selection <- models_for_selection == length(model_selection_features)
+
+if(any(models_for_selection))
+{
+  chosen_model <- which.min(model_MAE[models_for_selection])
+} else
+{
+  models_for_ensemble <- rep(0, length(validation))
+  
+  for(selection_feature in model_selection_features)
+    switch(selection_feature,
+           "R2" = {models_for_ensemble <- models_for_ensemble + (model_R2_ind >= 1)},
+           "MAE" = {models_for_ensemble <- models_for_ensemble + (model_MAE_ind >= 1)})
+  
+  models_for_ensemble <- models_for_ensemble == length(model_selection_features)
+  
+  if(sum(models_for_ensemble >= 2))
+  {
+    # Do ensemble
+    chosen_model <- 0
+  } else
+  {
+    # If there is no good model for prediction or the ensemble set model selected to 0
+    chosen_model <- 0
+  }
+}
+
+
+
+# If necessary increase the model space -------------------------------------------------------------------------------------------------------
+if(chosen_model == 0)
+{
+  # Get knobs config list
+  knobs_config_list <- get_knobs_config_list(conn, knobs_container_name)
+  
+  print("Model is not good enough. I will ask for more points to explore.")
+  # 0.2 could be substituted by parameter DOE update rate.
+  updated_nobs <- floor(nobserved * 1.2)
+  doe_options <- list(nobs = updated_nobs, eps = 0.2)
+  
+  # Propose DOE design points
+  doe_design <-  create_doe(knobs_config_list, doe_options, map_to_input = TRUE, algorithm = "dmax")
+  doe_names <- c(knobs_names, "counter")
+  
+  # Add values for counter column
+  if(is.null(doe_design))
+  {
+    doe_design <- matrix(c(doe_design, rep(1, length(doe_design))), ncol = 2)
+  } else
+  {
+    doe_design <- cbind(doe_design, 1)
+  }
+  
+  for(row.ind in 1:nrow(doe_design))
+  {
+    set_columns <- paste(doe_names, sep = "", collapse = ", ")
+    set_values <- paste(doe_design[row.ind, ], sep = "", collapse = ", ")
+    # set_statement <- paste(doe_names, " = ", doe_design[row.ind, ], sep = "", collapse = ", ")
+    dbSendUpdate(conn, paste("INSERT INTO ", doe_container_name, "(", set_columns, ") VALUES (", set_values, ")", sep = ""))
+  }
+  
+  # Quit to let the AGORA ask for the results at the specific points
+  q(save = "no")
+}
+
+# Write the model results for the grid created by the values set in the knobs definition ------------------------------------------------------
+
+# Make predictions and write results ----------------------------------------------------------------------------------------------------------
+print("I will make predictions now.")
+
+Y_final <- list()
+
+switch(names(chosen_model),
+  "linear" = {
+    Y_hat <- predict(validation$linear$model, design_space_grid, se.fit = TRUE, interval = "confidence") 
+    
+    Y_final$mean <- Y_hat$fit[,1]
+    Y_final$sd   <- Y_hat$se.fit
+  },
+  "linear2" = {
+    Y_hat <- predict(validation$linear2$model, design_space_grid, se.fit = TRUE, interval = "confidence")
+ 
+      Y_final$mean <- Y_hat$fit[,1]
+      Y_final$sd   <- Y_hat$se.fit
+  },
+  "mars" = {
+    Y_hat <- predict(validation$mars$model, design_space_grid)
+    
+    Y_final$mean <- Y_hat
+    Y_final$sd   <- -1
+  },
+  "polymars" = {
+    Y_hat <- predict(validation$polymars$model, design_space_grid)
+    
+    Y_final$mean <- Y_hat
+    Y_final$sd   <- -1
+  },
+  "kriging" = {
+    Y_hat <- predict(validation$kriging$model, newdata = design_space_grid, type = "UK")
+    
+    Y_final$mean <- Y_hat$mean
+    Y_final$sd   <- Y_hat$sd
+  }
+)
+
+print("I will write results now")
+
+# Write results of the model, for the whole grid
+for(row.ind in 1:nrow(design_space_grid))
+{
+  set_columns <- paste(c(knobs_names, paste(metric_name, "_avg", sep = ""), paste(metric_name, "_std", sep = "")), sep = "", collapse = ", ")
+  set_values <- paste(cbind(design_space_grid, Y_final$mean, Y_final$sd)[row.ind, ], sep = "", collapse = ", ")
+  # set_statement <- paste(doe_names, " = ", doe_design[row.ind, ], sep = "", collapse = ", ")
+  dbSendUpdate(conn, paste("INSERT INTO ", model_container_name, "(", set_columns, ") VALUES (", set_values, ")", sep = ""))
+}
 
 
 q(save = "no")
-
-
-
-
-
-#######################################################################
-################ WRITE THE RESULT OF THE PREDICTION ###################
-#######################################################################
-# This part of the application store the predicted value of the metric
-#
-# INPUT:
-# ---------------------------------------------------------------------
-# output_df :   The prediction vector
-# metric_name : The name of the target metric
-
-# for(row.ind in 1:nrow(output_df))
-# {
-#   set_statement <- paste(metric_name, "_avg = ", output_df[row.ind, "Mean"], ", ", metric_name, "_std = ", output_df[row.ind, "Std"], sep = "")
-#   dbSendUpdate(conn, paste("UPDATE ", model_container_name, " SET ", set_statement, " WHERE ", paste(paste(predictor_names, output_df[row.ind, predictor_names], sep = " = "), collapse = " AND "),";", sep = ""))
-# }
-
-
-
-# #
-# #
-# # # ----------------------------------------------- There are results
-# #
-# #
-# # # load the requested predictions
-# # prediction_df <- dbGetQuery(conn, paste("SELECT ", paste(predictor_names, collapse = ","), " FROM ", model_container_name, sep = ""))
-# #
-# # #make sure that all the fields are lowecase for the computations
-# # original_prediction_names <- names(prediction_df)
-# # names(profiling_df) <- sapply( names(profiling_df), tolower )
-# # names(prediction_df) <- sapply( names(prediction_df), tolower )
-# # original_prediction_names_lower <- names(prediction_df)
-# #
-# # #######################################################################
-# # ########### GENERATE THE SURFACE MODEL OF THE APPLICATION #############
-# # #######################################################################
-# # # This part of the application build a model of the application, using
-# # # regression techiniques based on splines to model each metric.
-# # #
-# # # INPUT:
-# # # ---------------------------------------------------------------------
-# # # All the information from the previous sections of the application
-# # #
-# # # OUTPUT:
-# # # ---------------------------------------------------------------------
-# # # update the prediction_df dataframe with predicted metrics
-# #
-# #
-# # # this is a global configuration space, which is not exposed to the
-# # # outer world, at least in this implementation
-# # second_order_predictors_separator <- "__x__"
-# # splines_degrees = 3
-# #
-# # # ----------- generate the predictor space
-# # # It takes into account first order predictors from the input data, and then
-# # # generates second order predictors.
-# #
-# # # unify the software knobs and input features as first order predictors
-# # # first_order_predictors <- rbind(knobs, features)[[1]]
-# # first_order_predictors <- predictor_names
-# #
-# #
-# # if (length(first_order_predictors) > 1)
-# # {
-# #   # generate the second order predictor pairs as combination the first order ones
-# #   second_order_predictors <- expand.grid(first_order_predictors, first_order_predictors, stringsAsFactors = FALSE)
-# #   valid_predictors <- second_order_predictors$Var1 < second_order_predictors$Var2
-# #   second_order_predictors <- second_order_predictors[valid_predictors,]
-# #
-# #   # augment the input data frame with the second oreder predictors and generate
-# #   # also their names attached to the original dataframe
-# #   second_order_predictor_names <- c()
-# #
-# #   # compute the second order terms
-# #   for( predictor_index in 1:nrow(second_order_predictors))
-# #   {
-# #     first_term_name <- second_order_predictors[predictor_index, 1]
-# #     second_term_name <- second_order_predictors[predictor_index, 2]
-# #     this_predictor_name <- paste(first_term_name, second_term_name, sep = second_order_predictors_separator)
-# #     second_order_predictor_names <- c(second_order_predictor_names, this_predictor_name)
-# #     profiling_df[this_predictor_name] <- profiling_df[,first_term_name] * profiling_df[,second_term_name]
-# #   }
-# #
-# #   # make them in a list for uniform values
-# #   terms_to_correlate <- c(first_order_predictors, second_order_predictor_names)
-# # } else
-# # {
-# #   terms_to_correlate <- first_order_predictors
-# # }
-# #
-# # # ----------- generate the correlation matrix
-# #
-# # correlation_matrix <- abs(cor( profiling_df[,terms_to_correlate], profiling_df[,metric_name], method = "spearman"));
-# #
-# # # ----------- prune the predictors to simplify the problem (if needed)
-# #
-# # if (length(correlation_matrix) > 1)
-# # {
-# #   # prune all the terms below the correlation threshold
-# #   selection_vector <- correlation_matrix > correlation_threshold
-# #   correlation_matrix <-correlation_matrix[selection_vector,]
-# #
-# #   # prune all the not available terms
-# #   correlation_matrix <- correlation_matrix[!is.na(correlation_matrix)]
-# #
-# #   # get all the useful predictors
-# #   useful_predictor_names <- names(correlation_matrix)
-# # } else
-# # {
-# #   if (length(correlation_matrix) == 1)
-# #   {
-# #     # prune all the terms below the correlation threshold
-# #     selection_vector <- correlation_matrix > correlation_threshold
-# #     correlation_matrix <-correlation_matrix[selection_vector]
-# #
-# #     # prune all the not available terms
-# #     correlation_matrix <- correlation_matrix[!is.na(correlation_matrix)]
-# #
-# #     # check if we have still something
-# #     if (length(correlation_matrix) == 1)
-# #     {
-# #       useful_predictor_names <- first_order_predictors
-# #     } else
-# #     {
-# #       useful_predictor_names <- c()
-# #     }
-# #
-# #   } else
-# #   {
-# #     useful_predictor_names <- c()
-# #   }
-# #
-# # }
-# #
-# #
-# # # print the summary of the work
-# # print("[INFO]   Useful predictor(s):")
-# # cat(useful_predictor_names)
-# #
-# # # ----------- generate the model of the application (if we have some predictors)
-# # # PS: it also plots some informations about it
-# #
-# # # check if we actually have meaningful predictors
-# # if (length(useful_predictor_names) > 0)
-# # {
-# #   # compose the text of the formula
-# #   text_of_formula <- paste(metric_name, "~", paste(useful_predictor_names, collapse= " + "), sep = " ")
-# #
-# #   # generate the actual formula
-# #   metric_formula <- as.formula(text_of_formula)
-# #
-# #   # generate the model
-# #   #degrees <- rep(splines_degrees, length(correlation_matrix))
-# #   #segments <- rep(5, length(correlation_matrix))
-# #   #metric_model <- crs(metric_formula, data = profiling_df, degree = degrees, segments = segments, knots = "quantiles", basis = "additive" )
-# #   metric_model <- crs(metric_formula, data = profiling_df, prune = TRUE, kernel = FALSE )
-# #   print(summary(metric_model))
-# #   pdf(paste(root_path, "/plot_", metric_name, ".pdf", sep = ""))
-# #   plot(metric_model)
-# #   dev.off()
-# #
-# #   # ----------- perform the predictions according to the generated model
-# #
-# #   # enhance the output dataframe with infomations regarding the useful predictors
-# #   for ( i in 1:length(useful_predictor_names) )
-# #   {
-# #     predictor_name <- useful_predictor_names[i]
-# #     terms <- strsplit(predictor_name, second_order_predictors_separator)[[1]]
-# #     if (length(terms) > 1)
-# #     {
-# #       prediction_df <- cbind(prediction_df, prediction_df[,terms[1]] * prediction_df[,terms[2]])
-# #       names(prediction_df)[length(prediction_df)] <- predictor_name
-# #     }
-# #   }
-# #
-# #   # generate the metric mean value
-# #   mean_values <- predict(metric_model, newdata = prediction_df)
-# #
-# #   # generate the metric standard deviation
-# #   # by default, rcs computes the upper and lower bound with 95% of
-# #   # confidence, this knob is not exposed, therefore, since we want the
-# #   # standard deviation, we kind assume that it is a gaussian, beacuse
-# #   # it means that the 95% of confidence is 2 sigma. So, with take the
-# #   # delta between the mean and the upper bound and divide it by half.
-# #   # crude, but kind of necessary
-# #   standard_deviations <- (attr(mean_values, "upr") - mean_values) / 2
-# # } else
-# # {
-# #   # we don't have any useful predictors.... the best that we can do is
-# #   # to actually take the average and standard deviation from the observations
-# #
-# #   mean_values <- mean(profiling_df[metric_name][[1]])
-# #   standard_deviations <- sd(profiling_df[metric_name][[1]])
-# # }
-# #
-# # # combine the prediction in a single table
-# # output_df <- subset(prediction_df, select=original_prediction_names_lower)
-# # names(output_df) <- original_prediction_names
-# # output_df$Mean <- mean_values
-# # output_df$Std <- standard_deviations
-#
-# #######################################################################
-# ################ WRITE THE RESULT OF THE PREDICTION ###################
-# #######################################################################
-# # This part of the application store the predicted value of the metric
-# #
-# # INPUT:
-# # ---------------------------------------------------------------------
-# # output_df :   The prediction vector
-# # metric_name : The name of the target metric
-#
-# for(row.ind in 1:nrow(output_df))
-# {
-#   set_statement <- paste(metric_name, "_avg = ", output_df[row.ind, "Mean"], ", ", metric_name, "_std = ", output_df[row.ind, "Std"], sep = "")
-#   dbSendUpdate(conn, paste("UPDATE ", model_container_name, " SET ", set_statement, " WHERE ", paste(paste(predictor_names, output_df[row.ind, predictor_names], sep = " = "), collapse = " AND "),";", sep = ""))
-# }

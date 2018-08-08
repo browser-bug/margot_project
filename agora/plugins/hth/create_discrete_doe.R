@@ -5,8 +5,11 @@ create_doe <- function(knobs_config_list, doe_options, map_to_input = TRUE, algo
   # Set number of dimensions based on the number of knobs in the input list
   ndim <- length(knobs_config_list)
   
+  # Get number of values for each knob
+  config_lengths <- sapply(knobs_config_list, function(x)length(x))
+  
   # Set options from the options list
-  nobs <- doe_options$nobs
+  nobs <- min(doe_options$nobs, prod(config_lengths))
   eps  <- doe_options$eps
   
   # Create design in [0,1]^n space 
@@ -17,7 +20,7 @@ create_doe <- function(knobs_config_list, doe_options, map_to_input = TRUE, algo
   
   design <- design$design
   
-  # Get transform information from the knobs_config_list
+  # Transform information from the knobs_config_list into matrix
   knob_transform <- sapply(knobs_config_list,
                            function(knob_config)
                              {
