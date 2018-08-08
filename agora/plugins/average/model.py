@@ -35,21 +35,20 @@ def compute_average_model( args, root_path ):
     predictor_columns = knobs_name
     predictor_columns.extend(features_name)
 
-
     # get all the required predictions
     for operating_point in session.execute('SELECT {1} FROM {0};'.format(args.model, ','.join(predictor_columns))):
 
         # compose the where clause for the query
-        clause = ' AND '.join('{0} = {1}'.format(name, predictor_columns[name]) for name in predictor_columns)
+        where_clause = ' AND '.join('{0} = {1}'.format(name, operating_point[name]) for name in predictor_columns)
 
         # get all the observation for this configuartion
         data_values = []
-        for observation in session.execute('SELECT {1} FROM {0} WHERE {2} ALLOW FILTERING;'.format(args.model, args.metric, clause)):
-            data_values.append(float(observation[0]))
+        for observation in session.execute('SELECT {1} FROM {0} WHERE {2} ALLOW FILTERING;'.format(args.observation, args.metric, where_clause)):
+            data_values.append(float(observation[args.metric]))
 
         # if we don't have any observation we need to raise an exception
         if not data_values:
-            raise ValueError('There is no observations for the following model entry: "{0}"'.format(clause))
+            raise ValueError('There is no observations for the following model entry: "{0}"'.format(where_clause))
 
         # if we reach this statement, we are able to compute statistics
         metric_mean = statistics.mean(data_values)
@@ -57,7 +56,7 @@ def compute_average_model( args, root_path ):
         set_clause = '{0}_avg = {1}, {0}_std = {2}'.format(args.metric, metric_mean, metric_std)
 
         # then we update the model
-        session.execute('UPDATE {0} SET {1} WHERE {2};'.format(args.model, set_clause, where_cluase))
+        session.execute('UPDATE {0} SET {1} WHERE {2};'.format(args.model, set_clause, where_clause))
 
 
 if __name__ == '__main__':
