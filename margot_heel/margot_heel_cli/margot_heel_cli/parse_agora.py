@@ -39,7 +39,7 @@ def parse_agora( agora_xml_element, namespace = ''):
     # validate the values
     knob_values = knob_values.replace(',', ' ')
     values = knob_values.split(' ')
-    valid_values = [x for x in values if x and x.replace('.','',1).isdigit()]
+    valid_values = [x for x in values if x and x.replace('.','',1).replace('-','',1).isdigit()]
     knob_values = ' '.join(valid_values)
 
     # add the information to the agora model
@@ -61,7 +61,7 @@ def parse_agora( agora_xml_element, namespace = ''):
     # validate the values
     feature_values = feature_values.replace(',', ' ')
     values = feature_values.split(' ')
-    valid_values = [x for x in values if x and x.replace('.','',1).isdigit()]
+    valid_values = [x for x in values if x and x.replace('.','',1).replace('-','',1).isdigit()]
     feature_values = ' '.join(valid_values)
 
     # add the information to the agora model
