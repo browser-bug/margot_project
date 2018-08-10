@@ -109,6 +109,7 @@ namespace agora
       void store_doe( const application_description_t& description, const doe_t& doe );
       doe_t load_doe( const std::string& application_name );
       void update_doe( const application_description_t& description, const std::string& values );
+      void empty_doe_entries( const std::string& application_name );
 
       void create_trace_table( const application_description_t& description );
       void insert_trace_entry( const application_description_t& description, const std::string& values );
@@ -156,6 +157,12 @@ namespace agora
         std::string table_name = application_name;
         std::replace(table_name.begin(), table_name.end(), default_application_separator, table_application_separator );
         return database_name + "." + table_name + "_features";
+      }
+      std::string get_metrics_name( const std::string& application_name ) const
+      {
+        std::string table_name = application_name;
+        std::replace(table_name.begin(), table_name.end(), default_application_separator, table_application_separator );
+        return database_name + "." + table_name + "_metrics";
       }
       std::string get_doe_name( const std::string& application_name ) const
       {
