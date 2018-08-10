@@ -126,6 +126,14 @@ namespace agora
       {
         return fs->get_features_name(application_name);
       }
+      inline std::string get_metrics_name( const std::string& application_name ) const
+      {
+        return fs->get_metrics_name(application_name);
+      }
+      inline std::string get_doe_name( const std::string& application_name ) const
+      {
+        return fs->get_doe_name(application_name);
+      }
       inline void erase( const std::string& application_name )
       {
         fs->erase(application_name);

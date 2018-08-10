@@ -158,6 +158,18 @@ namespace agora
         std::replace(table_name.begin(), table_name.end(), default_application_separator, table_application_separator );
         return database_name + "." + table_name + "_features";
       }
+      std::string get_metrics_name( const std::string& application_name ) const
+      {
+        std::string table_name = application_name;
+        std::replace(table_name.begin(), table_name.end(), default_application_separator, table_application_separator );
+        return database_name + "." + table_name + "_metrics";
+      }
+      std::string get_doe_name( const std::string& application_name ) const
+      {
+        std::string table_name = application_name;
+        std::replace(table_name.begin(), table_name.end(), default_application_separator, table_application_separator );
+        return database_name + "." + table_name + "_doe";
+      }
   };
 
 
