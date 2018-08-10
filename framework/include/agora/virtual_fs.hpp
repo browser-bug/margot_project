@@ -79,6 +79,11 @@ namespace agora
         return fs->update_doe(description, values);
       }
 
+      inline void empty_doe_entries( const std::string& application_name )
+      {
+        return fs->empty_doe_entries(application_name);
+      }
+
       inline void create_trace_table( const application_description_t& description )
       {
         fs->create_trace_table(description);

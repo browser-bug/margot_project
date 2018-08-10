@@ -686,6 +686,17 @@ doe_t CassandraClient::load_doe( const std::string& application_name )
   return output_doe;
 }
 
+void CassandraClient::empty_doe_entries( const std::string& application_name )
+{
+  // compose the name of the table
+  std::string table_name = application_name;
+  std::replace(table_name.begin(), table_name.end(), default_application_separator, table_application_separator );
+  table_name += "_doe";
+
+  // deletes all the rows of the doe
+  execute_query_synch("TRUNCATE " + table_name + ";");
+}
+
 
 void CassandraClient::store_model( const application_description_t& description, const model_t& model )
 {
