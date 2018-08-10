@@ -969,7 +969,7 @@ void CassandraClient::insert_trace_entry( const application_description_t& descr
 void CassandraClient::update_doe( const application_description_t& description, const std::string& values )
 {
   // compose the name of the table
-  std::string table_name = get_observation_name(description.application_name);
+  std::string table_name = get_doe_name(description.application_name);
 
   // compose the table description and the primary keys
   std::string fields = "";
