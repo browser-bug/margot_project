@@ -48,6 +48,10 @@ inline bool create_folder( const std::string& path )
 
 void ModelGenerator::operator()( const application_description_t& application ) const
 {
+  // make sure that there are no entries in the doe table
+  info("Handler ", application.application_name, ": clearing the doe table");
+  io::storage.empty_doe_entries(application.application_name);
+
   // create the workspace root folder
   std::string application_workspace = workspace_root;
 
