@@ -46,7 +46,7 @@ inline bool create_folder( const std::string& path )
 
 
 
-void ModelGenerator::operator()( const application_description_t& application ) const
+void ModelGenerator::operator()( const application_description_t& application, const uint_fast32_t iteration_counter ) const
 {
   // make sure that there are no entries in the doe table
   info("Handler ", application.application_name, ": clearing the doe table");
@@ -131,6 +131,7 @@ void ModelGenerator::operator()( const application_description_t& application ) 
     config_file << "DOE_CONTAINER_NAME=\"" << io::storage.get_doe_name(application.application_name) << "\"" << std::endl;
     config_file << "METRIC_NAME=\"" << metric.name << "\"" << std::endl;
     config_file << "METRIC_ROOT=\"" << metric_root << "\"" << std::endl;
+    config_file << "ITERATION_COUNTER=\"" << iteration_counter << "\"" << std::endl;
     config_file.close();
 
     // starts the builder
