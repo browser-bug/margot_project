@@ -999,3 +999,124 @@ void CassandraClient::erase( const std::string& application_name )
   execute_query_synch("DROP TABLE " + get_model_name(application_name));
   execute_query_synch("DROP TABLE " + get_observation_name(application_name));
 }
+
+
+void CassandraClient::store_description( const application_description_t& description )
+{
+  std::string table_name = get_doe_info_name(description.application_name);
+
+  // create the table of the doe info
+  execute_query_synch("CREATE TABLE " + table_name + " ( property_name text PRIMARY KEY, value text);");
+
+  // populate the the doe info table
+  execute_query_synch("INSERT INTO " + table_name + " (property_name,value) VALUES ('number_point_per_dimension','" +
+                      description.number_point_per_dimension + "');");
+  execute_query_synch("INSERT INTO " + table_name + " (property_name,value) VALUES ('number_observations_per_point','" +
+                      description.number_observations_per_point + "');");
+  execute_query_synch("INSERT INTO " + table_name + " (property_name,value) VALUES ('doe_name','" +
+                      description.doe_name + "');");
+  execute_query_synch("INSERT INTO " + table_name + " (property_name,value) VALUES ('minimum_distance','" +
+                      description.minimum_distance + "');");
+
+  // store information about the knobs,features and metrics
+  store_metrics(description.application_name, description.metrics);
+  store_features(description.application_name, description.features);
+  store_knobs(description.application_name, description.knobs);
+}
+
+application_description_t CassandraClient::load_description( const std::string& application_name )
+{
+  application_description_t description = { application_name,
+                                            load_knobs(application_name),
+                                            load_features(application_name),
+                                            load_metrics(application_name)
+                                          };
+
+  // how the result of the query will be processed
+  const auto result_handler = [&description, &application_name] ( const CassResult * query_result )
+  {
+
+    // loop over the results
+    if (query_result != nullptr)
+    {
+      CassIterator* row_iterator = cass_iterator_from_result(query_result);
+
+      while (cass_iterator_next(row_iterator))
+      {
+        // get the reference from the row
+        const CassRow* row = cass_iterator_get_row(row_iterator);
+
+        // declare the object used to retrieve data from Cassandra
+        const CassValue* field_value;
+        const char* field_value_s;
+        size_t lenght_output_string;
+        CassError rc;
+
+        // get the property name from the info table
+        field_value = cass_row_get_column_by_name(row, "property_name");
+        rc = cass_value_get_string(field_value, &field_value_s, &lenght_output_string);
+
+        if (rc != CASS_OK)
+        {
+          warning("Cassandra client: unable to convert a field to string");
+        }
+
+        const std::string property_name(field_value_s, lenght_output_string);
+
+        // get the property value from the info table
+        field_value = cass_row_get_column_by_name(row, "value");
+        rc = cass_value_get_string(field_value, &field_value_s, &lenght_output_string);
+
+        if (rc != CASS_OK)
+        {
+          warning("Cassandra client: unable to convert a field to string");
+        }
+
+        const std::string property_value(field_value_s, lenght_output_string);
+
+        // parse the property of the doe to update the description table
+        if (property_name.compare("number_point_per_dimension") == 0)
+        {
+          description.number_point_per_dimension = property_value;
+        }
+        else
+        {
+          if (property_name.compare("number_observations_per_point") == 0)
+          {
+            description.number_observations_per_point = property_value;
+          }
+          else
+          {
+            if (property_name.compare("doe_name") == 0)
+            {
+              description.doe_name = property_value;
+            }
+            else
+            {
+              if (property_name.compare("minimum_distance") == 0)
+              {
+                description.minimum_distance = property_value;
+              }
+              else
+              {
+                warning("Cassandra client: unknown doe property \"" + property_name + "\" with value \"" + property_value + "\"");
+              }
+            }
+          }
+        }
+      }
+
+      // free the iterator through the rows
+      cass_iterator_free(row_iterator);
+
+      // free the result
+      cass_result_free(query_result);
+    }
+  };
+
+  // perform the query
+  const std::string query = "SELECT * FROM " + get_doe_info_name(application_name) + ";";
+  execute_query_synch(query, result_handler);
+
+  return description;
+}

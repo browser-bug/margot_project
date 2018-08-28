@@ -245,6 +245,34 @@ void RemoteApplicationHandler::process_info( const std::string& info_message )
           new_metric.set(info_element.substr(header_size));
           description.metrics.emplace_back(new_metric);
         }
+        else
+        {
+          if (line_topic.compare("doe       ") == 0)
+          {
+            description.doe_name = info_element.substr(header_size);
+          }
+          else
+          {
+            if (line_topic.compare("n_point_d ") == 0)
+            {
+              description.number_point_per_dimension = info_element.substr(header_size);
+            }
+            else
+            {
+              if (line_topic.compare("n_obs_p   ") == 0)
+              {
+                description.number_observations_per_point = info_element.substr(header_size);
+              }
+              else
+              {
+                if (line_topic.compare("min_dist  ") == 0)
+                {
+                  description.minimum_distance = info_element.substr(header_size);
+                }
+              }
+            }
+          }
+        }
       }
     }
   }

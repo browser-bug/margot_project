@@ -153,6 +153,10 @@ namespace agora
     }
 
     std::string application_name;
+    std::string number_point_per_dimension;
+    std::string number_observations_per_point;
+    std::string doe_name;
+    std::string minimum_distance;
     application_knobs_t knobs;
     application_features_t features;
     application_metrics_t metrics;

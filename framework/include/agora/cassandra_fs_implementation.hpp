@@ -89,19 +89,8 @@ namespace agora
       CassandraClient(const std::string& url, const std::string& username = "", const std::string& password = "");
       ~CassandraClient( void );
 
-      void store_description( const application_description_t& description )
-      {
-        store_metrics(description.application_name, description.metrics);
-        store_features(description.application_name, description.features);
-        store_knobs(description.application_name, description.knobs);
-      }
-      application_description_t load_description( const std::string& application_name )
-      {
-        return { application_name,
-                 load_knobs(application_name),
-                 load_features(application_name),
-                 load_metrics(application_name)};
-      }
+      void store_description( const application_description_t& description );
+      application_description_t load_description( const std::string& application_name );
 
       void store_model( const application_description_t& description, const model_t& model );
       model_t load_model( const std::string& application_name );
@@ -169,6 +158,12 @@ namespace agora
         std::string table_name = application_name;
         std::replace(table_name.begin(), table_name.end(), default_application_separator, table_application_separator );
         return database_name + "." + table_name + "_doe";
+      }
+      std::string get_doe_info_name( const std::string& application_name ) const
+      {
+        std::string table_name = application_name;
+        std::replace(table_name.begin(), table_name.end(), default_application_separator, table_application_separator );
+        return database_name + "." + table_name + "_doe_info";
       }
   };
 
