@@ -132,6 +132,10 @@ void ModelGenerator::operator()( const application_description_t& application, c
     config_file << "METRIC_NAME=\"" << metric.name << "\"" << std::endl;
     config_file << "METRIC_ROOT=\"" << metric_root << "\"" << std::endl;
     config_file << "ITERATION_COUNTER=\"" << iteration_counter << "\"" << std::endl;
+    config_file << "NUMBER_POINT_PER_DIMENSION=\"" << application.number_point_per_dimension << "\"" << std::endl;
+    config_file << "NUMBER_OBSERVATIONS_PER_POINT=\"" << application.number_observations_per_point << "\"" << std::endl;
+    config_file << "DOE_NAME=\"" << application.doe_name << "\"" << std::endl;
+    config_file << "MINIMUM_DISTANCE=\"" << application.minimum_distance << "\"" << std::endl;
     config_file.close();
 
     // starts the builder
