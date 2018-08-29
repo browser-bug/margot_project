@@ -37,7 +37,7 @@
 using namespace agora;
 
 RemoteApplicationHandler::RemoteApplicationHandler( const std::string& application_name )
-  : status(ApplicationStatus::CLUELESS), description(application_name), model_iteration_number(0)
+  : status(ApplicationStatus::CLUELESS), description(application_name), model_iteration_number(1)
 {}
 
 
@@ -59,14 +59,14 @@ void RemoteApplicationHandler::welcome_client( const std::string& client_name, c
   if (need_to_restore_this_object)
   {
     // load the object
-    info("Handler ", application_name, ": the recovery process is started");
+    info("Handler ", application_name, ": detected a new application, attempt to recover status from storage...");
     status = ApplicationStatus::RECOVERING;
 
     // since interaction with storage could be long, we need to release the lock
     guard.unlock();
 
     // first of all we need to load the application description, otherwise we cannot
-    // insteract with storage and we need them to generater further data structure
+    // insteract with storage and we need them to generate further data structures
     description = io::storage.load_description(application_name);
     description.application_name = application_name;
     const bool description_is_usable = !(description.knobs.empty() || description.metrics.empty());
@@ -96,26 +96,27 @@ void RemoteApplicationHandler::welcome_client( const std::string& client_name, c
     guard.lock();
     info("Handler ", description.application_name, ": recovery process terminated");
 
-    const bool somebody_is_here = !active_clients.empty();
+    // if all the application exited, we might quit right here
+    if (active_clients.empty())
+    {
+      info("Handler ", description.application_name, ": nobody is alive animore, clearing this handler");
+      clear();
+      return;
+    }
 
     // if we have the model, we should broadcast it to the clients
     if (model_is_usable)
     {
-      info("Handler ", description.application_name, ": recovered a model from storage");
+      info("Handler ", description.application_name, ": known application, broadcasting model");
       status = ApplicationStatus::WITH_MODEL;
-
-      if (somebody_is_here)
-      {
-        send_model("margot/" + description.application_name + "/model");
-      }
-
+      send_model("margot/" + description.application_name + "/model");
       return;
     }
 
     // if we have configurations to explore, let's start with them
     if (we_have_configurations_to_explore )
     {
-      info("Handler ", description.application_name, ": recovered a doe from storage");
+      info("Handler ", description.application_name, ": known application, resuming the DSE");
       status = ApplicationStatus::EXPLORING;
 
       for ( const auto& client : active_clients )
@@ -127,38 +128,29 @@ void RemoteApplicationHandler::welcome_client( const std::string& client_name, c
     }
 
     // at this point we need to ask for information
-    status = ApplicationStatus::ASKING_FOR_INFORMATION;
-
-    // ok, if this is a new application we are done
+    // because we don't have any clue
     if (!description_is_usable)
     {
       info("Handler ", description.application_name, ": this is a shiny new application");
-
-      if (somebody_is_here)
-      {
-        ask_information();
-      }
-
+      status = ApplicationStatus::ASKING_FOR_INFORMATION;
+      ask_information();
       return;
     }
 
-    // this situation is a bit strange, becuase it means that we have an application
+    // if reach this point, the this situation is a bit strange, becuase it means that we have an application
     // description, but we don't have neither a model nor configurations to explore.
     // Something went wrong in the previous run, not sure what, so our only solution
     // is to drop all the tables and start again to ask for information.
     warning("Handler ", description.application_name, ": inconsistent storage infromation, drop existing data");
     io::storage.erase(description.application_name);
+    status = ApplicationStatus::ASKING_FOR_INFORMATION;
+    ask_information();
 
-    // then we should ask for information
-    if (somebody_is_here)
-    {
-      ask_information();
-    }
 
     // and we might destroy the configuration that we have
-    description.knobs.clear();
-    description.features.clear();
-    description.metrics.clear();
+    auto&& application_name = description.application_name;
+    description.clear();
+    description.application_name = application_name;
     return; // we have done what we can...
   }
 
@@ -188,10 +180,6 @@ void RemoteApplicationHandler::welcome_client( const std::string& client_name, c
 
 void RemoteApplicationHandler::process_info( const std::string& info_message )
 {
-  // those information are useful only to build the doe
-  std::string doe_strategy = "crs";
-  int number_observations = 1;
-
   // check if we are actually thinking about getting the information
   std::unique_lock<std::mutex> guard(mutex);
 
@@ -203,12 +191,11 @@ void RemoteApplicationHandler::process_info( const std::string& info_message )
   // free the string with the information client
   // and change the status in building doe
   information_client.clear();
-  status = ApplicationStatus::BUILDING_DOE;
 
   // if they are useful, we have to process the string
   info("Handler ", description.application_name, ": parsing the information of the application");
   static constexpr char line_delimiter = '@';
-  static constexpr int header_size = 10; // characters
+  static constexpr int header_size = 10; // characters (it could be best handled, but yeah...)
   std::stringstream stream(info_message);
   std::string info_element = {};
 
@@ -283,9 +270,9 @@ void RemoteApplicationHandler::process_info( const std::string& info_message )
   // there is no a trivial solution to this case, the best that we can
   // do is to keep asking information to random clients until something ok
   // happens. This statements holds even if we have just one client
-  if ( description.knobs.empty() || description.metrics.empty() )
+  if ( description.knobs.empty() || description.metrics.empty() || description.number_point_per_dimension.empty() || description.number_observations_per_point.empty() || description.doe_name.empty() || description.minimum_distance.empty() )
   {
-    status = ApplicationStatus::ASKING_FOR_INFORMATION;
+    warning("Handler ", description.application_name, ": we received inconsistent information, ask again");
 
     if (!active_clients.empty())
     {
@@ -296,62 +283,47 @@ void RemoteApplicationHandler::process_info( const std::string& info_message )
   }
 
   // -- CASE 2: the information are ok
-  // we need to compute and create everything
+  // we need to compute and store everything
   // this could last long, so we release the lock
+  status = ApplicationStatus::BUILDING_DOE;
   guard.unlock();
-
-  info("Handler ", description.application_name, ": building the DoE - storing required information... ");
-
 
   // We let the plugins that model the metrics to generate the configurations
   // required to drive the model, therefore we need to:
 
-  // store the description of the application
+  info("Handler ", description.application_name, ": storing the application description");
   io::storage.store_description(description);
 
   // create the table required to store the execution trace of the application
+  info("Handler ", description.application_name, ": creating the required containers in the storage");
   io::storage.create_trace_table(description);
-
-  // create the table required to store the Design of Experiment
-  io::storage.store_doe(description, {});
+  io::storage.store_doe(description, {});  // we want just to create the doe table TODO: rename this method
 
   // create and store the requested predictions
-  info("Handler ", description.application_name, ": building the DoE - generating the required predictions...");
   model.create(description);
   io::storage.store_model(description, model);
-  model.knowledge.clear();
+  model.clear();
 
-  // now we call the model of the application
-  info("Handler ", description.application_name, ": building the DoE - calling the plugins...");
-  io::builder(description, model_iteration_number);
-  ++model_iteration_number;
+  // now we call the plugin that generates the DoE
+  info("Handler ", description.application_name, ": generating the DoE");
+  io::doe_generator(description, 0);
 
   // now we need to retrieve the required configuration to explore
-  info("Handler ", description.application_name, ": building the DoE - recovering the information...");
   doe = io::storage.load_doe(description.application_name);
-
-  // check if we actually have configuration to explore
-  const bool with_configuration_to_explore = !doe.required_explorations.empty();
-  bool with_model = false;
-
-  // if we don't have any configuration we could be in truble
-  if (!with_configuration_to_explore)
-  {
-    // maybe we have already the model, so there is no need to explore anything
-    model = io::storage.load_model(description.application_name);
-
-    // check if it is alredy like that
-    const std::size_t theoretical_number_of_columns = description.knobs.size()
-        + description.features.size()
-        + (2 * description.metrics.size());
-    with_model = static_cast<std::size_t>(model.column_size()) == theoretical_number_of_columns;
-  }
 
   // we are now ready to change the state and see what happens
   guard.lock();
 
+  // if all the application exited, we might quit right here
+  if (active_clients.empty())
+  {
+    info("Handler ", description.application_name, ": nobody is alive animore, clearing this handler");
+    clear();
+    return;
+  }
+
   // in this case we have configuration to send to the clients
-  if (with_configuration_to_explore)
+  if (!doe.required_explorations.empty())
   {
     info("Handler ", description.application_name, ": starting the Design Space Exploration");
     status = ApplicationStatus::EXPLORING;
@@ -363,26 +335,9 @@ void RemoteApplicationHandler::process_info( const std::string& info_message )
   }
   else
   {
-    // if we have a model it is fine
-    if (with_model)
-    {
-      info("Handler ", description.application_name, ": we have a model without a DSE... woa, that's fortunate, i was about to panic");
-
-      // change the application status
-      status = ApplicationStatus::WITH_MODEL;
-
-      // check if there is still anyone in the application
-      if (!active_clients.empty())
-      {
-        send_model("margot/" + description.application_name + "/model");
-      }
-    }
-    else
-    {
-      // no one has generated any configuration for me and i don't have a model
-      // i don't know what to do, i just panic and start to cry...
-      warning("Handler ", description.application_name, ": nobody has configurations for me to explore and neither a model to use... i give up and start crying :(");
-    }
+    // no one has generated any configuration for me and i don't have a model
+    // i don't know what to do, i just panic and start to cry...
+    warning("Handler ", description.application_name, ": nobody has configurations for me to explore and neither a model to use... i give up and start crying :(");
   }
 }
 
@@ -422,6 +377,10 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
   if (status != ApplicationStatus::CLUELESS && status != ApplicationStatus::RECOVERING && status != ApplicationStatus::ASKING_FOR_INFORMATION && status != ApplicationStatus::BUILDING_DOE)
   {
     io::storage.insert_trace_entry(description, timestamp + ",'" + client_id + "'," + configuration + "," + features + metrics);
+  }
+  else
+  {
+    return; // we are not able to do anything with those information
   }
 
   // state the boolean variable to state if the client has been assigned to us
@@ -503,7 +462,6 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
       else
       {
         we_need_to_build_model = true;
-        status = ApplicationStatus::BUILDING_MODEL;
       }
     }
   }
@@ -515,34 +473,30 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
     return;
   }
 
-  // otherwise we need to generate the model
+  // otherwise, we need to generate the model
   // since it could take a while, we need to
   // release the lock
+  status = ApplicationStatus::BUILDING_MODEL;
   guard.unlock();
 
   // actually build the model
-  info("Handler ", description.application_name, ": building the knowledge - calling the plugins...");
-  io::builder(description, model_iteration_number);
+  info("Handler ", description.application_name, ": learning the application knowledge... (it may take a while)");
+  io::model_generator(description, model_iteration_number);
   ++model_iteration_number;
 
   // then read the model from the storage
   model = io::storage.load_model(description.application_name);
 
-
-  // now we need to retrieve the required configuration to explore
-  info("Handler ", description.application_name, ": building the knowledge - recovering the information...");
+  // now we need to retrieve the required configuration to explore (if any)
   doe = io::storage.load_doe(description.application_name);
 
-  // check if we actually have configuration to explore
+  // check if we actually have configuration to explore or the model
   const bool with_configuration_to_explore = !doe.required_explorations.empty();
   bool with_model = false;
 
   // if we don't have any configuration we could be in truble
   if (!with_configuration_to_explore)
   {
-    // maybe we have already the model, so there is no need to explore anything
-    model = io::storage.load_model(description.application_name);
-
     // check if it is alredy like that
     const std::size_t theoretical_number_of_columns = description.knobs.size()
         + description.features.size()
@@ -550,14 +504,24 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
     with_model = static_cast<std::size_t>(model.column_size()) == theoretical_number_of_columns;
   }
 
-
-  // eventually we have to change the status to with model
+  // now we are ready to take some decision
   guard.lock();
 
-  // in this case we have configuration to send to the clients
+  // if all the application exited, we might quit right here
+  if (active_clients.empty())
+  {
+    info("Handler ", description.application_name, ": nobody is alive animore, clearing this handler");
+    clear();
+    return;
+  }
+
+  // this variable test whether we need to generate another DoE to explore
+  bool generate_additional_doe = false;
+
+  // otherwise, check if we have configuration to explore
   if (with_configuration_to_explore)
   {
-    info("Handler ", description.application_name, ": restarting the Design Space Exploration");
+    info("Handler ", description.application_name, ": no application knowledge available, a plugin requested additional observations");
     status = ApplicationStatus::EXPLORING;
 
     for ( const auto& client : active_clients )
@@ -570,23 +534,63 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
     // if we have a model it is fine
     if (with_model)
     {
-      info("Handler ", description.application_name, ": we have a model without a DSE... woa, that's fortunate, i was about to panic");
-
-      // change the application status
+      info("Handler ", description.application_name, ": we have the application knowledge");
       status = ApplicationStatus::WITH_MODEL;
-
-      // check if there is still anyone in the application
-      if (!active_clients.empty())
-      {
-        send_model("margot/" + description.application_name + "/model");
-      }
+      send_model("margot/" + description.application_name + "/model");
     }
     else
     {
       // no one has generated any configuration for me and i don't have a model
-      // i don't know what to do, i just panic and start to cry...
-      warning("Handler ", description.application_name, ": nobody has configurations for me to explore and neither a model to use... i give up and start crying :(");
+      // we restart the dse
+      warning("Handler ", description.application_name, ": no application knowledge available, restarting the DSE");
+      generate_additional_doe = true;
     }
+  }
+
+  // if we have a model or a doe, we are done
+  if (!generate_additional_doe)
+  {
+    return;
+  }
+
+  // otherwise, we need to restart the doe
+  // this could last long, so we release the lock
+  status = ApplicationStatus::BUILDING_DOE;
+  guard.unlock();
+
+  info("Handler ", description.application_name, ": re-generating the DoE");
+  io::doe_generator(description, 0);
+
+  // now we need to retrieve the required configuration to explore
+  doe = io::storage.load_doe(description.application_name);
+
+  // we are now ready to change the state and see what happens
+  guard.lock();
+
+  // if all the application exited, we might quit right here
+  if (active_clients.empty())
+  {
+    info("Handler ", description.application_name, ": nobody is alive animore, clearing this handler");
+    clear();
+    return;
+  }
+
+  // in this case we have configuration to send to the clients
+  if (!doe.required_explorations.empty())
+  {
+    info("Handler ", description.application_name, ": re-starting the Design Space Exploration");
+    status = ApplicationStatus::EXPLORING;
+
+    for ( const auto& client : active_clients )
+    {
+      send_configuration(client);
+    }
+  }
+  else
+  {
+    // no one has generated any configuration for me and i don't have a model
+    // i don't know what to do, i just panic and start to cry...
+    warning("Handler ", description.application_name, ": nobody has configurations for me to explore and neither a model to use... i give up and start crying :(");
   }
 }
 
@@ -619,8 +623,14 @@ void RemoteApplicationHandler::bye_client( const std::string& client_name )
   }
 
   // ------------------------------------------------------------- SPECIAL CASE 1: it was the last client
-  // this case it is ingored in this implementation, since resetting the objecte introduce a great
-  // overhead on synchronization which is not worth.
+
+  // we are allowed to clear the object only if there is nothing pending
+  if (active_clients.empty() && status != ApplicationStatus::CLUELESS && status != ApplicationStatus::RECOVERING && status != ApplicationStatus::BUILDING_DOE && status != ApplicationStatus::BUILDING_MODEL )
+  {
+    info("Handler ", description.application_name, ": this was the last client, no pending operation, clearing this handler");
+    clear();
+    return;
+  }
 
   // ------------------------------------------------------------- SPECIAL CASE 2: it was the information client
   if (information_client.compare(client_name) == 0)

@@ -152,6 +152,18 @@ namespace agora
       return planner<policy>::generate(design_space);
     }
 
+    inline void clear( void )
+    {
+      application_name.clear();
+      number_point_per_dimension.clear();
+      number_observations_per_point.clear();
+      doe_name.clear();
+      minimum_distance.clear();
+      knobs.clear();
+      features.clear();
+      metrics.clear();
+    }
+
     std::string application_name;
     std::string number_point_per_dimension;
     std::string number_observations_per_point;
@@ -216,6 +228,11 @@ namespace agora
       return result;
     }
 
+    inline void clear( void )
+    {
+      knowledge.clear();
+    }
+
     std::vector< std::string > knowledge;
   };
 
@@ -237,6 +254,12 @@ namespace agora
 
       // set the correct value for the doe iterator
       next_configuration = required_explorations.begin();
+    }
+
+    inline void clear( void )
+    {
+      required_explorations.clear();
+      next_configuration = required_explorations.end();
     }
 
     std::unordered_map< configuration_t, int > required_explorations;
