@@ -1118,5 +1118,5 @@ application_description_t CassandraClient::load_description( const std::string& 
   const std::string query = "SELECT * FROM " + get_doe_info_name(application_name) + ";";
   execute_query_synch(query, result_handler);
 
-  return description;
+  return !(description.number_point_per_dimension.empty() || description.number_observations_per_point.empty() || description.doe_name.empty() || description.minimum_distance.empty()) ? description : application_description_t{};
 }
