@@ -128,6 +128,19 @@ namespace agora
         info("Handler ", description.application_name, ": asking \"", information_client, "\" information");
       }
 
+      // clear the information of this object
+      inline void clear( void )
+      {
+        status = ApplicationStatus::CLUELESS;
+        active_clients.clear();
+        assigned_configurations.clear();
+        information_client.clear();
+        description.clear();
+        model.clear();
+        doe.clear();
+        model_iteration_number = 1;
+      }
+
     public:
 
       RemoteApplicationHandler( const std::string& application_name );

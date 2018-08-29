@@ -310,7 +310,8 @@ int main( int argc, char* argv[] )
 
   // initialize the virtual fs to store/load the information from hard drive
   agora::info("Agora main: bootstrap step 3: initializing the model builder plugin");
-  agora::io::builder.initialize(workspace_folder, plugin_folder);
+  agora::io::model_generator.initialize(workspace_folder, plugin_folder);
+  agora::io::doe_generator.initialize(workspace_folder, plugin_folder);
 
   // start the thread pool of worker that manage the applications
   agora::info("Agora main: bootstrap step 4: hiring the oompa loompas");
