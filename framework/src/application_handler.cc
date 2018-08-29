@@ -374,7 +374,7 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
   std::unique_lock<std::mutex> guard(mutex);
 
   // check if we can store the information in the application trace
-  if (status != ApplicationStatus::CLUELESS && status != ApplicationStatus::RECOVERING && status != ApplicationStatus::ASKING_FOR_INFORMATION && status != ApplicationStatus::BUILDING_DOE)
+  if (status == ApplicationStatus::EXPLORING || status == ApplicationStatus::WITH_MODEL)
   {
     io::storage.insert_trace_entry(description, timestamp + ",'" + client_id + "'," + configuration + "," + features + metrics);
   }
