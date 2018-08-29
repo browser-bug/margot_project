@@ -118,6 +118,7 @@ namespace agora
       config_file << "KNOBS_CONTAINER_NAME=\"" << io::storage.get_knobs_name(application.application_name) << "\"" << std::endl;
       config_file << "FEATURES_CONTAINER_NAME=\"" << io::storage.get_features_name(application.application_name) << "\"" << std::endl;
       config_file << "DOE_CONTAINER_NAME=\"" << io::storage.get_doe_name(application.application_name) << "\"" << std::endl;
+      config_file << "DOE_INFO_CONTAINER_NAME=\"" << io::storage.get_doe_info_name(application.application_name) << "\"" << std::endl;
       config_file << "METRIC_NAME=\"" << metric_name << "\"" << std::endl;
       config_file << "METRIC_ROOT=\"" << plugin_root_path << "\"" << std::endl;
       config_file << "ITERATION_COUNTER=\"" << iteration_counter << "\"" << std::endl;
