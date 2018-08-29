@@ -37,7 +37,7 @@
 using namespace agora;
 
 RemoteApplicationHandler::RemoteApplicationHandler( const std::string& application_name )
-  : status(ApplicationStatus::CLUELESS), description(application_name)
+  : status(ApplicationStatus::CLUELESS), description(application_name), model_iteration_number(0)
 {}
 
 
@@ -245,6 +245,34 @@ void RemoteApplicationHandler::process_info( const std::string& info_message )
           new_metric.set(info_element.substr(header_size));
           description.metrics.emplace_back(new_metric);
         }
+        else
+        {
+          if (line_topic.compare("doe       ") == 0)
+          {
+            description.doe_name = info_element.substr(header_size);
+          }
+          else
+          {
+            if (line_topic.compare("n_point_d ") == 0)
+            {
+              description.number_point_per_dimension = info_element.substr(header_size);
+            }
+            else
+            {
+              if (line_topic.compare("n_obs_p   ") == 0)
+              {
+                description.number_observations_per_point = info_element.substr(header_size);
+              }
+              else
+              {
+                if (line_topic.compare("min_dist  ") == 0)
+                {
+                  description.minimum_distance = info_element.substr(header_size);
+                }
+              }
+            }
+          }
+        }
       }
     }
   }
@@ -295,7 +323,8 @@ void RemoteApplicationHandler::process_info( const std::string& info_message )
 
   // now we call the model of the application
   info("Handler ", description.application_name, ": building the DoE - calling the plugins...");
-  io::builder(description);
+  io::builder(description, model_iteration_number);
+  ++model_iteration_number;
 
   // now we need to retrieve the required configuration to explore
   info("Handler ", description.application_name, ": building the DoE - recovering the information...");
@@ -493,7 +522,8 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
 
   // actually build the model
   info("Handler ", description.application_name, ": building the knowledge - calling the plugins...");
-  io::builder(description);
+  io::builder(description, model_iteration_number);
+  ++model_iteration_number;
 
   // then read the model from the storage
   model = io::storage.load_model(description.application_name);

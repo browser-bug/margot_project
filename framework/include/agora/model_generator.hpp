@@ -50,7 +50,7 @@ namespace agora
       }
 
       // the application description is an input parameter, the model is an input/output parameter
-      void operator()( const application_description_t& application ) const;
+      void operator()( const application_description_t& application, const uint_fast32_t iteration_counter ) const;
 
 
   };

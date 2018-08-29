@@ -75,6 +75,9 @@ namespace agora
       model_t model;
       doe_t doe;
 
+      // this is a counter for the number of iterations used to build the model
+      uint_fast32_t model_iteration_number;
+
       inline configuration_t get_next( void )
       {
         doe.next_configuration++;

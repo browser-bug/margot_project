@@ -756,6 +756,10 @@ def generate_margot_cc( block_models, op_lists, output_folder ):
                description_terms.append('feature   {0} {1} {2}'.format(feature_name, feature_type_pod, block_model.agora_model.features_values[feature_name]))
           for metric_name in metric_list:
                description_terms.append('metric    {0} {1} {2}'.format(metric_name, metric_type_pod, block_model.agora_model.metrics_predictors[metric_name]))
+          description_terms.append('doe       {0}'.format(block_model.agora_model.doe_name))
+          description_terms.append('n_point_d {0}'.format(block_model.agora_model.number_point_per_dimension))
+          description_terms.append('n_obs_p   {0}'.format(block_model.agora_model.number_observations_per_point))
+          description_terms.append('min_dist  {0}'.format(block_model.agora_model.min_distance))
           description_string = '@'.join(description_terms)
 
           # generate the argument of the initialization

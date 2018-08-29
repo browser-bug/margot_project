@@ -141,5 +141,5 @@ def get_parameter( xml_element, attrib_name, my_target_type=str, required=True, 
   except ValueError:
     print('[LOGIC ERROR]: Unable to understand the attribute "{0}"!'.format(attrib_name))
     print('                The value of the attribute "{0}" of a element <{1}> must be {2}!'.format(attrib_name, xml_element.tag, my_target_type))
-    print('                This is the actual value for the attribute: "{1}"'.format(xml_element.attrib[attrib_name]))
+    print('                This is the actual value for the attribute: "{0}"'.format(xml_element.attrib[attrib_name]))
     sys.exit(-1)
