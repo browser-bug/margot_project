@@ -22,7 +22,7 @@
 
 #include "agora/virtual_channel.hpp"
 #include "agora/virtual_fs.hpp"
-#include "agora/model_generator.hpp"
+#include "agora/launcher.hpp"
 
 namespace agora
 {
