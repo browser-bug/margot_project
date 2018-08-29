@@ -25,6 +25,6 @@ namespace agora
   {
     VirtualChannel remote;
     VirtualFs storage;
-    ModelGenerator builder;
+    Launcher<LauncherType::ModelGenerator> builder;
   }
 }

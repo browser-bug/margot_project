@@ -17,8 +17,8 @@
  * USA
  */
 
-#ifndef MARGOT_AGORA_MODEL_GENERATOR_HDR
-#define MARGOT_AGORA_MODEL_GENERATOR_HDR
+#ifndef MARGOT_AGORA_LAUNCHER_HDR
+#define MARGOT_AGORA_LAUNCHER_HDR
 
 #include <string>
 
@@ -27,34 +27,63 @@
 namespace agora
 {
 
-  class ModelGenerator
+  // This class enumerates all the available lanchers
+  enum class LauncherType
+  {
+    ModelGenerator,
+    DoeGenerator
+  };
+
+
+  // This is a generic class that implement a launcher for a plugin
+  // the actual behavior depends on its type
+  template< LauncherType type >
+  class Launcher
   {
 
-    private:
+  private:
 
-      // this is the path of the root workspace used to
-      // generate an application model
-      std::string workspace_root;
+    // this is the path of the root workspace used to
+    // generate an application model
+    std::string workspace_root;
 
-      // this is the path of the folder that contains all
-      // the available plugin to compute the model
-      std::string plugins_folder;
+    // this is the path of the folder that contains all
+    // the available plugin to compute the model
+    std::string plugins_folder;
+
+    // this is the name of the environmental file that
+    // describes the parameters of the agora execution
+    const std::string config_file_name;
+
+    // this is the name of the bash script that launch
+    // the actual plugin folder
+    const std::string script_file_name;
 
 
-    public:
+  public:
 
-      inline void initialize( const std::string& workspace_path, const std::string& plugins_path)
+    Launcher( void ):config_file_name("agora_config.env"),script_file_name("generate_model.sh")
+    {}
+
+    inline void initialize( const std::string& workspace_path, const std::string& plugins_path)
+    {
+      workspace_root = workspace_path;
+      plugins_folder = plugins_path;
+      if (workspace_root.back() != '/')
       {
-        workspace_root = workspace_path;
-        plugins_folder = plugins_path;
+        workspace_root.append("/");
       }
+      if (plugins_folder.back() != '/')
+      {
+        plugins_folder.append("/");
+      }
+    }
 
-      // the application description is an input parameter, the model is an input/output parameter
-      void operator()( const application_description_t& application, const uint_fast32_t iteration_counter ) const;
-
+    // the application description is an input parameter, the model is an input/output parameter
+    void operator()( const application_description_t& application, const uint_fast32_t iteration_counter ) const;
 
   };
 
 }
 
-#endif // MARGOT_AGORA_MODEL_GENERATOR_HDR
+#endif // MARGOT_AGORA_LAUNCHER_HDR
