@@ -45,7 +45,7 @@ set( AGORA_HEADERS
   ${MARGOT_HDR_PATH}/agora/fs_handler.hpp
   ${MARGOT_HDR_PATH}/agora/global_view.hpp
 	${MARGOT_HDR_PATH}/agora/logger.hpp
-  ${MARGOT_HDR_PATH}/agora/model_generator.hpp
+  ${MARGOT_HDR_PATH}/agora/launcher.hpp
   ${MARGOT_HDR_PATH}/agora/paho_remote_implementation.hpp
   ${MARGOT_HDR_PATH}/agora/remote_handler.hpp
 	${MARGOT_HDR_PATH}/agora/safe_queue.hpp
@@ -78,7 +78,7 @@ set( AGORA_SOURCES
 	${SRC_PATH}/worker
 	${SRC_PATH}/virtual_io
 	${SRC_PATH}/global_view
-	${SRC_PATH}/model_generator
+	${SRC_PATH}/launcher
 )
 
 # add the collector monitor if enabled

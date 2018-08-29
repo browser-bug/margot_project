@@ -31,7 +31,7 @@
 #include <stdexcept>
 #include <fstream>
 
-#include "agora/model_generator.hpp"
+#include "agora/launcher.hpp"
 #include "agora/logger.hpp"
 #include "agora/virtual_io.hpp"
 
