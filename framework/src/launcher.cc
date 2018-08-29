@@ -17,11 +17,6 @@
  * USA
  */
 
-
-/**
- * @NOTE: THIS CLASS SHOULD BE REVRITTEN ONCE WE HAVE std::filesystem
- */
-
 #include <sstream>
 #include <sys/stat.h> // to create directories, only for linux systems
 #include <sys/types.h>
@@ -29,6 +24,7 @@
 #include <cerrno>
 #include <unistd.h>
 #include <stdexcept>
+#include <vector>
 #include <fstream>
 
 #include "agora/launcher.hpp"
@@ -36,146 +32,198 @@
 #include "agora/virtual_io.hpp"
 
 
-using namespace agora;
-
-inline bool create_folder( const std::string& path )
+namespace agora
 {
-  int rc = mkdir(path.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH );
-  return rc == 0 || errno == EEXIST;
-}
 
-
-
-void ModelGenerator::operator()( const application_description_t& application, const uint_fast32_t iteration_counter ) const
-{
-  // make sure that there are no entries in the doe table
-  info("Handler ", application.application_name, ": clearing the doe table");
-  io::storage.empty_doe_entries(application.application_name);
-
-  // create the workspace root folder
-  std::string application_workspace = workspace_root;
-
-  if (workspace_root.back() != '/')
+  /**
+   * @NOTE: ALL THE FUNCTION DECLARED IN THIS NAMESPACE SHOULD BE REVRITTEN ONCE WE HAVE std::filesystem
+   */
+  namespace sh_util
   {
-    application_workspace.append("/");
+
+
+    inline bool create_folder( const std::string& path )
+    {
+      int rc = mkdir(path.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH );
+      return rc == 0 || errno == EEXIST;
+    }
+
+
+    void copy_folder( const std::string& input_folder, const std::string& output_folder )
+    {
+      // ---..--- create the destination path
+
+      // declare a stringstream to parse all the subfolders
+      std::string temporary_directory = "";
+      std::stringstream path_stream(output_folder);
+      std::string&& current_path = "";
+
+      // loop over the path segment and attempt to create them
+      while (std::getline(path_stream, current_path, '/'))
+      {
+        temporary_directory.append(current_path + "/");
+        const bool is_created = create_folder(temporary_directory);
+
+        if (!is_created)
+        {
+          warning("Launcher: unable to create the folder \"", temporary_directory, "\" with errno=", errno);
+          throw std::runtime_error("Launcher: unable to create the folder \"" + temporary_directory + "\" with errno=" + std::to_string(errno) );
+        }
+      }
+
+
+      // ---..--- perform the actual copy
+      // now we have to recursively copy the folder from the plugin folder
+      // the esiest way is to fork and exec cp
+
+      pid_t cp_pid = fork();
+
+      if (cp_pid == 0)
+      {
+        // we are the child, we need to copy the stuff
+        execlp("cp", "cp", "-r", "-T", "-u", input_folder.c_str(), output_folder.c_str(), (char*)NULL);
+        warning("Launcher: unable to copy the folder \"", input_folder, "\" into \"", output_folder, "\", errno=", errno);
+        throw std::runtime_error( "Launcher: unable to copy the folder \"" + input_folder + "\" into \"" + output_folder + "\", errno=" + std::to_string(errno) );
+      }
+      else if (cp_pid < 0)
+      {
+        warning("Launcher: unable to fork errno=", errno);
+        throw std::runtime_error( "Launcher: unable to fork errno=" + std::to_string(errno) );
+      }
+
+      // wait until it finishes
+      int return_code;
+      pid_t rc = waitpid(cp_pid, &return_code, 0);
+
+      if (rc < 0)
+      {
+        warning("Launcher: the \"cp\" process terminated with errno=", errno, ", return code:", return_code);
+        throw std::runtime_error( "Launcher: the \"cp\" process terminated with errno=" + std::to_string(errno) + ", return code:" + std::to_string(return_code) );
+      }
+
+    }
+
+
+    void generate_environmental_file( const application_description_t& application, const std::string& destination_file_path, const std::string& metric_name, const std::string& plugin_root_path, const int iteration_counter )
+    {
+      std::ofstream config_file;
+      config_file.open(destination_file_path, std::ios::out | std::ios::trunc  );
+      config_file << "STORAGE_TYPE=\"" << io::storage.get_type() << "\"" << std::endl;
+      config_file << "STORAGE_ADDRESS=\"" << io::storage.get_address() << "\"" << std::endl;
+      config_file << "STORAGE_USERNAME=\"" << io::storage.get_username() << "\"" << std::endl;
+      config_file << "STORAGE_PASSWORD=\"" << io::storage.get_password() << "\"" << std::endl;
+      config_file << "APPLICATION_NAME=\"" << application.application_name << "\"" << std::endl;
+      config_file << "OBSERVATION_CONTAINER_NAME=\"" << io::storage.get_observation_name(application.application_name) << "\"" << std::endl;
+      config_file << "MODEL_CONTAINER_NAME=\"" << io::storage.get_model_name(application.application_name) << "\"" << std::endl;
+      config_file << "KNOBS_CONTAINER_NAME=\"" << io::storage.get_knobs_name(application.application_name) << "\"" << std::endl;
+      config_file << "FEATURES_CONTAINER_NAME=\"" << io::storage.get_features_name(application.application_name) << "\"" << std::endl;
+      config_file << "DOE_CONTAINER_NAME=\"" << io::storage.get_doe_name(application.application_name) << "\"" << std::endl;
+      config_file << "METRIC_NAME=\"" << metric_name << "\"" << std::endl;
+      config_file << "METRIC_ROOT=\"" << plugin_root_path << "\"" << std::endl;
+      config_file << "ITERATION_COUNTER=\"" << iteration_counter << "\"" << std::endl;
+      config_file << "NUMBER_POINT_PER_DIMENSION=\"" << application.number_point_per_dimension << "\"" << std::endl;
+      config_file << "NUMBER_OBSERVATIONS_PER_POINT=\"" << application.number_observations_per_point << "\"" << std::endl;
+      config_file << "DOE_NAME=\"" << application.doe_name << "\"" << std::endl;
+      config_file << "MINIMUM_DISTANCE=\"" << application.minimum_distance << "\"" << std::endl;
+      config_file.close();
+    }
+
+
+    pid_t launch_plugin( const std::string& exec_script_path, const std::string& config_file_path )
+    {
+      pid_t plugin_pid = fork();
+
+      if (plugin_pid == 0)
+      {
+        // we are the child, we need to execute the pluging
+        execlp(exec_script_path.c_str(), exec_script_path.c_str(), config_file_path.c_str(), (char*)NULL);
+        warning("Launcher: unable to exec the script \"", exec_script_path, "\", errno=", errno);
+        throw std::runtime_error( "Launcher: unable to exec the script \"" + exec_script_path + "\", errno=" + std::to_string(errno) );
+      }
+      else if (plugin_pid < 0)
+      {
+        warning("Launcher: unable to fork for execuing the plugin errno=", errno);
+        throw std::runtime_error( "Launcher: unable to fork for execuing the plugin errno=" + std::to_string(errno) );
+      }
+
+      // if we reach this point, everything will be fine
+      return plugin_pid;
+    }
+
+
+    void wait_plugin( const pid_t plugin_pid )
+    {
+      int plugin_return_code = 0;
+      auto rc = waitpid(plugin_pid, &plugin_return_code, 0);
+
+      if (rc < 0)
+      {
+        warning("Launcher: unable to wait the child \"", plugin_pid, "\" errno=", errno);
+        throw std::runtime_error( "Launcher: unable to wait the child \"" + std::to_string(plugin_pid) + "\" errno=" + std::to_string(errno));
+      }
+
+      if (plugin_return_code != 0)
+      {
+        warning("Launcher: a plugin process terminated with return code:", plugin_return_code);
+        throw std::runtime_error( "Launcher: a plugin process terminated with return code:" + std::to_string(plugin_return_code) );
+      }
+    }
+
+
+  } // namespace sh_util
+
+  // this function generates a model of a metric
+  template<>
+  void Launcher< LauncherType::ModelGenerator >::operator()( const application_description_t& application, const uint_fast32_t iteration_counter ) const
+  {
+    // declare the vector that holds the pid of the process that compute a metric
+    std::vector< pid_t > builders;
+    builders.reserve(application.metrics.size());
+
+    // launch the plugin that models the metric in parallel
+    for ( const auto& metric : application.metrics )
+    {
+      // compute the path of the plugin that computes the metric
+      const std::string plugin_path = plugins_folder + metric.prediction_method;
+
+      // compute the destination path for the plugin
+      const std::string metric_root = workspace_root + "model_" + metric.name;
+
+      // compute the destination path for the environmental file and sh plugin
+      const std::string config_path = metric_root + "/" + config_file_name;
+      const std::string script_path = metric_root + "/" + script_file_name;
+
+      // now we launch the plugin for computing the target metric
+      sh_util::copy_folder(plugin_path, metric_root);
+      sh_util::generate_environmental_file(application, config_path, metric.name, metric_root, iteration_counter);
+      builders.emplace_back(sh_util::launch_plugin(script_path, config_path));
+    }
+
+    // wait until they finish
+    for( const auto pid : builders )
+    {
+      sh_util::wait_plugin(pid);
+    }
   }
 
-  std::stringstream path_stream(application.application_name);
-  std::string&& current_path = "";
 
-  while (std::getline(path_stream, current_path, '/'))
+  // this function generates the dse
+  template<>
+  void Launcher< LauncherType::DoeGenerator >::operator()( const application_description_t& application, const uint_fast32_t iteration_counter ) const
   {
-    application_workspace.append(current_path + "/");
-    const bool is_created = create_folder(application_workspace);
+    // compute the path of the plugin that computes the metric
+    const std::string plugin_path = plugins_folder + "doe";
 
-    if (!is_created)
-    {
-      warning("Model generator: unable to create the folder \"", application_workspace, "\" with errno=", errno);
-      throw std::runtime_error("Model generator: unable to create the folder \"" + application_workspace + "\" with errno=" + std::to_string(errno) );
-    }
+    // compute the destination path for the plugin
+    const std::string metric_root = workspace_root + "doe";
+
+    // compute the destination path for the environmental file and sh plugin
+    const std::string config_path = metric_root + "/" + config_file_name;
+    const std::string script_path = metric_root + "/" + script_file_name;
+
+    // compute the dse
+    sh_util::copy_folder(plugin_path, metric_root);
+    sh_util::generate_environmental_file(application, config_path, "NA", metric_root, iteration_counter);
+    sh_util::wait_plugin(sh_util::launch_plugin(script_path, config_path));
   }
-
-  // we want to generate a model for each metric in a indipendent way
-  int metric_counter = 0;
-  std::vector<pid_t> builders;
-
-  // loop over the metric that must be pridicted
-  for ( const auto& metric : application.metrics )
-  {
-    // compute the root path for the given metric, we don't use the metric name for security reason
-    const std::string metric_root = application_workspace + "metric_" + std::to_string(metric_counter++);
-
-    // compute the path of the source plugin to use to compute the model
-    const std::string plugin_path = plugins_folder + "/" + metric.prediction_method;
-
-    // now we have to recursively copy the folder from the plugin folder
-    // the esiest way is to fork and exec cp
-    pid_t cp_pid = fork();
-
-    if (cp_pid == 0)
-    {
-      // we are the child, we need to copy the stuff
-      execlp("cp", "cp", "-r", "-T", "-u", plugin_path.c_str(), metric_root.c_str(), (char*)NULL);
-      warning("Model generator: unable to copy the folder \"", plugin_path, "\" into \"", metric_root, "\", errno=", errno);
-      throw std::runtime_error( "Model generator: unable to copy the folder \"" + plugin_path + "\" into \"" + metric_root + "\", errno=" + std::to_string(errno) );
-    }
-    else if (cp_pid < 0)
-    {
-      warning("Model generator: unable to fork to copy the generator errno=", errno);
-      throw std::runtime_error( "Model generator: unable to fork to copy the generator errno=" + std::to_string(errno) );
-    }
-
-    // wait until it finishes
-    int return_code;
-    pid_t rc = waitpid(cp_pid, &return_code, 0);
-
-    if (rc < 0)
-    {
-      warning("Model generator: the cp process terminated with errno=", errno, ", return code:", return_code);
-      throw std::runtime_error( "Model generator: the cp process terminated with errno=" + std::to_string(errno) + ", return code:" + std::to_string(return_code) );
-    }
-
-    // now we have to write the information required to get the data
-    const std::string config_file_path = metric_root + "/agora_config.env";
-    std::ofstream config_file;
-    config_file.open(config_file_path, std::ios::out | std::ios::trunc  );
-    config_file << "STORAGE_TYPE=\"" << io::storage.get_type() << "\"" << std::endl;
-    config_file << "STORAGE_ADDRESS=\"" << io::storage.get_address() << "\"" << std::endl;
-    config_file << "STORAGE_USERNAME=\"" << io::storage.get_username() << "\"" << std::endl;
-    config_file << "STORAGE_PASSWORD=\"" << io::storage.get_password() << "\"" << std::endl;
-    config_file << "APPLICATION_NAME=\"" << application.application_name << "\"" << std::endl;
-    config_file << "OBSERVATION_CONTAINER_NAME=\"" << io::storage.get_observation_name(application.application_name) << "\"" << std::endl;
-    config_file << "MODEL_CONTAINER_NAME=\"" << io::storage.get_model_name(application.application_name) << "\"" << std::endl;
-    config_file << "KNOBS_CONTAINER_NAME=\"" << io::storage.get_knobs_name(application.application_name) << "\"" << std::endl;
-    config_file << "FEATURES_CONTAINER_NAME=\"" << io::storage.get_features_name(application.application_name) << "\"" << std::endl;
-    config_file << "DOE_CONTAINER_NAME=\"" << io::storage.get_doe_name(application.application_name) << "\"" << std::endl;
-    config_file << "METRIC_NAME=\"" << metric.name << "\"" << std::endl;
-    config_file << "METRIC_ROOT=\"" << metric_root << "\"" << std::endl;
-    config_file << "ITERATION_COUNTER=\"" << iteration_counter << "\"" << std::endl;
-    config_file << "NUMBER_POINT_PER_DIMENSION=\"" << application.number_point_per_dimension << "\"" << std::endl;
-    config_file << "NUMBER_OBSERVATIONS_PER_POINT=\"" << application.number_observations_per_point << "\"" << std::endl;
-    config_file << "DOE_NAME=\"" << application.doe_name << "\"" << std::endl;
-    config_file << "MINIMUM_DISTANCE=\"" << application.minimum_distance << "\"" << std::endl;
-    config_file.close();
-
-    // starts the builder
-    const std::string builder_executable_path = metric_root + "/generate_model.sh";
-    pid_t builder_pid = fork();
-
-    if (builder_pid == 0)
-    {
-      // we are the child, we need to copy the stuff
-      execlp(builder_executable_path.c_str(), builder_executable_path.c_str(), config_file_path.c_str(), (char*)NULL);
-      warning("Model generator: unable to exec the model builder \"", builder_executable_path, "\", errno=", errno);
-      throw std::runtime_error( "Model generator: unable to exec the model builder \"" + builder_executable_path + "\", errno=" + std::to_string(errno) );
-    }
-    else if (builder_pid < 0)
-    {
-      warning("Model generator: unable to fork to exec the model errno=", errno);
-      throw std::runtime_error( "Model generator: unable to fork to copy the generator errno=" + std::to_string(errno) );
-    }
-
-    // store the pid of the new process
-    builders.emplace_back(builder_pid);
-  }
-
-  // wait until it finish to elaborate
-  for ( const auto pid : builders)
-  {
-    int return_code = 0;
-    auto rc = waitpid(pid, &return_code, 0);
-
-    if (rc < 0)
-    {
-      warning("Model generator: unable to wait the child \"", pid, "\" errno=", errno, ", child return code:", return_code);
-      throw std::runtime_error( "Model generator: a builder process terminated with errno=" + std::to_string(errno) + ", return code:" + std::to_string(return_code) );
-    }
-
-    if (return_code != 0)
-    {
-      warning("Model generator: a builder process terminated with return code:", return_code);
-      throw std::runtime_error( "Model generator: a builder process terminated with return code:" + std::to_string(return_code) );
-    }
-  }
-
 }
