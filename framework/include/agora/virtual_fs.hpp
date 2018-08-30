@@ -59,9 +59,9 @@ namespace agora
         fs->store_model(description, model);
       }
 
-      inline model_t load_model( const std::string& application_name )
+      inline model_t load_model( const application_description_t& description )
       {
-        return fs->load_model(application_name);
+        return fs->load_model(description);
       }
 
       inline void store_doe( const application_description_t& description, const doe_t& doe )

@@ -728,17 +728,17 @@ void CassandraClient::store_model( const application_description_t& description,
 }
 
 
-model_t CassandraClient::load_model( const std::string& application_name )
+model_t CassandraClient::load_model( const application_description_t& description )
 {
   // this will cotain the model
   model_t output_model;
 
   // compose the name of the table
-  std::string table_name = get_model_name(application_name);
+  std::string table_name = get_model_name(description.application_name);
 
 
   // how the result of the query will be processed
-  const auto result_handler = [&output_model, &application_name] ( const CassResult * query_result )
+  const auto result_handler = [&output_model] ( const CassResult * query_result )
   {
     // check if we actually have a result, i.e. table not created yet
     if (query_result != nullptr)
@@ -877,7 +877,13 @@ model_t CassandraClient::load_model( const std::string& application_name )
   const std::string query = "SELECT * FROM " + table_name + ";";
   execute_query_synch(query, result_handler);
 
-  return output_model;
+  // computet
+  const std::size_t theoretical_number_of_columns = description.knobs.size()
+      + description.features.size()
+      + (2 * description.metrics.size());
+  const bool model_is_usable = static_cast<std::size_t>(output_model.column_size()) == theoretical_number_of_columns;
+
+  return model_is_usable ? output_model : model_t{};
 }
 
 

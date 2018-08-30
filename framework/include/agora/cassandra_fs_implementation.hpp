@@ -93,7 +93,7 @@ namespace agora
       application_description_t load_description( const std::string& application_name );
 
       void store_model( const application_description_t& description, const model_t& model );
-      model_t load_model( const std::string& application_name );
+      model_t load_model( const application_description_t& description );
 
       void store_doe( const application_description_t& description, const doe_t& doe );
       doe_t load_doe( const std::string& application_name );
