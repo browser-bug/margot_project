@@ -43,7 +43,7 @@ namespace agora
       virtual void empty_doe_entries( const std::string& application_name ) = 0;
 
       virtual void store_model( const application_description_t& description, const model_t& model ) = 0;
-      virtual model_t load_model( const std::string& application_name ) = 0;
+      virtual model_t load_model( const application_description_t& description ) = 0;
 
       virtual void create_trace_table( const application_description_t& description ) = 0;
       virtual void insert_trace_entry( const application_description_t& description, const std::string& values ) = 0;

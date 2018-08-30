@@ -76,11 +76,8 @@ void RemoteApplicationHandler::welcome_client( const std::string& client_name, c
 
     if (description_is_usable)
     {
-      model = io::storage.load_model(description.application_name);
-      const std::size_t theoretical_number_of_columns = description.knobs.size()
-          + description.features.size()
-          + (2 * description.metrics.size());
-      model_is_usable = static_cast<std::size_t>(model.column_size()) == theoretical_number_of_columns;
+      model = io::storage.load_model(description);
+      model_is_usable = !model.knowledge.empty();
     }
 
     // if we don't have a model then we might have a doe going on
@@ -485,24 +482,14 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
   ++model_iteration_number;
 
   // then read the model from the storage
-  model = io::storage.load_model(description.application_name);
+  model = io::storage.load_model(description);
 
   // now we need to retrieve the required configuration to explore (if any)
   doe = io::storage.load_doe(description.application_name);
 
   // check if we actually have configuration to explore or the model
   const bool with_configuration_to_explore = !doe.required_explorations.empty();
-  bool with_model = false;
-
-  // if we don't have any configuration we could be in truble
-  if (!with_configuration_to_explore)
-  {
-    // check if it is alredy like that
-    const std::size_t theoretical_number_of_columns = description.knobs.size()
-        + description.features.size()
-        + (2 * description.metrics.size());
-    with_model = static_cast<std::size_t>(model.column_size()) == theoretical_number_of_columns;
-  }
+  const bool with_model = !model.knowledge.empty();
 
   // now we are ready to take some decision
   guard.lock();
