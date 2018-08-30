@@ -80,7 +80,7 @@ doe_container_name <- paste("margot.", application_name, "_doe", sep = "")
 
 if(storage_type == "CASSANDRA")
 {
-  driver <- JDBC("com.github.adejanovski.cassandra.jdbc.CassandraDriver", "/home/martinovic/SynologyDrive/IT4I/margot/java/cassandra-jdbc-wrapper-3.1.0.jar", identifier.quote = "'")
+  driver <- JDBC("com.github.adejanovski.cassandra.jdbc.CassandraDriver", "cassandra-jdbc-wrapper-3.1.0.jar", identifier.quote = "'")
   full_address_string <- paste("jdbc:cassandra://", storage_address, ":9042", sep = "")
   conn <- dbConnect(driver, full_address_string)
 } else
