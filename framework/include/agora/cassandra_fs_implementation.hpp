@@ -31,6 +31,7 @@ extern "C"
 
 #include "agora/fs_handler.hpp"
 #include "agora/logger.hpp"
+#include "agora/common_objects.hpp"
 
 namespace agora
 {
@@ -98,7 +99,7 @@ namespace agora
       void store_doe( const application_description_t& description, const doe_t& doe );
       doe_t load_doe( const std::string& application_name );
       void update_doe( const application_description_t& description, const std::string& values );
-      void empty_doe_entries( const std::string& application_name );
+      void empty_doe_entries( const application_description_t& description );
 
       void create_trace_table( const application_description_t& description );
       void insert_trace_entry( const application_description_t& description, const std::string& values );

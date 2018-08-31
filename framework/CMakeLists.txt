@@ -40,6 +40,7 @@ set( MARGOT_HEADERS
 set( AGORA_HEADERS
   ${MARGOT_HDR_PATH}/agora/application_handler.hpp
   ${MARGOT_HDR_PATH}/agora/cassandra_fs_implementation.hpp
+  ${MARGOT_HDR_PATH}/agora/csv_fs_implementation.hpp
   ${MARGOT_HDR_PATH}/agora/common_objects.hpp
   ${MARGOT_HDR_PATH}/agora/doe.hpp
   ${MARGOT_HDR_PATH}/agora/fs_handler.hpp
@@ -74,6 +75,7 @@ set( AGORA_SOURCES
 	${SRC_PATH}/logger
 	${SRC_PATH}/paho_remote_implementation
 	${SRC_PATH}/cassandra_fs_implementation
+	${SRC_PATH}/csv_fs_implementation
 	${SRC_PATH}/application_handler
 	${SRC_PATH}/worker
 	${SRC_PATH}/virtual_io

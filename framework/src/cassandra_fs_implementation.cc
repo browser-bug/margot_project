@@ -669,9 +669,9 @@ doe_t CassandraClient::load_doe( const std::string& application_name )
   return output_doe;
 }
 
-void CassandraClient::empty_doe_entries( const std::string& application_name )
+void CassandraClient::empty_doe_entries( const application_description_t& description )
 {
-  execute_query_synch("TRUNCATE " + get_doe_name(application_name) + ";");
+  execute_query_synch("TRUNCATE " + get_doe_name(description.application_name) + ";");
 }
 
 
