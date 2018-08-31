@@ -94,6 +94,11 @@ namespace agora
         fs->insert_trace_entry(description, values);
       }
 
+      inline bool support_concurrency( void ) const
+      {
+        return fs->support_concurrency();
+      }
+
       inline std::string get_type( void ) const
       {
         return fs->get_type();

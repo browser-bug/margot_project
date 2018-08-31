@@ -106,6 +106,10 @@ namespace agora
 
       void erase( const std::string& application_name );
 
+      bool support_concurrency( void ) const
+      {
+        return true;
+      }
 
       std::string get_type( void ) const
       {
