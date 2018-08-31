@@ -50,6 +50,8 @@ namespace agora
 
       virtual void erase( const std::string& application_name ) = 0;
 
+      virtual bool support_concurrency( void ) const = 0;
+
       virtual std::string get_type( void ) const = 0;
       virtual std::string get_address( void ) const = 0;
       virtual std::string get_username( void ) const = 0;

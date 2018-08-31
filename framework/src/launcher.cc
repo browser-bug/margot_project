@@ -197,7 +197,14 @@ namespace agora
       // now we launch the plugin for computing the target metric
       sh_util::copy_folder(plugin_path, metric_root);
       sh_util::generate_environmental_file(application, config_path, metric.name, metric_root, iteration_counter);
-      builders.emplace_back(sh_util::launch_plugin(script_path, config_path));
+      if (io::storage.support_concurrency())
+      {
+        builders.emplace_back(sh_util::launch_plugin(script_path, config_path));
+      }
+      else
+      {
+        sh_util::wait_plugin(sh_util::launch_plugin(script_path, config_path));
+      }
     }
 
     // wait until they finish
