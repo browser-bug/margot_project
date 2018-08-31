@@ -38,23 +38,22 @@ set( MARGOT_HEADERS
 	${MARGOT_HDR_PATH}/margot/data_features.hpp
 	)
 set( AGORA_HEADERS
-  ${MARGOT_HDR_PATH}/agora/application_handler.hpp
-  ${MARGOT_HDR_PATH}/agora/cassandra_fs_implementation.hpp
-  ${MARGOT_HDR_PATH}/agora/csv_fs_implementation.hpp
-  ${MARGOT_HDR_PATH}/agora/common_objects.hpp
-  ${MARGOT_HDR_PATH}/agora/doe.hpp
-  ${MARGOT_HDR_PATH}/agora/fs_handler.hpp
-  ${MARGOT_HDR_PATH}/agora/global_view.hpp
+	${MARGOT_HDR_PATH}/agora/application_handler.hpp
+	${MARGOT_HDR_PATH}/agora/csv_fs_implementation.hpp
+	${MARGOT_HDR_PATH}/agora/common_objects.hpp
+	${MARGOT_HDR_PATH}/agora/doe.hpp
+	${MARGOT_HDR_PATH}/agora/fs_handler.hpp
+	${MARGOT_HDR_PATH}/agora/global_view.hpp
 	${MARGOT_HDR_PATH}/agora/logger.hpp
-  ${MARGOT_HDR_PATH}/agora/launcher.hpp
-  ${MARGOT_HDR_PATH}/agora/paho_remote_implementation.hpp
-  ${MARGOT_HDR_PATH}/agora/remote_handler.hpp
+	${MARGOT_HDR_PATH}/agora/launcher.hpp
+	${MARGOT_HDR_PATH}/agora/paho_remote_implementation.hpp
+	${MARGOT_HDR_PATH}/agora/remote_handler.hpp
 	${MARGOT_HDR_PATH}/agora/safe_queue.hpp
-  ${MARGOT_HDR_PATH}/agora/threadpool.hpp
+	${MARGOT_HDR_PATH}/agora/threadpool.hpp
 	${MARGOT_HDR_PATH}/agora/virtual_channel.hpp
 	${MARGOT_HDR_PATH}/agora/virtual_fs.hpp
 	${MARGOT_HDR_PATH}/agora/virtual_io.hpp
-  ${MARGOT_HDR_PATH}/agora/worker.hpp
+	${MARGOT_HDR_PATH}/agora/worker.hpp
 )
 
 
@@ -74,7 +73,6 @@ set( MARGOT_SOURCES
 set( AGORA_SOURCES
 	${SRC_PATH}/logger
 	${SRC_PATH}/paho_remote_implementation
-	${SRC_PATH}/cassandra_fs_implementation
 	${SRC_PATH}/csv_fs_implementation
 	${SRC_PATH}/application_handler
 	${SRC_PATH}/worker
@@ -114,6 +112,12 @@ if ( WITH_AGORA )
 	list( APPEND MARGOT_DEPS_INCLUDE_DIRECTORIES "${MQTT_INCLUDES}")
 	list( APPEND MARGOT_DEPS_INCLUDE_DIRECTORIES "${CASSANDRA_INCLUDES}")
 endif ( WITH_AGORA )
+
+# add the cassandra storage if enabled
+if ( WITH_CASSANDRA )
+	list( APPEND AGORA_HEADERS "${MARGOT_HDR_PATH}/agora/cassandra_fs_implementation.hpp")
+	list( APPEND AGORA_SOURCES "${SRC_PATH}/cassandra_fs_implementation.cc")
+endif ( WITH_CASSANDRA )
 
 
 # create the headers and sources list for the final margot lib
@@ -155,7 +159,9 @@ endif ( USE_TEMPERATURE_MONITOR )
 # add lib dependency if using agora
 if ( WITH_AGORA )
 	list( APPEND MARGOT_LINK_DEPENDENCIES "${MQTT_LIBRARIES}")
-	list( APPEND MARGOT_LINK_DEPENDENCIES "${CASSANDRA_LIBRARIES}")
+	if ( WITH_CASSANDRA )
+		list( APPEND MARGOT_LINK_DEPENDENCIES "${CASSANDRA_LIBRARIES}")
+	endif ( WITH_CASSANDRA )
 endif ( WITH_AGORA )
 
 # install the library

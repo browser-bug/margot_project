@@ -25,7 +25,6 @@
 #include <cassert>
 
 #include "agora/fs_handler.hpp"
-#include "agora/cassandra_fs_implementation.hpp"
 
 namespace agora
 {

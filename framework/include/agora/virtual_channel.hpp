@@ -25,7 +25,6 @@
 #include <cassert>
 
 #include "agora/remote_handler.hpp"
-#include "agora/paho_remote_implementation.hpp"
 
 
 namespace agora

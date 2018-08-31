@@ -26,7 +26,9 @@
 
 #include "agora/logger.hpp"
 #include "agora/paho_remote_implementation.hpp"
+#ifdef AGORA_ENABLE_CASSANDRA_STORAGE
 #include "agora/cassandra_fs_implementation.hpp"
+#endif
 #include "agora/csv_fs_implementation.hpp"
 #include "agora/virtual_io.hpp"
 #include "agora/threadpool.hpp"
@@ -45,11 +47,17 @@ void print_usage( void )
   std::cout << "--------------------------------------------------------------------------------" << std::endl;
   std::cout << " --storage_implementation <str> The name of the actual storage used by agora" << std::endl;
   std::cout << "                                Available alternatives:" << std::endl;
+#ifdef AGORA_ENABLE_CASSANDRA_STORAGE
   std::cout << "                                 - \"cassandra\" [DEFAULT], \"csv\"" << std::endl;
+#else
+  std::cout << "                                 - \"csv\" [DEFAULT]" << std::endl;
+#endif
   std::cout << " --storage_address <str>        A reference to the storage, depending on its" << std::endl;
   std::cout << "                                actual implementation:" << std::endl;
+#ifdef AGORA_ENABLE_CASSANDRA_STORAGE
   std::cout << "                                 - for \"cassandra\" the address of a cluster" << std::endl;
   std::cout << "                                   DEFAULT = \"127.0.0.1\"" << std::endl;
+#endif
   std::cout << "                                 - for \"csv\" the path to a folder to store files" << std::endl;
   std::cout << "                                   DEFAULT = \"\"" << std::endl;
   std::cout << " --storage_username <str>       The username for authentication purpose, if any" << std::endl;
@@ -94,10 +102,17 @@ int main( int argc, char* argv[] )
 {
   // variables to control the application behavior
   int opt = -1;
+#ifdef AGORA_ENABLE_CASSANDRA_STORAGE
   std::string storage_implementation = "cassandra";
   std::string storage_address = "127.0.0.1";
   std::string storage_username = "";
   std::string storage_password = "";
+#else
+  std::string storage_implementation = "csv";
+  std::string storage_address = ".";
+  std::string storage_username = "";
+  std::string storage_password = "";
+#endif
 
   std::string mqtt_implementation = "paho";
   std::string broker_url = "127.0.0.1:1883";
@@ -302,7 +317,9 @@ int main( int argc, char* argv[] )
 
   if (storage_implementation.compare("cassandra") == 0)
   {
+#ifdef AGORA_ENABLE_CASSANDRA_STORAGE
     agora::io::storage.create<agora::CassandraClient>(storage_address, storage_username, storage_password);
+#endif
   }
   else if (storage_implementation.compare("csv") == 0)
   {

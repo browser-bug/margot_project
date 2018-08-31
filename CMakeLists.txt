@@ -9,27 +9,6 @@ project( mARGOt )
 set( PROJECT_VERSION_MAJOR 2 )
 set( PROJECT_VERSION_MINOR 0 )
 
-################################
-#### General configure section
-################################
-
-# force the Release build if not already set
-if(NOT CMAKE_BUILD_TYPE)
-	set(CMAKE_BUILD_TYPE RelWithDebInfo)
-endif(NOT CMAKE_BUILD_TYPE)
-
-# setting common c++ flags
-set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x" )
-
-# setting debug flags
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall -g3 -O0")
-
-# setting release with debug info flags
-set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} -march=native -mtune=native -g3 -O2")
-
-# setting release flags
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -march=native -mtune=native -O3")
-
 
 
 ################################
@@ -67,15 +46,45 @@ if ( USE_TEMPERATURE_MONITOR )
 	find_package( SENSORS )
 endif( USE_TEMPERATURE_MONITOR )
 
+option( WITH_CASSANDRA "Enable the cassandra storage back-end" OFF )
+
 option( WITH_AGORA "With agora: the server-side application to manage appication knowledge" OFF )
 if ( WITH_AGORA )
 	list (APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/framework/cmake")
 	find_package( MQTT )
-	find_package( CASSANDRA )
+	if ( WITH_CASSANDRA )
+		find_package( CASSANDRA )
+	endif ( WITH_CASSANDRA )
 endif( WITH_AGORA )
 
 
 option( WITH_BENCHMARK "Build a benchmark to evaluate the overheads" OFF)
+
+
+
+################################
+#### General configure section
+################################
+
+# force the Release build if not already set
+if(NOT CMAKE_BUILD_TYPE)
+	set(CMAKE_BUILD_TYPE RelWithDebInfo)
+endif(NOT CMAKE_BUILD_TYPE)
+
+# setting common c++ flags
+set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x" )
+if ( WITH_CASSANDRA )
+	set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x -DAGORA_ENABLE_CASSANDRA_STORAGE" )
+endif ( WITH_CASSANDRA )
+
+# setting debug flags
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall -g3 -O0")
+
+# setting release with debug info flags
+set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} -march=native -mtune=native -g3 -O2")
+
+# setting release flags
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -march=native -mtune=native -O3")
 
 
 
@@ -186,39 +195,11 @@ else ( USE_TEMPERATURE_MONITOR )
 endif ( USE_TEMPERATURE_MONITOR )
 
 
-# check if we can compile margot agora
-if ( WITH_AGORA )
-	message( STATUS "Server application agora.............: ENABLED (-DWITH_AGORA=OFF to disable)" )
-
-	# check if we have to build some component manually
-	if ( (NOT HAVE_MQTT) OR (NOT HAVE_CASSANDRA) )
-		include(${CMAKE_ROOT}/Modules/ExternalProject.cmake)
-	endif ( (NOT HAVE_MQTT) OR (NOT HAVE_CASSANDRA) )
-
-	# deal with MQTT client library
-	if ( NOT HAVE_MQTT )
-
-		# print the fact that we fetch and build an external library
-		message( STATUS "    NOTE: MQTT not found, we build it internally, internet connection required")
-
-		# set up the mqtt environment
-		set( MQTT_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/extern/install)
-		ExternalProject_add( MQTT
-			PREFIX ${CMAKE_CURRENT_SOURCE_DIR}/extern/mqtt
-			GIT_REPOSITORY https://github.com/eclipse/paho.mqtt.c.git
-			GIT_TAG v1.2.0
-			UPDATE_COMMAND ""
-			PATCH_COMMAND ""
-			CMAKE_ARGS -DPAHO_BUILD_STATIC:STRING=TRUE -DCMAKE_INSTALL_PREFIX:PATH=${MQTT_ROOT} -DCMAKE_BUILD_TYPE:STRING=RELEASE -DPAHO_WITH_SSL=TRUE
-		)
-		find_library (MQTT_PTHREADS pthread)
-		set( HAVE_MQTT TRUE)
-		set( MQTT_LIBRARIES ${MQTT_ROOT}/lib/libpaho-mqtt3cs-static.a ${MQTT_PTHREADS})
-		set( MQTT_INCLUDES ${MQTT_ROOT}/include)
-	endif ( NOT HAVE_MQTT )
-
-	# deal with the CASSANDRA driver
+# check if we compile the cassandra storage back end
+if ( WITH_CASSANDRA AND WITH_AGORA )
+	message( STATUS "Cassandra storage....................: ENABLED (-DWITH_CASSANDRA=OFF to disable)" )
 	if ( NOT HAVE_CASSANDRA )
+		include(${CMAKE_ROOT}/Modules/ExternalProject.cmake)
 
 		# print the fact that we fetch and build an external library
 		message( STATUS "    NOTE: CASSANDRA driver not found, we build it internally, internet connection required")
@@ -242,11 +223,45 @@ if ( WITH_AGORA )
 		set ( CASSANDRA_LIBRARIES ${CASSANDRA_LIBRARY} ${LIBUV_LIBRARIES} ${OPENSSL_LIBRARIES} )
 	endif ( NOT HAVE_CASSANDRA )
 
+	include_directories( ${CASSANDRA_INCLUDES})
 
+else ( WITH_CASSANDRA AND WITH_AGORA )
+	if ( WITH_CASSANDRA )
+		message( STATUS "Cassandra storage....................: DISABLED ( it requires agora )" )
+	else ( WITH_CASSANDRA )
+		message( STATUS "Cassandra storage....................: DISABLED (-DWITH_CASSANDRA=ON to enable)" )
+	endif ( WITH_CASSANDRA )
+endif ( WITH_CASSANDRA AND WITH_AGORA )
+
+# check if we can compile margot agora
+if ( WITH_AGORA )
+	message( STATUS "Server application agora.............: ENABLED (-DWITH_AGORA=OFF to disable)" )
+
+	# check if we have to build some component manually
+	if ( NOT HAVE_MQTT )
+		include(${CMAKE_ROOT}/Modules/ExternalProject.cmake)
+
+		# print the fact that we fetch and build an external library
+		message( STATUS "    NOTE: MQTT not found, we build it internally, internet connection required")
+
+		# set up the mqtt environment
+		set( MQTT_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/extern/install)
+		ExternalProject_add( MQTT
+			PREFIX ${CMAKE_CURRENT_SOURCE_DIR}/extern/mqtt
+			GIT_REPOSITORY https://github.com/eclipse/paho.mqtt.c.git
+			GIT_TAG v1.2.0
+			UPDATE_COMMAND ""
+			PATCH_COMMAND ""
+			CMAKE_ARGS -DPAHO_BUILD_STATIC:STRING=TRUE -DCMAKE_INSTALL_PREFIX:PATH=${MQTT_ROOT} -DCMAKE_BUILD_TYPE:STRING=RELEASE -DPAHO_WITH_SSL=TRUE
+		)
+		find_library (MQTT_PTHREADS pthread)
+		set( HAVE_MQTT TRUE)
+		set( MQTT_LIBRARIES ${MQTT_ROOT}/lib/libpaho-mqtt3cs-static.a ${MQTT_PTHREADS})
+		set( MQTT_INCLUDES ${MQTT_ROOT}/include)
+	endif ( NOT HAVE_MQTT )
 
 	# eventually include the headers directory
 	include_directories( ${MQTT_INCLUDES})
-	include_directories( ${CASSANDRA_INCLUDES})
 else ( WITH_AGORA )
 	message( STATUS "Server application agora.............: DISABLED (-DWITH_AGORA=ON to enable)" )
 endif ( WITH_AGORA )
