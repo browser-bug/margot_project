@@ -27,6 +27,7 @@
 #include "agora/logger.hpp"
 #include "agora/paho_remote_implementation.hpp"
 #include "agora/cassandra_fs_implementation.hpp"
+#include "agora/csv_fs_implementation.hpp"
 #include "agora/virtual_io.hpp"
 #include "agora/threadpool.hpp"
 #include "agora/worker.hpp"
@@ -44,11 +45,13 @@ void print_usage( void )
   std::cout << "--------------------------------------------------------------------------------" << std::endl;
   std::cout << " --storage_implementation <str> The name of the actual storage used by agora" << std::endl;
   std::cout << "                                Available alternatives:" << std::endl;
-  std::cout << "                                 - \"cassandra\" [DEFAULT]" << std::endl;
+  std::cout << "                                 - \"cassandra\" [DEFAULT], \"csv\"" << std::endl;
   std::cout << " --storage_address <str>        A reference to the storage, depending on its" << std::endl;
   std::cout << "                                actual implementation:" << std::endl;
   std::cout << "                                 - for \"cassandra\" the address of a cluster" << std::endl;
   std::cout << "                                   DEFAULT = \"127.0.0.1\"" << std::endl;
+  std::cout << "                                 - for \"csv\" the path to a folder to store files" << std::endl;
+  std::cout << "                                   DEFAULT = \"\"" << std::endl;
   std::cout << " --storage_username <str>       The username for authentication purpose, if any" << std::endl;
   std::cout << "                                DEFAULT = \"\"" << std::endl;
   std::cout << " --storage_password <str>       The password for authentication purpose, if any" << std::endl;
@@ -301,9 +304,13 @@ int main( int argc, char* argv[] )
   {
     agora::io::storage.create<agora::CassandraClient>(storage_address, storage_username, storage_password);
   }
+  else if (storage_implementation.compare("csv") == 0)
+  {
+    agora::io::storage.create<agora::CsvStorage>(storage_address);
+  }
   else
   {
-    std::cerr << "Error: invalid implementation of the storage \"" << storage_implementation << "\", available implementations [cassandra]" << std::endl;
+    std::cerr << "Error: invalid implementation of the storage \"" << storage_implementation << "\", available implementations [cassandra,csv]" << std::endl;
     return EXIT_FAILURE;
   }
 
