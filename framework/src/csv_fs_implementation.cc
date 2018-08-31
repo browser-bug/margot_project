@@ -20,9 +20,10 @@ namespace agora
 
     // the constructor we open the file and parse the table header
     csv_parser_t( const std::string& csv_file_path, const bool tokenize_row = false )
-      :tokenize_row(tokenize_row)
+      : tokenize_row(tokenize_row)
     {
       in.open(csv_file_path, std::ios::in);
+
       if (!in.is_open())
       {
         // the file is not available for some reason, notify the event and quit
@@ -50,8 +51,9 @@ namespace agora
           std::size_t field_index = 0;
 
           // loop over the field
-          while(std::getline(header_stream, field_name, ',')) {
-              table_header.emplace(field_name, field_index++);
+          while (std::getline(header_stream, field_name, ','))
+          {
+            table_header.emplace(field_name, field_index++);
           }
 
           // initialize the data structure to hold the csv line
@@ -74,6 +76,7 @@ namespace agora
     {
       std::getline(in, current_row_raw);
       const bool new_line_available = !current_row_raw.empty();
+
       if (new_line_available && tokenize_row)
       {
         // we are able to parse the row using string stream
@@ -82,11 +85,12 @@ namespace agora
         std::size_t token_index = 0;
 
         // store all the fields in the row
-        while( std::getline(line_stream, token, ',') )
+        while ( std::getline(line_stream, token, ',') )
         {
-            current_row[token_index++] = token;
+          current_row[token_index++] = token;
         }
       }
+
       return new_line_available;
     }
 
@@ -118,7 +122,7 @@ namespace agora
 
 
   CsvStorage::CsvStorage( const std::string& storage_root_path )
-    :storage_main_folder(storage_root_path),default_application_separator('/'), table_application_separator('_')
+    : storage_main_folder(storage_root_path), default_application_separator('/'), table_application_separator('_')
   {}
 
   void CsvStorage::store_description( const application_description_t& description )
@@ -126,19 +130,20 @@ namespace agora
     // storing the software knobs
     std::ofstream out;
     out.open(get_knobs_name(description.application_name), std::ios::out | std::ios::trunc);
+
     if (out.is_open())
     {
       // print the table header
       out << "name,type,values" << std::endl;
 
       // loop over the software knobs and print them
-      for( const auto& knob : description.knobs )
+      for ( const auto& knob : description.knobs )
       {
         out << knob.name << ',' << knob.type << ',';
 
         const std::size_t number_of_knob_values = knob.values.size();
 
-        for( std::size_t i = 0; i < number_of_knob_values; ++i )
+        for ( std::size_t i = 0; i < number_of_knob_values; ++i )
         {
           if (i > 0)
           {
@@ -154,19 +159,21 @@ namespace agora
     else
     {
       warning("Csv manager: unable to open/create file \"", get_knobs_name(description.application_name), "\"");
-      throw std::runtime_error("Csv manager: unable to open/create file \""+ get_knobs_name(description.application_name) + "\"");
+      throw std::runtime_error("Csv manager: unable to open/create file \"" + get_knobs_name(description.application_name) + "\"");
     }
+
     out.close();
 
     // storing the metrics
     out.open(get_metrics_name(description.application_name), std::ios::out | std::ios::trunc);
+
     if (out.is_open())
     {
       // print the table header
       out << "name,type,prediction" << std::endl;
 
       // loop over the software knobs and print them
-      for( const auto& metric : description.metrics )
+      for ( const auto& metric : description.metrics )
       {
         out << metric.name << ',' << metric.type << ',' << metric.prediction_method << std::endl;
       }
@@ -174,25 +181,27 @@ namespace agora
     else
     {
       warning("Csv manager: unable to open/create file \"", get_metrics_name(description.application_name), "\"");
-      throw std::runtime_error("Csv manager: unable to open/create file \""+ get_metrics_name(description.application_name) + "\"");
+      throw std::runtime_error("Csv manager: unable to open/create file \"" + get_metrics_name(description.application_name) + "\"");
     }
+
     out.close();
 
     // storing the input features
     out.open(get_features_name(description.application_name), std::ios::out | std::ios::trunc);
+
     if (out.is_open())
     {
       // print the table header
       out << "name,type,values" << std::endl;
 
       // loop over the software knobs and print them
-      for( const auto& feature : description.features )
+      for ( const auto& feature : description.features )
       {
         out << feature.name << ',' << feature.type << ',';
 
         const std::size_t number_of_metrics_values = feature.values.size();
 
-        for( std::size_t i = 0; i < number_of_metrics_values; ++i )
+        for ( std::size_t i = 0; i < number_of_metrics_values; ++i )
         {
           if (i > 0)
           {
@@ -208,12 +217,14 @@ namespace agora
     else
     {
       warning("Csv manager: unable to open/create file \"", get_features_name(description.application_name), "\"");
-      throw std::runtime_error("Csv manager: unable to open/create file \""+ get_features_name(description.application_name) + "\"");
+      throw std::runtime_error("Csv manager: unable to open/create file \"" + get_features_name(description.application_name) + "\"");
     }
+
     out.close();
 
     // storing the doe information
     out.open(get_doe_info_name(description.application_name), std::ios::out | std::ios::trunc);
+
     if (out.is_open())
     {
       // print the table header
@@ -228,8 +239,9 @@ namespace agora
     else
     {
       warning("Csv manager: unable to open/create file \"", get_doe_info_name(description.application_name), "\"");
-      throw std::runtime_error("Csv manager: unable to open/create file \""+ get_doe_info_name(description.application_name) + "\"");
+      throw std::runtime_error("Csv manager: unable to open/create file \"" + get_doe_info_name(description.application_name) + "\"");
     }
+
     out.close();
   }
 
@@ -243,7 +255,7 @@ namespace agora
     csv_parser_t knob_parser(get_knobs_name(application_name));
 
     // loop over the lines of the knobs
-    while(knob_parser.next())
+    while (knob_parser.next())
     {
       // get the knob name and type, prepare the stream for values
       const std::string knob_name = knob_parser.get("name");
@@ -253,9 +265,9 @@ namespace agora
       std::string knob_value;
 
       // parse all the possible values for the stream
-      while( std::getline(knob_values_stream, knob_value, ';') )
+      while ( std::getline(knob_values_stream, knob_value, ';') )
       {
-          knob_values.emplace_back(knob_value);
+        knob_values.emplace_back(knob_value);
       }
 
       // emplace the knob
@@ -266,7 +278,7 @@ namespace agora
     csv_parser_t feature_parser(get_features_name(application_name));
 
     // loop over the lines of the features
-    while(feature_parser.next())
+    while (feature_parser.next())
     {
       // get the feature name and type, prepare the stream for values
       const std::string feature_name = feature_parser.get("name");
@@ -276,9 +288,9 @@ namespace agora
       std::string feature_value;
 
       // parse all the possible values for the stream
-      while( std::getline(feature_values_stream, feature_value, ';') )
+      while ( std::getline(feature_values_stream, feature_value, ';') )
       {
-          feature_values.emplace_back(feature_value);
+        feature_values.emplace_back(feature_value);
       }
 
       // emplace the feature
@@ -289,7 +301,7 @@ namespace agora
     csv_parser_t metric_parser(get_metrics_name(application_name));
 
     // loop over the lines of the knobs
-    while(metric_parser.next())
+    while (metric_parser.next())
     {
       // get the metric name, type and prediction method
       const std::string metric_name = metric_parser.get("name");
@@ -304,7 +316,7 @@ namespace agora
     csv_parser_t doe_info_parser(get_doe_info_name(application_name));
 
     // loop over the lines of the knobs
-    while(doe_info_parser.next())
+    while (doe_info_parser.next())
     {
       // read the property
       const std::string property_name = doe_info_parser.get("property_name");
@@ -343,7 +355,8 @@ namespace agora
     }
 
     // check if everything is correct and return the description
-    return !(description.number_point_per_dimension.empty() || description.number_observations_per_point.empty() || description.doe_name.empty() || description.minimum_distance.empty()) ? description : application_description_t{};
+    return !(description.number_point_per_dimension.empty() || description.number_observations_per_point.empty() || description.doe_name.empty() ||
+             description.minimum_distance.empty()) ? description : application_description_t{};
   }
 
 
@@ -354,19 +367,23 @@ namespace agora
     out.open(get_model_name(description.application_name), std::ios::out | std::ios::trunc);
 
     // write the header
-    for( const auto& knob : description.knobs )
+    for ( const auto& knob : description.knobs )
     {
       out << knob.name << ',';
     }
-    for( const auto& feature : description.features )
+
+    for ( const auto& feature : description.features )
     {
       out << feature.name << ',';
     }
+
     const std::size_t number_of_metrics = description.metrics.size() - 1;
-    for( std::size_t i = 0; i < number_of_metrics; ++i )
+
+    for ( std::size_t i = 0; i < number_of_metrics; ++i )
     {
       out << description.metrics[i].name << "_avg," << description.metrics[i].name << "_std,";
     }
+
     out << description.metrics[number_of_metrics].name << "_avg," << description.metrics[number_of_metrics].name << "_std" << std::endl;
 
     // get the number of expected fields
@@ -377,7 +394,7 @@ namespace agora
     const bool metrics_available = number_of_fields == model.column_size();
 
     // loop over the entries in the model
-    for( const auto& configuration : model.knowledge )
+    for ( const auto& configuration : model.knowledge )
     {
       // write the configuration line
       out << configuration;
@@ -392,7 +409,7 @@ namespace agora
         const int stop_condition_loop = number_of_metric_fields - 1;
 
         // generate the metric field NAs
-        for( int i = 0; i < stop_condition_loop; ++i )
+        for ( int i = 0; i < stop_condition_loop; ++i )
         {
           out << "NA,";
         }
@@ -416,7 +433,7 @@ namespace agora
     csv_parser_t model_parser(get_model_name(description.application_name));
 
     // loop over the lines of the model
-    while(model_parser.next())
+    while (model_parser.next())
     {
       // get the whole line
       std::string csv_line = model_parser.get();
@@ -437,14 +454,15 @@ namespace agora
     out.open(get_doe_name(description.application_name), std::ios::out | std::ios::trunc);
 
     // write the header
-    for( const auto& knob : description.knobs )
+    for ( const auto& knob : description.knobs )
     {
       out << knob.name << ',';
     }
+
     out << "counter" << std::endl;
 
     // write the all the required explorations
-    for( const auto& configuration : doe.required_explorations )
+    for ( const auto& configuration : doe.required_explorations )
     {
       out << configuration.first << ',' << configuration.second << std::endl;
     }
@@ -460,7 +478,7 @@ namespace agora
     csv_parser_t doe_parser(get_doe_name(application_name));
 
     // go through each line of the model
-    while(doe_parser.next())
+    while (doe_parser.next())
     {
       // get the whole line of the doe
       std::string csv_line = doe_parser.get();
@@ -469,7 +487,7 @@ namespace agora
       std::size_t coma_index = csv_line.find_last_of(',');
 
       // insert the configuration
-      output_doe.required_explorations.emplace(csv_line.substr(0,coma_index),std::stoi(csv_line.substr(coma_index+1)));
+      output_doe.required_explorations.emplace(csv_line.substr(0, coma_index), std::stoi(csv_line.substr(coma_index + 1)));
     }
 
     // set the next to begin
@@ -488,7 +506,7 @@ namespace agora
     csv_parser_t doe_parser(get_doe_name(description.application_name));
 
     // go through each line of the model
-    while(doe_parser.next())
+    while (doe_parser.next())
     {
       // get the whole line of the doe
       std::string csv_line = doe_parser.get();
@@ -497,8 +515,8 @@ namespace agora
       std::size_t coma_index = csv_line.find_last_of(',');
 
       // tokenize the configuration
-      std::string conf = csv_line.substr(0,coma_index);
-      int counter = std::stoi(csv_line.substr(coma_index+1));
+      std::string conf = csv_line.substr(0, coma_index);
+      int counter = std::stoi(csv_line.substr(coma_index + 1));
 
       // check if it is the configuration that we have explored
       // in that case we have to update the counter
@@ -508,11 +526,11 @@ namespace agora
       }
 
       // insert the configuration in the doe
-      output_doe.required_explorations.emplace(conf,counter);
+      output_doe.required_explorations.emplace(conf, counter);
     }
 
     // rewrite the doe
-    store_doe(description,output_doe);
+    store_doe(description, output_doe);
   }
 
 
@@ -523,10 +541,11 @@ namespace agora
     out.open(get_doe_name(description.application_name), std::ios::out | std::ios::trunc);
 
     // write the header
-    for( const auto& knob : description.knobs )
+    for ( const auto& knob : description.knobs )
     {
       out << knob.name << ',';
     }
+
     out << "counter" << std::endl;
   }
 
@@ -541,13 +560,13 @@ namespace agora
     out << "sec,nanosec,client_id,";
 
     // write the software knobs
-    for( const auto& knob : description.knobs )
+    for ( const auto& knob : description.knobs )
     {
       out << knob.name << ',';
     }
 
     // write the input features
-    for( const auto& feature : description.features )
+    for ( const auto& feature : description.features )
     {
       out << feature.name << ',';
     }
@@ -556,10 +575,11 @@ namespace agora
     const std::size_t number_of_metrics = description.metrics.size() - static_cast<std::size_t>(1);
 
     // write the metrics
-    for( std::size_t i = 0; i < number_of_metrics; ++i )
+    for ( std::size_t i = 0; i < number_of_metrics; ++i )
     {
       out << description.metrics[i].name << ',';
     }
+
     out << description.metrics[number_of_metrics].name << std::endl;
   }
 
@@ -576,9 +596,9 @@ namespace agora
   void CsvStorage::erase( const std::string& application_name )
   {
     // declare a lambda to safely remove the file
-    const auto safe_rm = [] ( const std::string& file_path )
+    const auto safe_rm = [] ( const std::string & file_path )
     {
-      if( remove( file_path.c_str() ) != 0 )
+      if ( remove( file_path.c_str() ) != 0 )
       {
         warning("Csv manager: unable to remove the file \"", file_path, "\"");
       }

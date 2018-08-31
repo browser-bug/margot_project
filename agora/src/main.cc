@@ -27,7 +27,7 @@
 #include "agora/logger.hpp"
 #include "agora/paho_remote_implementation.hpp"
 #ifdef AGORA_ENABLE_CASSANDRA_STORAGE
-#include "agora/cassandra_fs_implementation.hpp"
+  #include "agora/cassandra_fs_implementation.hpp"
 #endif
 #include "agora/csv_fs_implementation.hpp"
 #include "agora/virtual_io.hpp"

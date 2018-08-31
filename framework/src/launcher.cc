@@ -104,7 +104,8 @@ namespace agora
     }
 
 
-    void generate_environmental_file( const application_description_t& application, const std::string& destination_file_path, const std::string& metric_name, const std::string& plugin_root_path, const int iteration_counter )
+    void generate_environmental_file( const application_description_t& application, const std::string& destination_file_path, const std::string& metric_name, const std::string& plugin_root_path,
+                                      const int iteration_counter )
     {
       std::ofstream config_file;
       config_file.open(destination_file_path, std::ios::out | std::ios::trunc  );
@@ -197,6 +198,7 @@ namespace agora
       // now we launch the plugin for computing the target metric
       sh_util::copy_folder(plugin_path, metric_root);
       sh_util::generate_environmental_file(application, config_path, metric.name, metric_root, iteration_counter);
+
       if (io::storage.support_concurrency())
       {
         builders.emplace_back(sh_util::launch_plugin(script_path, config_path));
@@ -208,7 +210,7 @@ namespace agora
     }
 
     // wait until they finish
-    for( const auto pid : builders )
+    for ( const auto pid : builders )
     {
       sh_util::wait_plugin(pid);
     }
