@@ -41,46 +41,48 @@ namespace agora
   class Launcher
   {
 
-  private:
+    private:
 
-    // this is the path of the root workspace used to
-    // generate an application model
-    std::string workspace_root;
+      // this is the path of the root workspace used to
+      // generate an application model
+      std::string workspace_root;
 
-    // this is the path of the folder that contains all
-    // the available plugin to compute the model
-    std::string plugins_folder;
+      // this is the path of the folder that contains all
+      // the available plugin to compute the model
+      std::string plugins_folder;
 
-    // this is the name of the environmental file that
-    // describes the parameters of the agora execution
-    const std::string config_file_name;
+      // this is the name of the environmental file that
+      // describes the parameters of the agora execution
+      const std::string config_file_name;
 
-    // this is the name of the bash script that launch
-    // the actual plugin folder
-    const std::string script_file_name;
+      // this is the name of the bash script that launch
+      // the actual plugin folder
+      const std::string script_file_name;
 
 
-  public:
+    public:
 
-    Launcher( void ):config_file_name("agora_config.env"),script_file_name("generate_model.sh")
-    {}
+      Launcher( void ): config_file_name("agora_config.env"), script_file_name("generate_model.sh")
+      {}
 
-    inline void initialize( const std::string& workspace_path, const std::string& plugins_path)
-    {
-      workspace_root = workspace_path;
-      plugins_folder = plugins_path;
-      if (workspace_root.back() != '/')
+      inline void initialize( const std::string& workspace_path, const std::string& plugins_path)
       {
-        workspace_root.append("/");
-      }
-      if (plugins_folder.back() != '/')
-      {
-        plugins_folder.append("/");
-      }
-    }
+        workspace_root = workspace_path;
+        plugins_folder = plugins_path;
 
-    // the application description is an input parameter, the model is an input/output parameter
-    void operator()( const application_description_t& application, const uint_fast32_t iteration_counter ) const;
+        if (workspace_root.back() != '/')
+        {
+          workspace_root.append("/");
+        }
+
+        if (plugins_folder.back() != '/')
+        {
+          plugins_folder.append("/");
+        }
+      }
+
+      // the application description is an input parameter, the model is an input/output parameter
+      void operator()( const application_description_t& application, const uint_fast32_t iteration_counter ) const;
 
   };
 
