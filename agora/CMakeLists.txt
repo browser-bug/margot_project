@@ -11,6 +11,9 @@ add_executable( ${MARGOT_AGORA_REMOTE_HANDLER} ${SRC_PATH}/main )
 
 # link the libraries
 target_link_libraries( ${MARGOT_AGORA_REMOTE_HANDLER} ${MARGOT_LIB_NAME} ${MQTT_LIBRARIES} ${CASSANDRA_LIBRARIES} m pthread )
+if ( WITH_CASSANDRA )
+	target_link_libraries( ${MARGOT_AGORA_REMOTE_HANDLER} ${CASSANDRA_LIBRARIES} )
+endif (WITH_CASSANDRA )
 
 # add the install command
 install( TARGETS ${MARGOT_AGORA_REMOTE_HANDLER} DESTINATION bin )
