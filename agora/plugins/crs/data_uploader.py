@@ -4,15 +4,13 @@ import inspect
 import os
 import sys
 
-
-import cassandra
-from cassandra.cluster import Cluster
-from cassandra.auth import PlainTextAuthProvider
-
 import csv
 
-
 def update_cassandra_database( args, root_path ):
+
+    import cassandra
+    from cassandra.cluster import Cluster
+    from cassandra.auth import PlainTextAuthProvider
 
     # connect to the cassandra database
     cassandra_node_url = [args.storage_address]
@@ -68,6 +66,63 @@ def update_cassandra_database( args, root_path ):
             session.execute('UPDATE {0} SET {1} WHERE {2};'.format(args.model, set_clause, where_cluase))
 
 
+
+def update_csv_model( args, root_path ):
+
+    # this list will contain the name of all the predictors
+    predictors = []
+
+    # open the knobs container
+    with open(args.knobs, mode='r') as infile:
+        reader = csv.DictReader(infile)
+        for row in reader:
+            predictors.append(row['name'])
+
+    # open the features container
+    with open(args.features, mode='r') as infile:
+        reader = csv.DictReader(infile)
+        for row in reader:
+            predictors.append(row['name'])
+
+    # this variable holds the list of predictions made with this
+    # stupid plugins that requires data pre- and post-processing
+    precition = {}
+
+    # open the file with the plugin predictions
+    with open('prediction_request.txt', mode='r') as infile:
+        reader = csv.DictReader(infile)
+
+        # loop over the model
+        for row in reader:
+
+            # append the prediction
+            prediction[','.join(row[x] for x in predictors)] = [ row['mean'], row['std'] ]
+
+    model_rows = []
+
+    # open the actual model to store data
+    with open(args.model, mode='r') as infile:
+        reader = csv.DictReader(infile)
+        model_rows.append(','.join(reader.fieldnames))
+        for row in reader:
+            configuration = ','.join(row[x] for x in predictors)
+
+            this_row = []
+            for field_name in reader.fieldnames:
+                if field_name == '{0}_avg'.format(args.metric):
+                    this_row.append(prediction[configuration][0])
+                else:
+                    if field_name == '{0}_std'.format(args.metric):
+                        this_row.append(prediction[configuration][1])
+                    else:
+                        this_row.append(row[field_name])
+
+    # open the model container to write the updated values
+    with open(args.model, mode='w') as outfile:
+        for row in model_rows:
+            outfile.write('{0}\n'.format(row))
+
+
 if __name__ == '__main__':
 
     # get the path to this file
@@ -100,6 +155,9 @@ if __name__ == '__main__':
     # check which is the type of the storage
     if args.storage_type == 'CASSANDRA':
         update_cassandra_database(args, root_path)
+        sys.exit(os.EX_OK)
+    if args.storage_type == 'CSV':
+        update_csv_model(args, root_path)
         sys.exit(os.EX_OK)
 
     # if we reach this point, we don't know how to dump the information
