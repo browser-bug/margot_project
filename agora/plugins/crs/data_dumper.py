@@ -5,12 +5,11 @@ import os
 import sys
 
 
-import cassandra
-from cassandra.cluster import Cluster
-from cassandra.auth import PlainTextAuthProvider
+def dump_cassandra_database_cassandra( args, root_path ):
 
-
-def dump_cassandra_database( args, root_path ):
+    import cassandra
+    from cassandra.cluster import Cluster
+    from cassandra.auth import PlainTextAuthProvider
 
     # connect to the cassandra database
     cassandra_node_url = [args.storage_address]
@@ -81,6 +80,67 @@ def dump_cassandra_database( args, root_path ):
 
 
 
+def dump_cassandra_database_cassandra( args, root_path ):
+    from shutil import copyfile
+
+    # this list will contain the name of all the predictors
+    predictors = []
+
+    # open the knobs container
+    with open(args.knobs, mode='r') as infile:
+        reader = csv.DictReader(infile)
+
+        # open the file to write the knobs name
+        while open('knobs.txt', 'w') as outfile:
+            for row in reader:
+                outfile.write('{0}\n'.format(row['name']))
+                predictors.append(row['name'])
+
+    # open the knobs container
+    with open(args.features, mode='r') as infile:
+        reader = csv.DictReader(infile)
+
+        # open the file to write the knobs name
+        while open('features.txt', 'w') as outfile:
+            for row in reader:
+                outfile.write('{0}\n'.format(row['name']))
+                predictors.append(row['name'])
+
+
+    # open the observation container
+    with open(args.observation, mode='r') as infile:
+        reader = csv.DictReader(infile)
+
+        # open the file to write the observations
+        while open('dse.txt', 'w') as outfile:
+
+            # write the header
+            outfile.write('{1},{0}\n'.format(args.metric, ','.join(predictors)))
+
+            # write the data
+            for row in reader:
+                outfile.write('{1},{0}\n'.format(row[args.metric], ','.join(row[x] for x in predictors)))
+
+
+    # open the model container to read predictions
+    with open(args.model, mode='r') as infile:
+        reader = csv.DictReader(infile)
+
+        # open the file to write the actual request for the plugin
+        while open('prediction_request.txt', 'w') as outfile:
+
+            # write the header
+            outfile.write('{0}\n'.format(','.join(predictors)))
+
+            # loop over the model
+            for row in reader:
+
+                # append the header
+                outfile.write('{0}\n'.format(','.join(row[x] for x in predictors)))
+
+
+
+
 if __name__ == '__main__':
 
     # get the path to this file
@@ -112,7 +172,10 @@ if __name__ == '__main__':
 
     # check which is the type of the storage
     if args.storage_type == 'CASSANDRA':
-        dump_cassandra_database(args, root_path)
+        dump_cassandra_database_cassandra(args, root_path)
+        sys.exit(os.EX_OK)
+    if args.storage_type == 'CSV':
+        dump_cassandra_database_csv(args, root_path)
         sys.exit(os.EX_OK)
 
     # if we reach this point, we don't know how to dump the information
