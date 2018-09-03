@@ -193,6 +193,8 @@ if(map_to_input == TRUE)
   }
 }
 
+nobserved_orig <- dim(observation_df)[1]
+observation_df <- unique(observation_df)
 # Set nobserved the number of observation in the obsercation_df
 nobserved <- dim(observation_df)[1]
 
@@ -254,6 +256,13 @@ if( "R2" %in% model_selection_features )
   )
 
   CV_R2[is.na(CV_R2)] <- Inf
+  
+  # CV_R2_avg <- sapply(validation,
+  #                 function(model)
+  #                 {mean(model$R2_avg[2:length(model$R2_avg)], na.rm = TRUE)}
+  # )
+  # 
+  # CV_R2_avg[is.na(CV_R2_avg)] <- Inf
 }
 
 if( "MAE" %in% model_selection_features )
@@ -263,6 +272,12 @@ if( "MAE" %in% model_selection_features )
                     {mean(model$MAE[2:length(model$MAE)])}
   )
   CV_MAE <- CV_MAE / normalization_obs_df
+  
+  # CV_MAE_avg <- sapply(validation,
+  #                  function(model)
+  #                  {mean(model$MAE_avg[2:length(model$MAE_avg)])}
+  # )
+  # CV_MAE_avg <- CV_MAE_avg / normalization_obs_df
 }
 
   # Do bagging -------------------------------------------------------------------------------
@@ -342,10 +357,12 @@ if( "MAE" %in% model_selection_features )
   # Append R2 and MAE for CV, bagged models and stacked model
   complete_R2 <- c(CV_R2, bagged_R2, stacked_R2)
   complete_MAE <- c(CV_MAE, bagged_MAE, stacked_MAE)
+  # complete_R2_avg <- c(CV_R2_avg, rep(NA, length(bagged_R2) + 1))
+  # complete_MAE_avg <- c(CV_MAE_avg, rep(NA, length(bagged_MAE) + 1))
   
   # Check which models have acceptable R2 and MAE
-  complete_R2_ind <- complete_R2 > 0.5
-  complete_MAE_ind <- complete_MAE < 0.5
+  complete_R2_ind <- complete_R2 > 0.0
+  complete_MAE_ind <- complete_MAE < 0.2
   
   model_selection <- rep(TRUE, length(complete_R2_ind))
   for(selection_feature in model_selection_features)
@@ -376,7 +393,7 @@ if(file.exists("models.log"))
 models_info <- as.data.frame(t(rbind(complete_R2, complete_MAE, names(complete_R2))))
 models_info$iteration <- iteration
 models_info$run <- run
-colnames(models_info) <- c("R2", "MAE", "model", "iteration, run")
+colnames(models_info) <- c("R2", "MAE",  "model", "iteration, run")
 write.table(models_info, file = "models.log", col.names = FALSE, row.names = FALSE, sep = ",", dec = ".", append = TRUE)
 
 # If necessary increase the model space -------------------------------------------------------------------------------------------------------
@@ -391,8 +408,7 @@ if(length(chosen_model) == 0)
 
   print("Model is not good enough. I will ask for more points to explore.")
   # 0.2 could be substituted by parameter DOE update rate.
-  updated_nobs <- dim(unique(observation_df[,input_columns]))[1] + 10
-  doe_options <- list(nobs = updated_nobs, eps = doe_eps)
+  doe_options <- list(nobs = doe_obs_per_dim, eps = doe_eps)
 
   # Propose DOE design points
   doe_design <-  create_doe(knobs_config_list, doe_options, map_to_input, algorithm = algorithm)
