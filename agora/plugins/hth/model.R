@@ -310,8 +310,8 @@ if( "MAE" %in% model_selection_features )
   
   tryCatch({
   # Prepare data for quadratic optimization
-  stacking_data <- unique(stacking_data)
-  d_temp <- unique(observation_df)
+  # stacking_data <- unique(stacking_data)
+  d_temp <- observation_df
   Rinv <- solve(chol(t(stacking_data) %*% stacking_data));
   C <- cbind(rep(1,length(validation)), diag(length(validation)))
   b <- c(1,rep(0,length(validation)))
