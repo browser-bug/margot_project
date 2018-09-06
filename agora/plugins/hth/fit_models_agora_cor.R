@@ -303,7 +303,6 @@ fit_models_agora <- function(observation_df, input_columns, metric_name, nobserv
 
       cv_sequence <- floor( seq( 0, kriging_nobserved, length.out = nfolds + 1 ) )
       cv_sequence_orig <- floor( seq( 0, nobserved, length.out = nfolds + 1 ) )
-      temp_stacking_df <- NULL
       
       for(i in 1:nfolds)
       {
@@ -313,6 +312,7 @@ fit_models_agora <- function(observation_df, input_columns, metric_name, nobserv
         train_data <- kriging_df[!ind, ]
         # test_data <- kriging_df[ind, ]
         test_data_full <- observation_df %>% setdiff(train_data %>% select(-sd))
+        test_data_stacking <- observation_df[ind_orig, ]
         
         X_train <- train_data[, knobs_names]
         Y_train <- train_data[, metric_name]
@@ -346,6 +346,7 @@ fit_models_agora <- function(observation_df, input_columns, metric_name, nobserv
         validation$kriging$coeff[, (i+1)] <- c( model_kriging_cv@trend.coef, model_kriging_cv@covariance@range.val )
         
         # Store CV prediction for stacking
+        predict_kriging_cv_stacking <- predict(model_kriging_cv, newdata = test_data_stacking[, knobs_names], type = "UK")$mean
         predict_kriging_cv_full <- predict(model_kriging_cv, newdata = test_data_full[, knobs_names], type = "UK")$mean
         
         # CV on non averaged data
@@ -355,14 +356,10 @@ fit_models_agora <- function(observation_df, input_columns, metric_name, nobserv
         # Compute MAE for the models, MAE function package DiceEval
         validation$kriging$MAE[, (i+1)] <- MAE(test_data_full[, metric_name], predict_kriging_cv_full)
         
-        # Add prediction to the stacking_df
-        temp_stacking_df %<>% bind_rows(data.frame(test_data_full[ , knobs_names], value = predict_kriging_cv_full))
+        
+        validation$kriging$stacking_data[ind_orig] <- predict_kriging_cv_stacking
       }
-      temp_stacking_df %<>% group_by_at(knobs_names) %>% summarize(value = mean(value))
-      temp_stack_joined <- left_join(observation_df[, knobs_names], temp_stacking_df)
-      validation$kriging$stacking_data <- temp_stack_joined$value
       validation$kriging$model_fit <- validation$kriging$stacking_data
-      # rm(temp_stacking_df, temp)
     },
     error = function(e) print(e))
   }
