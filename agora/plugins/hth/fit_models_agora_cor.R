@@ -295,7 +295,8 @@ fit_models_agora <- function(observation_df, input_columns, metric_name, nobserv
       validation$kriging$stacking_data <- rep(NA, nobserved)
       
       # Fitted values for stacking ensemble
-      validation$kriging$model_fit <- predict(model_kriging, newdata = observation_df[, input_columns], type = "UK")$mean
+      # Have to be taken from the cross validation predictions, otherwise the stacking model is extremely biased
+      # validation$kriging$model_fit <- predict(model_kriging, newdata = observation_df[, input_columns], type = "UK")$mean
       
       # Cross validation kriging
       print("I make cross-validation on kriging now.")
@@ -358,6 +359,7 @@ fit_models_agora <- function(observation_df, input_columns, metric_name, nobserv
         
         validation$kriging$stacking_data[ind_orig] <- predict_kriging_cv_stacking
       }
+      validation$kriging$model_fit <- validation$kriging$stacking_data
     },
     error = function(e) print(e))
   }
