@@ -137,6 +137,9 @@ knobs_names <- sapply( knobs_names , tolower )
 
 dse_columns <- c(knobs_names, features_names, metric_name)
 input_columns <- c(knobs_names, features_names)
+# Remove kriging bagged
+complete_R2 <- complete_R2[names(complete_R2) != "kriging_bagged"]
+complete_MAE <- complete_MAE[names(complete_MAE) != "kriging_bagged"]
 # Check if there are any results already
 
 # load the profile information from the dse
@@ -359,6 +362,9 @@ if( "MAE" %in% model_selection_features )
   complete_MAE <- c(CV_MAE, bagged_MAE, stacked_MAE)
   # complete_R2_avg <- c(CV_R2_avg, rep(NA, length(bagged_R2) + 1))
   # complete_MAE_avg <- c(CV_MAE_avg, rep(NA, length(bagged_MAE) + 1))
+  # Remove kriging bagged
+  complete_R2 <- complete_R2[names(complete_R2) != "kriging_bagged"]
+  complete_MAE <- complete_MAE[names(complete_MAE) != "kriging_bagged"]
   
   # Check which models have acceptable R2 and MAE
   complete_R2_ind <- complete_R2 > 0.0
