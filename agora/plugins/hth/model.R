@@ -137,9 +137,6 @@ knobs_names <- sapply( knobs_names , tolower )
 
 dse_columns <- c(knobs_names, features_names, metric_name)
 input_columns <- c(knobs_names, features_names)
-# Remove kriging bagged
-complete_R2 <- complete_R2[names(complete_R2) != "kriging_bagged"]
-complete_MAE <- complete_MAE[names(complete_MAE) != "kriging_bagged"]
 # Check if there are any results already
 
 # load the profile information from the dse
