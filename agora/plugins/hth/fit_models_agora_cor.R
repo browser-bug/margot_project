@@ -5,7 +5,7 @@ fit_models_agora <- function(observation_df, input_columns, metric_name, nobserv
   # Set X as variable and Y as results
   X <- observation_df[, input_columns]
   Y <- observation_df[, metric_name]
-  
+
   # kriging_df <- as.data.frame( grouped_df( observation_df, knobs_names ) %>% summarise( mean = mean( !!sym( metric_name ) ), sd = sd( !!sym( metric_name ) ) ) )
   # kriging_nobserved <- dim(kriging_df)[1]
   # if( kriging_nobserved < 10 )
@@ -49,7 +49,7 @@ fit_models_agora <- function(observation_df, input_columns, metric_name, nobserv
   # predict_linear2_avg <- predict(model_linear2, kriging_df[, knobs_names], interval = "confidence")
   # predict_mars_avg <- predict(model_mars, kriging_df[, knobs_names])
   # predict_polymars_avg <- predict(model_polymars, kriging_df[, knobs_names])
-  
+
   # Create empty variable validation of the type list, it allows for the easy adding of results as multiple level named lists
   validation <- list()
 
@@ -75,13 +75,13 @@ fit_models_agora <- function(observation_df, input_columns, metric_name, nobserv
   # validation$linear2$R2_avg <- matrix(NA, nrow = 1, ncol = nfolds + 1 )
   # validation$mars$R2_avg <- matrix(NA, nrow = 1, ncol = nfolds + 1 )
   # validation$polymars$R2_avg <- matrix(NA, nrow = 1, ncol = nfolds + 1 )
-  # 
+  #
   # # Compute MAE for the models
   # validation$linear$MAE_avg <- matrix(NA, nrow = 1, ncol = nfolds + 1 )
   # validation$linear2$MAE_avg <- matrix(NA, nrow = 1, ncol = nfolds + 1 )
   # validation$mars$MAE_avg <- matrix(NA, nrow = 1, ncol = nfolds + 1 )
   # validation$polymars$MAE_avg <- matrix(NA, nrow = 1, ncol = nfolds + 1 )
-  
+
   # Store coefficients for the models
   validation$linear$coeff <- matrix(NA, nrow = length(model_linear$coefficients), ncol = nfolds + 1 )
   validation$linear2$coeff <- matrix(NA, nrow = length(model_linear2$coefficients), ncol = nfolds + 1 )
@@ -108,13 +108,13 @@ fit_models_agora <- function(observation_df, input_columns, metric_name, nobserv
   # validation$linear2$R2_avg[, 1] <- cor(kriging_df[, "mean"], predict_linear2_avg[, 1])^2
   # validation$mars$R2_avg[, 1] <- cor(kriging_df[, "mean"], predict_mars_avg)^2
   # validation$polymars$R2_avg[, 1] <- cor(kriging_df[, "mean"], predict_polymars_avg)^2
-  # 
-  # # Compute MAE for the average models 
+  #
+  # # Compute MAE for the average models
   # validation$linear$MAE_avg[, 1] <- MAE(kriging_df[, "mean"], predict_linear_avg[, 1])
   # validation$linear2$MAE_avg[, 1] <- MAE(kriging_df[, "mean"], predict_linear2_avg[, 1])
   # validation$mars$MAE_avg[, 1] <- MAE(kriging_df[, "mean"], predict_mars_avg)
   # validation$polymars$MAE_avg[, 1] <- MAE(kriging_df[, "mean"], predict_polymars_avg)
-  
+
   # Store coefficients for the models
   validation$linear$coeff[, 1] <- model_linear$coefficients
   validation$linear2$coeff[, 1] <- model_linear2$coefficients
@@ -126,13 +126,13 @@ fit_models_agora <- function(observation_df, input_columns, metric_name, nobserv
   validation$linear2$models <- list()
   validation$mars$models <- list()
   validation$polymars$models <- list()
-  
+
   # Create vector for stacking data (CV prediction for appropriate hold-out set)
   validation$linear$stacking_data <- rep(NA, nobserved)
   validation$linear2$stacking_data <- rep(NA, nobserved)
   validation$mars$stacking_data <- rep(NA, nobserved)
   validation$polymars$stacking_data <- rep(NA, nobserved)
-  
+
   # Save fitted values of models for stacking
   validation$linear$model_fit <- c(model_linear$fitted.values)
   # names(validation$linear$model_fit) <- NULL
@@ -140,7 +140,7 @@ fit_models_agora <- function(observation_df, input_columns, metric_name, nobserv
   # names(validation$linear2$model_fit) <- NULL
   validation$mars$model_fit <- c(model_mars$fitted.values)
   validation$polymars$model_fit <- c(model_polymars$fitted)
-  
+
   # Compute cross-validation on the models -----------------------------------------------------------------------------------
   print("I make cross-validation now.")
 
@@ -153,10 +153,10 @@ fit_models_agora <- function(observation_df, input_columns, metric_name, nobserv
   {
      ind <- cv_sequence[i] < 1:nobserved & cv_sequence[i+1] >= 1:nobserved
     # ind_kriging <- cv_sequence_kriging[i] < 1:kriging_nobserved & cv_sequence_kriging[i+1] >= 1:kriging_nobserved
-    
+
     train_data <- observation_df[!ind, ]
     test_data <- observation_df[ind, ]
-    
+
     X_train <- train_data[, knobs_names]
     Y_train <- train_data[, metric_name]
     X_test <- test_data[, knobs_names]
@@ -171,7 +171,7 @@ fit_models_agora <- function(observation_df, input_columns, metric_name, nobserv
     predict_linear2_cv <- predict(model_linear2_cv, X_test, interval = "confidence")
     predict_mars_cv <- predict(model_mars_cv, X_test)
     predict_polymars_cv <- predict(model_polymars_cv, X_test)
-    
+
     # predict_linear_cv_avg <- predict(model_linear_cv, test_data_kriging[, knobs_names], interval = "confidence")
     # predict_linear2_cv_avg <- predict(model_linear2_cv, test_data_kriging[, knobs_names], interval = "confidence")
     # predict_mars_cv_avg <- predict(model_mars_cv, test_data_kriging[, knobs_names])
@@ -200,19 +200,19 @@ fit_models_agora <- function(observation_df, input_columns, metric_name, nobserv
     validation$linear2$MAE[, (i+1)] <- MAE(Y_test, predict_linear2_cv[, 1])
     validation$mars$MAE[, (i+1)] <- MAE(Y_test, predict_mars_cv)
     validation$polymars$MAE[, (i+1)] <- MAE(Y_test, predict_polymars_cv)
-    
+
     # # Compute R2 for the models, R2 function package DiceEval
     # validation$linear$R2_avg[, (i+1)] <- cor(test_data_kriging[, "mean"], predict_linear_cv_avg[, 1])^2
     # validation$linear2$R2_avg[, (i+1)] <- cor(test_data_kriging[, "mean"], predict_linear2_cv_avg[, 1])^2
     # validation$mars$R2_avg[, (i+1)] <- cor(test_data_kriging[, "mean"], predict_mars_cv_avg)^2
     # validation$polymars$R2_avg[, (i+1)] <- cor(test_data_kriging[, "mean"], predict_polymars_cv_avg)^2
-    # 
+    #
     # # Compute MAE for the models, MAE function package DiceEval
     # validation$linear$MAE_avg[, (i+1)] <- MAE(test_data_kriging[, "mean"], predict_linear_cv_avg[, 1])
     # validation$linear2$MAE_avg[, (i+1)] <- MAE(test_data_kriging[, "mean"], predict_linear2_cv_avg[, 1])
     # validation$mars$MAE_avg[, (i+1)] <- MAE(test_data_kriging[, "mean"], predict_mars_cv_avg)
     # validation$polymars$MAE_avg[, (i+1)] <- MAE(test_data_kriging[, "mean"], predict_polymars_cv_avg)
-    
+
     validation$linear$stacking_data[ind] <- predict_linear_cv[, 1]
     validation$linear2$stacking_data[ind] <- predict_linear2_cv[, 1]
     validation$mars$stacking_data[ind] <- predict_mars_cv
@@ -262,7 +262,7 @@ fit_models_agora <- function(observation_df, input_columns, metric_name, nobserv
       if (sum(abs(Y - kriging_fit)) >= 1e-09) {
         print("Warning: Kriging model doesn't interpolate the data.")
       }
-      
+
       # Commented out since this should not ever happen
       # Set the number of the folds to minimum of 10 or number of observations in kriging_df
       kriging_nobserved <- dim(kriging_df)[1]
@@ -275,10 +275,10 @@ fit_models_agora <- function(observation_df, input_columns, metric_name, nobserv
       validation$kriging$MAE <- matrix(NA, nrow = 1, ncol = nfolds + 1 )
 
       # validation$kriging$R2_avg <- matrix(NA, nrow = 1, ncol = nfolds + 1 )
-      # 
+      #
       # # Compute MAE for the models
       # validation$kriging$MAE_avg <- matrix(NA, nrow = 1, ncol = nfolds + 1 )
-      
+
       # Store coefficients for the models
       validation$kriging$coeff <- matrix(NA, nrow = length( c( model_kriging@trend.coef,  model_kriging@covariance@range.val ) ), ncol = nfolds + 1 )
 
@@ -290,20 +290,20 @@ fit_models_agora <- function(observation_df, input_columns, metric_name, nobserv
 
       # Store coefficients for the kriging
       validation$kriging$coeff[, 1] <- c( model_kriging@trend.coef, model_kriging@covariance@range.val )
-      
+
       # Prepare vector for stacking data (cross-validation prediction on the respective hold-out samples)
       validation$kriging$stacking_data <- rep(NA, nobserved)
-      
+
       # Fitted values for stacking ensemble
       # Have to be taken from the cross validation predictions, otherwise the stacking model is extremely biased
       # validation$kriging$model_fit <- predict(model_kriging, newdata = observation_df[, input_columns], type = "UK")$mean
-      
+
       # Cross validation kriging
       print("I make cross-validation on kriging now.")
 
       cv_sequence <- floor( seq( 0, kriging_nobserved, length.out = nfolds + 1 ) )
       cv_sequence_orig <- floor( seq( 0, nobserved, length.out = nfolds + 1 ) )
-      
+
       for(i in 1:nfolds)
       {
         ind <- cv_sequence[i] < 1:kriging_nobserved & cv_sequence[i+1] >= 1:kriging_nobserved
@@ -312,8 +312,8 @@ fit_models_agora <- function(observation_df, input_columns, metric_name, nobserv
         train_data <- kriging_df[!ind, ]
         # test_data <- kriging_df[ind, ]
         test_data_full <- observation_df %>% setdiff(train_data %>% select(-sd))
-        test_data_stacking <- observation_df[ind_orig, ]
-        
+        #test_data_stacking <- observation_df[ind_orig, ]
+
         X_train <- train_data[, knobs_names]
         Y_train <- train_data[, metric_name]
         sd_train <- train_data$sd
@@ -338,28 +338,31 @@ fit_models_agora <- function(observation_df, input_columns, metric_name, nobserv
 
         # Compute R2 for the models, R2 function package DiceEval
         # validation$kriging$R2_avg[, (i+1)] <- cor(Y_test, predict_kriging_cv)^2
-        # 
+        #
         # # Compute MAE for the models, MAE function package DiceEval
         # validation$kriging$MAE_avg[, (i+1)] <- MAE(Y_test, predict_kriging_cv)
 
         # Store coefficients for the models
         validation$kriging$coeff[, (i+1)] <- c( model_kriging_cv@trend.coef, model_kriging_cv@covariance@range.val )
-        
+
         # Store CV prediction for stacking
-        predict_kriging_cv_stacking <- predict(model_kriging_cv, newdata = test_data_stacking[, knobs_names], type = "UK")$mean
+        #predict_kriging_cv_stacking <- predict(model_kriging_cv, newdata = test_data_stacking[, knobs_names], type = "UK")$mean
         predict_kriging_cv_full <- predict(model_kriging_cv, newdata = test_data_full[, knobs_names], type = "UK")$mean
-        
+
         # CV on non averaged data
         # Compute R2 for the models, R2 function package DiceEval
         validation$kriging$R2[, (i+1)] <- cor(test_data_full[, metric_name], predict_kriging_cv_full)^2
-        
+
         # Compute MAE for the models, MAE function package DiceEval
         validation$kriging$MAE[, (i+1)] <- MAE(test_data_full[, metric_name], predict_kriging_cv_full)
-        
-        
-        validation$kriging$stacking_data[ind_orig] <- predict_kriging_cv_stacking
+        # Add prediction to the stacking_df
+        temp_stacking_df %<>% bind_rows(data.frame(test_data_full[ , knobs_names], value = predict_kriging_cv_full))
       }
+      temp_stacking_df %<>% group_by_at(knobs_names) %>% summarize(value = mean(value))
+      temp_stack_joined <- left_join(observation_df[, knobs_names], temp_stacking_df)
+      validation$kriging$stacking_data <- temp_stack_joined$value
       validation$kriging$model_fit <- validation$kriging$stacking_data
+      rm(temp_stacking_df, temp)
     },
     error = function(e) print(e))
   }
@@ -371,7 +374,7 @@ fit_models_agora <- function(observation_df, input_columns, metric_name, nobserv
   validation$polymars$models$full  <- model_polymars
   if(!is.null(validation$kriging))
   {validation$kriging$models$full <- model_kriging}
-  
+
   # Name the columns of each object in the validation list
   validation <- lapply(validation,
                        function(x) lapply(x,

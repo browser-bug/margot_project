@@ -3,6 +3,7 @@ suppressMessages(suppressPackageStartupMessages(library("RJDBC")))  # connect to
 suppressMessages(suppressPackageStartupMessages(library("mda")))
 suppressMessages(suppressPackageStartupMessages(library("polspline")))
 suppressMessages(suppressPackageStartupMessages(library("dplyr")))
+suppressMessages(suppressPackageStartupMessages(library("magrittr")))
 suppressMessages(suppressPackageStartupMessages(library("quadprog")))
 
 options(scipen = 100)
@@ -318,31 +319,33 @@ if( "MAE" %in% model_selection_features )
   # Do stacking --------------------------------------------------------------------
   # get cross validation predictions
   stacking_data <- sapply(validation,
-         function(type)
-           {
-           type$stacking_data
-         })
-  
-  tryCatch({
-  # Prepare data for quadratic optimization
-  # stacking_data <- unique(stacking_data)
-  d_temp <- observation_df
-  Rinv <- solve(chol(t(stacking_data) %*% stacking_data));
-  C <- cbind(rep(1,length(validation)), diag(length(validation)))
-  b <- c(1,rep(0,length(validation)))
-  d <- t(d_temp[, metric_name]) %*% stacking_data
-  # Do quadratic optimization and extract solution (weights for each model)
-  stacking_weights <- solve.QP(Dmat = Rinv, factorized = TRUE, dvec = d, Amat = C, bvec = b, meq = 1)$solution
-    },
-  error = function(e) print(e))
-  if(!exists("stacking_weights")){stacking_weights <- rep(1/length(validation), length(validation))}
-  
-  print(stacking_weights)
-  model_fit_data <- sapply(validation,
                           function(type)
                           {
-                            type$model_fit
+                            type$stacking_data
                           })
+  stacking_columns <- colSums(is.na(stacking_data)) == 0
+  stacking_data %<>% subset( select = stacking_columns)
+  stack_col <- dim(stacking_data)[2]
+  tryCatch({
+    # Prepare data for quadratic optimization
+    # stacking_data <- unique(stacking_data)
+    d_temp <- observation_df
+    Rinv <- solve(chol(t(stacking_data) %*% stacking_data));
+    C <- cbind(rep(1,stack_col), diag(stack_col))
+    b <- c(1,rep(0,stack_col))
+    d <- t(d_temp[, metric_name]) %*% stacking_data
+    # Do quadratic optimization and extract solution (weights for each model)
+    stacking_weights <- solve.QP(Dmat = Rinv, factorized = TRUE, dvec = d, Amat = C, bvec = b, meq = 1)$solution
+  },
+  error = function(e) print(e))
+  if(!exists("stacking_weights")){stacking_weights <- rep(1/stack_col, stack_col)}
+  
+  print(stacking_weights)
+  model_fit_data <- sapply(validation[stacking_columns],
+                           function(type)
+                           {
+                             type$model_fit
+                           })
   
   stacked_fit <- model_fit_data %*% stacking_weights
   
@@ -534,7 +537,7 @@ switch(names(chosen_model),
     Y_final$sd   <- -1
   },
   "stacked_model" = {
-    stacked_fit2 <- sapply(validation,
+    stacked_fit2 <- sapply(validation[stacking_columns],
                          function(type)
                          {
                            # Go over all the model fits, model + cross-validation models and take their fit means
