@@ -303,7 +303,7 @@ fit_models_agora <- function(observation_df, input_columns, metric_name, nobserv
 
       cv_sequence <- floor( seq( 0, kriging_nobserved, length.out = nfolds + 1 ) )
       cv_sequence_orig <- floor( seq( 0, nobserved, length.out = nfolds + 1 ) )
-
+      temp_stacking_df <- NULL
       for(i in 1:nfolds)
       {
         ind <- cv_sequence[i] < 1:kriging_nobserved & cv_sequence[i+1] >= 1:kriging_nobserved
