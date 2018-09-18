@@ -147,7 +147,7 @@ namespace agora
         {
           if (i > 0)
           {
-            out << ';' << knob.values[i] << std::endl;
+            out << ';' << knob.values[i];
           }
           else
           {
@@ -205,7 +205,7 @@ namespace agora
         {
           if (i > 0)
           {
-            out << ';' << feature.values[i] << std::endl;
+            out << ';' << feature.values[i];
           }
           else
           {
