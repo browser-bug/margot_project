@@ -139,21 +139,21 @@ namespace agora
       // loop over the software knobs and print them
       for ( const auto& knob : description.knobs )
       {
-        out << knob.name << ',' << knob.type << ',';
 
+        // write the knob name, type and the first value
+        out << knob.name << ',' << knob.type << ',' << knob.values[0];
+
+        // get the how many other knob values we have
         const std::size_t number_of_knob_values = knob.values.size();
 
-        for ( std::size_t i = 0; i < number_of_knob_values; ++i )
+        // print the values
+        for ( std::size_t i = 1; i < number_of_knob_values; ++i )
         {
-          if (i > 0)
-          {
             out << ';' << knob.values[i];
-          }
-          else
-          {
-            out << knob.values[i];
-          }
         }
+
+        // write the last new line character
+        out << std::endl;
       }
     }
     else
@@ -197,21 +197,21 @@ namespace agora
       // loop over the software knobs and print them
       for ( const auto& feature : description.features )
       {
-        out << feature.name << ',' << feature.type << ',';
 
-        const std::size_t number_of_metrics_values = feature.values.size();
+        // write the feature name, type and the first value
+        out << feature.name << ',' << feature.type << ',' << feature.values[0];
 
-        for ( std::size_t i = 0; i < number_of_metrics_values; ++i )
+        // get the how many other feature values we have
+        const std::size_t number_of_feature_values = feature.values.size();
+
+        // print the values
+        for ( std::size_t i = 1; i < number_of_feature_values; ++i )
         {
-          if (i > 0)
-          {
             out << ';' << feature.values[i];
-          }
-          else
-          {
-            out << feature.values[i];
-          }
         }
+
+        // write the last new line character
+        out << std::endl;
       }
     }
     else
