@@ -495,8 +495,14 @@ namespace agora
       // get the split point between configuration and counter
       std::size_t coma_index = csv_line.find_last_of(',');
 
-      // insert the configuration
-      output_doe.required_explorations.emplace(csv_line.substr(0, coma_index), std::stoi(csv_line.substr(coma_index + 1)));
+      // get the counter
+      const int counter = std::stoi(csv_line.substr(coma_index + 1));
+
+      // insert the configuration (if required)
+      if (counter > 0)
+      {
+        output_doe.required_explorations.emplace(csv_line.substr(0, coma_index), counter);
+      }
     }
 
     // set the next to begin
@@ -510,6 +516,9 @@ namespace agora
   {
     // declare the new doe table
     doe_t output_doe;
+
+    // get the target configuration and doe counter
+    const std::string configuration_to_update = values.substr(0, values.find_last_of(','));
 
     // get the parser for previous table
     csv_parser_t doe_parser(get_doe_name(description.application_name));
@@ -529,7 +538,7 @@ namespace agora
 
       // check if it is the configuration that we have explored
       // in that case we have to update the counter
-      if (values.compare(conf) == 0)
+      if (configuration_to_update.compare(conf) == 0)
       {
         --counter;
       }
