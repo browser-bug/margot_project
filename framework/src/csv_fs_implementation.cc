@@ -438,6 +438,15 @@ namespace agora
       // get the whole line
       std::string csv_line = model_parser.get();
 
+      // look for possible NAs
+      const auto pos_first_NA = csv_line.find(",NA");
+
+      // if the model is not complete we need to return an empty one
+      if (pos_first_NA != std::string::npos )
+      {
+        return model_t{};
+      }
+
       // remove any possible NAs
       output_model.knowledge.emplace_back(csv_line.substr(0, csv_line.find(",NA")));
     }
