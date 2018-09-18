@@ -145,7 +145,7 @@ void RemoteApplicationHandler::welcome_client( const std::string& client_name, c
 
 
     // and we might destroy the configuration that we have
-    auto&& application_name = description.application_name;
+    auto application_name = description.application_name;
     description.clear();
     description.application_name = application_name;
     return; // we have done what we can...
