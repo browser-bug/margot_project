@@ -48,6 +48,8 @@ source("get_knobs_config_list.R")
 
 if (storage_type == "CASSANDRA")
 {
+  library(RJDBC)
+
   # CREATE THE TABLES NAMES
   application_name <- gsub("/", "_", application_name)
   
