@@ -151,7 +151,7 @@ namespace agora
           }
           else
           {
-            out << knob.values[i] << std::endl;
+            out << knob.values[i];
           }
         }
       }
@@ -209,7 +209,7 @@ namespace agora
           }
           else
           {
-            out << feature.values[i] << std::endl;
+            out << feature.values[i];
           }
         }
       }
