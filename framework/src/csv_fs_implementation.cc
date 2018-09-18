@@ -252,7 +252,7 @@ namespace agora
     application_description_t description(application_name);
 
     // open the table of the knobs
-    csv_parser_t knob_parser(get_knobs_name(application_name));
+    csv_parser_t knob_parser(get_knobs_name(application_name), true);
 
     // loop over the lines of the knobs
     while (knob_parser.next())
@@ -275,7 +275,7 @@ namespace agora
     }
 
     // open the table of the features
-    csv_parser_t feature_parser(get_features_name(application_name));
+    csv_parser_t feature_parser(get_features_name(application_name), true);
 
     // loop over the lines of the features
     while (feature_parser.next())
@@ -298,7 +298,7 @@ namespace agora
     }
 
     // open the table of the metrics
-    csv_parser_t metric_parser(get_metrics_name(application_name));
+    csv_parser_t metric_parser(get_metrics_name(application_name), true);
 
     // loop over the lines of the knobs
     while (metric_parser.next())
@@ -313,7 +313,7 @@ namespace agora
     }
 
     // open the table of the doe info
-    csv_parser_t doe_info_parser(get_doe_info_name(application_name));
+    csv_parser_t doe_info_parser(get_doe_info_name(application_name), true);
 
     // loop over the lines of the knobs
     while (doe_info_parser.next())
