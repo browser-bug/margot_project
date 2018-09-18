@@ -216,9 +216,13 @@ if ( WITH_CASSANDRA AND WITH_AGORA )
 			CMAKE_ARGS -DCASS_BUILD_STATIC:STRING=TRUE -DCASS_BUILD_SHARED:STRING=FALSE -DCASS_USE_STATIC_LIBS:STRING=TRUE -DCMAKE_INSTALL_PREFIX:PATH=${CASSANDRA_ROOT} -DCMAKE_BUILD_TYPE:STRING=RELEASE
 		)
 
-		# find again CASSANDRA
-		set( ENV{CASSANDRA_ROOT} ${MQTT_ROOT} )
-		find_package( CASSANDRA )
+		# we need to hard code these values since they will be available only after the user compiled cassandra
+		set( HAVE_CASSANDRA TRUE)
+		set( CASSANDRA_LIBRARY ${CASSANDRA_ROOT}/lib/libcassandra_static.a)
+		set( CASSANDRA_INCLUDES ${CASSANDRA_ROOT}/include)
+		find_package ( LIBUV )
+		find_package ( OpenSSL )
+		set ( CASSANDRA_LIBRARIES ${CASSANDRA_LIBRARY} ${LIBUV_LIBRARIES} ${OPENSSL_LIBRARIES} )
 	endif ( NOT HAVE_CASSANDRA )
 
 	include_directories( ${CASSANDRA_INCLUDES})
@@ -253,9 +257,12 @@ if ( WITH_AGORA )
 			CMAKE_ARGS -DPAHO_BUILD_STATIC:STRING=TRUE -DCMAKE_INSTALL_PREFIX:PATH=${MQTT_ROOT} -DCMAKE_BUILD_TYPE:STRING=RELEASE -DPAHO_WITH_SSL=TRUE
 		)
 
-		# find the new compiled library
-		set( ENV{MQTT_ROOT} ${MQTT_ROOT} )
-		find_package( MQTT )
+		#  we need to hard code these values since they will be available only after the user compiled MQTT
+		set( HAVE_MQTT TRUE)
+		find_library (MQTT_PTHREADS pthread)
+		find_package ( OpenSSL )
+		set( MQTT_LIBRARIES ${MQTT_ROOT}/lib/libpaho-mqtt3cs-static.a ${MQTT_PTHREADS} ${OPENSSL_LIBRARIES})
+		set( MQTT_INCLUDES ${MQTT_ROOT}/include)
 	endif ( NOT HAVE_MQTT )
 
 	# eventually include the headers directory
