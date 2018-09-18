@@ -44,14 +44,14 @@ setwd(root_path)
 source("create_discrete_doe.R")
 source("get_knobs_config_list.R")
 
+# CREATE THE TABLES NAMES
+application_name <- gsub("/", "_", application_name)
+
 ########################### LOAD DATA #######################################
 
 if (storage_type == "CASSANDRA")
 {
-  library(RJDBC)
-
-  # CREATE THE TABLES NAMES
-  application_name <- gsub("/", "_", application_name)
+  suppressMessages(suppressPackageStartupMessages(library("RJDBC")))  # connect to database using JDBC codecs
   
   knobs_container_name <- paste("margot.", application_name, "_knobs", sep = "")
   features_container_name <- paste("margot.", application_name, "_features", sep = "")
@@ -68,9 +68,39 @@ if (storage_type == "CASSANDRA")
   knobs_names <- dbGetQuery(conn, paste("SELECT name FROM ", knobs_container_name, sep = ""))
   features_names <- dbGetQuery(conn, paste("SELECT name FROM ", features_container_name, sep = ""))
   
+  nknobs <- dim(knobs_names)[1]
+  if (nknobs == 0)
+  {
+    stop("Error: no knobs found. Please specify the knobs.")
+  }
+  if (dim(features_names)[1] == 0)
+  {
+    features_names <- NULL
+  }
+  cat("Number of KNOBS: ", nknobs, "\nNumber of FEATURES: ", dim(features_names)[1])
 } else if (storage_type == "CSV")
 {
+  knobs_container_name <- paste(storage_address, "/", application_name, "_knobs.csv", sep = "")
+  features_container_name <- paste(storage_address, "/", application_name, "_features.csv", sep = "")
+  observation_container_name <- paste(storage_address, "/", application_name, "_trace.csv", sep = "")
+  model_container_name <- paste(storage_address, "/", application_name, "_model.csv", sep = "")
+  doe_container_name <- paste(storage_address, "/", application_name, "_doe.csv", sep = "")
   
+  knobs_names <- read.csv(knobs_container_name, stringsAsFactors = FALSE)$name
+  features_names <- read.csv(features_container_name, stringsAsFactors = FALSE)$name
+  
+  nknobs <- length(knobs_names)
+  if (nknobs == 0)
+  {
+    stop("Error: no knobs found. Please specify the knobs.")
+  }
+  if (length(features_names) == 0)
+  {
+    features_names <- NULL
+  }
+  cat("Number of KNOBS: ", nknobs, "\nNumber of FEATURES: ", dim(features_names)[1])
+  
+  conn <- NULL
 } else
 {
   stop(paste("Error: uknown $STORAGE_TYPE ", storage_type, ". Please, select $STORAGE_TYPE=CASSANDRA.", sep = ""), call. = FALSE)
@@ -78,18 +108,10 @@ if (storage_type == "CASSANDRA")
 
 ################################# PREPARE DOE OPTIONS #################################
 
-nknobs <- dim(knobs_names)[1]
-if (nknobs == 0)
-{ stop("Error: no knobs found. Please specify the knobs.") }
-if (dim(features_names)[1] == 0)
-{ features_names <- NULL }
-cat("Number of KNOBS: ", nknobs, "\nNumber of FEATURES: ", dim(features_names)[1])
-
 # MAKE NAMES LOWERCASE
 knobs_names <- sapply(knobs_names, tolower)
 
-# BEWARE does not account for the features !!!!!!  
-# GET THE GRID CONFIGURATION 
+# BEWARE does not account for the features !!!!!!  GET THE GRID CONFIGURATION
 knobs_config_list <- get_knobs_config_list(storage_type, knobs_container_name, conn)
 
 # SET THE DOE OPTIONS
@@ -110,7 +132,7 @@ if (is.null(doe_design))
 
 ################################# WRITE DOE #################################
 
-if(storage_type == "CASSANDRA")
+if (storage_type == "CASSANDRA")
 {
   for (row.ind in 1:nrow(doe_design))
   {
@@ -119,9 +141,9 @@ if(storage_type == "CASSANDRA")
     # set_statement <- paste(doe_names, ' = ', doe_design[row.ind, ], sep = '', collapse = ', ')
     dbSendUpdate(conn, paste("INSERT INTO ", doe_container_name, "(", set_columns, ") VALUES (", set_values, ")", sep = ""))
   }
-} else if(storage_type == "CSV")
+} else if (storage_type == "CSV")
 {
-  write.table(doe_design, file = doe_container_name, col.names = TRUE, row.names = FALSE, sep = ",", dec = ".")  
+  write.table(doe_design, file = doe_container_name, col.names = TRUE, row.names = FALSE, sep = ",", dec = ".")
 }
 
 print("Wrote new DOE configurations")

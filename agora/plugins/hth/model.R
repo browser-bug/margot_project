@@ -51,11 +51,11 @@ source("fit_models_agora_cor.R")
 
 ########################### LOAD DATA #######################################
 
+application_name <- gsub("/", "_", application_name)
+
 if (storage_type == "CASSANDRA")
 {
   suppressMessages(suppressPackageStartupMessages(library("RJDBC")))  # connect to database using JDBC codecs
-  
-  application_name <- gsub("/", "_", application_name)
   
   knobs_container_name <- paste("margot.", application_name, "_knobs", sep = "")
   features_container_name <- paste("margot.", application_name, "_features", sep = "")
@@ -71,9 +71,33 @@ if (storage_type == "CASSANDRA")
   knobs_names <- dbGetQuery(conn, paste("SELECT name FROM ", knobs_container_name, sep = ""))
   features_names <- dbGetQuery(conn, paste("SELECT name FROM ", features_container_name, sep = ""))
   
+  nknobs <- dim(knobs_names)[1]
+  if (nknobs == 0)
+  {
+    stop("Error: no knobs found. Please specify the knobs.")
+  }
+  if (dim(features_names)[1] == 0)
+  {
+    features_names <- NULL
+  }
 } else if (storage_type == "CSV")
 {
+  knobs_container_name <- paste(storage_address, "/", application_name, "_knobs.csv", sep = "")
+  features_container_name <- paste(storage_address, "/", application_name, "_features.csv", sep = "")
+  observation_container_name <- paste(storage_address, "/", application_name, "_trace.csv", sep = "")
+  model_container_name <- paste(storage_address, "/", application_name, "_model.csv", sep = "")
+  doe_container_name <- paste(storage_address, "/", application_name, "_doe.csv", sep = "")
   
+  knobs_names <- read.csv(knobs_container_name, stringsAsFactors = FALSE)$name
+  features_names <- read.csv(features_container_name, stringsAsFactors = FALSE)$name
+  
+  nknobs <- length(knobs_names)
+  if (nknobs == 0)
+  { stop("Error: no knobs found. Please specify the knobs.") }
+  if (length(features_names) == 0)
+  { features_names <- NULL }
+  
+  conn <- NULL
 } else
 {
   stop(paste("Error: uknown $STORAGE_TYPE ", storage_type, ". Please, select $STORAGE_TYPE=CASSANDRA.", sep = ""), call. = FALSE)
@@ -81,15 +105,6 @@ if (storage_type == "CASSANDRA")
 
 ################################# PREPARE DOE OPTIONS #################################
 
-nknobs <- dim(knobs_names)[1]
-if (nknobs == 0)
-{
-  stop("Error: no knobs found. Please specify the knobs.")
-}
-if (dim(features_names)[1] == 0)
-{
-  features_names <- NULL
-}
 cat("Number of KNOBS: ", nknobs, "\nNumber of FEATURES: ", dim(features_names)[1])
 
 # MAKE NAMES LOWERCASE
@@ -106,7 +121,8 @@ if (storage_type == "CASSANDRA")
   observation_df <- dbGetQuery(conn, paste("SELECT ", paste(dse_columns, collapse = ","), " FROM ", observation_container_name, sep = ""))
 } else if (storage_type == "CSV")
 {
-  
+  observation_df <- read.csv(observation_container_name, stringsAsFactors = FALSE)
+  observation_df %<>% select(dse_columns)
 }
 
 # GET BOOLEAN VECTOR OF ROWS WITHOUT NA VALUES
@@ -122,7 +138,7 @@ if (any(!ind_complete))
 }
 
 # BEWARE does not account for the features !!!!!!  GET GRID CONFIGURATION
-knobs_config_list <- get_knobs_config_list(conn, knobs_container_name)
+knobs_config_list <- get_knobs_config_list(storage_type, knobs_container_name, conn)
 if (map_to_input == FALSE)
 {
   knobs_config_list <- lapply(knobs_config_list, function(x) seq(min(x), max(x), by = 0.1))
@@ -310,27 +326,27 @@ chosen_model <- which.min(complete_MAE[model_selection])
 # Check the iteration of the run 
 # Check if the models.log exists if not set iteration to 1, if yes read the file and set the iteration to the max iter + 1
 
-if (file.exists("models.log"))
-{
-  old_models <- read.table(file = "models.log", header = TRUE, sep = ",", dec = ".")
-  if (iteration == 1)
-  {
-    run <- max(old_models$run) + 1
-  } else
-  {
-    run <- max(old_models$run)
-  }
-} else
-{
-  run <- 1
-  write("R2, MAE, model, iteration, run", file = "models.log")
-}
-
-models_info <- as.data.frame(t(rbind(complete_R2, complete_MAE, names(complete_R2))))
-models_info$iteration <- iteration
-models_info$run <- run
-colnames(models_info) <- c("R2", "MAE",  "model", "iteration, run")
-write.table(models_info, file = "models.log", col.names = FALSE, row.names = FALSE, sep = ",", dec = ".", append = TRUE)
+# if (file.exists("models.log"))
+# {
+#   old_models <- read.table(file = "models.log", header = TRUE, sep = ",", dec = ".")
+#   if (iteration == 1)
+#   {
+#     run <- max(old_models$run) + 1
+#   } else
+#   {
+#     run <- max(old_models$run)
+#   }
+# } else
+# {
+#   run <- 1
+#   write("R2, MAE, model, iteration, run", file = "models.log")
+# }
+# 
+# models_info <- as.data.frame(t(rbind(complete_R2, complete_MAE, names(complete_R2))))
+# models_info$iteration <- iteration
+# models_info$run <- run
+# colnames(models_info) <- c("R2", "MAE", "model", "iteration", "run")
+# write.table(models_info, file = "models.log", col.names = FALSE, row.names = FALSE, sep = ",", dec = ".", append = TRUE)
 
 # If necessary increase the model space -------------------------------------------------------------------------------------------------------
 if (length(chosen_model) == 0)
@@ -455,7 +471,13 @@ if (storage_type == "CASSANDRA")
   }
 } else if (storage_type == "CSV")
 {
-  write.table(design_space_grid_res, file = model_container_name, col.names = TRUE, row.names = FALSE, sep = ",", dec = ".")  
+  model <- read.csv(model_container_name)
+  # design_space_grid_res <- cbind(design_space_grid, Y_final$mean, Y_final$sd)
+  # names(design_space_grid_res) <- c(knobs_names, paste(metric_name, "_avg", sep = ""), paste(metric_name, "_std", sep = ""))
+  model[, paste(metric_name, "_avg", sep = "")] <- Y_final$mean
+  model[, paste(metric_name, "_std", sep = "")] <- Y_final$sd
+  
+  write.table(model, file = model_container_name, col.names = TRUE, row.names = FALSE, sep = ",", dec = ".")  
 }
 print(paste("Quiting [HTH] plugin", metric_name))
 q(save = "no")
