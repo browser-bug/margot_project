@@ -477,6 +477,9 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
   status = ApplicationStatus::BUILDING_MODEL;
   guard.unlock();
 
+  // truncate the doe table (avoiding wasting of space)
+  io::storage.empty_doe_entries(description);
+
   // actually build the model
   info("Handler ", description.application_name, ": learning the application knowledge... (it may take a while)");
   io::model_generator(description, model_iteration_number);
