@@ -319,27 +319,27 @@ chosen_model <- which.min(complete_MAE[model_selection])
 # Check the iteration of the run 
 # Check if the models.log exists if not set iteration to 1, if yes read the file and set the iteration to the max iter + 1
 
-# if (file.exists("models.log"))
-# {
-#   old_models <- read.table(file = "models.log", header = TRUE, sep = ",", dec = ".")
-#   if (iteration == 1)
-#   {
-#     run <- max(old_models$run) + 1
-#   } else
-#   {
-#     run <- max(old_models$run)
-#   }
-# } else
-# {
-#   run <- 1
-#   write("R2, MAE, model, iteration, run", file = "models.log")
-# }
-# 
-# models_info <- as.data.frame(t(rbind(complete_R2, complete_MAE, names(complete_R2))))
-# models_info$iteration <- iteration
-# models_info$run <- run
-# colnames(models_info) <- c("R2", "MAE", "model", "iteration", "run")
-# write.table(models_info, file = "models.log", col.names = FALSE, row.names = FALSE, sep = ",", dec = ".", append = TRUE)
+if (file.exists("models.log"))
+{
+  old_models <- read.table(file = "models.log", header = TRUE, sep = ",", dec = ".")
+  if (iteration == 1)
+  {
+    run <- max(old_models$run) + 1
+  } else
+  {
+    run <- max(old_models$run)
+  }
+} else
+{
+  run <- 1
+  write("R2, MAE, model, iteration, run", file = "models.log")
+}
+
+models_info <- as.data.frame(t(rbind(complete_R2, complete_MAE, names(complete_R2))))
+models_info$iteration <- iteration
+models_info$run <- run
+colnames(models_info) <- c("R2", "MAE", "model", "iteration", "run")
+write.table(models_info, file = "models.log", col.names = FALSE, row.names = FALSE, sep = ",", dec = ".", append = TRUE)
 
 # If necessary increase the model space -------------------------------------------------------------------------------------------------------
 if (length(chosen_model) == 0)
