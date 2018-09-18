@@ -38,26 +38,25 @@ find_library (COLLECTOR_LIBRARY libcollector.a collector)
 ## Check for the mosquitto
 
 
-find_library (COLLECTOR_LIBRARY libmosquitto.a mosquitto
+find_library (MOSQUITTO_LIBRARY libmosquitto.a mosquitto
   PATHS ${COLLECTOR_ROOT}/../lib/mosquitto-1.3.5/lib
   NO_DEFAULT_PATH
   )
 
-find_library (COLLECTOR_LIBRARY libcollector.a collector)
+find_library (MOSQUITTO_LIBRARY libmosquitto.a mosquitto)
 
 
 ## -----------------------------------------------------------------------------
 ## Check for other dependencies
 
-find_library (SSL_LIBRARY ssl)
-find_library (CRYPTO_LIBRARY crypto)
-find_library (PTHREAD_LIBRARY pthread)
+find_package ( OpenSSL )
+find_library (COLLECTOR_PTHREADS pthread)
 
 
 ## -----------------------------------------------------------------------------
 ## Compose the libraries
 
-set( COLLECTOR_LIBRARIES ${COLLECTOR_LIBRARY} ${MOSQUITTO_LIBRARY} ${SSL_LIBRARY} ${CRYPTO_LIBRARY} ${PTHREAD_LIBRARY})
+set( COLLECTOR_LIBRARIES ${COLLECTOR_LIBRARY} ${MOSQUITTO_LIBRARY} ${OPENSSL_LIBRARIES} ${COLLECTOR_PTHREADS})
 
 
 

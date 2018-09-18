@@ -39,17 +39,24 @@ find_library (MQTT_LIBRARY libpaho-mqtt3cs-static.a paho-mqtt3cs)
 
 find_library (MQTT_PTHREADS pthread)
 
+
+## -----------------------------------------------------------------------------
+## Check for the openssl library
+
+find_package ( OpenSSL )
+
+
 ## -----------------------------------------------------------------------------
 ## Compose the libraries
 
-set( MQTT_LIBRARIES ${MQTT_LIBRARY} ${MQTT_PTHREADS} )
+set( MQTT_LIBRARIES ${MQTT_LIBRARY} ${MQTT_PTHREADS} ${OPENSSL_LIBRARIES} )
 
 
 
 ## -----------------------------------------------------------------------------
 ## Actions taken when all components have been found
 
-if (MQTT_INCLUDES AND MQTT_LIBRARIES)
+if (MQTT_INCLUDES AND MQTT_LIBRARIES )
   set (HAVE_MQTT TRUE)
 else (MQTT_INCLUDES AND MQTT_LIBRARIES)
   if (NOT MQTT_FIND_QUIETLY)

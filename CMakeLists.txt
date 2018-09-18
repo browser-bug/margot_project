@@ -215,12 +215,10 @@ if ( WITH_CASSANDRA AND WITH_AGORA )
 			PATCH_COMMAND ""
 			CMAKE_ARGS -DCASS_BUILD_STATIC:STRING=TRUE -DCASS_BUILD_SHARED:STRING=FALSE -DCASS_USE_STATIC_LIBS:STRING=TRUE -DCMAKE_INSTALL_PREFIX:PATH=${CASSANDRA_ROOT} -DCMAKE_BUILD_TYPE:STRING=RELEASE
 		)
-		set( HAVE_CASSANDRA TRUE)
-		set( CASSANDRA_LIBRARY ${CASSANDRA_ROOT}/lib/libcassandra_static.a)
-		set( CASSANDRA_INCLUDES ${CASSANDRA_ROOT}/include)
-		find_package ( LIBUV )
-		find_package ( OpenSSL )
-		set ( CASSANDRA_LIBRARIES ${CASSANDRA_LIBRARY} ${LIBUV_LIBRARIES} ${OPENSSL_LIBRARIES} )
+
+		# find again CASSANDRA
+		set( ENV{CASSANDRA_ROOT} ${MQTT_ROOT} )
+		find_package( CASSANDRA )
 	endif ( NOT HAVE_CASSANDRA )
 
 	include_directories( ${CASSANDRA_INCLUDES})
@@ -235,7 +233,7 @@ endif ( WITH_CASSANDRA AND WITH_AGORA )
 
 # check if we can compile margot agora
 if ( WITH_AGORA )
-	message( STATUS "Server application agora.............: ENABLED (-DWITH_AGORA=OFF to disable)" )
+	message( STATUS "Server application agora.............: ENABLED  (-DWITH_AGORA=OFF to disable)" )
 
 	# check if we have to build some component manually
 	if ( NOT HAVE_MQTT )
@@ -254,10 +252,10 @@ if ( WITH_AGORA )
 			PATCH_COMMAND ""
 			CMAKE_ARGS -DPAHO_BUILD_STATIC:STRING=TRUE -DCMAKE_INSTALL_PREFIX:PATH=${MQTT_ROOT} -DCMAKE_BUILD_TYPE:STRING=RELEASE -DPAHO_WITH_SSL=TRUE
 		)
-		find_library (MQTT_PTHREADS pthread)
-		set( HAVE_MQTT TRUE)
-		set( MQTT_LIBRARIES ${MQTT_ROOT}/lib/libpaho-mqtt3cs-static.a ${MQTT_PTHREADS})
-		set( MQTT_INCLUDES ${MQTT_ROOT}/include)
+
+		# find the new compiled library
+		set( ENV{MQTT_ROOT} ${MQTT_ROOT} )
+		find_package( MQTT )
 	endif ( NOT HAVE_MQTT )
 
 	# eventually include the headers directory
