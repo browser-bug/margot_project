@@ -45,6 +45,7 @@
   #include <map>
   #include <algorithm>
   #include "agora/virtual_channel.hpp"
+  #include "agora/paho_remote_implementation.hpp"
 #endif // MARGOT_WITH_AGORA
 
 namespace margot
