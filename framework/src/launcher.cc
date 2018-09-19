@@ -189,7 +189,7 @@ namespace agora
       const std::string plugin_path = plugins_folder + metric.prediction_method;
 
       // compute the destination path for the plugin
-      const std::string metric_root = workspace_root + "model_" + metric.name;
+      const std::string metric_root = workspace_root + "/" + application.application_name + "/model_" + metric.name;
 
       // compute the destination path for the environmental file and sh plugin
       const std::string config_path = metric_root + "/" + config_file_name;
