@@ -143,7 +143,7 @@ if (storage_type == "CASSANDRA")
   }
 } else if (storage_type == "CSV")
 {
-  write.table(doe_design, file = doe_container_name, col.names = TRUE, row.names = FALSE, sep = ",", dec = ".")
+  write.table(doe_design, file = doe_container_name, col.names = FALSE, row.names = FALSE, sep = ",", dec = ".", append = TRUE)
 }
 
 print("Wrote new DOE configurations")
