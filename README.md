@@ -35,6 +35,8 @@ The repository is organized as follow:
 ├── agora/
 |   ├── plugins/          -> Collection of tools to build the application knowledge from observations
 |   |                         - crs: leverage nonparametric regression splines
+|   |                         - average: compute the average between observed configurations
+|   |                         - hth: advanced plugin to model a metrics
 |   |
 │   ├── src/              -> The AGORA remote application handler source files
 |
@@ -70,6 +72,7 @@ However, it is possible to change this behavior using the CMake configuration op
 | USE_TEMPERATURE_MONITOR  |   ON , [OFF]       | Include the temperature monitor (requires lm_sensors)       |
 | WITH_AGORA               |   ON , [OFF]       | Enable the AGORA application handler (see NOTE below)       |
 | WITH_BENCHMARK           |   ON , [OFF]       | Build a benchmark to evaluate the overheads                 |
+| WITH_CASSANDRA           |   ON , [OFF]       | Enable the cassandra storage back-end                       |
 
 NOTE: if you are interested on using the AGORA application handler to perform an online Design Space Exploration, the module adds several dependencies:
  - The C/C++ Cassandra driver ( http://datastax.github.io/cpp-driver/ )
