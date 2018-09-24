@@ -4,7 +4,7 @@ class AgoraModel:
   that is communicating with the agora remote application handler
   """
 
-  available_does = ['strauss', 'dmax', 'lhs', 'wsp', 'factorial3', 'factorial5']
+  available_does = ['strauss', 'dmax', 'lhs', 'wsp', 'factorial3', 'factorial5', 'full_factorial']
 
   def __init__( self ):
 
