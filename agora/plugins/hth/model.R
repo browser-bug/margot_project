@@ -207,6 +207,13 @@ if ("R2" %in% model_selection_features)
   })
   
   CV_R2[is.na(CV_R2)] <- Inf
+  
+  # CV_R2_avg <- sapply(validation,
+  #                 function(model)
+  #                 {mean(model$R2_avg[2:length(model$R2_avg)], na.rm = TRUE)}
+  # )
+  # 
+  # CV_R2_avg[is.na(CV_R2_avg)] <- Inf
 }
 
 if ("MAE" %in% model_selection_features)

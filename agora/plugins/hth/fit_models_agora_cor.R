@@ -126,13 +126,13 @@ fit_models_agora <- function(observation_df, input_columns, metric_name, nobserv
   validation$linear2$models <- list()
   validation$mars$models <- list()
   validation$polymars$models <- list()
-  
+
   # Create vector for stacking data (CV prediction for appropriate hold-out set)
   validation$linear$stacking_data <- rep(NA, nobserved)
   validation$linear2$stacking_data <- rep(NA, nobserved)
   validation$mars$stacking_data <- rep(NA, nobserved)
   validation$polymars$stacking_data <- rep(NA, nobserved)
-  
+
   # Save fitted values of models for stacking
   validation$linear$model_fit <- c(model_linear$fitted.values)
   # names(validation$linear$model_fit) <- NULL
@@ -140,7 +140,7 @@ fit_models_agora <- function(observation_df, input_columns, metric_name, nobserv
   # names(validation$linear2$model_fit) <- NULL
   validation$mars$model_fit <- c(model_mars$fitted.values)
   validation$polymars$model_fit <- c(model_polymars$fitted)
-  
+
   # Compute cross-validation on the models -----------------------------------------------------------------------------------
   print("I make cross-validation now.")
   
@@ -293,7 +293,7 @@ fit_models_agora <- function(observation_df, input_columns, metric_name, nobserv
       
       # Prepare vector for stacking data (cross-validation prediction on the respective hold-out samples)
       validation$kriging$stacking_data <- rep(NA, nobserved)
-      
+
       # Fitted values for stacking ensemble
       # Have to be taken from the cross validation predictions, otherwise the stacking model is extremely biased
       # validation$kriging$model_fit <- predict(model_kriging, newdata = observation_df[, input_columns], type = "UK")$mean
@@ -344,7 +344,7 @@ fit_models_agora <- function(observation_df, input_columns, metric_name, nobserv
         
         # Store coefficients for the models
         validation$kriging$coeff[, (i+1)] <- c( model_kriging_cv@trend.coef, model_kriging_cv@covariance@range.val )
-        
+
         # Store CV prediction for stacking
         #predict_kriging_cv_stacking <- predict(model_kriging_cv, newdata = test_data_stacking[, knobs_names], type = "UK")$mean
         predict_kriging_cv_full <- predict(model_kriging_cv, newdata = test_data_full[, knobs_names], type = "UK")$mean
@@ -374,7 +374,7 @@ fit_models_agora <- function(observation_df, input_columns, metric_name, nobserv
   validation$polymars$models$full  <- model_polymars
   if(!is.null(validation$kriging))
   {validation$kriging$models$full <- model_kriging}
-  
+
   # Name the columns of each object in the validation list
   validation <- lapply(validation,
                        function(x) lapply(x,
