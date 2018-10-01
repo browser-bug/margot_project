@@ -60,6 +60,7 @@ set( BEHOLODER_HEADERS
   ${MARGOT_HDR_PATH}/beholder/worker_beholder.hpp
   ${MARGOT_HDR_PATH}/beholder/global_view_beholder.hpp
   ${MARGOT_HDR_PATH}/beholder/application_handler_beholder.hpp
+	${MARGOT_HDR_PATH}/beholder/parameters_beholder.hpp
 )
 
 
@@ -90,6 +91,7 @@ set( BEHOLDER_SOURCES
 	${SRC_PATH}/worker_beholder
 	${SRC_PATH}/global_view_beholder
 	${SRC_PATH}/application_handler_beholder
+	${SRC_PATH}/parameters_beholder
 )
 
 # add the collector monitor if enabled

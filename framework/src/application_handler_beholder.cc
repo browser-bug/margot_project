@@ -31,7 +31,7 @@
 using namespace beholder;
 
 RemoteApplicationHandler::RemoteApplicationHandler( const std::string& application_name )
-  : status(ApplicationStatus::CLUELESS), description(application_name)
+  : status(ApplicationStatus::READY), description(application_name)
 {
   agora::info("New beholder application handler created for application: ", application_name);
 
@@ -41,6 +41,20 @@ RemoteApplicationHandler::RemoteApplicationHandler( const std::string& applicati
 
 void RemoteApplicationHandler::new_observation( const std::string& values )
 {
+
+  // lock the mutex to ensure a consistent global state
+  std::unique_lock<std::mutex> guard(mutex);
+
+  // check whether we can analyze the incoming payload or if we need to discard it
+  // according to the handler status: ready/computing
+  if ( status == ApplicationStatus::COMPUTING )
+  {
+    return;
+  }
+
+  // release the lock while parsing the message
+  guard.unlock();
+
   // declare the fields of the incoming message
   std::string client_id;
   std::string timestamp;
@@ -70,7 +84,7 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
   }
 
   // this is a critical section
-  std::unique_lock<std::mutex> guard(mutex);
+  guard.lock();
 
   if (false /*need to enable metrics*/)
   {

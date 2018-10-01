@@ -40,8 +40,9 @@ namespace beholder
   // the beholder will start only when the application applies the model received from agorà
   enum class ApplicationStatus : uint_fast8_t
   {
-    CLUELESS,
+    READY,
     WITH_MODEL,
+    COMPUTING
   };
 
 

@@ -30,6 +30,7 @@
 #include "agora/virtual_io.hpp"
 #include "agora/threadpool.hpp"
 #include "beholder/worker_beholder.hpp"
+#include "beholder/parameters_beholder.hpp"
 
 
 void print_usage( void )
@@ -79,6 +80,12 @@ void print_usage( void )
   std::cout << "                                NOTE: it is recommended to have at least one" << std::endl;
   std::cout << "                                worker for each managed application" << std::endl;
   std::cout << "                                DEFAULT = \"3\"" << std::endl;
+  std::cout << "--------------------------------------------------------------------------------" << std::endl;
+  std::cout << " --window_size <int>            The number of observations that fit in a single window of samples" << std::endl;
+  std::cout << "                                DEFAULT = \"20\"" << std::endl;
+  std::cout << " --bad_clients_threshold <int>  The percentage of clients for every application" << std::endl;
+  std::cout << "                                that is allowed to behave \"badly\" wrt to the model" << std::endl;
+  std::cout << "                                DEFAULT = \"20\"" << std::endl;
 }
 
 
@@ -105,6 +112,9 @@ int main( int argc, char* argv[] )
   std::string min_log_level = "info";
   int number_of_threads = 3;
 
+  beholder::parameters_beholder.window_size = 20;
+  beholder::parameters_beholder.bad_clients_threshold = 20;
+
   // parsing the program options
   static struct option long_options[] =
   {
@@ -123,6 +133,8 @@ int main( int argc, char* argv[] )
     {"qos",                    required_argument, 0,  12   },
     {"min_log_level",          required_argument, 0,  13   },
     {"threads",                required_argument, 0,  14   },
+    {"window_size",            required_argument, 0,  15   },
+    {"bad_clients_threshold",  required_argument, 0,  16   },
     {0,                        0,                 0,  0   }
   };
 
@@ -204,6 +216,28 @@ int main( int argc, char* argv[] )
         if (number_of_threads < 0)
         {
           std::cerr << "Error: invalid number of threads " << number_of_threads << ", it cannot be negative" << std::endl;
+          return EXIT_FAILURE;
+        }
+
+        break;
+
+      case 15:
+        std::istringstream ( optarg ) >> beholder::parameters_beholder.window_size;
+
+        if (beholder::parameters_beholder.window_size < 0)
+        {
+          std::cerr << "Error: invalid observation window size " << beholder::parameters_beholder.window_size << ", it cannot be negative" << std::endl;
+          return EXIT_FAILURE;
+        }
+
+        break;
+
+       case 16:
+        std::istringstream ( optarg ) >> beholder::parameters_beholder.bad_clients_threshold;
+
+        if (beholder::parameters_beholder.bad_clients_threshold < 0)
+        {
+          std::cerr << "Error: invalid percentage threshold for bad clients behavior " << beholder::parameters_beholder.bad_clients_threshold << ", it cannot be negative" << std::endl;
           return EXIT_FAILURE;
         }
 

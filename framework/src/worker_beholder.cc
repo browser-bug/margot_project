@@ -157,7 +157,8 @@ namespace beholder
         return;
       }
 
-      // if we already have an handler for the application, otherwise we discard the message
+      // if we already have an handler for the application then we consider the message, otherwise we discard it
+      // otherwise we risk parsing observation messages for applications which do not have a model yet
       if (!(GlobalView::is_managing(application_name)))
       {
         return;
