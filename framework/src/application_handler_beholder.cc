@@ -39,7 +39,7 @@ RemoteApplicationHandler::RemoteApplicationHandler( const std::string& applicati
   // load the application description, even though we are just interested in the metrics
   description = agora::io::storage.load_description(application_name);
   agora::debug("Number of total metrics: ", description.metrics.size());
-  agora::debug("Window size: ", parameters_beholder.window_size);
+  agora::debug("Window size: ", Parameters_beholder::window_size);
 
 
 }

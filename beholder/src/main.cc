@@ -112,8 +112,7 @@ int main( int argc, char* argv[] )
   std::string min_log_level = "info";
   int number_of_threads = 3;
 
-  beholder::parameters_beholder.window_size = 20;
-  beholder::parameters_beholder.bad_clients_threshold = 20;
+
 
   // parsing the program options
   static struct option long_options[] =
@@ -222,22 +221,22 @@ int main( int argc, char* argv[] )
         break;
 
       case 15:
-        std::istringstream ( optarg ) >> beholder::parameters_beholder.window_size;
+        std::istringstream ( optarg ) >> beholder::Parameters_beholder::window_size;
 
-        if (beholder::parameters_beholder.window_size < 0)
+        if (beholder::Parameters_beholder::window_size < 0)
         {
-          std::cerr << "Error: invalid observation window size " << beholder::parameters_beholder.window_size << ", it cannot be negative" << std::endl;
+          std::cerr << "Error: invalid observation window size " << beholder::Parameters_beholder::window_size << ", it cannot be negative" << std::endl;
           return EXIT_FAILURE;
         }
 
         break;
 
        case 16:
-        std::istringstream ( optarg ) >> beholder::parameters_beholder.bad_clients_threshold;
+        std::istringstream ( optarg ) >> beholder::Parameters_beholder::bad_clients_threshold;
 
-        if (beholder::parameters_beholder.bad_clients_threshold < 0)
+        if (beholder::Parameters_beholder::bad_clients_threshold < 0)
         {
-          std::cerr << "Error: invalid percentage threshold for bad clients behavior " << beholder::parameters_beholder.bad_clients_threshold << ", it cannot be negative" << std::endl;
+          std::cerr << "Error: invalid percentage threshold for bad clients behavior " << beholder::Parameters_beholder::bad_clients_threshold << ", it cannot be negative" << std::endl;
           return EXIT_FAILURE;
         }
 

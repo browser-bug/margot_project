@@ -26,10 +26,10 @@ namespace beholder
 
   struct Parameters_beholder
   {
-      int window_size;
-      int bad_clients_threshold;
+      static int window_size;
+      static int bad_clients_threshold;
   };
-  extern Parameters_beholder parameters_beholder;
+  //extern Parameters_beholder parameters_beholder;
 
 }
 

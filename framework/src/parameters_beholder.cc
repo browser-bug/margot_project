@@ -23,6 +23,7 @@
 namespace beholder
 {
 
-  Parameters_beholder parameters_beholder;
+  int Parameters_beholder::window_size = 20;
+  int Parameters_beholder::bad_clients_threshold = 20;
 
 }
