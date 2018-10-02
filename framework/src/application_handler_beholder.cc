@@ -64,30 +64,88 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
   // declare the fields of the incoming message
   std::string client_id;
   std::string timestamp;
-  std::string configuration;
-  std::string features;
+  //std::string configuration;
+  //std::string features;
   std::string metrics;
   std::string metric_fields;
+  std::string estimates;
 
   // parse the message
   std::stringstream stream(values);
   stream >> timestamp;
+  agora::debug("Timestamp: ", timestamp);
   stream >> client_id;
-  stream >> configuration;
+  agora::debug("client_id: ", client_id);
+  //stream >> configuration;
 
-  if (!description.features.empty()) // parse the features only if we have them
-  {
-    stream >> features;
-  }
+  // if (!description.features.empty()) // parse the features only if we have them
+  // {
+  //   stream >> features;
+  // }
 
+  // gets the name of the fields of the metric to be filled in (if any, if empty fills in all the metrics of the table normally)
+  stream >> metric_fields;
+  agora::debug("metric_fields: ", metric_fields);
+
+  // gets the observed values
   stream >> metrics;
-  stream >> metric_fields; // gets the name of the fields of the metric to be filled in (if any, if empty fills in all the metrics of the table normally)
+  agora::debug("metrics: ", metrics);
+
+  // gets the model values
+  stream >> estimates;
+  agora::debug("estimates: ", estimates );
 
   // append the coma to connect the different the features with the metrics
-  if (!features.empty())
+  // if (!features.empty())
+  // {
+  //   features.append(",");
+  // }
+
+  // build the vector of metric names provided in the observation
+  std::vector<std::string> metric_fields_vec;
+  std::stringstream ssmf(metric_fields);
+
+  while( ssmf.good() )
   {
-    features.append(",");
+    std::string substr;
+    getline( ssmf, substr, ',' );
+    metric_fields_vec.push_back( substr );
   }
+  for (auto i : metric_fields_vec){
+      agora::debug("metric_fields separated: ", i);
+  }
+
+
+
+  // build the vector of observed metrics provided in the observation
+  std::vector<float> metrics_vec;
+  std::stringstream ssm(metrics);
+
+  while( ssm.good() )
+  {
+    std::string substr;
+    getline( ssm, substr, ',' );
+    metrics_vec.push_back( std::stof(substr) );
+  }
+  for (auto i : metrics_vec){
+      agora::debug("metrics separated: ", i);
+  }
+
+  // build the vector of observed metrics provided in the observation
+  std::vector<float> estimates_vec;
+  std::stringstream ssme(estimates);
+
+  while( ssme.good() )
+  {
+    std::string substr;
+    getline( ssme, substr, ',' );
+    estimates_vec.push_back( std::stof(substr) );
+  }
+  for (auto i : estimates_vec){
+      agora::debug("estimates separated: ", i);
+  }
+
+
 
   // this is a critical section
   guard.lock();
