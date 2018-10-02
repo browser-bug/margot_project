@@ -1082,7 +1082,10 @@ namespace margot
         });
 
         // send the message to beholder
-        remote.send_message({{"beholder/" + application_name + "/observation"}, beholder_measures});
+        remote.send_message({{"beholder/" + application_name + "/observation"}, std::to_string(sec_since_now.count()) + ","
+          + std::to_string(ns_since_sec.count()) + " "
+          + remote.get_my_client_id() + " "
+          + beholder_measures});
       }
 
       /**

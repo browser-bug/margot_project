@@ -41,9 +41,7 @@ RemoteApplicationHandler::RemoteApplicationHandler( const std::string& applicati
   agora::debug("Number of total metrics: ", description.metrics.size());
   agora::debug("Window size: ", parameters_beholder.window_size);
 
-  // Setup data structures
-  //Buffer to store the num_observations
-  
+
 }
 
 void RemoteApplicationHandler::new_observation( const std::string& values )
@@ -93,6 +91,14 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
 
   // this is a critical section
   guard.lock();
+
+  // Once the parsing of the new observation has been done, you need to check whether the
+  // client is present in the clients_blacklist. If so, return, otherwise keep going.
+  // Later you need to insert the new residuals in the right buffer(s).
+  // Once you do that, you need to check whether one (or more) buffers is (are) filled in
+  // up to the beholder's window_size parameter.
+  // If the buffer (vector inside map) in not filled in yet than return,
+  // else you start the computation.
 
   if (false /*need to enable metrics*/)
   {
