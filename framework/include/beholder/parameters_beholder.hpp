@@ -29,7 +29,6 @@ namespace beholder
       static int window_size;
       static int bad_clients_threshold;
   };
-  //extern Parameters_beholder parameters_beholder;
 
 }
 
