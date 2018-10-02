@@ -296,6 +296,7 @@ int main( int argc, char* argv[] )
   // subscribe to relevant topics
   agora::io::remote.subscribe("beholder/status");     // to receive the status summary from agorà
   agora::io::remote.subscribe("margot/+/+/+/model");     // to receive the models from agorà
+  agora::io::remote.subscribe("margot/+/+/+/+/model");     // to receive the client-specific model from agorà
   //agora::io::remote.subscribe("margot/+/+/+/observation"); // to receive the observations from the clients
   agora::io::remote.subscribe("beholder/+/+/+/observation"); // to receive the observations from the clients
   agora::io::remote.subscribe("margot/system");            // to receive external commands, like "shutdown"

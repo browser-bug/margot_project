@@ -25,6 +25,7 @@
 #include <limits>
 
 #include "beholder/application_handler_beholder.hpp"
+#include "beholder/parameters_beholder.hpp"
 #include "agora/logger.hpp"
 
 
@@ -37,6 +38,12 @@ RemoteApplicationHandler::RemoteApplicationHandler( const std::string& applicati
 
   // load the application description, even though we are just interested in the metrics
   description = agora::io::storage.load_description(application_name);
+  agora::debug("Number of total metrics: ", description.metrics.size());
+  agora::debug("Window size: ", parameters_beholder.window_size);
+
+  // Setup data structures
+  //Buffer to store the num_observations
+  
 }
 
 void RemoteApplicationHandler::new_observation( const std::string& values )
@@ -55,6 +62,7 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
   // release the lock while parsing the message
   guard.unlock();
 
+  //TODO: rearrange this parsing after having chosen what the beholder really receives from mqtt.
   // declare the fields of the incoming message
   std::string client_id;
   std::string timestamp;
