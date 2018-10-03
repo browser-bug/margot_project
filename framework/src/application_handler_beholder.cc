@@ -76,6 +76,15 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
   agora::debug("Timestamp: ", timestamp);
   stream >> client_id;
   agora::debug("client_id: ", client_id);
+
+  // check whether the client which sent the current observation is in the blacklist.
+  // if that's the case then discard the observation, otherwise keep parameter_string
+  auto search = clients_blacklist.find(client_id);
+  if (search != clients_blacklist.end()){   // if client name fouund in the blacklist than return
+      agora::info("Observation from client ", client_id, " rejected because blacklisted client");
+      return;
+  }
+
   //stream >> configuration;
 
   // if (!description.features.empty()) // parse the features only if we have them
@@ -104,7 +113,6 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
   // build the vector of metric names provided in the observation
   std::vector<std::string> metric_fields_vec;
   std::stringstream ssmf(metric_fields);
-
   while( ssmf.good() )
   {
     std::string substr;
@@ -115,12 +123,9 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
       agora::debug("metric_fields separated: ", i);
   }
 
-
-
   // build the vector of observed metrics provided in the observation
   std::vector<float> metrics_vec;
   std::stringstream ssm(metrics);
-
   while( ssm.good() )
   {
     std::string substr;
@@ -134,7 +139,6 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
   // build the vector of observed metrics provided in the observation
   std::vector<float> estimates_vec;
   std::stringstream ssme(estimates);
-
   while( ssme.good() )
   {
     std::string substr;
@@ -146,15 +150,47 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
   }
 
 
+  // Check if we have consistency in the quantity of measures received,
+  // i.e. if the vector of metric names is as big as the one of the observed metrics and the one of the estimates
+  if ((metric_fields_vec.size() != metrics_vec.size()) || (metrics_vec.size() != estimates_vec.size())){
+      agora::info("Error in the observation received, mismatch in the number of fields.");
+      return;
+  }
 
   // this is a critical section
   guard.lock();
 
-  // Once the parsing of the new observation has been done, you need to check whether the
-  // client is present in the clients_blacklist. If so, return, otherwise keep going.
-  // Later you need to insert the new residuals in the right buffer(s).
-  // Once you do that, you need to check whether one (or more) buffers is (are) filled in
+  // Insert the residuals in the right buffers according to the metric namespace
+  for (auto index = 0; index < metric_fields_vec.size(); index++){
+      auto current_residual = estimates_vec[index] - metrics_vec[index];
+      auto search = residuals_map.find(metric_fields_vec[index]);
+      if (search != residuals_map.end()){
+          agora::debug("metric ", metric_fields_vec[index] , " present already, filling buffer");
+          // metric already present, need to add to the buffer the new residual
+          search->second.emplace_back(current_residual);
+      }
+      else {
+          agora::debug("creation of buffer for metric and first insertion: ", metric_fields_vec[index]);
+          // need to create the mapping for the current metric. It's the first time you meet this metric
+          std::vector<float> temp_vector;
+          temp_vector.emplace_back(current_residual);
+          residuals_map.emplace(metric_fields_vec[index],temp_vector);
+      }
+  }
+
+  // Check whether one (or more) buffers is (are) filled in
   // up to the beholder's window_size parameter.
+  for (auto i : residuals_map){
+      if (i.second.size() == Parameters_beholder::window_size){
+          agora::pedantic("Buffer for metric ", i.first, " filled in, starting CDT on the current window.");
+          // start computation for CDT
+      }
+  }
+
+
+
+
+  // Once you do that, you need to:
   // If the buffer (vector inside map) in not filled in yet than return,
   // else you start the computation.
 

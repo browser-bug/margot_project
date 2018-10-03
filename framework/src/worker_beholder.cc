@@ -186,6 +186,7 @@ namespace beholder
       // otherwise we risk parsing observation messages for applications which do not have a model yet
       if (!(GlobalView::is_managing(application_name)))
       {
+        agora::pedantic("Discarding observation: we don't have a model yet for: ", application_name);
         return;
       }
 
