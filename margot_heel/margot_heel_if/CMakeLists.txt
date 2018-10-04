@@ -188,7 +188,7 @@ configure_file(
 ################################
 #### Install the components
 ################################
-install(TARGETS ${LIB_NAME} DESTINATION lib )
+install(TARGETS ${MARGOT_HEEL_LIB_NAME} DESTINATION lib )
 install(FILES ${C_HEADERS} DESTINATION include )
 install(FILES ${CPP_HEADERS} DESTINATION include )
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/margot_heel.pc" DESTINATION lib/pkgconfig )
