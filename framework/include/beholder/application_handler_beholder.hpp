@@ -35,6 +35,7 @@ namespace beholder
 {
 
   using application_description_t = agora::application_description_t;
+  using application_list_t = agora::application_list_t;
 
   // for the beholder we are just interested in knowing whether the application has the model or not
   // the beholder will start only when the application applies the model received from agorà
@@ -44,6 +45,8 @@ namespace beholder
     WITH_MODEL,
     COMPUTING
   };
+
+
 
 
   class RemoteApplicationHandler
@@ -61,6 +64,9 @@ namespace beholder
       // these are the data structures that actually have information
       // about the application behavior
       application_description_t description;
+
+      // store the list of clients working on the application_name
+      application_list_t clients_list;
 
       //TODO: do I need this?? I can retrieve them from the loaded description I guess.
       std::vector<std::string> metric_names;

@@ -48,6 +48,8 @@ namespace agora
       virtual void create_trace_table( const application_description_t& description ) = 0;
       virtual void insert_trace_entry( const application_description_t& description, const std::string& values ) = 0;
 
+      virtual application_list_t load_clients( const std::string& application_name ) = 0;
+
       virtual void erase( const std::string& application_name ) = 0;
 
       virtual std::string get_type( void ) const = 0;

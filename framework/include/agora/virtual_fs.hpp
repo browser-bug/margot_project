@@ -94,6 +94,11 @@ namespace agora
         fs->insert_trace_entry(description, values);
       }
 
+      inline application_list_t load_clients( const std::string& application_name )
+      {
+        return fs->load_clients(application_name);
+      }
+
       inline std::string get_type( void ) const
       {
         return fs->get_type();

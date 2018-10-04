@@ -1322,6 +1322,69 @@ void CassandraClient::reset_doe( const application_description_t& description)
 }
 
 
+application_list_t CassandraClient::load_clients( const std::string& application_name )
+{
+
+  // this will contain the model
+  application_list_t clients_list;
+
+  // compose the name of the table
+  std::string table_name = application_name;
+  std::replace(table_name.begin(), table_name.end(), default_application_separator, table_application_separator );
+  table_name += "_trace";
+
+  // how the result of the query will be processed
+  const auto result_handler = [&clients_list, &application_name] ( const CassResult * query_result )
+  {
+
+    // loop over the results
+    if (query_result != nullptr)
+    {
+      CassIterator* row_iterator = cass_iterator_from_result(query_result);
+
+      while (cass_iterator_next(row_iterator))
+      {
+        // get the reference from the row
+        const CassRow* row = cass_iterator_get_row(row_iterator);
+
+        // declare the object used to retrieve data from Cassandra
+        const CassValue* field_value;
+        const char* field_value_s;
+        size_t lenght_output_string;
+        CassError rc;
+
+        // get the metric name
+        field_value = cass_row_get_column_by_name(row, "client_id");
+        rc = cass_value_get_string(field_value, &field_value_s, &lenght_output_string);
+
+        if (rc != CASS_OK)
+        {
+          warning("Cassandra client: unable to convert a field to string");
+        }
+
+        const std::string client_name(field_value_s, lenght_output_string);
+
+        // emplace back the new information
+        clients_list.emplace(client_name);
+      }
+
+      // free the iterator through the rows
+      cass_iterator_free(row_iterator);
+
+      // free the result
+      cass_result_free(query_result);
+    }
+  };
+
+  // perform the query
+  const std::string query = "SELECT client_id FROM " + table_name + ";";
+  execute_query_synch(query, result_handler);
+
+
+  return clients_list;
+}
+
+
 void CassandraClient::erase( const std::string& application_name )
 {
   std::string table_name = application_name;

@@ -142,23 +142,24 @@ namespace beholder
       // "margot/+/+/+/+/model", where the last "+" wildcard represents the client name
       // that we need to remove to uniform the two versions of the "/model" message
       std::string application_name;
+
       // we are in the case of the topic with four "+" wildcards, i.e five "/"
       if (std::count(new_message.topic.begin(), new_message.topic.end(), '/') == 5)
       {
-          // create a substring of the topic without the last topic level
-          std::string substring = new_message.topic.substr(0, start_type_pos);
+        // create a substring of the topic without the last topic level
+        std::string substring = new_message.topic.substr(0, start_type_pos);
 
-          //repeat the process to find the position of the "new" last "/"
-          const auto start_type_pos_substring = substring.find_last_of('/');
+        //repeat the process to find the position of the "new" last "/"
+        const auto start_type_pos_substring = substring.find_last_of('/');
 
-          // get the name of the application
-          application_name = new_message.topic.substr(7, start_type_pos_substring - 7);
+        // get the name of the application
+        application_name = new_message.topic.substr(7, start_type_pos_substring - 7);
       }
       // we are in the case of the topic with three "+" wildcards
       else
       {
-          // get the name of the application
-          application_name = new_message.topic.substr(7, start_type_pos - 7);
+        // get the name of the application
+        application_name = new_message.topic.substr(7, start_type_pos - 7);
       }
 
       // get the application handler

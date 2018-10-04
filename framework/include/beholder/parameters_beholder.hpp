@@ -26,8 +26,8 @@ namespace beholder
 
   struct Parameters_beholder
   {
-      static int window_size;
-      static int bad_clients_threshold;
+    static int window_size;
+    static int bad_clients_threshold;
   };
 
 }

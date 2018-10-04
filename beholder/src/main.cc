@@ -231,7 +231,7 @@ int main( int argc, char* argv[] )
 
         break;
 
-       case 16:
+      case 16:
         std::istringstream ( optarg ) >> beholder::Parameters_beholder::bad_clients_threshold;
 
         if (beholder::Parameters_beholder::bad_clients_threshold < 0)
