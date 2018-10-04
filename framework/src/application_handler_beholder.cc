@@ -165,7 +165,7 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
       auto current_residual = estimates_vec[index] - metrics_vec[index];
       auto search = residuals_map.find(metric_fields_vec[index]);
       if (search != residuals_map.end()){
-          agora::debug("metric ", metric_fields_vec[index] , " present already, filling buffer");
+          agora::debug("metric ", metric_fields_vec[index] , " already present, filling buffer");
           // metric already present, need to add to the buffer the new residual
           search->second.emplace_back(current_residual);
       }
@@ -180,10 +180,16 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
 
   // Check whether one (or more) buffers is (are) filled in
   // up to the beholder's window_size parameter.
-  for (auto i : residuals_map){
+  for (auto& i : residuals_map){
+      agora::debug("i.second.size(): ", i.second.size());
       if (i.second.size() == Parameters_beholder::window_size){
           agora::pedantic("Buffer for metric ", i.first, " filled in, starting CDT on the current window.");
+
           // start computation for CDT
+
+          // TODO at the end of the CDT, empty the filled-in buffer.
+          i.second.clear();
+
       }
   }
 
