@@ -211,9 +211,12 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
     }
   }
 
-  // DB QUERY TEST:
+  // DB QUERY TEST: query to retrieve all the distinct clients which are running a specif application
+  // to be performed in case of positive CDT, for the second level hypothesis test.
   clients_list = agora::io::storage.load_clients(description.application_name);
-
+  // for (auto i: clients_list){
+  //   agora::debug("Client list without duplicates: ", i);
+  // }
 
 
   if (false /*need to enable metrics*/)
