@@ -36,6 +36,7 @@ namespace beholder
 
   using application_description_t = agora::application_description_t;
   using application_list_t = agora::application_list_t;
+  using observations_list_t = agora::observations_list_t;
 
   // for the beholder we are just interested in knowing whether the application has the model or not
   // the beholder will start only when the application applies the model received from agorà
@@ -67,6 +68,9 @@ namespace beholder
 
       // store the list of clients working on the application_name
       application_list_t clients_list;
+
+      // to store the observations belonging to a pair application-client_name_t
+      observations_list_t observations_list;
 
       //TODO: do I need this?? I can retrieve them from the loaded description I guess.
       std::vector<std::string> metric_names;

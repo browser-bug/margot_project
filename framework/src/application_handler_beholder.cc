@@ -218,6 +218,19 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
   //   agora::debug("Client list without duplicates: ", i);
   // }
 
+  // DB QUERY TEST: query to retrieve all the observations for a pair application-client_name
+  // for (auto i: clients_list){
+  //     observations_list = agora::io::storage.load_client_observations(description.application_name, i);
+  //
+  //     // Second level hypothesis test on client-specific observations_list
+  //     // Here you basically choose whether each client is bad or not.
+  //     // create a counter system for good, bad clients, so that you can choose, at the end of this cycle
+  //     // if the number of bad clients is above the predefined threshold and act accordingly
+  //     // either blacklisting or trigger re-training or nothing
+  // }
+  observations_list = agora::io::storage.load_client_observations(description.application_name, "alberto_Surface_Pro_2_17585");
+  agora::debug("Printing the observed values for client alberto_Surface_Pro_2_13142: ", observations_list[0]);
+  
 
   if (false /*need to enable metrics*/)
   {

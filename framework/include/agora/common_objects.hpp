@@ -240,10 +240,12 @@ namespace agora
   };
 
 
-  using cliet_name_t = std::string;
-  using application_list_t = std::unordered_set< cliet_name_t >;
-  using application_map_t = std::unordered_map< cliet_name_t, configuration_t >;
+  using client_name_t = std::string;
+  using application_list_t = std::unordered_set< client_name_t >;
+  using application_map_t = std::unordered_map< client_name_t, configuration_t >;
 
+  using observation_t = std::string;
+  using observations_list_t = std::vector<observation_t>;
 
 
 

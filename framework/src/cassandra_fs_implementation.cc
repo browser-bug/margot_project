@@ -1325,7 +1325,7 @@ void CassandraClient::reset_doe( const application_description_t& description)
 application_list_t CassandraClient::load_clients( const std::string& application_name )
 {
 
-  // this will contain the model
+  // this will contain the list of clients running a specific application
   application_list_t clients_list;
 
   // compose the name of the table
@@ -1353,7 +1353,7 @@ application_list_t CassandraClient::load_clients( const std::string& application
         size_t lenght_output_string;
         CassError rc;
 
-        // get the metric name
+        // get the client name
         field_value = cass_row_get_column_by_name(row, "client_id");
         rc = cass_value_get_string(field_value, &field_value_s, &lenght_output_string);
 
@@ -1382,6 +1382,236 @@ application_list_t CassandraClient::load_clients( const std::string& application
 
 
   return clients_list;
+}
+
+
+observations_list_t CassandraClient::load_client_observations( const std::string& application_name, const std::string& client_name )
+{
+
+  // this will contain the list of all the observations in the trace belonging to a specific pair of application-client
+  observations_list_t observations_list;
+
+  // compose the name of the table
+  std::string table_name = application_name;
+  std::replace(table_name.begin(), table_name.end(), default_application_separator, table_application_separator );
+  table_name += "_trace";
+
+  // how the result of the query will be processed
+  const auto result_handler = [&observations_list, &application_name] ( const CassResult * query_result )
+  {
+
+    // loop over the results
+    if (query_result != nullptr)
+    {
+
+      // this array it is used to store all the types of the columns of the query
+      std::vector<CassValueType> column_types;
+
+      // get information on the fields
+      const size_t number_of_columns = cass_result_column_count(query_result);
+
+      for ( size_t i = 0; i < number_of_columns; ++i )
+      {
+        // get the type of the column
+        const auto field_type = cass_result_column_type(query_result, i);
+        column_types.emplace_back(field_type);
+      }
+
+      // STEP 2: Get the actual content of table
+      CassIterator* row_iterator = cass_iterator_from_result(query_result);
+
+      // cycle over all the rows of the result
+      while (cass_iterator_next(row_iterator))
+      {
+
+        // string to store the current row, with the fields separated by comma
+        observation_t current_observation;
+
+        // get the reference from the row
+        const CassRow* row = cass_iterator_get_row(row_iterator);
+
+        // iterate over the columns
+        CassIterator* column_iterator = cass_iterator_from_row(row);
+        auto type_iterator = column_types.cbegin();
+
+        bool got_time = false;
+        bool got_date = false;
+        int i = 0;
+        while (cass_iterator_next(column_iterator))
+        {
+            debug("Column: ", i);
+          // retrieve the field value
+          const CassValue* field_value = cass_iterator_get_column(column_iterator);
+          cass_uint32_t year_month_day;
+          cass_int64_t time_of_day;
+
+
+          // store it as a string
+          switch (*type_iterator)
+          {
+            case CASS_VALUE_TYPE_INT:
+            {
+              int32_t out_value32;
+              CassError rc = cass_value_get_int32(field_value, &out_value32);
+
+              if (rc == CASS_OK)
+              {
+                current_observation.append(std::to_string(out_value32) + ",");
+                debug("Entered int");
+              }
+              else
+              {
+                int64_t out_value64;
+                CassError rc = cass_value_get_int64(field_value, &out_value64);
+
+                if (rc == CASS_OK)
+                {
+                  current_observation.append(std::to_string(out_value64) + ",");
+                  debug("Entered int");
+                }
+                else
+                {
+                  warning("Cassandra client: i have a huge int, can't handle it :(");
+                  current_observation.append("N/A,");
+                }
+              }
+            }
+            break;
+
+            case CASS_VALUE_TYPE_FLOAT:
+            {
+              float out_value_f;
+              CassError rc = cass_value_get_float(field_value, &out_value_f);
+
+              if (rc == CASS_OK)
+              {
+                current_observation.append(std::to_string(out_value_f) + ",");
+                debug("Entered float");
+              }
+              else
+              {
+                warning("Handling float NULL value due to observed value for the respective metric not provided by client");
+                current_observation.append("N/A,");
+              }
+            }
+            break;
+
+            case CASS_VALUE_TYPE_DOUBLE:
+            {
+              double out_value_d;
+              CassError rc = cass_value_get_double(field_value, &out_value_d);
+
+              if (rc == CASS_OK)
+              {
+                current_observation.append(std::to_string(out_value_d) + ",");
+                debug("Entered double");
+              }
+              else
+              {
+                warning("Handling double NULL value due to observed value for the respective metric not provided by client");
+                current_observation.append("N/A,");
+              }
+            }
+            break;
+
+        case CASS_VALUE_TYPE_DATE:
+            {
+
+              CassError rc = cass_value_get_uint32(field_value, &year_month_day);
+
+              if (rc == CASS_OK)
+              {
+                //current_observation.append(std::to_string(out_value_date) + ",");
+                debug("Entered date");
+                got_date = true;
+              }
+              else
+              {
+                warning("Error in date handling");
+                current_observation.append("N/A,");
+              }
+            }
+            break;
+
+        case CASS_VALUE_TYPE_TIME:
+            {
+              CassError rc = cass_value_get_int64(field_value, &time_of_day);
+
+              if (rc == CASS_OK)
+              {
+                //current_observation.append(std::to_string(time_of_day) + ",");
+                debug("Entered time");
+                got_time = true;
+              }
+              else
+              {
+                warning("Error in time handling");
+                current_observation.append("N/A,");
+              }
+            }
+            break;
+
+            default:
+                // declare the object used to retrieve data from Cassandra
+                const char* field_value_s;
+                size_t lenght_output_string;
+                CassError rc;
+                rc = cass_value_get_string(field_value, &field_value_s, &lenght_output_string);
+
+                if (rc != CASS_OK)
+                {
+                  warning("Cassandra client: unable to convert a field to string");
+                }
+                debug("Entered string");
+                const std::string current_string_field(field_value_s, lenght_output_string);
+                current_observation.append(current_string_field + ",");
+          }
+
+          if ((got_time==true) && (got_date==true)){
+              time_t time = (time_t)cass_date_time_to_epoch(year_month_day, time_of_day);
+              debug("Date and time: ", asctime(localtime(&time)));
+              //current_observation.append(asctime(localtime(&time)) + ",");
+              got_time = got_date = false;
+          } else if (got_time==true){
+              debug("NO date");
+          } else if (got_date==true){
+              debug("NO time");
+          } else {
+              debug("NO date and time");
+          }
+
+
+          // increment the type counter
+          ++type_iterator;
+          i++;
+
+        }
+
+        // pop the last coma from the string
+        current_observation.pop_back();
+
+
+        // emplace back the new information
+        observations_list.emplace_back(current_observation);
+
+        // free the column iterator
+        cass_iterator_free(column_iterator);
+      }
+
+      // free the iterator through the rows
+      cass_iterator_free(row_iterator);
+
+      // free the result
+      cass_result_free(query_result);
+    }
+  };
+
+  // perform the query
+  const std::string query = "SELECT * FROM " + table_name + " WHERE client_id = '" + client_name + "' ALLOW FILTERING;";
+  execute_query_synch(query, result_handler);
+
+
+  return observations_list;
 }
 
 
