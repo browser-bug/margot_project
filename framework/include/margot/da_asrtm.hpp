@@ -786,7 +786,7 @@ namespace margot
         assert(active_manager != managers.end() && "Error: attempt to get the expected value from a non-existent Asrtm");
 
         // method forward
-        return active_manager->second.template get_mean<segment, field, T>();
+        return active_manager->second.template get_mean<segment, field, Y>();
       }
 
 
