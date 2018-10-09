@@ -997,12 +997,15 @@ void CassandraClient::insert_trace_entry( const application_description_t& descr
   std::istringstream( values.substr(0, pos_first_coma) ) >> secs_since_epoch;
   std::istringstream( values.substr(pos_first_coma + 1, pos_second_coma - pos_first_coma) ) >> nanosecs_since_secs;
 
-  // now we have to convert them in the funny casssandra format
+  // now we have to convert them in the funny cassandra format
   cass_uint32_t year_month_day = cass_date_from_epoch(secs_since_epoch);
+  //debug("Insertion query year_month_day: ", year_month_day);
   cass_uint64_t time_of_day = cass_time_from_epoch(secs_since_epoch);
+
 
   // now we add to the time of a day the missing information
   time_of_day += nanosecs_since_secs;
+  //debug("Insertion query time_of_day: ", time_of_day);
 
   // now we have to compose again the values string
   std::string&& actual_data = std::to_string(year_month_day) + "," + std::to_string(time_of_day) + values.substr(pos_second_coma, values_lenght);
@@ -1437,9 +1440,10 @@ observations_list_t CassandraClient::load_client_observations( const std::string
         bool got_time = false;
         bool got_date = false;
         int i = 0;
+
         while (cass_iterator_next(column_iterator))
         {
-            debug("Column: ", i);
+          debug("Column: ", i);
           // retrieve the field value
           const CassValue* field_value = cass_iterator_get_column(column_iterator);
           cass_uint32_t year_month_day;
@@ -1514,7 +1518,7 @@ observations_list_t CassandraClient::load_client_observations( const std::string
             }
             break;
 
-        case CASS_VALUE_TYPE_DATE:
+            case CASS_VALUE_TYPE_DATE:
             {
 
               CassError rc = cass_value_get_uint32(field_value, &year_month_day);
@@ -1533,7 +1537,7 @@ observations_list_t CassandraClient::load_client_observations( const std::string
             }
             break;
 
-        case CASS_VALUE_TYPE_TIME:
+            case CASS_VALUE_TYPE_TIME:
             {
               CassError rc = cass_value_get_int64(field_value, &time_of_day);
 
@@ -1552,32 +1556,42 @@ observations_list_t CassandraClient::load_client_observations( const std::string
             break;
 
             default:
-                // declare the object used to retrieve data from Cassandra
-                const char* field_value_s;
-                size_t lenght_output_string;
-                CassError rc;
-                rc = cass_value_get_string(field_value, &field_value_s, &lenght_output_string);
+              // declare the object used to retrieve data from Cassandra
+              const char* field_value_s;
+              size_t lenght_output_string;
+              CassError rc;
+              rc = cass_value_get_string(field_value, &field_value_s, &lenght_output_string);
 
-                if (rc != CASS_OK)
-                {
-                  warning("Cassandra client: unable to convert a field to string");
-                }
-                debug("Entered string");
-                const std::string current_string_field(field_value_s, lenght_output_string);
-                current_observation.append(current_string_field + ",");
+              if (rc != CASS_OK)
+              {
+                warning("Cassandra client: unable to convert a field to string");
+              }
+
+              debug("Entered string");
+              const std::string current_string_field(field_value_s, lenght_output_string);
+              current_observation.append(current_string_field + ",");
           }
 
-          if ((got_time==true) && (got_date==true)){
-              time_t time = (time_t)cass_date_time_to_epoch(year_month_day, time_of_day);
-              debug("Date and time: ", asctime(localtime(&time)));
-              //current_observation.append(asctime(localtime(&time)) + ",");
-              got_time = got_date = false;
-          } else if (got_time==true){
-              debug("NO date");
-          } else if (got_date==true){
-              debug("NO time");
-          } else {
-              debug("NO date and time");
+          if ((got_time == true) && (got_date == true))
+          {
+            time_t time = (time_t)cass_date_time_to_epoch(year_month_day, time_of_day);
+            debug("Date and time: ", asctime(localtime(&time)));
+            current_observation.append(asctime(localtime(&time)));
+            current_observation.append(",");
+            current_observation.append(std::to_string(year_month_day) + "," + std::to_string(time_of_day) + ",");
+            got_time = got_date = false;
+          }
+          else if (got_time == true)
+          {
+            debug("NO date");
+          }
+          else if (got_date == true)
+          {
+            debug("NO time");
+          }
+          else
+          {
+            debug("NO date and time");
           }
 
 

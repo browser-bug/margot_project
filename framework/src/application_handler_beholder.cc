@@ -228,9 +228,9 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
   //     // if the number of bad clients is above the predefined threshold and act accordingly
   //     // either blacklisting or trigger re-training or nothing
   // }
-  observations_list = agora::io::storage.load_client_observations(description.application_name, "alberto_Surface_Pro_2_17585");
+  observations_list = agora::io::storage.load_client_observations(description.application_name, "alberto_Surface_Pro_2_9914");
   agora::debug("Printing the observed values for client alberto_Surface_Pro_2_13142: ", observations_list[0]);
-  
+
 
   if (false /*need to enable metrics*/)
   {
