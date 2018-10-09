@@ -999,13 +999,11 @@ void CassandraClient::insert_trace_entry( const application_description_t& descr
 
   // now we have to convert them in the funny cassandra format
   cass_uint32_t year_month_day = cass_date_from_epoch(secs_since_epoch);
-  //debug("Insertion query year_month_day: ", year_month_day);
   cass_uint64_t time_of_day = cass_time_from_epoch(secs_since_epoch);
 
 
   // now we add to the time of a day the missing information
   time_of_day += nanosecs_since_secs;
-  //debug("Insertion query time_of_day: ", time_of_day);
 
   // now we have to compose again the values string
   std::string&& actual_data = std::to_string(year_month_day) + "," + std::to_string(time_of_day) + values.substr(pos_second_coma, values_lenght);

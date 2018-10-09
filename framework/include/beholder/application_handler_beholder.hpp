@@ -66,21 +66,6 @@ namespace beholder
       // about the application behavior
       application_description_t description;
 
-      // store the list of clients working on the application_name
-      application_list_t clients_list;
-
-      // to store the observations belonging to a pair application-client_name_t
-      observations_list_t observations_list;
-
-      //TODO: do I need this?? I can retrieve them from the loaded description I guess.
-      std::vector<std::string> metric_names;
-
-      // data structure to store the residuals from the observations received,
-      // i.e. the difference between the predicted value by the model and the actual value.
-      // This structure maps every metric (name) to its buffer of residuals.
-      // The buffer will be as big as the beholder parameter "window_size" instructs.
-      std::unordered_map<std::string, std::vector<float>> residuals_map;
-
       // clients blacklist, implemented as an unordered set since we do not need any sorting
       std::unordered_set<std::string> clients_blacklist;
 
