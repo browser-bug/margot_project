@@ -1458,7 +1458,7 @@ observations_list_t CassandraClient::load_client_observations( const std::string
 
               if (rc == CASS_OK)
               {
-                current_observation.append(std::to_string(out_value32) + ",");
+                current_observation.append(std::to_string(out_value32) + " ");
                 debug("Entered int");
               }
               else
@@ -1468,13 +1468,13 @@ observations_list_t CassandraClient::load_client_observations( const std::string
 
                 if (rc == CASS_OK)
                 {
-                  current_observation.append(std::to_string(out_value64) + ",");
+                  current_observation.append(std::to_string(out_value64) + " ");
                   debug("Entered int");
                 }
                 else
                 {
                   warning("Cassandra client: i have a huge int, can't handle it :(");
-                  current_observation.append("N/A,");
+                  current_observation.append("N/A ");
                 }
               }
             }
@@ -1487,13 +1487,13 @@ observations_list_t CassandraClient::load_client_observations( const std::string
 
               if (rc == CASS_OK)
               {
-                current_observation.append(std::to_string(out_value_f) + ",");
+                current_observation.append(std::to_string(out_value_f) + " ");
                 debug("Entered float");
               }
               else
               {
                 warning("Handling float NULL value due to observed value for the respective metric not provided by client");
-                current_observation.append("N/A,");
+                current_observation.append("N/A ");
               }
             }
             break;
@@ -1505,13 +1505,13 @@ observations_list_t CassandraClient::load_client_observations( const std::string
 
               if (rc == CASS_OK)
               {
-                current_observation.append(std::to_string(out_value_d) + ",");
+                current_observation.append(std::to_string(out_value_d) + " ");
                 debug("Entered double");
               }
               else
               {
                 warning("Handling double NULL value due to observed value for the respective metric not provided by client");
-                current_observation.append("N/A,");
+                current_observation.append("N/A ");
               }
             }
             break;
@@ -1530,7 +1530,7 @@ observations_list_t CassandraClient::load_client_observations( const std::string
               else
               {
                 warning("Error in date handling");
-                current_observation.append("N/A,");
+                current_observation.append("N/A ");
               }
             }
             break;
@@ -1548,7 +1548,7 @@ observations_list_t CassandraClient::load_client_observations( const std::string
               else
               {
                 warning("Error in time handling");
-                current_observation.append("N/A,");
+                current_observation.append("N/A ");
               }
             }
             break;
@@ -1567,16 +1567,16 @@ observations_list_t CassandraClient::load_client_observations( const std::string
 
               debug("Entered string");
               const std::string current_string_field(field_value_s, lenght_output_string);
-              current_observation.append(current_string_field + ",");
+              current_observation.append(current_string_field + " ");
           }
 
           if ((got_time == true) && (got_date == true))
           {
             time_t time = (time_t)cass_date_time_to_epoch(year_month_day, time_of_day);
             debug("Date and time: ", asctime(localtime(&time)));
-            current_observation.append(asctime(localtime(&time)));
-            current_observation.append(",");
-            current_observation.append(std::to_string(year_month_day) + "," + std::to_string(time_of_day) + ",");
+            //current_observation.append(asctime(localtime(&time)));
+            //current_observation.append(",");
+            current_observation.append(std::to_string(year_month_day) + " " + std::to_string(time_of_day) + " ");
             got_time = got_date = false;
           }
           else if (got_time == true)

@@ -273,22 +273,57 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
 
     // TODO: parse the string. Taking into account the number of enabled metrics in the current observation.
     // we need to know which metric(s) we have to retrieve and compare with the model estimation
-    std::string client_id;
-    std::string timestamp;
-    std::string configuration;
-    std::string features;
-    std::string metrics;
-    std::string metric_fields;
-    std::string estimates;
+    std::string obs_client_id;
+    std::vector <std::string> obs_timestamp;
+    std::vector <std::string> obs_configuration;
+    std::vector <std::string> obs_features;
+    std::vector <std::string> obs_metrics;
+    std::vector <std::string> obs_metric_fields;
+    std::vector <std::string> obs_estimates;
 
     std::vector<std::string> metric_fields_vec;
-    std::stringstream ssmf(metric_fields);
+    std::stringstream str_observation(observations_list[0]);
 
-    while ( ssmf.good() )
+    std::string current_date;
+    str_observation >> current_date;
+    std::string current_time;
+    str_observation >> current_time;
+    obs_timestamp.emplace_back(current_date);
+    obs_timestamp.emplace_back(current_time);
+    agora::debug("Date parsed: ", obs_timestamp[0]);
+    agora::debug("Time parsed: ", obs_timestamp[1]);
+
+    str_observation >> obs_client_id;
+    agora::debug("Client_id parsed: ", obs_client_id);
+
+    int num_knobs = description.knobs.size();
+    while ( num_knobs > 0 )
     {
-      std::string substr;
-      getline( ssmf, substr, ',' );
-      metric_fields_vec.push_back( substr );
+      std::string current_knob;
+      str_observation >> current_knob;
+      obs_configuration.emplace_back(current_knob);
+      agora::debug("Knob parsed: ", current_knob);
+      num_knobs--;
+    }
+
+    int num_features = description.features.size();
+    while ( num_features > 0 )
+    {
+      std::string current_feature;
+      str_observation >> current_feature;
+      obs_features.emplace_back(current_feature);
+      agora::debug("Feature parsed: ", current_feature);
+      num_features--;
+    }
+
+    int num_metrics = description.metrics.size();
+    while ( num_features > 0 )
+    {
+      std::string current_feature;
+      str_observation >> current_feature;
+      obs_features.emplace_back(current_feature);
+      agora::debug("Feature parsed: ", current_feature);
+      num_features--;
     }
 
 
