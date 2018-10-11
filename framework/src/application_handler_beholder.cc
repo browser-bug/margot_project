@@ -297,6 +297,7 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
     agora::debug("Client_id parsed: ", obs_client_id);
 
     int num_knobs = description.knobs.size();
+
     while ( num_knobs > 0 )
     {
       std::string current_knob;
@@ -307,6 +308,7 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
     }
 
     int num_features = description.features.size();
+
     while ( num_features > 0 )
     {
       std::string current_feature;
@@ -317,13 +319,14 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
     }
 
     int num_metrics = description.metrics.size();
-    while ( num_features > 0 )
+
+    while ( num_metrics > 0 )
     {
-      std::string current_feature;
-      str_observation >> current_feature;
-      obs_features.emplace_back(current_feature);
-      agora::debug("Feature parsed: ", current_feature);
-      num_features--;
+      std::string current_metric;
+      str_observation >> current_metric;
+      obs_features.emplace_back(current_metric);
+      agora::debug("Metrics parsed: ", current_metric);
+      num_metrics--;
     }
 
 
