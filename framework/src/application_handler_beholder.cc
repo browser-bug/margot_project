@@ -235,86 +235,92 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
   // store the list of bad clients for the current observation (not yet blacklisted)
   application_list_t bad_clients_list;
 
-  if (true /* status == ApplicationStatus::COMPUTING */){
-      // DB QUERY TEST: query to retrieve all the distinct clients which are running a specif application
-      // to be performed in case of positive CDT, for the second level hypothesis test.
-      clients_list = agora::io::storage.load_clients(description.application_name);
-      // for (auto i: clients_list){
-      //   agora::debug("Client list without duplicates: ", i);
-      // }
+  if (true /* status == ApplicationStatus::COMPUTING */)
+  {
+    // DB QUERY TEST: query to retrieve all the distinct clients which are running a specif application
+    // to be performed in case of positive CDT, for the second level hypothesis test.
+    clients_list = agora::io::storage.load_clients(description.application_name);
+    // for (auto i: clients_list){
+    //   agora::debug("Client list without duplicates: ", i);
+    // }
 
-      // DB QUERY TEST: query to retrieve all the observations for a pair application-client_name
-      // for (auto i: clients_list){
-      //     observations_list = agora::io::storage.load_client_observations(description.application_name, i);
-      //
-      //     // Second level hypothesis test on client-specific observations_list
-      //     // Here you basically choose whether each client is bad or not.
-      //     // create a counter system for good, bad clients, so that you can choose, at the end of this cycle
-      //     // if the number of bad clients is above the predefined threshold and act accordingly
-      //     // either blacklisting or trigger re-training or nothing
-      // }
+    // DB QUERY TEST: query to retrieve all the observations for a pair application-client_name
+    // for (auto i: clients_list){
+    //     observations_list = agora::io::storage.load_client_observations(description.application_name, i);
+    //
+    //     // Second level hypothesis test on client-specific observations_list
+    //     // Here you basically choose whether each client is bad or not.
+    //     // create a counter system for good, bad clients, so that you can choose, at the end of this cycle
+    //     // if the number of bad clients is above the predefined threshold and act accordingly
+    //     // either blacklisting or trigger re-training or nothing
+    // }
 
-      // TODO: this is a test with just one row. Later on wrap this (the following) in a for loop to scan every row.
-      // so instead of observations_list[0] there should be observations_list[i]
-      std::unordered_map<std::string, std::vector<float>> client_residuals_map;
-      observations_list = agora::io::storage.load_client_observations(description.application_name, "alberto_Surface_Pro_2_9914");
-      agora::debug("Printing the observed values for client alberto_Surface_Pro_2_13142: ", observations_list[0]);
+    // TODO: this is a test with just one row. Later on wrap this (the following) in a for loop to scan every row.
+    // so instead of observations_list[0] there should be observations_list[i]
+    std::unordered_map<std::string, std::vector<float>> client_residuals_map;
+    observations_list = agora::io::storage.load_client_observations(description.application_name, "alberto_Surface_Pro_2_9914");
+    agora::debug("Printing the observed values for client alberto_Surface_Pro_2_13142: ", observations_list[0]);
 
-      // NB: here I could choose to avoid iterating over some possibly already blacklisted
-      // clients. Of course in this case I should check whether the element iterator already
-      // belongs in the blacklist like this:
-      // if (clients_blacklist.count(i) == 1) {
-      //     continue;  // this sould continue the iterator "i"
-      // }
-      // But pay attention, then I need to change the way I compute the bad clients percentage
-      // below, in particular I need to add the already blacklisted clients, then it becomes:
-      // float bad_clients_percentage = (((bad_clients_list.size() + clients_blacklist.size()) / clients_list.size())*100);
+    // NB: here I could choose to avoid iterating over some possibly already blacklisted
+    // clients. Of course in this case I should check whether the element iterator already
+    // belongs in the blacklist like this:
+    // if (clients_blacklist.count(i) == 1) {
+    //     continue;  // this sould continue the iterator "i"
+    // }
+    // But pay attention, then I need to change the way I compute the bad clients percentage
+    // below, in particular I need to add the already blacklisted clients, then it becomes:
+    // float bad_clients_percentage = (((bad_clients_list.size() + clients_blacklist.size()) / clients_list.size())*100);
 
-      // TODO: parse the string. Taking into account the number of enabled metrics in the current observation.
-      // we need to know which metric(s) we have to retrieve and compare with the model estimation
-      std::string client_id;
-      std::string timestamp;
-      std::string configuration;
-      std::string features;
-      std::string metrics;
-      std::string metric_fields;
-      std::string estimates;
+    // TODO: parse the string. Taking into account the number of enabled metrics in the current observation.
+    // we need to know which metric(s) we have to retrieve and compare with the model estimation
+    std::string client_id;
+    std::string timestamp;
+    std::string configuration;
+    std::string features;
+    std::string metrics;
+    std::string metric_fields;
+    std::string estimates;
 
-      std::vector<std::string> metric_fields_vec;
-      std::stringstream ssmf(metric_fields);
+    std::vector<std::string> metric_fields_vec;
+    std::stringstream ssmf(metric_fields);
 
-      while ( ssmf.good() )
-      {
-        std::string substr;
-        getline( ssmf, substr, ',' );
-        metric_fields_vec.push_back( substr );
-      }
+    while ( ssmf.good() )
+    {
+      std::string substr;
+      getline( ssmf, substr, ',' );
+      metric_fields_vec.push_back( substr );
+    }
 
 
-      // TODO: retrieve the model estimation for the current observation
+    // TODO: retrieve the model estimation for the current observation
 
-      // TODO: compare the observed metrics with the respective estimations
-      // and insert in the client residual map.
+    // TODO: compare the observed metrics with the respective estimations
+    // and insert in the client residual map.
 
-      // according to the quality (GOOD/BAD) of the currently analyzed client, enqueue it in the good/bad_clients_list
-      if (false /* client is bad */){
-          // bad_clients_list.emplace(/*client_name*/);
-      } else {
-          // good_clients_list.emplace(/*client_name*/);
-      }
+    // according to the quality (GOOD/BAD) of the currently analyzed client, enqueue it in the good/bad_clients_list
+    if (false /* client is bad */)
+    {
+      // bad_clients_list.emplace(/*client_name*/);
+    }
+    else
+    {
+      // good_clients_list.emplace(/*client_name*/);
+    }
 
-      // compute the percentage of bad clients and compare it wrt the predefined threshold
-      float bad_clients_percentage = ((bad_clients_list.size() / clients_list.size())*100);
-      if (bad_clients_percentage > Parameters_beholder::bad_clients_threshold){
-          // TODO: trigger retraining and put status back to READY
-          // send_agora_command("retraining");
-          // TODO: actions post retraining
-          // reset blacklist?
-          // reset observation buffers?
-          // ApplicationStatus to READY?
-      }
+    // compute the percentage of bad clients and compare it wrt the predefined threshold
+    float bad_clients_percentage = ((bad_clients_list.size() / clients_list.size()) * 100);
 
-      // TODO: manage the unlock/lock of this DB access phase
+    if (bad_clients_percentage > Parameters_beholder::bad_clients_threshold)
+    {
+      // TODO: trigger retraining and put status back to READY
+      // send_agora_command("retraining");
+      // TODO: actions post retraining
+      // reset blacklist?
+      // reset observation buffers?
+      // ApplicationStatus to READY?
+    }
+
+    // TODO: manage the unlock/lock of this DB access phase
   }
 
 
