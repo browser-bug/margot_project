@@ -278,7 +278,6 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
     std::vector <std::string> obs_configuration;
     std::vector <std::string> obs_features;
     std::vector <std::string> obs_metrics;
-    std::vector <std::string> obs_metric_fields;
     std::vector <std::string> obs_estimates;
 
     std::vector<std::string> metric_fields_vec;
