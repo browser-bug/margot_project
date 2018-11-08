@@ -1,20 +1,24 @@
+# LOAD LIBRARIES ----------------------------------------------------------
+
 suppressMessages(suppressPackageStartupMessages(library("mda")))
 suppressMessages(suppressPackageStartupMessages(library("polspline")))
-suppressMessages(suppressPackageStartupMessages(library("dplyr")))
-suppressMessages(suppressPackageStartupMessages(library("magrittr")))
+suppressMessages(suppressPackageStartupMessages(library("tidyverse")))
 suppressMessages(suppressPackageStartupMessages(library("quadprog")))
+suppressMessages(suppressPackageStartupMessages(library("DiceKriging")))
+
+# SET OPTIONS -------------------------------------------------------------
 
 options(scipen = 100)
-map_to_input = TRUE
+holdout_set_size <- 1/5
+nfolds <- 10
+minimal_R2 <- 0.5
 
-######################## GET THE ARGUMENTS ############################
+# GET THE ARGUMENTS -------------------------------------------------------
 
 args = commandArgs(trailingOnly = TRUE)
-if (length(args) < 10)
-{
+if (length(args) < 10) {
   stop("Error: Number of input parameters is less than 10 (Please input the storage_type, storage_address, application_name, metric_name and root_path)", call. = FALSE)
-} else if (length(args) == 10)
-{
+} else if (length(args) == 10) {
   storage_type <- args[1]
   storage_address <- args[2]
   application_name <- args[3]
@@ -25,8 +29,7 @@ if (length(args) < 10)
   doe_eps <- as.numeric(args[8])
   doe_obs_per_dim <- as.numeric(args[9])
   doe_obs_per_point <- as.numeric(args[10])
-} else
-{
+} else {
   storage_type <- args[1]
   storage_address <- args[2]
   application_name <- args[3]
@@ -37,115 +40,90 @@ if (length(args) < 10)
   doe_eps <- as.numeric(args[8])
   doe_obs_per_dim <- as.numeric(args[9])
   doe_obs_per_point <- as.numeric(args[10])
-  print(paste("Warning: the following program option are ignored:", args[11:nrow(args)], collapse = ", "))
+  writeLines(paste("Warning: the following program option are ignored:", args[11:nrow(args)], collapse = ", "))
 }
 
-print(paste("Started plugin", metric_name))
-
-######################## SET WORKSPACE PATH AND VARIABLES #######################
+# SET WORKSPACE PATH AND VARIABLES ----------------------------------------
 
 setwd(root_path)
-source("create_discrete_doe.R")
 source("get_knobs_config_list.R")
-source("fit_models_agora_cor.R")
+source("models_functions.R")
 
-########################### LOAD DATA #######################################
+# LOAD DATA ---------------------------------------------------------------
+
+writeLines(paste("Started plugin", metric_name))
 
 application_name <- gsub("/", "_", application_name)
 
-if (storage_type == "CASSANDRA")
-{
+if (storage_type == "CASSANDRA") {
   suppressMessages(suppressPackageStartupMessages(library("RJDBC")))  # connect to database using JDBC codecs
-  
+  # SET TABLE NAMES
   knobs_container_name <- paste("margot.", application_name, "_knobs", sep = "")
   features_container_name <- paste("margot.", application_name, "_features", sep = "")
   observation_container_name <- paste("margot.", application_name, "_trace", sep = "")
   model_container_name <- paste("margot.", application_name, "_model", sep = "")
   doe_container_name <- paste("margot.", application_name, "_doe", sep = "")
-  
+  # LOAD DRIVER AND ACCESS DATABASE
   driver <- JDBC("com.github.adejanovski.cassandra.jdbc.CassandraDriver", "cassandra-jdbc-wrapper-3.1.0.jar", identifier.quote = "'")
   full_address_string <- paste("jdbc:cassandra://", storage_address, ":9042", sep = "")
   conn <- dbConnect(driver, full_address_string)
-  
-  # READ CONFIGURATION FROM CASSANDRA
+  # GET KNOBS AND FEATURES NAMES
   knobs_names <- dbGetQuery(conn, paste("SELECT name FROM ", knobs_container_name, sep = ""))
   features_names <- dbGetQuery(conn, paste("SELECT name FROM ", features_container_name, sep = ""))
-  
-  nknobs <- dim(knobs_names)[1]
-  if (nknobs == 0)
-  {
+  # GET NUMBER OF KNOBS AND FEATURES
+  nknobs <- length(knobs_names)
+  if (nknobs == 0) {
     stop("Error: no knobs found. Please specify the knobs.")
   }
-  if (dim(features_names)[1] == 0)
-  {
+  if (length(features_names) == 0) {
     features_names <- NULL
   }
-} else if (storage_type == "CSV")
-{
+} else if (storage_type == "CSV") {
+  # SET FILE PATHS
   knobs_container_name <- paste(storage_address, "/", application_name, "_knobs.csv", sep = "")
   features_container_name <- paste(storage_address, "/", application_name, "_features.csv", sep = "")
   observation_container_name <- paste(storage_address, "/", application_name, "_trace.csv", sep = "")
   model_container_name <- paste(storage_address, "/", application_name, "_model.csv", sep = "")
   doe_container_name <- paste(storage_address, "/", application_name, "_doe.csv", sep = "")
-  
-  knobs_names <- read.csv(knobs_container_name, stringsAsFactors = FALSE)$name
-  features_names <- read.csv(features_container_name, stringsAsFactors = FALSE)$name
-  
+  # GET KNOBS AND FEATURES NAMES
+  knobs_names <- read_csv(knobs_container_name) %>% pull(name)
+  features_names <- read_csv(features_container_name) %>% pull(name)
+  # GET NUMBER OF KNOBS AND FEATURES
   nknobs <- length(knobs_names)
-  if (nknobs == 0)
-  { stop("Error: no knobs found. Please specify the knobs.") }
-  if (length(features_names) == 0)
-  { features_names <- NULL }
-  
+  if (nknobs == 0) {
+    stop("Error: no knobs found. Please specify the knobs.")
+  }
+  if (length(features_names) == 0) {
+    features_names <- NULL
+  }
+  # SET DB CONNECTION TO NULL
   conn <- NULL
-} else
-{
-  stop(paste("Error: uknown $STORAGE_TYPE ", storage_type, ". Please, select $STORAGE_TYPE=CASSANDRA.", sep = ""), call. = FALSE)
+} else {
+  stop(paste("Error: uknown $STORAGE_TYPE ", storage_type, ". Please, select $STORAGE_TYPE, CASANDRA or CSV", sep = ""), call. = FALSE)
 }
 
-################################# PREPARE DOE OPTIONS #################################
+# PREPARE DOE OPTIONS -----------------------------------------------------
 
-cat("Number of KNOBS: ", nknobs, "\nNumber of FEATURES: ", dim(features_names)[1])
-
+writeLines(str_c("Number of KNOBS: ", nknobs, "\nNumber of FEATURES: ", dim(features_names)[1], if(is.null(features_names)){"0"}))
 # MAKE NAMES LOWERCASE
-knobs_names <- sapply(knobs_names, tolower)
-
+knobs_names <- str_to_lower(knobs_names)
 # GET COLUMN NAMES OF DSE AND INPUT
 dse_columns <- c(knobs_names, features_names, metric_name)
 input_columns <- c(knobs_names, features_names)
-# Check if there are any results already
-
-# LOAD OBSERVATION DATA FRAME
-if (storage_type == "CASSANDRA")
-{
+# CHECK IF THERE ARE ANY RESULTS IN OBSERVATION CONTAINER LOAD OBSERVATION DATA FRAME
+if (storage_type == "CASSANDRA") {
   observation_df <- dbGetQuery(conn, paste("SELECT ", paste(dse_columns, collapse = ","), " FROM ", observation_container_name, sep = ""))
-} else if (storage_type == "CSV")
-{
-  observation_df <- read.csv(observation_container_name, stringsAsFactors = FALSE)
-  observation_df %<>% select(dse_columns)
+} else if (storage_type == "CSV") {
+  observation_df <- read_csv(observation_container_name)
+  observation_df <- observation_df %>% select(dse_columns)
 }
 
-# GET BOOLEAN VECTOR OF ROWS WITHOUT NA VALUES
-ind_complete <- complete.cases(observation_df)
-
-# DISCARD ROWS WITH NA VALUES
-if (any(!ind_complete))
-{
-  warning("Some observations are incomplete and are discarded for the model learning.")
-  print("I discarded following observations: ")
-  print(observation_df[!ind_complete, ])
-  observation_df <- observation_df[ind_complete, ]
-}
+# CREATE DESIGN SPACE GRID ------------------------------------------------
 
 # BEWARE does not account for the features !!!!!!  GET GRID CONFIGURATION
 knobs_config_list <- get_knobs_config_list(storage_type, knobs_container_name, conn)
-if (map_to_input == FALSE)
-{
-  knobs_config_list <- lapply(knobs_config_list, function(x) seq(min(x), max(x), by = 0.1))
-}
 # CREATE KNOB TRANSFORM LIST
-knob_transform <- sapply(knobs_config_list, function(knob_config)
-{
+knob_transform <- sapply(knobs_config_list, function(knob_config) {
   knob_adjusted_max <- max(knob_config) - min(knob_config)
   knob_min <- min(knob_config)
   return(c(knob_min, knob_adjusted_max))
@@ -155,329 +133,142 @@ knob_transform <- sapply(knobs_config_list, function(knob_config)
 design_space_grid <- expand.grid(knobs_config_list)
 colnames(design_space_grid) <- knobs_names
 
-if (map_to_input == TRUE)
+# DISCARD 'BAD' OBSERVATIONS ----------------------------------------------
+
+# GET BOOLEAN VECTOR OF ROWS WITHOUT NA VALUES
+ind_complete <- complete.cases(observation_df)
+# DISCARD ROWS WITH NA VALUES
+if (any(!ind_complete)) {
+  warning("Some observations are incomplete and are discarded for the model learning.")
+  writeLines("I discarded following observations: ")
+  print(observation_df %>% filter(!ind_complete))
+  observation_df <- observation_df %>% filter(ind_complete)
+}
+nobserved_orig <- nrow(observation_df)
+# DISCARD OBSERVATION OUTSIDE THE DESIGN SPACE GRID
+observation_df <- inner_join(observation_df, design_space_grid, by = input_columns)
+nobserved <- nrow(observation_df)
+if (nobserved_orig > nobserved) {
+  warning("There were some observation outside of the design grid and were discarded.")
+}
+rm(ind_complete, nobserved_orig)
+
+# GET MAE NORMALIZATION VALUES --------------------------------------------
+
+error_normalization_value <- abs(diff(range(observation_df %>% pull(metric_name))))
+if (error_normalization_value == 0)
 {
-  nobserved_orig <- dim(observation_df)[1]
-  # DISCARD OBSERVATION OUTSIDE THE DESIGN SPACE GRID
-  observation_df <- inner_join(observation_df, design_space_grid, by = input_columns)
-  if (nobserved_orig > dim(observation_df)[1])
-  {
-    warning("There were some observation out of the design grid and were discarded.")
-  }
-} else
-{
-  for (i in length(knobs_config_list))
-  {
-    observation_df <- observation_df[observation_df[, i] > min(knobs_config_list[[i]]) & observation_df[, i] < max(knobs_config_list[[i]]), ]
-  }
+  stop("Error: All the values of the response variables are constant. There might be a bug in Your model.")
 }
 
-observation_df <- unique(observation_df)
-nobserved <- dim(observation_df)[1]
+# CREATE UNIQUE CONFIGURATION DATA FRAME ----------------------------------
+
+configuration_df <- unique(observation_df %>% select(input_columns))
+nconfiguration <- nrow(configuration_df)
 
 # STOP IF THERE ARE NO OBSERVATIONS
-if (nobserved == 0)
-{
-  stop("No DOE results found!")
+if (nconfiguration == 0) {
+  stop("Error: No DOE results found!")
 }
 
-print(paste("Number of observations in the TRACE table: ", nobserved))
+writeLines(str_c("Number of observations in the TRACE table: ", nobserved))
+writeLines(str_c("Number of configurations in the TRACE table: ", nconfiguration))
 
-##################################### FIT MODELS ######################################################
-print("I fit models now.")
+writeLines("I fit models now.")
 
-# Permute observation_df should prevent same observation being in the test fold for cross validation
-observation_df <- observation_df[sample(1:nobserved, nobserved), ]
+# FIT MODELS AND CHOSE THE BEST ONE ---------------------------------------
 
-validation <- fit_models_agora(observation_df, input_columns, metric_name, nobserved)
+if (nconfiguration <= nfolds) {
+  nfolds <- nconfiguration
+  models_df <- model_list(length(input_columns))
+  models_df <- models_df %>% mutate(fitted_models = map(.x = models, .f = fit_selected_model, observation_df, input_columns, metric_name))
+  cv_df <- cross_validation(models_df$models, nfolds, observation_df, configuration_df, input_columns, metric_name)
+  # THERE IS NO R2, BECAUSE OUTPUT WOULD BE A SINGULAR VALUE MOST OF THE TIME
+  # AND THERE IS NO WAY TO COMPUTE CORRELATION BETWEEN SINGULAR VALUES
+  models_df <- models_df %>% mutate(MAE = map_dbl(models, extract_measure_cv, "MAE", cv_df)) %>%
+    mutate(MAE = MAE / error_normalization_value)
+  chosen_model <- models_df %>% slice(which.min(MAE)) %>% pull(models)
+} else {
+  holdout_set_size  <- min((nconfiguration - nfolds)/nconfiguration, holdout_set_size)
+  holdout_nfolds <- floor(1/holdout_set_size)
+  holdout_folds <- cut(seq(1, nrow(configuration_df)), breaks = holdout_nfolds, labels = FALSE)
+  configuration_df <- configuration_df[sample(nrow(configuration_df)), ]
+  
+  holdout_results_df <- tibble(fold = seq(1, holdout_nfolds))
+  holdout_results_df <- holdout_results_df %>%
+    mutate(res = map(fold,
+                     holdout_validation,
+                     configuration_df,
+                     holdout_folds,
+                     observation_df,
+                     metric_name,
+                     input_columns,
+                     nfolds,
+                     error_normalization_value))
+  holdout_results_df <- holdout_results_df %>% unnest(res) %>% group_by(models) %>% summarize(R2 = mean(R2, na.rm = TRUE), MAE = mean(MAE, na.rm = TRUE))
 
-#################################### SET R2 AND MAE ###################################################
-model_selection_features <- c("R2", "MAE")
-normalization_obs_df <- abs(diff(range(observation_df[, metric_name])))
-if (normalization_obs_df == 0)
-{
-  stop("All the values of the response variables are constant. There might be a bug in Your model.")
+  # MODEL SELECTION AND LEARNING
+  chosen_model <- holdout_results_df %>% filter(R2 > minimal_R2) %>% slice(which.min(MAE)) %>% select(models)
 }
 
-if ("R2" %in% model_selection_features)
-{
-  CV_R2 <- sapply(validation, function(model)
-  {
-    mean(model$R2[2:length(model$R2)], na.rm = TRUE)
-  })
-  
-  CV_R2[is.na(CV_R2)] <- Inf
-  
-  # CV_R2_avg <- sapply(validation,
-  #                 function(model)
-  #                 {mean(model$R2_avg[2:length(model$R2_avg)], na.rm = TRUE)}
-  # )
-  # 
-  # CV_R2_avg[is.na(CV_R2_avg)] <- Inf
+
+# CHECK THE CHOSEN MODEL AND MAKE FITS IF NECESSARY -----------------------
+
+if(dim(chosen_model)[1] == 0){
+  print("No model was good enough, asking for more configurations to explore.")
+  quit(save = "no")
 }
 
-if ("MAE" %in% model_selection_features)
-{
-  CV_MAE <- sapply(validation, function(model)
-  {
-    mean(model$MAE[2:length(model$MAE)])
-  })
-  CV_MAE <- CV_MAE/normalization_obs_df
-}
-
-############################### BAGGING ###################################
-
-bagged_fit <- sapply(validation, function(type)
-{
-  # Go over all the model fits, model + cross-validation models and take their fit means
-  temp_fit <- sapply(type$models, function(temp_model)
-  {
-    model_type <- class(temp_model)[1]
-    switch(model_type, lm = {
-      Y_hat <- predict(temp_model, observation_df[, input_columns])
-    }, mars = {
-      Y_hat <- predict(temp_model, observation_df[, input_columns])
-    }, polymars = {
-      Y_hat <- predict(temp_model, observation_df[, input_columns])
-    }, km = {
-      Y_hat <- predict(temp_model, newdata = observation_df[, input_columns], type = "UK")$mean
-    })
-    return(Y_hat)
-  })
-  return(rowMeans(temp_fit))
-})
-bagged_R2 <- c(cor(observation_df[, metric_name], bagged_fit)^2)
-bagged_MAE <- colMeans(apply(bagged_fit, 2, function(x)
-{
-  abs(x - matrix(observation_df[, metric_name], ncol = 1))
-}))
-bagged_MAE <- bagged_MAE/normalization_obs_df
-
-# Append bagged to the colnames, for the clear distinction between CV and bagged R2 and MAE
-names(bagged_R2) <- paste(names(CV_R2), "_bagged", sep = "")
-names(bagged_MAE) <- paste(names(bagged_MAE), "_bagged", sep = "")
-
-############################### STACKING ###################################
-
-stacking_data <- sapply(validation, function(type)
-{
-  type$stacking_data
-})
-stacking_columns <- colSums(is.na(stacking_data)) == 0
-stacking_data %<>% subset(select = stacking_columns)
-stack_col <- dim(stacking_data)[2]
-tryCatch({
-  # Prepare data for quadratic optimization stacking_data <- unique(stacking_data)
-  d_temp <- observation_df
-  Rinv <- solve(chol(t(stacking_data) %*% stacking_data))
-  C <- cbind(rep(1, stack_col), diag(stack_col))
-  b <- c(1, rep(0, stack_col))
-  d <- t(d_temp[, metric_name]) %*% stacking_data
-  # Do quadratic optimization and extract solution (weights for each model)
-  stacking_weights <- solve.QP(Dmat = Rinv, factorized = TRUE, dvec = d, Amat = C, bvec = b, meq = 1)$solution
-}, error = function(e) print(e))
-if (!exists("stacking_weights"))
-{
-  stacking_weights <- rep(1/stack_col, stack_col)
-}
-
-print(stacking_weights)
-model_fit_data <- sapply(validation[stacking_columns], function(type)
-{
-  type$model_fit
-})
-
-stacked_fit <- model_fit_data %*% stacking_weights
-
-stacked_R2 <- c(cor(observation_df[, metric_name], stacked_fit)^2)
-stacked_MAE <- colMeans(apply(stacked_fit, 2, function(x)
-{
-  abs(x - matrix(observation_df[, metric_name], ncol = 1))
-}))
-stacked_MAE <- stacked_MAE/normalization_obs_df
-
-# Name the R2 and MAE
-names(stacked_R2) <- "stacked_model"
-names(stacked_MAE) <- "stacked_model"
-
-############## COMBINE BASE, BAGGING, AND STACKING R2 AND MAE ################
-
-# Append R2 and MAE for CV, bagged models and stacked model
-complete_R2 <- c(CV_R2, bagged_R2, stacked_R2)
-complete_MAE <- c(CV_MAE, bagged_MAE, stacked_MAE)
-# Remove kriging bagged
-complete_R2 <- complete_R2[names(complete_R2) != "kriging_bagged"]
-complete_MAE <- complete_MAE[names(complete_MAE) != "kriging_bagged"]
-
-# Check which models have acceptable R2 and MAE
-complete_R2_ind <- complete_R2 > 0
-complete_MAE_ind <- complete_MAE < 0.2
-
-model_selection <- rep(TRUE, length(complete_R2_ind))
-for (selection_feature in model_selection_features) switch(selection_feature, R2 = {
-  model_selection <- model_selection & complete_R2_ind
-}, MAE = {
-  model_selection <- model_selection & complete_MAE_ind
-})
-
-chosen_model <- which.min(complete_MAE[model_selection])
-
-# Write the MAE and R2 to file models.log 
-# Check the iteration of the run 
-# Check if the models.log exists if not set iteration to 1, if yes read the file and set the iteration to the max iter + 1
-
-if (file.exists("models.log"))
-{
-  old_models <- read.table(file = "models.log", header = TRUE, sep = ",", dec = ".")
-  if (iteration == 1)
-  {
-    run <- max(old_models$run) + 1
-  } else
-  {
-    run <- max(old_models$run)
-  }
-} else
-{
-  run <- 1
-  write("R2, MAE, model, iteration, run", file = "models.log")
-}
-
-models_info <- as.data.frame(t(rbind(complete_R2, complete_MAE, names(complete_R2))))
-models_info$iteration <- iteration
-models_info$run <- run
-colnames(models_info) <- c("R2", "MAE", "model", "iteration", "run")
-write.table(models_info, file = "models.log", col.names = FALSE, row.names = FALSE, sep = ",", dec = ".", append = TRUE)
-
-# If necessary increase the model space -------------------------------------------------------------------------------------------------------
-if (length(chosen_model) == 0)
-{
-  stop("No model was chosen. DOE will be explored again.")
-}
-
-# Write the model results for the grid created by the values set in the knobs definition ------------------------------------------------------
-
-# Make predictions and write results ----------------------------------------------------------------------------------------------------------
-print("I will make predictions now.")
-
-Y_final <- list()
-
-switch(names(chosen_model), linear = {
-  Y_hat <- predict(validation$linear$models$full, design_space_grid, se.fit = TRUE, interval = "confidence")
-  
-  Y_final$mean <- Y_hat$fit[, 1]
-  Y_final$sd <- Y_hat$se.fit
-}, linear2 = {
-  Y_hat <- predict(validation$linear2$models$full, design_space_grid, se.fit = TRUE, interval = "confidence")
-  
-  Y_final$mean <- Y_hat$fit[, 1]
-  Y_final$sd <- Y_hat$se.fit
-}, mars = {
-  Y_hat <- predict(validation$mars$models$full, design_space_grid)
-  
-  Y_final$mean <- Y_hat
-  Y_final$sd <- -1
-}, polymars = {
-  Y_hat <- predict(validation$polymars$models$full, design_space_grid)
-  
-  Y_final$mean <- Y_hat
-  Y_final$sd <- -1
-}, kriging = {
-  Y_hat <- predict(validation$kriging$models$full, newdata = design_space_grid, type = "UK")
-  
-  Y_final$mean <- Y_hat$mean
-  Y_final$sd <- Y_hat$sd
-}, linear_bagged = {
-  chosen_model2 <- gsub("_bagged", "", names(chosen_model))
-  Y_hat <- sapply(validation[[chosen_model2]]$models, function(temp_model)
-  {
-    Y_hat <- predict(temp_model, design_space_grid)
-    return(Y_hat)
-  })
-  
-  Y_final$mean <- rowMeans(Y_hat)
-  Y_final$sd <- -1
-}, linear2_bagged = {
-  chosen_model2 <- gsub("_bagged", "", names(chosen_model))
-  Y_hat <- sapply(validation[[chosen_model2]]$models, function(temp_model)
-  {
-    Y_hat <- predict(temp_model, design_space_grid)
-    return(Y_hat)
-  })
-  
-  Y_final$mean <- rowMeans(Y_hat)
-  Y_final$sd <- -1
-}, mars_bagged = {
-  chosen_model2 <- gsub("_bagged", "", names(chosen_model))
-  Y_hat <- sapply(validation[[chosen_model2]]$models, function(temp_model)
-  {
-    Y_hat <- predict(temp_model, design_space_grid)
-    return(Y_hat)
-  })
-  
-  Y_final$mean <- rowMeans(Y_hat)
-  Y_final$sd <- -1
-}, polymars_bagged = {
-  chosen_model2 <- gsub("_bagged", "", names(chosen_model))
-  Y_hat <- sapply(validation[[chosen_model2]]$models, function(temp_model)
-  {
-    Y_hat <- predict(temp_model, design_space_grid)
-    return(Y_hat)
-  })
-  
-  Y_final$mean <- rowMeans(Y_hat)
-  Y_final$sd <- -1
-}, kriging_bagged = {
-  chosen_model2 <- gsub("_bagged", "", names(chosen_model))
-  Y_hat <- sapply(validation[[chosen_model2]]$models, function(temp_model)
-  {
-    Y_hat <- predict(temp_model, design_space_grid, type = "UK")$mean
-    return(Y_hat)
-  })
-  
-  Y_final$mean <- rowMeans(Y_hat)
-  Y_final$sd <- -1
-}, stacked_model = {
-  stacked_fit2 <- sapply(validation[stacking_columns], function(type)
-  {
-    # Go over all the model fits, model + cross-validation models and take their fit means
+if(!exists("models_df")){
+  if(grepl("bagging", chosen_model)){
+    nfolds <- 10
+    models_df <- model_list(length(input_columns))
+    models_df <- models_df %>% mutate(fitted_models = map(.x = models, .f = fit_selected_model, observation_df, input_columns, metric_name))
+    cv_df <- cross_validation(models_df$models, nfolds, observation_df, configuration_df, input_columns, metric_name)
+  } else if(chosen_model == "stacking"){
+    nfolds <- 10
+    models_df <- model_list(length(input_columns))
+    models_df <- models_df %>% mutate(fitted_models = map(.x = models, .f = fit_selected_model, observation_df, input_columns, metric_name))
+    cv_df <- cross_validation(models_df$models, nfolds, observation_df, configuration_df, input_columns, metric_name)
     
-    model_type <- class(type$models$full)[1]
-    switch(model_type, lm = {
-      Y_hat <- predict(type$models$full, design_space_grid)
-    }, mars = {
-      Y_hat <- predict(type$models$full, design_space_grid)
-    }, polymars = {
-      Y_hat <- predict(type$models$full, design_space_grid)
-    }, km = {
-      Y_hat <- predict(type$models$full, newdata = design_space_grid, type = "UK")$mean
-    })
-    return(Y_hat)
-  })
-  Y_final$mean <- stacked_fit2 %*% stacking_weights
-  Y_final$sd <- -1
-})
+    stacking_df <- create_stacking_df(cv_df, configuration_df, observation_df, input_columns)
+    d_temp <- stacking_df %>% pull(metric_name)
+    stacking_df <- stacking_df %>% select(-metric_name) %>% as.matrix()
+    stacking_weights <- compute_stacking_weights(stacking_df, d_temp)
+    rm(d_temp, stacking_df)
+  } else{
+    models_df <- chosen_model %>% mutate(fitted_models = map(.x = models, .f = fit_selected_model, observation_df, input_columns, metric_name))
+  }
+}
 
-print("I will write results now")
+# COMPUTE PREDICTIONS FOR DESIGN SPACE GRID -------------------------------
 
-# Write results of the model, for the whole grid
-if (storage_type == "CASSANDRA")
-{
+if(grepl("bagging", chosen_model)){
+  sub_cv_df <- create_sub_cv_df(chosen_model, cv_df)
+  Y_final <- predict_selected_model(chosen_model, NA, sub_cv_df, design_space_grid)
+} else if(chosen_model == "stacking"){
+  Y_final <- predict_selected_model(chosen_model, NA, NA, design_space_grid, models_df, stacking_weights)
+} else{
+  chosen_model_fit <- models_df %>% filter(models == chosen_model) %>% pull(fitted_models)
+  chosen_model_fit <- chosen_model_fit[[1]]
+  Y_final <- predict_selected_model(chosen_model, chosen_model_fit, NA, design_space_grid)
+}
+
+# WRITE RESULTS -----------------------------------------------------------
+
+if (storage_type == "CASSANDRA"){
   for (row.ind in 1:nrow(design_space_grid))
   {
-    set_columns <- paste(c(knobs_names, paste(metric_name, "_avg", sep = ""), paste(metric_name, "_std", sep = "")), sep = "", collapse = ", ")
-    set_values <- paste(cbind(design_space_grid, Y_final$mean, Y_final$sd)[row.ind, ], sep = "", collapse = ", ")
-    # set_statement <- paste(doe_names, ' = ', doe_design[row.ind, ], sep = '', collapse = ', ')
-    dbSendUpdate(conn, paste("INSERT INTO ", model_container_name, "(", set_columns, ") VALUES (", set_values, ")", sep = ""))
+    set_columns <- str_c(c(knobs_names, str_c(metric_name, "_avg"), str_c(metric_name, "_std")), collapse = ", ")
+    set_values <- str_c(cbind(design_space_grid, Y_final$fit, Y_final$sd)[row.ind, ], collapse = ", ")
+    dbSendUpdate(conn, str_c("INSERT INTO ", model_container_name, "(", set_columns, ") VALUES (", set_values, ")"))
   }
-} else if (storage_type == "CSV")
-{
-  model <- read.csv(model_container_name)
-  # design_space_grid_res <- cbind(design_space_grid, Y_final$mean, Y_final$sd)
-  # names(design_space_grid_res) <- c(knobs_names, paste(metric_name, "_avg", sep = ""), paste(metric_name, "_std", sep = ""))
-  model[, paste(metric_name, "_avg", sep = "")] <- Y_final$mean
-  model[, paste(metric_name, "_std", sep = "")] <- Y_final$sd
-  
-  write.table(model, file = model_container_name, col.names = TRUE, row.names = FALSE, sep = ",", dec = ".")  
+} else if (storage_type == "CSV"){
+  model_csv <- read_csv(model_container_name)
+  model_csv[, str_c(metric_name, "_avg")] <- Y_final$fit
+  model_csv[, str_c(metric_name, "_std")] <- Y_final$sd
+  write.table(model_csv, file = model_container_name, col.names = TRUE, row.names = FALSE, sep = ",", dec = ".")  
 }
+
 print(paste("Quiting [HTH] plugin", metric_name))
 q(save = "no")
