@@ -1,6 +1,6 @@
 # Package Information for pkg-config
 
-prefix=@CMAKE_INSTALL_PREFIX@
+prefix=@CMAKE_INSTALL_PREFIX_ESCAPED@
 exec_prefix=${prefix}
 libdir=${prefix}/lib
 includedir=${prefix}/include

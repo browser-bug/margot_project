@@ -155,8 +155,16 @@ target_link_libraries( ${MARGOT_HEEL_LIB_NAME} ${MARGOT_LIBRARIES} )
 # forward the dependencies from margot
 set( MARGOT_DEPS_HEADERS ${MARGOT_INCLUDES} )
 set( MARGOT_DEPS_LIBS ${MARGOT_LIBRARIES} )
-string (REPLACE ";" " " MARGOT_DEPS_LIBS_STR "${MARGOT_DEPS_LIBS}")
-string (REPLACE ";" " -I" MARGOT_DEPS_HEADERS_STR "${MARGOT_DEPS_HEADERS}")
+string (REPLACE " " "\\ " MARGOT_DEPS_HEADERS_ESCAPED "${MARGOT_DEPS_HEADERS}")
+string (REPLACE " " "\\ " MARGOT_DEPS_LIBS_ESCAPED "${MARGOT_DEPS_LIBS}")
+
+
+# take care of the space in the path of the framework
+string (REPLACE ";" " " MARGOT_DEPS_LIBS_STR "${MARGOT_DEPS_HEADERS_ESCAPED}")
+string (REPLACE ";" " -I" MARGOT_DEPS_HEADERS_STR "${MARGOT_DEPS_LIBS_ESCAPED}")
+string (REPLACE " " "\\ " PROJECT_SOURCE_DIR_ESCAPED "${PROJECT_SOURCE_DIR}")
+string (REPLACE " " "\\ " PROJECT_BINARY_DIR_ESCAPED "${PROJECT_BINARY_DIR}")
+string (REPLACE " " "\\ " CMAKE_INSTALL_PREFIX_ESCAPED "${CMAKE_INSTALL_PREFIX}")
 
 
 
@@ -188,7 +196,7 @@ configure_file(
 ################################
 #### Install the components
 ################################
-install(TARGETS ${LIB_NAME} DESTINATION lib )
+install(TARGETS ${MARGOT_HEEL_LIB_NAME} DESTINATION lib )
 install(FILES ${C_HEADERS} DESTINATION include )
 install(FILES ${CPP_HEADERS} DESTINATION include )
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/margot_heel.pc" DESTINATION lib/pkgconfig )
