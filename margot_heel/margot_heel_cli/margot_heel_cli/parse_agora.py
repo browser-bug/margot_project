@@ -203,4 +203,13 @@ def parse_agora( agora_xml_element, namespace = ''):
     agora_model.metrics_predictors[metric_name] = metric_predictor
     agora_model.metrics_monitors[metric_name] = metric_monitor
 
+  # get all the constraints for the doe
+  constraints_xml_elements = get_elements(agora_xml_element, 'doe', namespace = namespace )
+
+  # parse each constraint
+  for constraints_xml_element in constraints_xml_elements:
+
+      # parse the actual constraint
+      agora_model.constraints.append(get_parameter(constraints_xml_element, 'constraint'))
+
   return agora_model

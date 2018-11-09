@@ -760,6 +760,7 @@ def generate_margot_cc( block_models, op_lists, output_folder ):
           description_terms.append('n_point_d {0}'.format(block_model.agora_model.number_point_per_dimension))
           description_terms.append('n_obs_p   {0}'.format(block_model.agora_model.number_observations_per_point))
           description_terms.append('min_dist  {0}'.format(block_model.agora_model.min_distance))
+          description_terms.append('limits    {0}'.format(';'.join(block_model.agora_model.constraints)))
           description_string = '@'.join(description_terms)
 
           # generate the argument of the initialization

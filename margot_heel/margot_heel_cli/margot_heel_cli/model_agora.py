@@ -24,6 +24,7 @@ class AgoraModel:
     self.number_point_per_dimension = 10
     self.number_observations_per_point = 5
     self.min_distance = 0.2
+    self.constraints = []
 
 
   def __str__(self):
@@ -44,6 +45,7 @@ class AgoraModel:
     dump_string = '{0}\n    N obs. x point:       {1}'.format(dump_string, self.number_observations_per_point)
     dump_string = '{0}\n    Minimum distance:     {1}'.format(dump_string, self.min_distance)
     dump_string = '{0}\n    Exploring:            {1}'.format(dump_string, self.knobs_values)
+    dump_string = '{0}\n    Constraints:          {1}'.format(dump_string, self.constraints)
     dump_string = '{0}\n    Predicting:           {1}'.format(dump_string, self.metrics_predictors)
     dump_string = '{0}\n    Given:                {1}'.format(dump_string, self.features_values)
 
