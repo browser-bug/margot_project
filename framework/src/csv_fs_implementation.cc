@@ -235,6 +235,7 @@ namespace agora
       out << "number_observations_per_point," << description.number_observations_per_point << std::endl;
       out << "doe_name," << description.doe_name << std::endl;
       out << "minimum_distance," << description.minimum_distance << std::endl;
+      out << "doe_limits," << description.doe_limits << std::endl;
     }
     else
     {
@@ -315,7 +316,7 @@ namespace agora
     // open the table of the doe info
     csv_parser_t doe_info_parser(get_doe_info_name(application_name), true);
 
-    // loop over the lines of the knobs
+    // loop over the lines of the doe information
     while (doe_info_parser.next())
     {
       // read the property
@@ -347,7 +348,14 @@ namespace agora
             }
             else
             {
-              warning("Csv manager: unknown doe property \"" + property_name + "\" with value \"" + property_value + "\"");
+              if (property_name.compare("doe_limits") == 0)
+              {
+                description.doe_limits = property_value;
+              }
+              else
+              {
+                warning("Csv manager: unknown doe property \"" + property_name + "\" with value \"" + property_value + "\"");
+              }
             }
           }
         }

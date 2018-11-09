@@ -1023,6 +1023,8 @@ void CassandraClient::store_description( const application_description_t& descri
                       description.doe_name + "');");
   execute_query_synch("INSERT INTO " + table_name + " (property_name,value) VALUES ('minimum_distance','" +
                       description.minimum_distance + "');");
+  execute_query_synch("INSERT INTO " + table_name + " (property_name,value) VALUES ('doe_limits','" +
+                      description.doe_limits + "');");
 
   // store information about the knobs,features and metrics
   store_metrics(description.application_name, description.metrics);
@@ -1105,7 +1107,14 @@ application_description_t CassandraClient::load_description( const std::string& 
               }
               else
               {
-                warning("Cassandra client: unknown doe property \"" + property_name + "\" with value \"" + property_value + "\"");
+                if (property_name.compare("doe_limits") == 0 )
+                {
+                  description.doe_limits = property_value;
+                }
+                else
+                {
+                  warning("Cassandra client: unknown doe property \"" + property_name + "\" with value \"" + property_value + "\"");
+                }
               }
             }
           }

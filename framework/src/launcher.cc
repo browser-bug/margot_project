@@ -127,6 +127,7 @@ namespace agora
       config_file << "NUMBER_OBSERVATIONS_PER_POINT=\"" << application.number_observations_per_point << "\"" << std::endl;
       config_file << "DOE_NAME=\"" << application.doe_name << "\"" << std::endl;
       config_file << "MINIMUM_DISTANCE=\"" << application.minimum_distance << "\"" << std::endl;
+      config_file << "DOE_LIMITS=\"" << application.doe_limits << "\"" << std::endl;
       config_file.close();
     }
 

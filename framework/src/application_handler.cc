@@ -253,6 +253,13 @@ void RemoteApplicationHandler::process_info( const std::string& info_message )
                 {
                   description.minimum_distance = info_element.substr(header_size);
                 }
+                else
+                {
+                  if (line_topic.compare("limits    ") == 0)
+                  {
+                    description.doe_limits = info_element.substr(header_size);
+                  }
+                }
               }
             }
           }

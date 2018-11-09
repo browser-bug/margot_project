@@ -40,7 +40,7 @@ namespace agora
       incoming_string.payload = "";
     }
 
-    if (incoming_string.payload.find_first_not_of("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ01234567890_ -.,@") != std::string::npos)
+    if (incoming_string.payload.find_first_not_of("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ01234567890_ -.,@<>=;") != std::string::npos)
     {
       warning("Input sanitizer: found a non valid character in the payload message, i will discard it");
       incoming_string.topic = "margot/error";

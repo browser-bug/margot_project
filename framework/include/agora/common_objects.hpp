@@ -162,6 +162,7 @@ namespace agora
       knobs.clear();
       features.clear();
       metrics.clear();
+      doe_limits.clear();
     }
 
     std::string application_name;
@@ -169,6 +170,7 @@ namespace agora
     std::string number_observations_per_point;
     std::string doe_name;
     std::string minimum_distance;
+    std::string doe_limits;
     application_knobs_t knobs;
     application_features_t features;
     application_metrics_t metrics;
