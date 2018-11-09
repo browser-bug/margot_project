@@ -1,8 +1,10 @@
-library("dplyr")
+library("tidyverse")
+library("rlang")
 library("magrittr")
 
 options(scipen = 100)
 map_to_input = TRUE
+limits <- NA
 
 ######################## GET THE ARGUMENTS ############################
 args = commandArgs(trailingOnly = TRUE)
@@ -107,6 +109,12 @@ if (storage_type == "CASSANDRA")
 }
 
 ################################# PREPARE DOE OPTIONS #################################
+configurations <- readLines(con = "agora_config.env")
+if(any(grepl("DOE_LIMITS", configurations))){
+  limits <- configurations[grepl("DOE_LIMITS", configurations)]
+  limits <- strsplit(limits, '"')[[1]][2]
+  limits <- strsplit(limits, ";")[[1]]
+}
 
 # MAKE NAMES LOWERCASE
 knobs_names <- sapply(knobs_names, tolower)
@@ -119,7 +127,34 @@ doe_options <- list(nobs = nknobs * doe_obs_per_dim, eps = doe_eps)
 
 ############################ CREATE DOE ############################
 doe_design <- create_doe(knobs_config_list, doe_options, map_to_input, algorithm = algorithm)
+names(doe_design) <- knobs_names
 doe_names <- c(knobs_names, "counter")
+
+if(!any(is.na(limits))){
+  discarded_designs <- doe_design
+  for(limit_iter in limits){
+    discarded_designs <- discarded_designs %>% filter(!!parse_quo(limit_iter, env = environment()))
+  }
+  doe_design <- doe_design %>% setdiff(discarded_designs)
+  while(nrow(doe_design) < nknobs * doe_obs_per_dim){
+    new_design <- create_doe(knobs_config_list, doe_options, map_to_input, algorithm = algorithm)
+    names(new_design) <- knobs_names
+    new_discarded_designs <- doe_design
+    for(limit_iter in limits){
+      new_discarded_designs <- new_discarded_designs %>% filter(!!parse_quo(limit_iter, env = environment()))
+    }
+    new_design <- new_design %>% setdiff(new_discarded_designs)
+    doe_design <- full_join(doe_design, new_design)
+    discarded_designs <- full_join(discarded_designs, new_discarded_designs)
+    # BREAK IF ALL THE POSSIBLE COMBINATIONS WERE EXPLORED
+    if(nrow(doe_design) + nrow(discarded_designs) == prod((map_dbl(knobs_config_list, function(x)length(x)))))break
+  }
+}
+
+# AT THE MOMENT THERE MAY BE MORE THAN nkonbs * doe_obs_per_dimension CONFIGURATION IN DOE AFTER FULL JOIN
+
+
+
 
 # ADD COUNTER COLUMN
 if (is.null(doe_design))
