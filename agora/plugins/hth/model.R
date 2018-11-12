@@ -5,6 +5,7 @@ suppressMessages(suppressPackageStartupMessages(library("polspline")))
 suppressMessages(suppressPackageStartupMessages(library("tidyverse")))
 suppressMessages(suppressPackageStartupMessages(library("quadprog")))
 suppressMessages(suppressPackageStartupMessages(library("DiceKriging")))
+suppressMessages(suppressPackageStartupMessages(library("rlang")))
 
 # SET OPTIONS -------------------------------------------------------------
 
@@ -132,6 +133,19 @@ knob_transform <- sapply(knobs_config_list, function(knob_config) {
 # CREATE DESIGN SPACE GRID
 design_space_grid <- expand.grid(knobs_config_list)
 colnames(design_space_grid) <- knobs_names
+configurations <- readLines(con = "agora_config.env")
+
+if(any(grepl("DOE_LIMITS", configurations))){
+  limits <- configurations[grepl("DOE_LIMITS", configurations)]
+  limits <- strsplit(limits, '"')[[1]][2]
+  limits <- strsplit(limits, ";")[[1]]
+}
+
+if(exists("limits")){
+  for(limits_iter in limits){
+    design_space_grid <- design_space_grid %>% filter(!!parse_quo(limits_iter, env = environment()))
+  }
+}
 
 # DISCARD 'BAD' OBSERVATIONS ----------------------------------------------
 
@@ -193,7 +207,7 @@ if (nconfiguration <= nfolds) {
   holdout_nfolds <- floor(1/holdout_set_size)
   holdout_folds <- cut(seq(1, nrow(configuration_df)), breaks = holdout_nfolds, labels = FALSE)
   configuration_df <- configuration_df[sample(nrow(configuration_df)), ]
-  
+
   holdout_results_df <- tibble(fold = seq(1, holdout_nfolds))
   holdout_results_df <- holdout_results_df %>%
     mutate(res = map(fold,
@@ -230,7 +244,7 @@ if(!exists("models_df")){
     models_df <- model_list(length(input_columns))
     models_df <- models_df %>% mutate(fitted_models = map(.x = models, .f = fit_selected_model, observation_df, input_columns, metric_name))
     cv_df <- cross_validation(models_df$models, nfolds, observation_df, configuration_df, input_columns, metric_name)
-    
+
     stacking_df <- create_stacking_df(cv_df, configuration_df, observation_df, input_columns)
     d_temp <- stacking_df %>% pull(metric_name)
     stacking_df <- stacking_df %>% select(-metric_name) %>% as.matrix()
@@ -259,15 +273,19 @@ if(grepl("bagging", chosen_model)){
 if (storage_type == "CASSANDRA"){
   for (row.ind in 1:nrow(design_space_grid))
   {
+    # AGORA may not know the model was written if there are constraints...
+    # there will not be results for every combination
     set_columns <- str_c(c(knobs_names, str_c(metric_name, "_avg"), str_c(metric_name, "_std")), collapse = ", ")
     set_values <- str_c(cbind(design_space_grid, Y_final$fit, Y_final$sd)[row.ind, ], collapse = ", ")
     dbSendUpdate(conn, str_c("INSERT INTO ", model_container_name, "(", set_columns, ") VALUES (", set_values, ")"))
   }
 } else if (storage_type == "CSV"){
   model_csv <- read_csv(model_container_name)
-  model_csv[, str_c(metric_name, "_avg")] <- Y_final$fit
-  model_csv[, str_c(metric_name, "_std")] <- Y_final$sd
-  write.table(model_csv, file = model_container_name, col.names = TRUE, row.names = FALSE, sep = ",", dec = ".")  
+  temp_df <- design_space_grid %>% mutate(!!str_c(metric_name, "_avg") := Y_final$fit)
+  temp_df <- temp_df %>% mutate(!!str_c(metric_name, "_std") := Y_final$sd)
+  model_csv <- model_csv %>% select(-!!str_c(metric_name, "_std"), -!!str_c(metric_name, "_avg"))
+  model_csv <- inner_join(temp_df, model_csv)
+  write.table(model_csv, file = model_container_name, col.names = TRUE, row.names = FALSE, sep = ",", dec = ".")
 }
 
 print(paste("Quiting [HTH] plugin", metric_name))

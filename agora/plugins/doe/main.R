@@ -130,7 +130,11 @@ doe_design <- create_doe(knobs_config_list, doe_options, map_to_input, algorithm
 names(doe_design) <- knobs_names
 doe_names <- c(knobs_names, "counter")
 
+
 if(!any(is.na(limits))){
+  if(any(grepl("system", limits))){
+    stop("Error: No funny plays with system calls through constraints evaluation are allowed. In case you did not meant to do system call, please do not use knobs with 'system' in it.")
+  }
   discarded_designs <- doe_design
   for(limit_iter in limits){
     discarded_designs <- discarded_designs %>% filter(!!parse_quo(limit_iter, env = environment()))
