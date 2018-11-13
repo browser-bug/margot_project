@@ -137,17 +137,17 @@ if(!any(is.na(limits))){
   }
   discarded_designs <- doe_design
   for(limit_iter in limits){
-    discarded_designs <- discarded_designs %>% filter(!!parse_quo(limit_iter, env = environment()))
+    doe_design <- doe_design %>% filter(!!parse_quo(limit_iter, env = environment()))
   }
-  doe_design <- doe_design %>% setdiff(discarded_designs)
+  discarded_designs <- discarded_designs %>% setdiff(doe_design)
   while(nrow(doe_design) < nknobs * doe_obs_per_dim){
     new_design <- create_doe(knobs_config_list, doe_options, map_to_input, algorithm = algorithm)
     names(new_design) <- knobs_names
-    new_discarded_designs <- doe_design
+    new_discarded_designs <- new_design
     for(limit_iter in limits){
-      new_discarded_designs <- new_discarded_designs %>% filter(!!parse_quo(limit_iter, env = environment()))
+      new_design <- new_design %>% filter(!!parse_quo(limit_iter, env = environment()))
     }
-    new_design <- new_design %>% setdiff(new_discarded_designs)
+    new_discarded_designs <- new_discarded_designs %>% setdiff(new_design)
     doe_design <- full_join(doe_design, new_design)
     discarded_designs <- full_join(discarded_designs, new_discarded_designs)
     # BREAK IF ALL THE POSSIBLE COMBINATIONS WERE EXPLORED
