@@ -31,7 +31,7 @@ fit_selected_model <- function(model_name, training_data, inputs_columns, metric
                mars = mars(x = X, y = Y, degree = 2),
                polymars = polymars(predictors = X, responses = Y, gcv = 3),
                kriging = {
-                 sink("krining.log", append = T)
+                 sink("kriging.log", append = T)
                  if(exists("noise.var")){
                    model_fit <- km(formula = ~ ., design = X, response = Y, noise.var = noise.var)
                  } else {

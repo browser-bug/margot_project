@@ -225,7 +225,6 @@ if (nconfiguration <= nfolds) {
   chosen_model <- holdout_results_df %>% filter(R2 > minimal_R2) %>% slice(which.min(MAE)) %>% select(models)
 }
 
-
 # CHECK THE CHOSEN MODEL AND MAKE FITS IF NECESSARY -----------------------
 
 if(dim(chosen_model)[1] == 0){
@@ -235,12 +234,10 @@ if(dim(chosen_model)[1] == 0){
 
 if(!exists("models_df")){
   if(grepl("bagging", chosen_model)){
-    nfolds <- 10
     models_df <- model_list(length(input_columns))
     models_df <- models_df %>% mutate(fitted_models = map(.x = models, .f = fit_selected_model, observation_df, input_columns, metric_name))
     cv_df <- cross_validation(models_df$models, nfolds, observation_df, configuration_df, input_columns, metric_name)
   } else if(chosen_model == "stacking"){
-    nfolds <- 10
     models_df <- model_list(length(input_columns))
     models_df <- models_df %>% mutate(fitted_models = map(.x = models, .f = fit_selected_model, observation_df, input_columns, metric_name))
     cv_df <- cross_validation(models_df$models, nfolds, observation_df, configuration_df, input_columns, metric_name)
@@ -267,6 +264,32 @@ if(grepl("bagging", chosen_model)){
   chosen_model_fit <- chosen_model_fit[[1]]
   Y_final <- predict_selected_model(chosen_model, chosen_model_fit, NA, design_space_grid)
 }
+
+
+# WRITE MODEL RESULTS -----------------------------------------------------
+
+if (file.exists("models.log")) {
+  old_models <- read_csv(file = "models.log")
+  if (iteration == 1) {
+    run <- max(old_models$run) + 1
+  } else {
+    run <- max(old_models$run)
+  }
+} else {
+  run <- 1
+  write("model, R2, MAE, iteration, run", file = "models.log")
+}
+
+if(exists("holdout_results_df")){
+  models_info <- holdout_results_df
+} else if(exists("models_df")){
+  models_info <-  models_df %>% mutate(R2 = "NA") %>% select(c("models", "R2", "MAE"))
+} else{
+  error("No results from models fits found, after model fitting. This should not happen...")
+}
+
+models_info <- models_info %>% mutate(iteration = iteration, run = run)
+write_csv(models_info, path = "models.log", append = TRUE)
 
 # WRITE RESULTS -----------------------------------------------------------
 
