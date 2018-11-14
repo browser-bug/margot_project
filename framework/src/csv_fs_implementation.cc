@@ -231,9 +231,14 @@ namespace agora
       out << "property_name,value" << std::endl;
 
       // print the actual properties
-      out << "number_point_per_dimension," << description.number_point_per_dimension << std::endl;
-      out << "number_observations_per_point," << description.number_observations_per_point << std::endl;
       out << "doe_name," << description.doe_name << std::endl;
+      out << "number_configurations_per_iteration," << description.number_configurations_per_iteration << std::endl;
+      out << "number_observations_per_point," << description.number_observations_per_point << std::endl;
+      out << "max_number_iteration," << description.max_number_iteration << std::endl;
+      out << "max_mae," << description.max_mae << std::endl;
+      out << "min_r2," << description.min_r2 << std::endl;
+      out << "validation_split," << description.validation_split << std::endl;
+      out << "k_value," << description.k_value << std::endl;
       out << "minimum_distance," << description.minimum_distance << std::endl;
       out << "doe_limits," << description.doe_limits << std::endl;
     }

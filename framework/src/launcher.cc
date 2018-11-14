@@ -126,6 +126,13 @@ namespace agora
       config_file << "NUMBER_POINT_PER_DIMENSION=\"" << application.number_point_per_dimension << "\"" << std::endl;
       config_file << "NUMBER_OBSERVATIONS_PER_POINT=\"" << application.number_observations_per_point << "\"" << std::endl;
       config_file << "DOE_NAME=\"" << application.doe_name << "\"" << std::endl;
+      config_file << "NUMBER_CONFIGURATIONS_PER_ITERATION=\"" << application.number_configurations_per_iteration << "\"" << std::endl;
+      config_file << "NUMBER_OBSERVATIONS_PER_POINT=\"" << application.number_observations_per_point << "\"" << std::endl;
+      config_file << "MAX_NUMBER_ITERATION=\"" << application.max_number_iteration << "\"" << std::endl;
+      config_file << "MAX_MAE=\"" << application.max_mae << "\"" << std::endl;
+      config_file << "MIN_R2=\"" << application.min_r2 << "\"" << std::endl;
+      config_file << "VALIDATION_SPLIT=\"" << application.validation_split << "\"" << std::endl;
+      config_file << "K_VALUE=\"" << application.k_value << "\"" << std::endl;
       config_file << "MINIMUM_DISTANCE=\"" << application.minimum_distance << "\"" << std::endl;
       config_file << "DOE_LIMITS=\"" << application.doe_limits << "\"" << std::endl;
       config_file.close();

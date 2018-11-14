@@ -237,27 +237,62 @@ void RemoteApplicationHandler::process_info( const std::string& info_message )
           }
           else
           {
-            if (line_topic.compare("n_point_d ") == 0)
+            if (line_topic.compare("n_confs_i ") == 0)
             {
-              description.number_point_per_dimension = info_element.substr(header_size);
+              description.number_configurations_per_iteration = info_element.substr(header_size);
             }
             else
             {
-              if (line_topic.compare("n_obs_p   ") == 0)
+              if (line_topic.compare("n_obs_c   ") == 0)
               {
-                description.number_observations_per_point = info_element.substr(header_size);
+                description.number_observations_per_configuration = info_element.substr(header_size);
               }
               else
               {
-                if (line_topic.compare("min_dist  ") == 0)
+                if (line_topic.compare("max_it    ") == 0)
                 {
-                  description.minimum_distance = info_element.substr(header_size);
+                  description.max_number_iteration = info_element.substr(header_size);
                 }
                 else
                 {
-                  if (line_topic.compare("limits    ") == 0)
+                  if (line_topic.compare("max_mae   ") == 0)
                   {
-                    description.doe_limits = info_element.substr(header_size);
+                    description.max_mae = info_element.substr(header_size);
+                  }
+                  else
+                  {
+                    if (line_topic.compare("min_r2    ") == 0)
+                    {
+                      description.min_r2 = info_element.substr(header_size);
+                    }
+                    else
+                    {
+                      if (line_topic.compare("split     ") == 0)
+                      {
+                        description.validation_split = info_element.substr(header_size);
+                      }
+                      else
+                      {
+                        if (line_topic.compare("k_value   ") == 0)
+                        {
+                          description.k_value = info_element.substr(header_size);
+                        }
+                        else
+                        {
+                          if (line_topic.compare("min_dist  ") == 0)
+                          {
+                            description.minimum_distance = info_element.substr(header_size);
+                          }
+                          else
+                          {
+                            if (line_topic.compare("limits    ") == 0)
+                            {
+                              description.doe_limits = info_element.substr(header_size);
+                            }
+                          }
+                        }
+                      }
+                    }
                   }
                 }
               }

@@ -155,9 +155,14 @@ namespace agora
     inline void clear( void )
     {
       application_name.clear();
-      number_point_per_dimension.clear();
-      number_observations_per_point.clear();
       doe_name.clear();
+      number_configurations_per_iteration.clear();
+      number_observations_per_configuration.clear();
+      max_number_iteration.clear();
+      max_mae.clear();
+      min_r2.clear();
+      validation_split.clear();
+      k_value.clear();
       minimum_distance.clear();
       knobs.clear();
       features.clear();
@@ -169,6 +174,13 @@ namespace agora
     std::string number_point_per_dimension;
     std::string number_observations_per_point;
     std::string doe_name;
+    std::string number_configurations_per_iteration;
+    std::string number_observations_per_configuration;
+    std::string max_number_iteration;
+    std::string max_mae;
+    std::string min_r2;
+    std::string validation_split;
+    std::string k_value;
     std::string minimum_distance;
     std::string doe_limits;
     application_knobs_t knobs;
