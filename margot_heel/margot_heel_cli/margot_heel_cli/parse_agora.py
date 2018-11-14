@@ -33,8 +33,13 @@ def parse_agora( agora_xml_element, namespace = ''):
   client_key = get_parameter(agora_xml_element, 'client_key', required = False)
   qos = get_parameter(agora_xml_element, 'qos', required = False)
   doe_name = get_parameter(agora_xml_element, 'doe_name', required = False, prefixed_values = agora_model.available_does )
-  number_point_per_dimension = get_parameter(agora_xml_element, 'number_point_per_dimension', my_target_type=int, required = False)
-  number_observations_per_point = get_parameter(agora_xml_element, 'number_observations_per_point', my_target_type=int, required = False)
+  number_configurations_per_iteration = get_parameter(agora_xml_element, 'configurations_per_iteration', my_target_type=int, required = False )
+  number_observations_per_configuration = get_parameter(agora_xml_element, 'observations_per_configuration', my_target_type=int, required = False )
+  max_number_iteration = get_parameter(agora_xml_element, 'max_number_iteration', my_target_type=int, required = False )
+  max_mae = get_parameter(agora_xml_element, 'max_mae', my_target_type=float, required = False )
+  min_r2 = get_parameter(agora_xml_element, 'min_r2', my_target_type=float, required = False )
+  validation_split = get_parameter(agora_xml_element, 'validation_split', my_target_type=float, required = False)
+  k_value = get_parameter(agora_xml_element, 'k_value', my_target_type=int, required = False)
   min_distance = get_parameter(agora_xml_element, 'min_distance', my_target_type=float, required = False)
 
   # update the model
@@ -54,10 +59,20 @@ def parse_agora( agora_xml_element, namespace = ''):
       agora_model.qos = qos
   if doe_name:
       agora_model.doe_name = doe_name
-  if number_point_per_dimension:
-      agora_model.number_point_per_dimension = number_point_per_dimension
-  if number_observations_per_point:
-      agora_model.number_observations_per_point = number_observations_per_point
+  if number_configurations_per_iteration:
+      agora_model.number_configurations_per_iteration = number_configurations_per_iteration
+  if number_observations_per_configuration:
+      agora_model.number_observations_per_configuration = number_observations_per_configuration
+  if max_number_iteration:
+      agora_model.max_number_iteration = max_number_iteration
+  if max_mae:
+      agora_model.max_mae = max_mae
+  if min_r2:
+      agora_model.min_r2 = min_r2
+  if validation_split:
+      agora_model.validation_split = validation_split
+  if k_value:
+      agora_model.k_value = k_value
   if min_distance:
       if min_distance < 0 or min_distance > 1:
           print('[LOGIC ERROR] The minimum distance parameter of the agora tag must be [0..1]')

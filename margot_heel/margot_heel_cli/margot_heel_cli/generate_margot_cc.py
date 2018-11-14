@@ -757,8 +757,13 @@ def generate_margot_cc( block_models, op_lists, output_folder ):
           for metric_name in metric_list:
                description_terms.append('metric    {0} {1} {2}'.format(metric_name, metric_type_pod, block_model.agora_model.metrics_predictors[metric_name]))
           description_terms.append('doe       {0}'.format(block_model.agora_model.doe_name))
-          description_terms.append('n_point_d {0}'.format(block_model.agora_model.number_point_per_dimension))
-          description_terms.append('n_obs_p   {0}'.format(block_model.agora_model.number_observations_per_point))
+          description_terms.append('n_confs_i {0}'.format(block_model.agora_model.number_configurations_per_iteration))
+          description_terms.append('n_obs_c   {0}'.format(block_model.agora_model.number_observations_per_configuration))
+          description_terms.append('max_it    {0}'.format(block_model.agora_model.max_number_iteration))
+          description_terms.append('max_mae   {0}'.format(block_model.agora_model.max_mae))
+          description_terms.append('min_r2    {0}'.format(block_model.agora_model.min_r2))
+          description_terms.append('split     {0}'.format(block_model.agora_model.validation_split))
+          description_terms.append('k_value   {0}'.format(block_model.agora_model.k_value))
           description_terms.append('min_dist  {0}'.format(block_model.agora_model.min_distance))
           if block_model.agora_model.constraints:
               description_terms.append('limits    {0}'.format(';'.join(block_model.agora_model.constraints)))
