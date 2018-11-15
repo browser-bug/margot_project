@@ -2,9 +2,16 @@
 ##             pkg-config file               ##
 ###############################################
 
+# reshape the path to dependencies to take into account spaces
+string (REPLACE " " "\\ " MARGOT_LINK_DEPENDENCIES_ESCAPED "${MARGOT_LINK_DEPENDENCIES}")
+string (REPLACE " " "\\ " MARGOT_DEPS_INCLUDE_DIRECTORIES_ESCAPED "${MARGOT_DEPS_INCLUDE_DIRECTORIES}")
+string (REPLACE " " "\\ " PROJECT_SOURCE_DIR_ESCAPED "${PROJECT_SOURCE_DIR}")
+string (REPLACE " " "\\ " PROJECT_BINARY_DIR_ESCAPED "${PROJECT_BINARY_DIR}")
+string (REPLACE " " "\\ " CMAKE_INSTALL_PREFIX_ESCAPED "${CMAKE_INSTALL_PREFIX}")
+
 # replace the ; character with space for link flangs
-string (REPLACE ";" " " MARGOT_LINK_DEPENDENCIES_STR "${MARGOT_LINK_DEPENDENCIES}")
-string (REPLACE ";" " -I" MARGOT_DEPS_INCLUDE_DIRECTORIES_STR "${MARGOT_DEPS_INCLUDE_DIRECTORIES}")
+string (REPLACE ";" " " MARGOT_LINK_DEPENDENCIES_STR "${MARGOT_LINK_DEPENDENCIES_ESCAPED}")
+string (REPLACE ";" " -I" MARGOT_DEPS_INCLUDE_DIRECTORIES_STR "${MARGOT_DEPS_INCLUDE_DIRECTORIES_ESCAPED}")
 
 # customizing the pkg-config file
 configure_file(
