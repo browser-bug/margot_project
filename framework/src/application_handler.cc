@@ -332,6 +332,7 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
   std::string configuration;
   std::string features;
   std::string metrics;
+  std::string metrics_estimates;
   std::string metric_fields;
 
   // parse the message
@@ -346,6 +347,7 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
   }
 
   stream >> metrics;
+  stream >> metrics_estimates; // gets the estimates for the metrics provided by the model
   stream >> metric_fields; // gets the name of the fields of the metric to be filled in (if any, if empty fills in all the metrics of the table normally)
 
   // append the coma to connect the different the features with the metrics
@@ -362,12 +364,12 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
   {
     if (!(metric_fields.empty()) && !(metric_fields == "\n") && !(metric_fields == " ")) // if the name of the metrics to be filled in are provided
     {
-      io::storage.insert_trace_entry(description, timestamp + ",'" + client_id + "'," + configuration + "," + features + metrics + "/" +
+      io::storage.insert_trace_entry(description, timestamp + ",'" + client_id + "'," + configuration + "," + features + metrics + "," + metrics_estimates + "/" +
                                      metric_fields); // appends "/" as a separator between the usual message and the metric names
     }
     else
     {
-      io::storage.insert_trace_entry(description, timestamp + ",'" + client_id + "'," + configuration + "," + features + metrics); // behaves normally
+      io::storage.insert_trace_entry(description, timestamp + ",'" + client_id + "'," + configuration + "," + features + metrics + "," + metrics_estimates); // behaves normally
     }
   }
 

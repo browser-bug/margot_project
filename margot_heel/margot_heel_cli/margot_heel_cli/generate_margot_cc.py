@@ -457,9 +457,9 @@ def generate_block_body( block_model, op_lists, cc ):
 
         # append also the metric names to the message that will be sent to agora
         if feature_terms:
-            send_string = ' + " " + '.join([knob_string, feature_string, metric_string, metric_names])
+            send_string = ' + " " + '.join([knob_string, feature_string, metric_string, metric_predictions, metric_names])
         else:
-            send_string = ' + " " + '.join([knob_string, metric_string, metric_names])
+            send_string = ' + " " + '.join([knob_string, metric_string, metric_predictions, metric_names])
         cc.write('\t\t\t\tmanager.send_observation({0},{1});\n'.format(send_string,send_beholder_string))
 
     #if we are in training and we expect a return value for all the monitors, then we behave as if all the monitors are always enabled (else below)
@@ -518,9 +518,9 @@ def generate_block_body( block_model, op_lists, cc ):
         send_beholder_string = ' + " " + '.join([metric_names, metric_string, metric_predictions])
 
         if feature_terms:
-            send_string = ' + " " + '.join([knob_string, feature_string, metric_string])
+            send_string = ' + " " + '.join([knob_string, feature_string, metric_string, metric_predictions])
         else:
-            send_string = ' + " " + '.join([knob_string, metric_string])
+            send_string = ' + " " + '.join([knob_string, metric_string, metric_predictions])
         cc.write('\t\t\t\tmanager.send_observation({0},{1});\n'.format(send_string,send_beholder_string))
     cc.write('\t\t\t}')
   # version if all the monitors are always enabled
@@ -579,9 +579,9 @@ def generate_block_body( block_model, op_lists, cc ):
         send_beholder_string = ' + " " + '.join([metric_names, metric_string, metric_predictions])
 
         if feature_terms:
-            send_string = ' + " " + '.join([knob_string, feature_string, metric_string])
+            send_string = ' + " " + '.join([knob_string, feature_string, metric_string, metric_predictions])
         else:
-            send_string = ' + " " + '.join([knob_string, metric_string])
+            send_string = ' + " " + '.join([knob_string, metric_string, metric_predictions])
         cc.write('\t\t\tmanager.send_observation({0},{1});\n'.format(send_string,send_beholder_string))
 
   cc.write('\n')

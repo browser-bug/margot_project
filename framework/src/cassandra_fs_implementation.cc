@@ -940,10 +940,10 @@ void CassandraClient::create_trace_table( const application_description_t& descr
   }
 
   // additional attributes that will contain the predicted values for the metrics from the model
-  // for ( int i = 0; i < number_of_metrics; ++i )
-  // {
-  //   table_desc.append("model_" + description.metrics[i].name +  " " + description.metrics[i].type + ",");
-  // }
+  for ( int i = 0; i < number_of_metrics; ++i )
+  {
+    table_desc.append("model_" + description.metrics[i].name +  " " + description.metrics[i].type + ",");
+  }
 
   // remove the last come from the field list
   primary_key.pop_back();
@@ -989,12 +989,49 @@ void CassandraClient::insert_trace_entry( const application_description_t& descr
       fields.append(metric.name + ",");
     }
 
+    // repeat the cycle for the names of the attributes of the metrics estimates, prefixed by the "model_" prefix
+    for ( const auto& metric : description.metrics ) // use all the metrics in the db
+    {
+      fields.append("model_" + metric.name + ",");
+    }
+
     // remove the last comma from the field list
     fields.pop_back();
   }
   else     // get the metrics names
   {
+    // append just the names of the metrics currently enabled for which we have a value
     fields.append(values.substr((pos_slash + 1), std::string::npos));
+    fields.append(",");
+
+    // repeat the same as above for the metrics estimates for the model used
+    // we have all the estimates theoretically "free of charge" in the model, but margot only passes the estimates for the enabled metrics
+    std::string temp_string = "model_" + values.substr((pos_slash + 1), std::string::npos);
+
+    // replace all the occurrences of "," inside the temporary string above with ",model_"
+    // to adapt the names of the enabled metrics to the names of the attributes for the estimates in the table
+    std::string metric_estimates;
+    metric_estimates.reserve(temp_string.length());  // avoids a few memory allocations
+
+    std::string::size_type lastPos = 0;
+    std::string::size_type findPos;
+
+    // while an occurrence of ',' is found
+    while (std::string::npos != (findPos = temp_string.find(",", lastPos)))
+    {
+      // append whathever is before the ',' in the new string
+      metric_estimates.append(temp_string, lastPos, findPos - lastPos);
+      // replace the ',' with ",model_"
+      metric_estimates += ",model_";
+      // increase the current search index of 1, the size of the comma just analyzed
+      lastPos = findPos + 1;
+    }
+
+    // Care for the rest after last occurrence
+    metric_estimates += temp_string.substr(lastPos);
+
+    fields.append(metric_estimates);
+
     values_lenght = values_lenght - (values.length() - pos_slash); // update the length of the final actual data of the "values" string "cutting" away the metric names
   }
 
