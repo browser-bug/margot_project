@@ -939,6 +939,12 @@ void CassandraClient::create_trace_table( const application_description_t& descr
     table_desc.append(description.metrics[i].name +  " " + description.metrics[i].type + ",");
   }
 
+  // additional attributes that will contain the predicted values for the metrics from the model
+  // for ( int i = 0; i < number_of_metrics; ++i )
+  // {
+  //   table_desc.append("model_" + description.metrics[i].name +  " " + description.metrics[i].type + ",");
+  // }
+
   // remove the last come from the field list
   primary_key.pop_back();
 
