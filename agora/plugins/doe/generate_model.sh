@@ -59,4 +59,4 @@ set -e
 # therefore we use a python script to dump and update the database
 
 # STEP 2: load data, generate the actual model and write data to cassandra
-Rscript $METRIC_ROOT/main.R $STORAGE_TYPE $STORAGE_ADDRESS $APPLICATION_NAME $METRIC_NAME $METRIC_ROOT $ITERATION_COUNTER $DOE_NAME $MINIMUM_DISTANCE $NUMBER_POINT_PER_DIMENSION $NUMBER_OBSERVATIONS_PER_POINT >> $METRIC_ROOT/stdout.log 2>> $METRIC_ROOT/stderr.log
+Rscript $METRIC_ROOT/main.R $METRIC_ROOT >> $METRIC_ROOT/stdout.log 2>> $METRIC_ROOT/stderr.log

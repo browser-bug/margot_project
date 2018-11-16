@@ -7,38 +7,19 @@ map_to_input = TRUE
 limits <- NA
 
 ######################## GET THE ARGUMENTS ############################
+
 args = commandArgs(trailingOnly = TRUE)
-if (length(args) < 10)
+if (length(args) < 1)
 {
-  stop("Error: Number of input parameters is less than 10 (Please input the storage_type, storage_address, application_name, metric_name and root_path)", call. = FALSE)
-} else if (length(args) == 10)
+  stop("Error: Number of input parameters is less than 1 (Please input the root_path)", call. = FALSE)
+} else if (length(args) == 1)
 {
-  storage_type <- args[1]
-  storage_address <- args[2]
-  application_name <- args[3]
-  metric_name <- args[4]
-  root_path <- args[5]
-  iteration <- args[6]
-  algorithm <- args[7]
-  doe_eps <- as.numeric(args[8])
-  doe_obs_per_dim <- as.numeric(args[9])
-  doe_obs_per_point <- as.numeric(args[10])
+  root_path <- args[1]
 } else
 {
-  storage_type <- args[1]
-  storage_address <- args[2]
-  application_name <- args[3]
-  metric_name <- args[4]
-  root_path <- args[5]
-  iteration <- args[6]
-  algorithm <- args[7]
-  doe_eps <- as.numeric(args[8])
-  doe_obs_per_dim <- as.numeric(args[9])
-  doe_obs_per_point <- as.numeric(args[10])
-  print(paste("Warning: the following program option are ignored:", args[11:nrow(args)], collapse = ", "))
+  root_path <- args[1] 
+  print(paste("Warning: the following program option are ignored:", args[2:nrow(args)], collapse = ", "))
 }
-
-print(paste("Started DOE plugin. Metric:", metric_name))
 
 ######################## SET WORKSPACE PATH AND VARIABLES #######################
 
@@ -46,10 +27,28 @@ setwd(root_path)
 source("create_discrete_doe.R")
 source("get_knobs_config_list.R")
 
-# CREATE THE TABLES NAMES
-application_name <- gsub("/", "_", application_name)
+configurations <- readLines(con = "agora_config.env")
+configurations <- strsplit(configurations, '"')
+
+storage_type <- configurations %>% .[grepl("STORAGE_TYPE",.)] %>% unlist %>% .[2]
+storage_address <- configurations %>% .[grepl("STORAGE_ADDRESS",.)] %>% unlist %>% .[2]
+application_name <- configurations %>% .[grepl("APPLICATION_NAME",.)] %>% unlist %>% .[2]
+metric_name <- configurations %>% .[grepl("METRIC_NAME",.)] %>% unlist %>% .[2]
+algorithm <- configurations %>% .[grepl("DOE_NAME",.)] %>% unlist %>% .[2]
+doe_eps <- configurations %>% .[grepl("MINIMUM_DISTANCE",.)] %>% unlist %>% .[2] %>% as.numeric
+doe_obs_per_conf <- configurations %>% .[grepl("NUMBER_OBSERVATIONS_PER_CONFIGURATION",.)] %>% unlist %>% .[2] %>% as.numeric
+doe_obs_per_iter <- configurations %>% .[grepl("NUMBER_CONFIGURATIONS_PER_ITERATION",.)] %>% unlist %>% .[2] %>% as.numeric
+if(any(grepl("DOE_LIMITS", configurations))){
+  limits <- configurations[grepl("DOE_LIMITS", configurations)]
+  limits <- limits[[1]][2]
+  limits <- strsplit(limits, ";")[[1]]
+}
+
+print(paste("Started DOE plugin. Metric:", metric_name))
 
 ########################### LOAD DATA #######################################
+# CREATE THE TABLES NAMES
+application_name <- gsub("/", "_", application_name)
 
 if (storage_type == "CASSANDRA")
 {
@@ -109,12 +108,6 @@ if (storage_type == "CASSANDRA")
 }
 
 ################################# PREPARE DOE OPTIONS #################################
-configurations <- readLines(con = "agora_config.env")
-if(any(grepl("DOE_LIMITS", configurations))){
-  limits <- configurations[grepl("DOE_LIMITS", configurations)]
-  limits <- strsplit(limits, '"')[[1]][2]
-  limits <- strsplit(limits, ";")[[1]]
-}
 
 # MAKE NAMES LOWERCASE
 knobs_names <- sapply(knobs_names, tolower)
@@ -123,7 +116,7 @@ knobs_names <- sapply(knobs_names, tolower)
 knobs_config_list <- get_knobs_config_list(storage_type, knobs_container_name, conn)
 
 # SET THE DOE OPTIONS
-doe_options <- list(nobs = nknobs * doe_obs_per_dim, eps = doe_eps)
+doe_options <- list(nobs = doe_obs_per_iter, eps = doe_eps)
 
 ############################ CREATE DOE ############################
 doe_design <- create_doe(knobs_config_list, doe_options, map_to_input, algorithm = algorithm)
@@ -140,7 +133,7 @@ if(!any(is.na(limits))){
     doe_design <- doe_design %>% filter(!!parse_quo(limit_iter, env = environment()))
   }
   discarded_designs <- discarded_designs %>% setdiff(doe_design)
-  while(nrow(doe_design) < nknobs * doe_obs_per_dim){
+  while(nrow(doe_design) < nknobs * doe_obs_per_iter){
     new_design <- create_doe(knobs_config_list, doe_options, map_to_input, algorithm = algorithm)
     names(new_design) <- knobs_names
     new_discarded_designs <- new_design
@@ -155,18 +148,15 @@ if(!any(is.na(limits))){
   }
 }
 
-# AT THE MOMENT THERE MAY BE MORE THAN nkonbs * doe_obs_per_dimension CONFIGURATION IN DOE AFTER FULL JOIN
-
-
-
+# AT THE MOMENT THERE MAY BE MORE THAN doe_obs_per_iter CONFIGURATION IN DOE AFTER FULL JOIN
 
 # ADD COUNTER COLUMN
 if (is.null(doe_design))
 {
-  doe_design <- matrix(c(doe_design, rep(doe_obs_per_point, length(doe_design))), ncol = 2)
+  doe_design <- matrix(c(doe_design, rep(doe_obs_per_conf, length(doe_design))), ncol = 2)
 } else
 {
-  doe_design <- cbind(doe_design, doe_obs_per_point)
+  doe_design <- cbind(doe_design, doe_obs_per_conf)
 }
 
 ################################# WRITE DOE #################################

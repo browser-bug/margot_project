@@ -8,40 +8,22 @@ suppressMessages(suppressPackageStartupMessages(library("DiceKriging")))
 suppressMessages(suppressPackageStartupMessages(library("rlang")))
 
 # SET OPTIONS -------------------------------------------------------------
-
+# This ensures R does not use scientific notation on numbers
 options(scipen = 100)
-holdout_set_size <- 1/5
-nfolds <- 10
-minimal_R2 <- 0.5
 
 # GET THE ARGUMENTS -------------------------------------------------------
 
 args = commandArgs(trailingOnly = TRUE)
-if (length(args) < 10) {
-  stop("Error: Number of input parameters is less than 10 (Please input the storage_type, storage_address, application_name, metric_name and root_path)", call. = FALSE)
-} else if (length(args) == 10) {
-  storage_type <- args[1]
-  storage_address <- args[2]
-  application_name <- args[3]
-  metric_name <- args[4]
-  root_path <- args[5]
-  iteration <- args[6]
-  algorithm <- args[7]
-  doe_eps <- as.numeric(args[8])
-  doe_obs_per_dim <- as.numeric(args[9])
-  doe_obs_per_point <- as.numeric(args[10])
-} else {
-  storage_type <- args[1]
-  storage_address <- args[2]
-  application_name <- args[3]
-  metric_name <- args[4]
-  root_path <- args[5]
-  iteration <- args[6]
-  algorithm <- args[7]
-  doe_eps <- as.numeric(args[8])
-  doe_obs_per_dim <- as.numeric(args[9])
-  doe_obs_per_point <- as.numeric(args[10])
-  writeLines(paste("Warning: the following program option are ignored:", args[11:nrow(args)], collapse = ", "))
+if (length(args) < 1)
+{
+  stop("Error: Number of input parameters is less than 1 (Please input the storage_type, storage_address, application_name, metric_name and root_path)", call. = FALSE)
+} else if (length(args) == 1)
+{
+  root_path <- args[1]
+} else
+{
+  root_path <- args[1] 
+  print(paste("Warning: the following program option are ignored:", args[2:nrow(args)], collapse = ", "))
 }
 
 # SET WORKSPACE PATH AND VARIABLES ----------------------------------------
@@ -49,6 +31,33 @@ if (length(args) < 10) {
 setwd(root_path)
 source("get_knobs_config_list.R")
 source("models_functions.R")
+
+configurations <- readLines(con = "agora_config.env")
+configurations <- strsplit(configurations, '"')
+
+storage_type <- configurations %>% .[grepl("STORAGE_TYPE",.)] %>% unlist %>% .[2]
+storage_address <- configurations %>% .[grepl("STORAGE_ADDRESS",.)] %>% unlist %>% .[2]
+application_name <- configurations %>% .[grepl("APPLICATION_NAME",.)] %>% unlist %>% .[2]
+metric_name <- configurations %>% .[grepl("METRIC_NAME",.)] %>% unlist %>% .[2]
+holdout_set_size <- configurations %>% .[grepl("VALIDATION_SPLIT",.)] %>% unlist %>% .[2] %>% as.numeric
+nfolds <- configurations %>% .[grepl("K_VALUE",.)] %>% unlist %>% .[2] %>% as.numeric
+minimal_R2 <- configurations %>% .[grepl("MIN_R2",.)] %>% unlist %>% .[2] %>% as.numeric
+max_mae <- configurations %>% .[grepl("MAX_MAE",.)] %>% unlist %>% .[2] %>% as.numeric
+iteration <- configurations %>% .[grepl("ITERATION_COUNTER",.)] %>% unlist %>% .[2] %>% as.numeric
+max_iter <- configurations %>% .[grepl("MAX_NUMBER_ITERATION",.)] %>% unlist %>% .[2] %>% as.numeric
+
+if(any(grepl("DOE_LIMITS", configurations))){
+  limits <- configurations[grepl("DOE_LIMITS", configurations)]
+  limits <- limits[[1]][2]
+  limits <- strsplit(limits, ";")[[1]]
+}
+
+print(paste("Started DOE plugin. Metric:", metric_name))
+
+if(iteration >= max_iter){
+  minimal_R2 <- 0
+  max_mae <- 1
+}
 
 # LOAD DATA ---------------------------------------------------------------
 
@@ -133,13 +142,6 @@ knob_transform <- sapply(knobs_config_list, function(knob_config) {
 # CREATE DESIGN SPACE GRID
 design_space_grid <- expand.grid(knobs_config_list)
 colnames(design_space_grid) <- knobs_names
-configurations <- readLines(con = "agora_config.env")
-
-if(any(grepl("DOE_LIMITS", configurations))){
-  limits <- configurations[grepl("DOE_LIMITS", configurations)]
-  limits <- strsplit(limits, '"')[[1]][2]
-  limits <- strsplit(limits, ";")[[1]]
-}
 
 if(exists("limits")){
   for(limits_iter in limits){
@@ -201,7 +203,7 @@ if (nconfiguration <= nfolds) {
   # AND THERE IS NO WAY TO COMPUTE CORRELATION BETWEEN SINGULAR VALUES
   models_df <- models_df %>% mutate(MAE = map_dbl(models, extract_measure_cv, "MAE", cv_df)) %>%
     mutate(MAE = MAE / error_normalization_value)
-  chosen_model <- models_df %>% slice(which.min(MAE)) %>% pull(models)
+  chosen_model <- models_df %>% slice(which.min(MAE)) %>% select(models)
 } else {
   holdout_set_size  <- min((nconfiguration - nfolds)/nconfiguration, holdout_set_size)
   holdout_nfolds <- floor(1/holdout_set_size)
@@ -222,8 +224,33 @@ if (nconfiguration <= nfolds) {
   holdout_results_df <- holdout_results_df %>% unnest(res) %>% group_by(models) %>% summarize(R2 = mean(R2, na.rm = TRUE), MAE = mean(MAE, na.rm = TRUE))
 
   # MODEL SELECTION AND LEARNING
-  chosen_model <- holdout_results_df %>% filter(R2 > minimal_R2) %>% slice(which.min(MAE)) %>% select(models)
+  chosen_model <- holdout_results_df %>% filter(R2 > minimal_R2, MAE < max_mae) %>% slice(which.min(MAE)) %>% select(models)
 }
+
+# WRITE MODEL RESULTS -----------------------------------------------------
+
+if (file.exists("models.log")) {
+  old_models <- read_csv(file = "models.log")
+  if (iteration == 1) {
+    run <- max(old_models$run) + 1
+  } else {
+    run <- max(old_models$run)
+  }
+} else {
+  run <- 1
+  write("model, R2, MAE, iteration, run", file = "models.log")
+}
+
+if(exists("holdout_results_df")){
+  models_info <- holdout_results_df
+} else if(exists("models_df")){
+  models_info <-  models_df %>% mutate(R2 = "NA") %>% select(c("models", "R2", "MAE"))
+} else{
+  error("No results from models fits found, after model fitting. This should not happen...")
+}
+
+models_info <- models_info %>% mutate(iteration = iteration, run = run)
+write_csv(models_info, path = "models.log", append = TRUE)
 
 # CHECK THE CHOSEN MODEL AND MAKE FITS IF NECESSARY -----------------------
 
@@ -260,36 +287,10 @@ if(grepl("bagging", chosen_model)){
 } else if(chosen_model == "stacking"){
   Y_final <- predict_selected_model(chosen_model, NA, NA, design_space_grid, models_df, stacking_weights)
 } else{
-  chosen_model_fit <- models_df %>% filter(models == chosen_model) %>% pull(fitted_models)
+  chosen_model_fit <- models_df %>% filter(models == chosen_model$models) %>% pull(fitted_models)
   chosen_model_fit <- chosen_model_fit[[1]]
   Y_final <- predict_selected_model(chosen_model, chosen_model_fit, NA, design_space_grid)
 }
-
-
-# WRITE MODEL RESULTS -----------------------------------------------------
-
-if (file.exists("models.log")) {
-  old_models <- read_csv(file = "models.log")
-  if (iteration == 1) {
-    run <- max(old_models$run) + 1
-  } else {
-    run <- max(old_models$run)
-  }
-} else {
-  run <- 1
-  write("model, R2, MAE, iteration, run", file = "models.log")
-}
-
-if(exists("holdout_results_df")){
-  models_info <- holdout_results_df
-} else if(exists("models_df")){
-  models_info <-  models_df %>% mutate(R2 = "NA") %>% select(c("models", "R2", "MAE"))
-} else{
-  error("No results from models fits found, after model fitting. This should not happen...")
-}
-
-models_info <- models_info %>% mutate(iteration = iteration, run = run)
-write_csv(models_info, path = "models.log", append = TRUE)
 
 # WRITE RESULTS -----------------------------------------------------------
 
