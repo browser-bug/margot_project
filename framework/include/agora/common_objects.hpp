@@ -171,8 +171,6 @@ namespace agora
     }
 
     std::string application_name;
-    std::string number_point_per_dimension;
-    std::string number_observations_per_point;
     std::string doe_name;
     std::string number_configurations_per_iteration;
     std::string number_observations_per_configuration;

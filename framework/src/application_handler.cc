@@ -309,7 +309,7 @@ void RemoteApplicationHandler::process_info( const std::string& info_message )
   // there is no a trivial solution to this case, the best that we can
   // do is to keep asking information to random clients until something ok
   // happens. This statements holds even if we have just one client
-  if ( description.knobs.empty() || description.metrics.empty() || description.number_point_per_dimension.empty() || description.number_observations_per_point.empty() || description.doe_name.empty() ||
+  if ( description.knobs.empty() || description.metrics.empty() || description.number_configurations_per_iteration.empty() || description.number_observations_per_configuration.empty() || description.doe_name.empty() ||
        description.minimum_distance.empty() )
   {
     warning("Handler ", description.application_name, ": we received inconsistent information, ask again");
