@@ -233,7 +233,7 @@ namespace agora
       // print the actual properties
       out << "doe_name," << description.doe_name << std::endl;
       out << "number_configurations_per_iteration," << description.number_configurations_per_iteration << std::endl;
-      out << "number_observations_per_point," << description.number_observations_per_point << std::endl;
+      out << "number_observations_per_configuration," << description.number_observations_per_configuration << std::endl;
       out << "max_number_iteration," << description.max_number_iteration << std::endl;
       out << "max_mae," << description.max_mae << std::endl;
       out << "min_r2," << description.min_r2 << std::endl;
@@ -329,15 +329,15 @@ namespace agora
       const std::string property_value = doe_info_parser.get("value");
 
       // assign the correct value
-      if (property_name.compare("number_point_per_dimension") == 0)
+      if (property_name.compare("number_configurations_per_iteration") == 0)
       {
-        description.number_point_per_dimension = property_value;
+        description.number_configurations_per_iteration = property_value;
       }
       else
       {
-        if (property_name.compare("number_observations_per_point") == 0)
+        if (property_name.compare("number_observations_per_configuration") == 0)
         {
-          description.number_observations_per_point = property_value;
+          description.number_observations_per_configuration = property_value;
         }
         else
         {
@@ -347,19 +347,54 @@ namespace agora
           }
           else
           {
-            if (property_name.compare("minimum_distance") == 0)
+            if (property_name.compare("max_number_iteration") == 0)
             {
-              description.minimum_distance = property_value;
+              description.max_number_iteration = property_value;
             }
             else
             {
-              if (property_name.compare("doe_limits") == 0)
+              if (property_name.compare("max_mae") == 0)
               {
-                description.doe_limits = property_value;
+                description.max_mae = property_value;
               }
               else
               {
-                warning("Csv manager: unknown doe property \"" + property_name + "\" with value \"" + property_value + "\"");
+                if (property_name.compare("min_r2") == 0)
+                {
+                  description.min_r2 = property_value;
+                }
+                else
+                {
+                  if (property_name.compare("validation_split") == 0)
+                  {
+                    description.validation_split = property_value;
+                  }
+                  else
+                  {
+                    if (property_name.compare("k_value") == 0)
+                    {
+                      description.k_value = property_value;
+                    }
+                    else
+                    {
+                      if (property_name.compare("minimum_distance") == 0)
+                      {
+                        description.minimum_distance = property_value;
+                      }
+                      else
+                      {
+                        if (property_name.compare("doe_limits") == 0)
+                        {
+                          description.doe_limits = property_value;
+                        }
+                        else
+                        {
+                          warning("Csv manager: unknown doe property \"" + property_name + "\" with value \"" + property_value + "\"");
+                        }
+                      }
+                    }
+                  }
+                }
               }
             }
           }
@@ -368,7 +403,7 @@ namespace agora
     }
 
     // check if everything is correct and return the description
-    return !(description.number_point_per_dimension.empty() || description.number_observations_per_point.empty() || description.doe_name.empty() ||
+    return !(description.number_configurations_per_iteration.empty() || description.number_observations_per_configuration.empty() || description.doe_name.empty() ||
              description.minimum_distance.empty()) ? description : application_description_t{};
   }
 

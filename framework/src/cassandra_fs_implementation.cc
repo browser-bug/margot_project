@@ -1093,15 +1093,15 @@ application_description_t CassandraClient::load_description( const std::string& 
         const std::string property_value(field_value_s, lenght_output_string);
 
         // parse the property of the doe to update the description table
-        if (property_name.compare("number_point_per_dimension") == 0)
+        if (property_name.compare("number_configurations_per_iteration") == 0)
         {
-          description.number_point_per_dimension = property_value;
+          description.number_configurations_per_iteration = property_value;
         }
         else
         {
-          if (property_name.compare("number_observations_per_point") == 0)
+          if (property_name.compare("number_observations_per_configuration") == 0)
           {
-            description.number_observations_per_point = property_value;
+            description.number_observations_per_configuration = property_value;
           }
           else
           {
@@ -1111,63 +1111,49 @@ application_description_t CassandraClient::load_description( const std::string& 
             }
             else
             {
-              if (property_name.compare("number_configurations_per_iteration") == 0)
+              if (property_name.compare("max_number_iteration") == 0)
               {
-                description.number_configurations_per_iteration = property_value;
+                description.max_number_iteration = property_value;
               }
               else
               {
-                if (property_name.compare("number_observations_per_configuration") == 0)
+                if (property_name.compare("max_mae") == 0)
                 {
-                  description.number_observations_per_configuration = property_value;
+                  description.max_mae = property_value;
                 }
                 else
                 {
-                  if (property_name.compare("max_number_iteration") == 0)
+                  if (property_name.compare("min_r2") == 0)
                   {
-                    description.max_number_iteration = property_value;
+                    description.min_r2 = property_value;
                   }
                   else
                   {
-                    if (property_name.compare("max_mae") == 0)
+                    if (property_name.compare("validation_split") == 0)
                     {
-                      description.max_mae = property_value;
+                      description.validation_split = property_value;
                     }
                     else
                     {
-                      if (property_name.compare("min_r2") == 0)
+                      if (property_name.compare("k_value") == 0)
                       {
-                        description.min_r2 = property_value;
+                        description.k_value = property_value;
                       }
                       else
                       {
-                        if (property_name.compare("validation_split") == 0)
+                        if (property_name.compare("minimum_distance") == 0)
                         {
-                          description.validation_split = property_value;
+                          description.minimum_distance = property_value;
                         }
                         else
                         {
-                          if (property_name.compare("k_value") == 0)
+                          if (property_name.compare("doe_limits") == 0 )
                           {
-                            description.k_value = property_value;
+                            description.doe_limits = property_value;
                           }
                           else
                           {
-                            if (property_name.compare("minimum_distance") == 0)
-                            {
-                              description.minimum_distance = property_value;
-                            }
-                            else
-                            {
-                              if (property_name.compare("doe_limits") == 0 )
-                              {
-                                description.doe_limits = property_value;
-                              }
-                              else
-                              {
-                                warning("Cassandra client: unknown doe property \"" + property_name + "\" with value \"" + property_value + "\"");
-                              }
-                            }
+                            warning("Cassandra client: unknown doe property \"" + property_name + "\" with value \"" + property_value + "\"");
                           }
                         }
                       }
@@ -1192,6 +1178,6 @@ application_description_t CassandraClient::load_description( const std::string& 
   const std::string query = "SELECT * FROM " + get_doe_info_name(application_name) + ";";
   execute_query_synch(query, result_handler);
 
-  return !(description.number_point_per_dimension.empty() || description.number_observations_per_point.empty() || description.doe_name.empty() ||
+  return !(description.number_configurations_per_iteration.empty() || description.number_observations_per_configuration.empty() || description.doe_name.empty() ||
            description.minimum_distance.empty()) ? description : application_description_t{};
 }

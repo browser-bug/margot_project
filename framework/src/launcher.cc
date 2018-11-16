@@ -123,11 +123,9 @@ namespace agora
       config_file << "METRIC_NAME=\"" << metric_name << "\"" << std::endl;
       config_file << "METRIC_ROOT=\"" << plugin_root_path << "\"" << std::endl;
       config_file << "ITERATION_COUNTER=\"" << iteration_counter << "\"" << std::endl;
-      config_file << "NUMBER_POINT_PER_DIMENSION=\"" << application.number_point_per_dimension << "\"" << std::endl;
-      config_file << "NUMBER_OBSERVATIONS_PER_POINT=\"" << application.number_observations_per_point << "\"" << std::endl;
       config_file << "DOE_NAME=\"" << application.doe_name << "\"" << std::endl;
       config_file << "NUMBER_CONFIGURATIONS_PER_ITERATION=\"" << application.number_configurations_per_iteration << "\"" << std::endl;
-      config_file << "NUMBER_OBSERVATIONS_PER_POINT=\"" << application.number_observations_per_point << "\"" << std::endl;
+      config_file << "NUMBER_OBSERVATIONS_PER_CONFIGURATION=\"" << application.number_observations_per_configuration << "\"" << std::endl;
       config_file << "MAX_NUMBER_ITERATION=\"" << application.max_number_iteration << "\"" << std::endl;
       config_file << "MAX_MAE=\"" << application.max_mae << "\"" << std::endl;
       config_file << "MIN_R2=\"" << application.min_r2 << "\"" << std::endl;
