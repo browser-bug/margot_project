@@ -982,6 +982,20 @@ void CassandraClient::insert_trace_entry( const application_description_t& descr
   // get the names of the metrics for the query if provided, otherwise use all the metrics in the db
   const auto pos_slash = values.find_first_of('/', pos_second_coma + 1); // find the slash separator if present
 
+  // boolean variable to know whether or not the estimates are valid (not null) or "null"
+  // if they are "null" is because the client does not have the model (and thus the estimates) yet
+  bool null_estimates = false;
+
+  if (values.find("null") != std::string::npos)
+  {
+    null_estimates = true;
+  }
+
+  // to remove the last 5 chars of the ",null" word
+  if (null_estimates) {
+      values_lenght -= 5;
+  }
+
   if (pos_slash == std::string::npos)  // if no metric names provided
   {
     for ( const auto& metric : description.metrics ) // use all the metrics in the db
@@ -989,10 +1003,13 @@ void CassandraClient::insert_trace_entry( const application_description_t& descr
       fields.append(metric.name + ",");
     }
 
-    // repeat the cycle for the names of the attributes of the metrics estimates, prefixed by the "model_" prefix
-    for ( const auto& metric : description.metrics ) // use all the metrics in the db
+    if (!null_estimates)
     {
-      fields.append("model_" + metric.name + ",");
+      // repeat the cycle for the names of the attributes of the metrics estimates, prefixed by the "model_" prefix
+      for ( const auto& metric : description.metrics ) // use all the metrics in the db
+      {
+        fields.append("model_" + metric.name + ",");
+      }
     }
 
     // remove the last comma from the field list
@@ -1002,35 +1019,39 @@ void CassandraClient::insert_trace_entry( const application_description_t& descr
   {
     // append just the names of the metrics currently enabled for which we have a value
     fields.append(values.substr((pos_slash + 1), std::string::npos));
-    fields.append(",");
 
-    // repeat the same as above for the metrics estimates for the model used
-    // we have all the estimates theoretically "free of charge" in the model, but margot only passes the estimates for the enabled metrics
-    std::string temp_string = "model_" + values.substr((pos_slash + 1), std::string::npos);
-
-    // replace all the occurrences of "," inside the temporary string above with ",model_"
-    // to adapt the names of the enabled metrics to the names of the attributes for the estimates in the table
-    std::string metric_estimates;
-    metric_estimates.reserve(temp_string.length());  // avoids a few memory allocations
-
-    std::string::size_type lastPos = 0;
-    std::string::size_type findPos;
-
-    // while an occurrence of ',' is found
-    while (std::string::npos != (findPos = temp_string.find(",", lastPos)))
+    if (!null_estimates)
     {
-      // append whathever is before the ',' in the new string
-      metric_estimates.append(temp_string, lastPos, findPos - lastPos);
-      // replace the ',' with ",model_"
-      metric_estimates += ",model_";
-      // increase the current search index of 1, the size of the comma just analyzed
-      lastPos = findPos + 1;
+      fields.append(",");
+
+      // repeat the same as above for the metrics estimates for the model used
+      // we have all the estimates theoretically "free of charge" in the model, but margot only passes the estimates for the enabled metrics
+      std::string temp_string = "model_" + values.substr((pos_slash + 1), std::string::npos);
+
+      // replace all the occurrences of "," inside the temporary string above with ",model_"
+      // to adapt the names of the enabled metrics to the names of the attributes for the estimates in the table
+      std::string metric_estimates;
+      metric_estimates.reserve(temp_string.length());  // avoids a few memory allocations
+
+      std::string::size_type lastPos = 0;
+      std::string::size_type findPos;
+
+      // while an occurrence of ',' is found
+      while (std::string::npos != (findPos = temp_string.find(",", lastPos)))
+      {
+        // append whathever is before the ',' in the new string
+        metric_estimates.append(temp_string, lastPos, findPos - lastPos);
+        // replace the ',' with ",model_"
+        metric_estimates += ",model_";
+        // increase the current search index of 1, the size of the comma just analyzed
+        lastPos = findPos + 1;
+      }
+
+      // Care for the rest after last occurrence
+      metric_estimates += temp_string.substr(lastPos);
+
+      fields.append(metric_estimates);
     }
-
-    // Care for the rest after last occurrence
-    metric_estimates += temp_string.substr(lastPos);
-
-    fields.append(metric_estimates);
 
     values_lenght = values_lenght - (values.length() - pos_slash); // update the length of the final actual data of the "values" string "cutting" away the metric names
   }

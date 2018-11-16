@@ -449,6 +449,9 @@ def generate_block_body( block_model, op_lists, cc ):
         # use the same technique of join also for the currently enabled metric names
         metric_names = ' + "," + '.join(metric_name_list)
 
+        # at run-time condition: if the client has the model then send the predictions used for the current run
+        cc.write('\t\t\t\tif (manager.has_model()) {\n')
+
         # use the same technique of join also for the currently enabled metric predictions
         metric_predictions = ' + "," + '.join(metric_prediction_list)
 
@@ -460,7 +463,26 @@ def generate_block_body( block_model, op_lists, cc ):
             send_string = ' + " " + '.join([knob_string, feature_string, metric_string, metric_predictions, metric_names])
         else:
             send_string = ' + " " + '.join([knob_string, metric_string, metric_predictions, metric_names])
-        cc.write('\t\t\t\tmanager.send_observation({0},{1});\n'.format(send_string,send_beholder_string))
+        cc.write('\t\t\t\t\tmanager.send_observation({0},{1});\n'.format(send_string,send_beholder_string))
+
+        # else send a "null" in place of the predictions
+        cc.write('\t\t\t\t} else {\n')
+
+        # use the same technique of join also for the currently enabled metric predictions
+        metric_predictions = "\"null\""
+
+        #build the message for the beholder
+        send_beholder_string = ' + " " + '.join([metric_names, metric_string, metric_predictions])
+
+        # append also the metric names to the message that will be sent to agora
+        if feature_terms:
+            send_string = ' + " " + '.join([knob_string, feature_string, metric_string, metric_predictions, metric_names])
+        else:
+            send_string = ' + " " + '.join([knob_string, metric_string, metric_predictions, metric_names])
+        cc.write('\t\t\t\t\tmanager.send_observation({0},{1});\n'.format(send_string,send_beholder_string))
+
+        # end of the run-time condition
+        cc.write('\t\t\t\t}\n')
 
     #if we are in training and we expect a return value for all the monitors, then we behave as if all the monitors are always enabled (else below)
     cc.write('\t\t\t} else {\n')
@@ -511,6 +533,9 @@ def generate_block_body( block_model, op_lists, cc ):
         # use the same technique of join also for the currently enabled metric names
         metric_names = ' + "," + '.join(metric_name_list)
 
+        # at run-time condition: if the client has the model then send the predictions used for the current run
+        cc.write('\t\t\t\tif (manager.has_model()) {\n')
+
         # use the same technique of join also for the currently enabled metric predictions
         metric_predictions = ' + "," + '.join(metric_prediction_list)
 
@@ -521,7 +546,27 @@ def generate_block_body( block_model, op_lists, cc ):
             send_string = ' + " " + '.join([knob_string, feature_string, metric_string, metric_predictions])
         else:
             send_string = ' + " " + '.join([knob_string, metric_string, metric_predictions])
-        cc.write('\t\t\t\tmanager.send_observation({0},{1});\n'.format(send_string,send_beholder_string))
+        cc.write('\t\t\t\t\tmanager.send_observation({0},{1});\n'.format(send_string,send_beholder_string))
+
+        # else send a "null" in place of the predictions
+        cc.write('\t\t\t\t} else {\n')
+
+        # use the same technique of join also for the currently enabled metric predictions
+        metric_predictions = "\"null\""
+
+        #build the message for the beholder
+        send_beholder_string = ' + " " + '.join([metric_names, metric_string, metric_predictions])
+
+        # append also the metric names to the message that will be sent to agora
+        if feature_terms:
+            send_string = ' + " " + '.join([knob_string, feature_string, metric_string, metric_predictions, metric_names])
+        else:
+            send_string = ' + " " + '.join([knob_string, metric_string, metric_predictions, metric_names])
+        cc.write('\t\t\t\t\tmanager.send_observation({0},{1});\n'.format(send_string,send_beholder_string))
+
+        # end of the run-time condition
+        cc.write('\t\t\t\t}\n')
+
     cc.write('\t\t\t}')
   # version if all the monitors are always enabled
   else:
@@ -572,6 +617,9 @@ def generate_block_body( block_model, op_lists, cc ):
         # use the same technique of join also for the currently enabled metric names
         metric_names = ' + "," + '.join(metric_name_list)
 
+        # at run-time condition: if the client has the model then send the predictions used for the current run
+        cc.write('\t\t\tif (manager.has_model()) {\n')
+
         # use the same technique of join also for the currently enabled metric predictions
         metric_predictions = ' + "," + '.join(metric_prediction_list)
 
@@ -582,7 +630,26 @@ def generate_block_body( block_model, op_lists, cc ):
             send_string = ' + " " + '.join([knob_string, feature_string, metric_string, metric_predictions])
         else:
             send_string = ' + " " + '.join([knob_string, metric_string, metric_predictions])
-        cc.write('\t\t\tmanager.send_observation({0},{1});\n'.format(send_string,send_beholder_string))
+        cc.write('\t\t\t\tmanager.send_observation({0},{1});\n'.format(send_string,send_beholder_string))
+
+        # else send a "null" in place of the predictions
+        cc.write('\t\t\t\t} else {\n')
+
+        # use the same technique of join also for the currently enabled metric predictions
+        metric_predictions = "\"null\""
+
+        #build the message for the beholder
+        send_beholder_string = ' + " " + '.join([metric_names, metric_string, metric_predictions])
+
+        # append also the metric names to the message that will be sent to agora
+        if feature_terms:
+            send_string = ' + " " + '.join([knob_string, feature_string, metric_string, metric_predictions, metric_names])
+        else:
+            send_string = ' + " " + '.join([knob_string, metric_string, metric_predictions, metric_names])
+        cc.write('\t\t\t\tmanager.send_observation({0},{1});\n'.format(send_string,send_beholder_string))
+
+        # end of the run-time condition
+        cc.write('\t\t\t}\n')
 
   cc.write('\n')
   cc.write('\t\t}\n')
