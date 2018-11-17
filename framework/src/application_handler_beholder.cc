@@ -228,7 +228,7 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
 
   // STEP 2 of CDT: analysis with granularity on the single client
 
-
+  // UNLOCK the guard because we are accessing the db????
 
   // if need to start the step 2 of CDT:
   if (true /* status == ApplicationStatus::COMPUTING */)
@@ -274,7 +274,7 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
       std::unordered_map<std::string, std::vector<float>> client_residuals_map;
       //observations_list = agora::io::storage.load_client_observations(description.application_name, "alberto_Surface_Pro_2_6205");
       observations_list = agora::io::storage.load_client_observations(description.application_name, i);
-      agora::debug("Printing the observed values for client ", i, ": ", observations_list[0]);
+      agora::debug("\nParsing the trace for client ", i);
 
       // NB: here I could choose to avoid iterating over some possibly already blacklisted
       // clients. Of course in this case I should check whether the element iterator already
@@ -289,6 +289,8 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
       // cycle over each row j of the trace for each client i (for the current application)
       for (auto j : observations_list)
       {
+
+        agora::debug("\nString from trace to be parsed: ", j);
         // TODO: parse the string. Taking into account the number of enabled metrics in the current observation.
         // we need to know which metric(s) we have to retrieve and compare with the model estimation
         std::string obs_client_id;
@@ -346,11 +348,109 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
           num_metrics--;
         }
 
+        num_metrics = description.metrics.size();
 
-        // TODO: retrieve the model estimation for the current observation
+        // variable to understand if the current row from trace was from a training phase
+        // It would have all the estimates to "N/A"
+        // In that case the current row in analysis can be discarded because there is way
+        // of computing the residuals. In the beholder we validate the model, thus the estimates...
+        bool is_training_row = true;
 
-        // TODO: compare the observed metrics with the respective estimations
-        // and insert in the client residual map.
+        while ( num_metrics > 0 )
+        {
+          std::string current_estimate;
+          str_observation >> current_estimate;
+
+          // if there is at least an estimate different from "N/A" then the current row is not from
+          // training and can be used in the CDT analysis for the residuals.
+          if ((current_estimate != "N/A") || (!is_training_row))
+          {
+            is_training_row = false;
+          }
+
+          obs_estimates.emplace_back(current_estimate);
+          agora::debug("Estimate parsed: ", current_estimate);
+          num_metrics--;
+        }
+
+        // Check if we have consistency in the quantity of measures parsed,
+        // i.e. if the vector of metric names is as big as the one of the observed metrics and is the same size as the number of metrics for the current application
+        if ((obs_metrics.size() != obs_estimates.size()) || (obs_metrics.size() != description.metrics.size()))
+        {
+          agora::info("Error in the parsed observation, mismatch in the number of fields.");
+          return;
+        }
+
+        // if the current row from trace is from a training phase discard this row and go to the next;
+        if (is_training_row)
+        {
+          agora::debug("Discarding current row because it was from a training phase");
+          continue;
+        }
+
+        // Insert the residuals in the right residual maps structure
+        // In this phase I have not the information about the names of the metrics from the trace
+        // But I parsed them all, and I know they are inserted in the trace in alphabetical order
+        // according to "description.metrics". So basically I know which metric is the first one
+        // (and which estimate is the first one), which is the second one...
+        // I kept the same map structure of the residuals computation for the 1st step of CDT
+        // but theoretically here I know that I just have a certain number of metrics and where
+        // to position them. I could have build a different structure, a simpler one.
+        // As of now I chose to maintain the mapping to have the metric name built in the structure.
+        for (auto index = 0; index < description.metrics.size(); index++)
+        {
+          // Check whether the metric in analysis was available or if it was a disabled one-->"null" in trace-->parsed as "N/A"
+          if (obs_estimates[index] == "N/A")
+          {
+            // for the current version, if a metric is disabled its corresponding prediction must be disable too
+            if (obs_metrics[index] == "N/A")
+            {
+              // skip the comparison on this metric between it was not enabled
+              continue;
+            }
+            else
+            {
+              agora::info("Error in the parsed observation, mismatch between the observed and predicted metric.");
+              return;
+            }
+          }
+          // to catch the case in which the estimate was null but the metric was present. Theoretically impossible by design.
+          else if (obs_metrics[index] == "N/A")
+          {
+            agora::info("Error in the parsed observation, mismatch between the observed and predicted metric.");
+            return;
+          }
+
+          // if we arrive here then the parsed metric should be valid (one of the enabled ones at least)
+
+          // NB: note that the residual is computed with abs()!!
+          // TODO: is this correct?
+          auto current_residual = abs(std::stof(obs_estimates[index]) - std::stof(obs_metrics[index]));
+          agora::debug("Current residual for metric ", description.metrics[index].name, " is: ", current_residual);
+
+          auto search = client_residuals_map.find(description.metrics[index].name);
+
+          if (search != client_residuals_map.end())
+          {
+            agora::debug("metric ", description.metrics[index].name, " already present, filling buffer");
+            // metric already present, need to add to the buffer the new residual
+            search->second.emplace_back(current_residual);
+          }
+          else
+          {
+            agora::debug("creation of buffer for metric and first insertion: ", description.metrics[index].name);
+            // need to create the mapping for the current metric. It's the first time you meet this metric
+            std::vector<float> temp_vector;
+            temp_vector.emplace_back(current_residual);
+            client_residuals_map.emplace(description.metrics[index].name, temp_vector);
+          }
+        }
+
+        // TODO: Execute the 2nd step of CDT: hypothesis TEST
+
+
+        // Once I know what the outcome of the hypothesis TEST is,
+        // Shoould I re-gain the lock of the guard to "end" the decisions about this application? The following stuff...
 
         // according to the quality (GOOD/BAD) of the currently analyzed client, enqueue it in the good/bad_clients_list
         if (false /* client is bad */)
