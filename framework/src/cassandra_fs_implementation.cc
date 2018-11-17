@@ -992,8 +992,9 @@ void CassandraClient::insert_trace_entry( const application_description_t& descr
   }
 
   // to remove the last 5 chars of the ",null" word
-  if (null_estimates) {
-      values_lenght -= 5;
+  if (null_estimates)
+  {
+    values_lenght -= 5;
   }
 
   if (pos_slash == std::string::npos)  // if no metric names provided

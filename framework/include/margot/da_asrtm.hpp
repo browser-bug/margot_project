@@ -945,6 +945,34 @@ namespace margot
        *
        * @see Asrtm
        */
+      inline void send_observation( const std::string& measures)
+      {
+        std::lock_guard< std::mutex > lock(asrtm_mutex);
+
+        // get the timestamp of now
+        auto now = std::chrono::system_clock::now();
+
+        // convert the measure in seconds since epoch and
+        // nanosec since second
+        const auto sec_since_now = std::chrono::duration_cast< std::chrono::seconds >(now.time_since_epoch());
+        const auto almost_epoch = now - sec_since_now;
+        const auto ns_since_sec = std::chrono::duration_cast< std::chrono::nanoseconds >(almost_epoch.time_since_epoch());
+
+        // send the message
+        remote.send_message({{"margot/" + application_name + "/observation"}, std::to_string(sec_since_now.count()) + ","
+          + std::to_string(ns_since_sec.count()) + " "
+          + remote.get_my_client_id() + " "
+          + measures
+        });
+      }
+
+      /**
+       * @brief Send an observation to the agora and beholder respective remote application handlers
+       *
+       * @param [in] measures The behavior of the application
+       *
+       * @see Asrtm
+       */
       inline void send_observation( const std::string& measures, const std::string& beholder_measures )
       {
         std::lock_guard< std::mutex > lock(asrtm_mutex);

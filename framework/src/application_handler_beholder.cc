@@ -100,10 +100,6 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
   //   stream >> features;
   // }
 
-  // gets the name of the fields of the metric to be filled in (if any, if empty fills in all the metrics of the table normally)
-  stream >> metric_fields;
-  agora::debug("metric_fields: ", metric_fields);
-
   // gets the observed values
   stream >> metrics;
   agora::debug("metrics: ", metrics);
@@ -111,6 +107,11 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
   // gets the model values
   stream >> estimates;
   agora::debug("estimates: ", estimates );
+
+  // gets the name of the fields of the metric to be filled in
+  // NB: note that the beholder observation message always contains the metric names, also when all the metrics are enabled.
+  stream >> metric_fields;
+  agora::debug("metric_fields: ", metric_fields);
 
   // append the coma to connect the different the features with the metrics
   // if (!features.empty())
@@ -178,10 +179,14 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
   // this is a critical section
   guard.lock();
 
-  // Insert the residuals in the right buffers according to the metric namespace
+  // Insert the residuals in the right buffers according to the metric name
   for (auto index = 0; index < metric_fields_vec.size(); index++)
   {
-    auto current_residual = estimates_vec[index] - metrics_vec[index];
+    // NB: note that the residual is computed with abs()!!
+    // TODO: is this correct?
+    auto current_residual = abs(estimates_vec[index] - metrics_vec[index]);
+    agora::debug("Current residual for metric ", metric_fields_vec[index], " is: ", current_residual);
+
     auto search = residuals_map.find(metric_fields_vec[index]);
 
     if (search != residuals_map.end())
@@ -210,7 +215,7 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
     {
       agora::pedantic("Buffer for metric ", i.first, " filled in, starting CDT on the current window.");
 
-      // TODO start computation for CDT
+      // TODO: start computation for CDT
 
       // TODO at the end of the CDT, empty the filled-in buffer.
       i.second.clear();
@@ -223,126 +228,145 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
 
   // STEP 2 of CDT: analysis with granularity on the single client
 
-  // to store the observations belonging to a pair application-client_name_t
-  observations_list_t observations_list;
 
-  // store the list of clients working on the application_name
-  application_list_t clients_list;
 
-  // store the list of good-enough clients
-  application_list_t good_clients_list;
-
-  // store the list of bad clients for the current observation (not yet blacklisted)
-  application_list_t bad_clients_list;
-
+  // if need to start the step 2 of CDT:
   if (true /* status == ApplicationStatus::COMPUTING */)
   {
+
+    // to store the observations belonging to a pair application-client_name_t
+    observations_list_t observations_list;
+
+    // store the list of clients working on the application_name
+    application_list_t clients_list;
+
+    // store the list of good-enough clients
+    application_list_t good_clients_list;
+
+    // store the list of bad clients for the current observation (not yet blacklisted)
+    application_list_t bad_clients_list;
+
     // DB QUERY TEST: query to retrieve all the distinct clients which are running a specif application
     // to be performed in case of positive CDT, for the second level hypothesis test.
     clients_list = agora::io::storage.load_clients(description.application_name);
-    // for (auto i: clients_list){
-    //   agora::debug("Client list without duplicates: ", i);
-    // }
 
-    // DB QUERY TEST: query to retrieve all the observations for a pair application-client_name
-    // for (auto i: clients_list){
-    //     observations_list = agora::io::storage.load_client_observations(description.application_name, i);
-    //
-    //     // Second level hypothesis test on client-specific observations_list
-    //     // Here you basically choose whether each client is bad or not.
-    //     // create a counter system for good, bad clients, so that you can choose, at the end of this cycle
-    //     // if the number of bad clients is above the predefined threshold and act accordingly
-    //     // either blacklisting or trigger re-training or nothing
-    // }
-
-    // TODO: this is a test with just one row. Later on wrap this (the following) in a for loop to scan every row.
-    // so instead of observations_list[0] there should be observations_list[i]
-    std::unordered_map<std::string, std::vector<float>> client_residuals_map;
-    observations_list = agora::io::storage.load_client_observations(description.application_name, "alberto_Surface_Pro_2_9914");
-    agora::debug("Printing the observed values for client alberto_Surface_Pro_2_13142: ", observations_list[0]);
-
-    // NB: here I could choose to avoid iterating over some possibly already blacklisted
-    // clients. Of course in this case I should check whether the element iterator already
-    // belongs in the blacklist like this:
-    // if (clients_blacklist.count(i) == 1) {
-    //     continue;  // this sould continue the iterator "i"
-    // }
-    // But pay attention, then I need to change the way I compute the bad clients percentage
-    // below, in particular I need to add the already blacklisted clients, then it becomes:
-    // float bad_clients_percentage = (((bad_clients_list.size() + clients_blacklist.size()) / clients_list.size())*100);
-
-    // TODO: parse the string. Taking into account the number of enabled metrics in the current observation.
-    // we need to know which metric(s) we have to retrieve and compare with the model estimation
-    std::string obs_client_id;
-    std::vector <std::string> obs_timestamp;
-    std::vector <std::string> obs_configuration;
-    std::vector <std::string> obs_features;
-    std::vector <std::string> obs_metrics;
-    std::vector <std::string> obs_estimates;
-
-    std::vector<std::string> metric_fields_vec;
-    std::stringstream str_observation(observations_list[0]);
-
-    std::string current_date;
-    str_observation >> current_date;
-    std::string current_time;
-    str_observation >> current_time;
-    obs_timestamp.emplace_back(current_date);
-    obs_timestamp.emplace_back(current_time);
-    agora::debug("Date parsed: ", obs_timestamp[0]);
-    agora::debug("Time parsed: ", obs_timestamp[1]);
-
-    str_observation >> obs_client_id;
-    agora::debug("Client_id parsed: ", obs_client_id);
-
-    int num_knobs = description.knobs.size();
-
-    while ( num_knobs > 0 )
+    for (auto i : clients_list)
     {
-      std::string current_knob;
-      str_observation >> current_knob;
-      obs_configuration.emplace_back(current_knob);
-      agora::debug("Knob parsed: ", current_knob);
-      num_knobs--;
+      agora::debug("Client list without duplicates: ", i);
     }
 
-    int num_features = description.features.size();
-
-    while ( num_features > 0 )
+    // cycle over all the clients of the specific application
+    for (auto i : clients_list)
     {
-      std::string current_feature;
-      str_observation >> current_feature;
-      obs_features.emplace_back(current_feature);
-      agora::debug("Feature parsed: ", current_feature);
-      num_features--;
+      // DB QUERY TEST: query to retrieve all the observations for a pair application-client_name
+      // for (auto i: clients_list){
+      //     observations_list = agora::io::storage.load_client_observations(description.application_name, i);
+      //
+      //     // Second level hypothesis test on client-specific observations_list
+      //     // Here you basically choose whether each client is bad or not.
+      //     // create a counter system for good, bad clients, so that you can choose, at the end of this cycle
+      //     // if the number of bad clients is above the predefined threshold and act accordingly
+      //     // either blacklisting or trigger re-training or nothing
+      // }
+
+      // TODO: this is a test with just one row. Later on wrap this (the following) in a for loop to scan every row.
+      // so instead of observations_list[0] there should be observations_list[i]
+      std::unordered_map<std::string, std::vector<float>> client_residuals_map;
+      //observations_list = agora::io::storage.load_client_observations(description.application_name, "alberto_Surface_Pro_2_6205");
+      observations_list = agora::io::storage.load_client_observations(description.application_name, i);
+      agora::debug("Printing the observed values for client ", i, ": ", observations_list[0]);
+
+      // NB: here I could choose to avoid iterating over some possibly already blacklisted
+      // clients. Of course in this case I should check whether the element iterator already
+      // belongs in the blacklist like this:
+      // if (clients_blacklist.count(i) == 1) {
+      //     continue;  // this sould continue the iterator "i"
+      // }
+      // But pay attention, then I need to change the way I compute the bad clients percentage
+      // below, in particular I need to add the already blacklisted clients, then it becomes:
+      // float bad_clients_percentage = (((bad_clients_list.size() + clients_blacklist.size()) / clients_list.size())*100);
+
+      // cycle over each row j of the trace for each client i (for the current application)
+      for (auto j : observations_list)
+      {
+        // TODO: parse the string. Taking into account the number of enabled metrics in the current observation.
+        // we need to know which metric(s) we have to retrieve and compare with the model estimation
+        std::string obs_client_id;
+        std::vector <std::string> obs_timestamp;
+        std::vector <std::string> obs_configuration;
+        std::vector <std::string> obs_features;
+        std::vector <std::string> obs_metrics;
+        std::vector <std::string> obs_estimates;
+
+        std::vector<std::string> metric_fields_vec;
+        std::stringstream str_observation(j);
+
+        std::string current_date;
+        str_observation >> current_date;
+        std::string current_time;
+        str_observation >> current_time;
+        obs_timestamp.emplace_back(current_date);
+        obs_timestamp.emplace_back(current_time);
+        agora::debug("Date parsed: ", obs_timestamp[0]);
+        agora::debug("Time parsed: ", obs_timestamp[1]);
+
+        str_observation >> obs_client_id;
+        agora::debug("Client_id parsed: ", obs_client_id);
+
+        int num_knobs = description.knobs.size();
+
+        while ( num_knobs > 0 )
+        {
+          std::string current_knob;
+          str_observation >> current_knob;
+          obs_configuration.emplace_back(current_knob);
+          agora::debug("Knob parsed: ", current_knob);
+          num_knobs--;
+        }
+
+        int num_features = description.features.size();
+
+        while ( num_features > 0 )
+        {
+          std::string current_feature;
+          str_observation >> current_feature;
+          obs_features.emplace_back(current_feature);
+          agora::debug("Feature parsed: ", current_feature);
+          num_features--;
+        }
+
+        int num_metrics = description.metrics.size();
+
+        while ( num_metrics > 0 )
+        {
+          std::string current_metric;
+          str_observation >> current_metric;
+          obs_metrics.emplace_back(current_metric);
+          agora::debug("Metrics parsed: ", current_metric);
+          num_metrics--;
+        }
+
+
+        // TODO: retrieve the model estimation for the current observation
+
+        // TODO: compare the observed metrics with the respective estimations
+        // and insert in the client residual map.
+
+        // according to the quality (GOOD/BAD) of the currently analyzed client, enqueue it in the good/bad_clients_list
+        if (false /* client is bad */)
+        {
+          // bad_clients_list.emplace(/*client_name*/);
+        }
+        else
+        {
+          // good_clients_list.emplace(/*client_name*/);
+        }
+
+      }
+
     }
 
-    int num_metrics = description.metrics.size();
 
-    while ( num_metrics > 0 )
-    {
-      std::string current_metric;
-      str_observation >> current_metric;
-      obs_features.emplace_back(current_metric);
-      agora::debug("Metrics parsed: ", current_metric);
-      num_metrics--;
-    }
-
-
-    // TODO: retrieve the model estimation for the current observation
-
-    // TODO: compare the observed metrics with the respective estimations
-    // and insert in the client residual map.
-
-    // according to the quality (GOOD/BAD) of the currently analyzed client, enqueue it in the good/bad_clients_list
-    if (false /* client is bad */)
-    {
-      // bad_clients_list.emplace(/*client_name*/);
-    }
-    else
-    {
-      // good_clients_list.emplace(/*client_name*/);
-    }
 
     // compute the percentage of bad clients and compare it wrt the predefined threshold
     float bad_clients_percentage = ((bad_clients_list.size() / clients_list.size()) * 100);

@@ -1061,6 +1061,42 @@ namespace margot
        *    - <metrics>: "value_m_1,value_m_2,value_m_n"
        * If there are no features, they might be omitted
        */
+      inline void send_observation( const std::string& measures)
+      {
+        std::lock_guard< std::mutex > lock(manager_mutex);
+
+        // get the timestamp of now
+        auto now = std::chrono::system_clock::now();
+
+        // convert the measure in seconds since epoch and
+        // nanosec since second
+        const auto sec_since_now = std::chrono::duration_cast< std::chrono::seconds >(now.time_since_epoch());
+        const auto almost_epoch = now - sec_since_now;
+        const auto ns_since_sec = std::chrono::duration_cast< std::chrono::nanoseconds >(almost_epoch.time_since_epoch());
+
+        // send the message to agorà
+        remote.send_message({{"margot/" + application_name + "/observation"}, std::to_string(sec_since_now.count()) + ","
+          + std::to_string(ns_since_sec.count()) + " "
+          + remote.get_my_client_id() + " "
+          + measures
+        });
+      }
+
+      /**
+       * @brief Send an observation to the agora and beholder respective remote application handlers
+       *
+       * @param [in] measures The behavior of the application
+       *
+       * @details
+       * This methods sends to the agora remote application handler the current
+       * observation of the performance of the application.
+       * In particular, the parameter must be composed as following:
+       *    - Global structure: "<knobs> <features> <metrics>"
+       *    - <knobs>: "value_knob_1,value_knob_2,value_knob_n"
+       *    - <features>: "value_f_1,value_f_2,value_f_n"
+       *    - <metrics>: "value_m_1,value_m_2,value_m_n"
+       * If there are no features, they might be omitted
+       */
       inline void send_observation( const std::string& measures, const std::string& beholder_measures )
       {
         std::lock_guard< std::mutex > lock(manager_mutex);
