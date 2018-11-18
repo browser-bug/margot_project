@@ -207,6 +207,7 @@ if (nconfiguration <= nfolds) {
 } else {
   holdout_set_size  <- min((nconfiguration - nfolds)/nconfiguration, holdout_set_size)
   holdout_nfolds <- floor(1/holdout_set_size)
+  if(holdout_nfolds > nfolds)holdout_nfolds <- nfolds
   holdout_folds <- cut(seq(1, nrow(configuration_df)), breaks = holdout_nfolds, labels = FALSE)
   configuration_df <- configuration_df[sample(nrow(configuration_df)), ]
 
@@ -305,8 +306,10 @@ if (storage_type == "CASSANDRA"){
   }
 } else if (storage_type == "CSV"){
   model_csv <- read_csv(model_container_name)
-  temp_df <- design_space_grid %>% mutate(!!str_c(metric_name, "_avg") := Y_final$fit)
-  temp_df <- temp_df %>% mutate(!!str_c(metric_name, "_std") := Y_final$sd)
+  metric_avg <- str_c(metric_name, "_avg")
+  metric_std <- str_c(metric_name, "_std")
+  temp_df <- design_space_grid %>% mutate(!!metric_avg := as.numeric(Y_final$fit))
+  temp_df <- temp_df %>% mutate(!!metric_std := as.numeric(Y_final$sd))
   model_csv <- model_csv %>% select(-!!str_c(metric_name, "_std"), -!!str_c(metric_name, "_avg"))
   model_csv <- inner_join(temp_df, model_csv)
   write.table(model_csv, file = model_container_name, col.names = TRUE, row.names = FALSE, sep = ",", dec = ".")

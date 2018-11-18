@@ -104,7 +104,8 @@ predict_selected_model <- function(model_name, model_fit, sub_cv_df, new_data, m
              unnest(pred_obs) %>%
              group_by(models) %>%
              mutate(grouped_id = row_number()) %>%
-             spread(key = models, value = pred_obs) %>%
+             select(models, pred_obs, grouped_id) %>%
+             spread(key = models, value = pred_obs, drop = TRUE) %>%
              select(-grouped_id) %>%
              magrittr::multiply_by(stacking_weights) %>%
              mutate(Y_fit = rowSums(.)) %>%
