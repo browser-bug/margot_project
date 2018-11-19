@@ -119,7 +119,7 @@ names(doe_design) <- knobs_names
 doe_names <- c(knobs_names, "counter")
 
 
-if(length(limits) > 0){
+if(!is.na(limits)){
   if(any(grepl("system", limits))){
     stop("Error: No funny plays with system calls through constraints evaluation are allowed. In case you did not meant to do system call, please do not use knobs with 'system' in it.")
   }
