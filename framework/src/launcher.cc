@@ -132,7 +132,10 @@ namespace agora
       config_file << "VALIDATION_SPLIT=\"" << application.validation_split << "\"" << std::endl;
       config_file << "K_VALUE=\"" << application.k_value << "\"" << std::endl;
       config_file << "MINIMUM_DISTANCE=\"" << application.minimum_distance << "\"" << std::endl;
-      config_file << "DOE_LIMITS=\"" << application.doe_limits << "\"" << std::endl;
+      if (!application.doe_limits.empty())
+      {
+        config_file << "DOE_LIMITS=\"" << application.doe_limits << "\"" << std::endl;
+      }
       config_file.close();
     }
 

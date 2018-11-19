@@ -1033,8 +1033,11 @@ void CassandraClient::store_description( const application_description_t& descri
                       description.k_value + "');");
   execute_query_synch("INSERT INTO " + table_name + " (property_name,value) VALUES ('minimum_distance','" +
                       description.minimum_distance + "');");
-  execute_query_synch("INSERT INTO " + table_name + " (property_name,value) VALUES ('doe_limits','" +
-                      description.doe_limits + "');");
+  if (!description.doe_limits.empty())
+  {
+    execute_query_synch("INSERT INTO " + table_name + " (property_name,value) VALUES ('doe_limits','" +
+                        description.doe_limits + "');");
+  }
 
   // store information about the knobs,features and metrics
   store_metrics(description.application_name, description.metrics);

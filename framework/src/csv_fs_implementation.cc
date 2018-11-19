@@ -240,7 +240,10 @@ namespace agora
       out << "validation_split," << description.validation_split << std::endl;
       out << "k_value," << description.k_value << std::endl;
       out << "minimum_distance," << description.minimum_distance << std::endl;
-      out << "doe_limits," << description.doe_limits << std::endl;
+      if (!description.doe_limits.empty())
+      {
+        out << "doe_limits," << description.doe_limits << std::endl;
+      }
     }
     else
     {
