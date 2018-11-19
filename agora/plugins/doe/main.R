@@ -50,8 +50,7 @@ print(paste("Started DOE plugin. Metric:", metric_name))
 # CREATE THE TABLES NAMES
 application_name <- gsub("/", "_", application_name)
 
-if (storage_type == "CASSANDRA")
-{
+if (storage_type == "CASSANDRA"){
   suppressMessages(suppressPackageStartupMessages(library("RJDBC")))  # connect to database using JDBC codecs
   
   knobs_container_name <- paste("margot.", application_name, "_knobs", sep = "")
@@ -79,8 +78,7 @@ if (storage_type == "CASSANDRA")
     features_names <- NULL
   }
   cat("Number of KNOBS: ", nknobs, "\nNumber of FEATURES: ", dim(features_names)[1])
-} else if (storage_type == "CSV")
-{
+} else if (storage_type == "CSV"){
   knobs_container_name <- paste(storage_address, "/", application_name, "_knobs.csv", sep = "")
   features_container_name <- paste(storage_address, "/", application_name, "_features.csv", sep = "")
   observation_container_name <- paste(storage_address, "/", application_name, "_trace.csv", sep = "")
@@ -91,19 +89,16 @@ if (storage_type == "CASSANDRA")
   features_names <- read.csv(features_container_name, stringsAsFactors = FALSE)$name
   
   nknobs <- length(knobs_names)
-  if (nknobs == 0)
-  {
+  if (nknobs == 0)  {
     stop("Error: no knobs found. Please specify the knobs.")
   }
-  if (length(features_names) == 0)
-  {
+  if (length(features_names) == 0)  {
     features_names <- NULL
   }
   cat("Number of KNOBS: ", nknobs, "\nNumber of FEATURES: ", dim(features_names)[1])
   
   conn <- NULL
-} else
-{
+} else{
   stop(paste("Error: uknown $STORAGE_TYPE ", storage_type, ". Please, select $STORAGE_TYPE=CASSANDRA.", sep = ""), call. = FALSE)
 }
 
@@ -124,7 +119,7 @@ names(doe_design) <- knobs_names
 doe_names <- c(knobs_names, "counter")
 
 
-if(!any(is.na(limits))){
+if(length(limits) > 0){
   if(any(grepl("system", limits))){
     stop("Error: No funny plays with system calls through constraints evaluation are allowed. In case you did not meant to do system call, please do not use knobs with 'system' in it.")
   }
@@ -151,11 +146,9 @@ if(!any(is.na(limits))){
 # AT THE MOMENT THERE MAY BE MORE THAN doe_obs_per_iter CONFIGURATION IN DOE AFTER FULL JOIN
 
 # ADD COUNTER COLUMN
-if (is.null(doe_design))
-{
+if (is.null(doe_design)){
   doe_design <- matrix(c(doe_design, rep(doe_obs_per_conf, length(doe_design))), ncol = 2)
-} else
-{
+} else{
   doe_design <- cbind(doe_design, doe_obs_per_conf)
 }
 
@@ -177,3 +170,4 @@ if (storage_type == "CASSANDRA")
 
 print("Wrote new DOE configurations")
 q(save = "no")
+
