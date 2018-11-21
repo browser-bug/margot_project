@@ -298,8 +298,6 @@ if(grepl("bagging", chosen_model)){
 if (storage_type == "CASSANDRA"){
   for (row.ind in 1:nrow(design_space_grid))
   {
-    # AGORA may not know the model was written if there are constraints...
-    # there will not be results for every combination
     set_columns <- str_c(c(knobs_names, str_c(metric_name, "_avg"), str_c(metric_name, "_std")), collapse = ", ")
     set_values <- str_c(cbind(design_space_grid, Y_final$fit, Y_final$sd)[row.ind, ], collapse = ", ")
     dbSendUpdate(conn, str_c("INSERT INTO ", model_container_name, "(", set_columns, ") VALUES (", set_values, ")"))

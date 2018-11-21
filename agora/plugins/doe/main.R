@@ -4,7 +4,7 @@ library("magrittr")
 
 options(scipen = 100)
 map_to_input = TRUE
-limits <- NA
+limits <- NULL
 
 ######################## GET THE ARGUMENTS ############################
 
@@ -67,17 +67,8 @@ if (storage_type == "CASSANDRA"){
   # READ CONFIGURATION FROM CASSANDRA
   knobs_names <- dbGetQuery(conn, paste("SELECT name FROM ", knobs_container_name, sep = ""))
   features_names <- dbGetQuery(conn, paste("SELECT name FROM ", features_container_name, sep = ""))
-  
-  nknobs <- dim(knobs_names)[1]
-  if (nknobs == 0)
-  {
-    stop("Error: no knobs found. Please specify the knobs.")
-  }
-  if (dim(features_names)[1] == 0)
-  {
-    features_names <- NULL
-  }
-  cat("Number of KNOBS: ", nknobs, "\nNumber of FEATURES: ", dim(features_names)[1])
+  metric_names <- dbGetQuery(conn, paste("SELECT * FROM ", features_container_name, sep = ""))
+  metric_names <- head(names(metric_names), -1)
 } else if (storage_type == "CSV"){
   knobs_container_name <- paste(storage_address, "/", application_name, "_knobs.csv", sep = "")
   features_container_name <- paste(storage_address, "/", application_name, "_features.csv", sep = "")
@@ -85,26 +76,28 @@ if (storage_type == "CASSANDRA"){
   model_container_name <- paste(storage_address, "/", application_name, "_model.csv", sep = "")
   doe_container_name <- paste(storage_address, "/", application_name, "_doe.csv", sep = "")
   
-  knobs_names <- read.csv(knobs_container_name, stringsAsFactors = FALSE)$name
-  features_names <- read.csv(features_container_name, stringsAsFactors = FALSE)$name
-  
-  nknobs <- length(knobs_names)
-  if (nknobs == 0)  {
-    stop("Error: no knobs found. Please specify the knobs.")
-  }
-  if (length(features_names) == 0)  {
-    features_names <- NULL
-  }
-  cat("Number of KNOBS: ", nknobs, "\nNumber of FEATURES: ", dim(features_names)[1])
+  knobs_names <- read_csv(knobs_container_name) %>% pull(name)
+  features_names <- read_csv(features_container_name) %>% pull(name)
+  metric_names <- head(names(read_csv(doe_container_name)), -1)
   
   conn <- NULL
 } else{
-  stop(paste("Error: uknown $STORAGE_TYPE ", storage_type, ". Please, select $STORAGE_TYPE=CASSANDRA.", sep = ""), call. = FALSE)
+  stop(paste("Error: uknown $STORAGE_TYPE ", storage_type, ". Please, select storage type CASSANDRA or CSV.", sep = ""), call. = FALSE)
 }
+
+nknobs <- length(knobs_names)
+if (nknobs == 0)  {
+  stop("Error: no knobs found. Please specify the knobs.")
+}
+if (length(features_names) == 0)  {
+  features_names <- NULL
+}
+
+writeLines(str_c("Number of KNOBS: ", nknobs, "\nNumber of FEATURES: ", dim(features_names)[1], if(is.null(features_names)){"0"}))
 
 ################################# PREPARE DOE OPTIONS #################################
 
-# MAKE NAMES LOWERCASE
+# MAKE NAMES LOWERCASE FOR CASSANDRA
 knobs_names <- sapply(knobs_names, tolower)
 
 # BEWARE does not account for the features !!!!!!  GET THE GRID CONFIGURATION
@@ -114,36 +107,7 @@ knobs_config_list <- get_knobs_config_list(storage_type, knobs_container_name, c
 doe_options <- list(nobs = doe_obs_per_iter, eps = doe_eps)
 
 ############################ CREATE DOE ############################
-doe_design <- create_doe(knobs_config_list, doe_options, map_to_input, algorithm = algorithm)
-names(doe_design) <- knobs_names
-doe_names <- c(knobs_names, "counter")
-
-
-if(!is.na(limits)){
-  if(any(grepl("system", limits))){
-    stop("Error: No funny plays with system calls through constraints evaluation are allowed. In case you did not meant to do system call, please do not use knobs with 'system' in it.")
-  }
-  discarded_designs <- doe_design
-  for(limit_iter in limits){
-    doe_design <- doe_design %>% filter(!!parse_quo(limit_iter, env = environment()))
-  }
-  discarded_designs <- discarded_designs %>% setdiff(doe_design)
-  while(nrow(doe_design) < nknobs * doe_obs_per_iter){
-    new_design <- create_doe(knobs_config_list, doe_options, map_to_input, algorithm = algorithm)
-    names(new_design) <- knobs_names
-    new_discarded_designs <- new_design
-    for(limit_iter in limits){
-      new_design <- new_design %>% filter(!!parse_quo(limit_iter, env = environment()))
-    }
-    new_discarded_designs <- new_discarded_designs %>% setdiff(new_design)
-    doe_design <- full_join(doe_design, new_design)
-    discarded_designs <- full_join(discarded_designs, new_discarded_designs)
-    # BREAK IF ALL THE POSSIBLE COMBINATIONS WERE EXPLORED
-    if(nrow(doe_design) + nrow(discarded_designs) == prod((map_dbl(knobs_config_list, function(x)length(x)))))break
-  }
-}
-
-# AT THE MOMENT THERE MAY BE MORE THAN doe_obs_per_iter CONFIGURATION IN DOE AFTER FULL JOIN
+doe_design <- create_doe(knobs_config_list, doe_options, knobs_names, model_container_name, metric_names, limits, algorithm, storage_type)
 
 # ADD COUNTER COLUMN
 if (is.null(doe_design)){
@@ -151,6 +115,9 @@ if (is.null(doe_design)){
 } else{
   doe_design <- cbind(doe_design, doe_obs_per_conf)
 }
+
+doe_names <- c(knobs_names, "counter")
+names(doe_design) <- doe_names
 
 ################################# WRITE DOE #################################
 
@@ -160,7 +127,6 @@ if (storage_type == "CASSANDRA")
   {
     set_columns <- paste(doe_names, sep = "", collapse = ", ")
     set_values <- paste(doe_design[row.ind, ], sep = "", collapse = ", ")
-    # set_statement <- paste(doe_names, ' = ', doe_design[row.ind, ], sep = '', collapse = ', ')
     dbSendUpdate(conn, paste("INSERT INTO ", doe_container_name, "(", set_columns, ") VALUES (", set_values, ")", sep = ""))
   }
 } else if (storage_type == "CSV")
