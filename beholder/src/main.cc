@@ -83,6 +83,8 @@ void print_usage( void )
   std::cout << "--------------------------------------------------------------------------------" << std::endl;
   std::cout << " --window_size <int>            The number of observations that fit in a single window of samples" << std::endl;
   std::cout << "                                DEFAULT = \"20\"" << std::endl;
+  std::cout << " --training_windows <int>       Number of observation windows to be used as training for the CDT" << std::endl;
+  std::cout << "                                DEFAULT = \"5\"" << std::endl;
   std::cout << " --bad_clients_threshold <int>  The percentage of clients for every application" << std::endl;
   std::cout << "                                that is allowed to behave \"badly\" wrt to the model" << std::endl;
   std::cout << "                                DEFAULT = \"20\"" << std::endl;
@@ -133,7 +135,8 @@ int main( int argc, char* argv[] )
     {"min_log_level",          required_argument, 0,  13   },
     {"threads",                required_argument, 0,  14   },
     {"window_size",            required_argument, 0,  15   },
-    {"bad_clients_threshold",  required_argument, 0,  16   },
+    {"training_windows",            required_argument, 0,  16   },
+    {"bad_clients_threshold",  required_argument, 0,  17   },
     {0,                        0,                 0,  0   }
   };
 
@@ -232,6 +235,17 @@ int main( int argc, char* argv[] )
         break;
 
       case 16:
+        std::istringstream ( optarg ) >> beholder::Parameters_beholder::training_windows;
+
+        if (beholder::Parameters_beholder::training_windows < 0)
+        {
+          std::cerr << "Error: invalid training_windows number " << beholder::Parameters_beholder::training_windows << ", it cannot be negative" << std::endl;
+          return EXIT_FAILURE;
+        }
+
+        break;
+
+      case 17:
         std::istringstream ( optarg ) >> beholder::Parameters_beholder::bad_clients_threshold;
 
         if (beholder::Parameters_beholder::bad_clients_threshold < 0)
