@@ -58,6 +58,7 @@ if (storage_type == "CASSANDRA"){
   observation_container_name <- paste("margot.", application_name, "_trace", sep = "")
   model_container_name <- paste("margot.", application_name, "_model", sep = "")
   doe_container_name <- paste("margot.", application_name, "_doe", sep = "")
+  metrics_container_name <- paste("margot.", application_name, "_metrics", sep = "")
   
   # CONNECT TO CASSANDRA
   driver <- JDBC("com.github.adejanovski.cassandra.jdbc.CassandraDriver", "cassandra-jdbc-wrapper-3.1.0.jar", identifier.quote = "'")
@@ -67,18 +68,19 @@ if (storage_type == "CASSANDRA"){
   # READ CONFIGURATION FROM CASSANDRA
   knobs_names <- dbGetQuery(conn, paste("SELECT name FROM ", knobs_container_name, sep = ""))
   features_names <- dbGetQuery(conn, paste("SELECT name FROM ", features_container_name, sep = ""))
-  metric_names <- dbGetQuery(conn, paste("SELECT * FROM ", features_container_name, sep = ""))
-  metric_names <- head(names(metric_names), -1)
+  metric_names <- dbGetQuery(conn, paste("SELECT name FROM ", metrics_container_name, sep = ""))
+  
 } else if (storage_type == "CSV"){
   knobs_container_name <- paste(storage_address, "/", application_name, "_knobs.csv", sep = "")
   features_container_name <- paste(storage_address, "/", application_name, "_features.csv", sep = "")
   observation_container_name <- paste(storage_address, "/", application_name, "_trace.csv", sep = "")
   model_container_name <- paste(storage_address, "/", application_name, "_model.csv", sep = "")
   doe_container_name <- paste(storage_address, "/", application_name, "_doe.csv", sep = "")
+  metrics_container_name <- paste(storage_address, "/", application_name, "_metrics.csv", sep = "")
   
   knobs_names <- read_csv(knobs_container_name) %>% pull(name)
   features_names <- read_csv(features_container_name) %>% pull(name)
-  metric_names <- head(names(read_csv(doe_container_name)), -1)
+  metric_names <- read_csv(metrics_container_name) %>% pull(name)
   
   conn <- NULL
 } else{
