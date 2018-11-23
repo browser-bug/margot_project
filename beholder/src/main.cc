@@ -85,6 +85,12 @@ void print_usage( void )
   std::cout << "                                DEFAULT = \"20\"" << std::endl;
   std::cout << " --training_windows <int>       Number of observation windows to be used as training for the CDT" << std::endl;
   std::cout << "                                DEFAULT = \"5\"" << std::endl;
+  std::cout << " --gamma_mean <float>           Parameter to configure the delay in the detection of the change in the mean." << std::endl;
+  std::cout << "                                If greater than 1 it delays the change detection reducing the number of false positives." << std::endl;
+  std::cout << "                                DEFAULT = \"1\"" << std::endl;
+  std::cout << " --gamma_variance <float>       Parameter to configure the delay in the detection of the change in the variance." << std::endl;
+  std::cout << "                                If greater than 1 it delays the change detection reducing the number of false positives." << std::endl;
+  std::cout << "                                DEFAULT = \"1\"" << std::endl;
   std::cout << " --bad_clients_threshold <int>  The percentage of clients for every application" << std::endl;
   std::cout << "                                that is allowed to behave \"badly\" wrt to the model" << std::endl;
   std::cout << "                                DEFAULT = \"20\"" << std::endl;
@@ -135,8 +141,10 @@ int main( int argc, char* argv[] )
     {"min_log_level",          required_argument, 0,  13   },
     {"threads",                required_argument, 0,  14   },
     {"window_size",            required_argument, 0,  15   },
-    {"training_windows",            required_argument, 0,  16   },
-    {"bad_clients_threshold",  required_argument, 0,  17   },
+    {"training_windows",       required_argument, 0,  16   },
+    {"gamma_mean",             required_argument, 0,  17   },
+    {"gamma_variance",         required_argument, 0,  18   },
+    {"bad_clients_threshold",  required_argument, 0,  19   },
     {0,                        0,                 0,  0   }
   };
 
@@ -245,7 +253,29 @@ int main( int argc, char* argv[] )
 
         break;
 
-      case 17:
+    case 17:
+      std::istringstream ( optarg ) >> beholder::Parameters_beholder::gamma_mean;
+
+      if (beholder::Parameters_beholder::gamma_mean < 0)
+      {
+        std::cerr << "Error: invalid gamma_mean number " << beholder::Parameters_beholder::gamma_mean << ", it cannot be negative" << std::endl;
+        return EXIT_FAILURE;
+      }
+
+      break;
+
+  case 18:
+    std::istringstream ( optarg ) >> beholder::Parameters_beholder::gamma_variance;
+
+    if (beholder::Parameters_beholder::gamma_variance < 0)
+    {
+      std::cerr << "Error: invalid gamma_variance number " << beholder::Parameters_beholder::gamma_variance << ", it cannot be negative" << std::endl;
+      return EXIT_FAILURE;
+    }
+
+    break;
+
+case 19:
         std::istringstream ( optarg ) >> beholder::Parameters_beholder::bad_clients_threshold;
 
         if (beholder::Parameters_beholder::bad_clients_threshold < 0)
