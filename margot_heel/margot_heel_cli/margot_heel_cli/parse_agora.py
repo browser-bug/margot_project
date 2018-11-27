@@ -43,37 +43,37 @@ def parse_agora( agora_xml_element, namespace = ''):
   min_distance = get_parameter(agora_xml_element, 'min_distance', my_target_type=float, required = False)
 
   # update the model
-  if broker_url:
+  if broker_url is not None:
       agora_model.broker_url = broker_url
-  if username:
+  if username is not None:
       agora_model.username = username
-  if password:
+  if password is not None:
       agora_model.password = password
-  if broker_ca:
+  if broker_ca is not None:
       agora_model.broker_ca = broker_ca
-  if client_cert:
+  if client_cert is not None:
       agora_model.client_cert = client_cert
-  if client_key:
+  if client_key is not None:
       agora_model.client_key = client_key
-  if qos:
+  if qos is not None:
       agora_model.qos = qos
-  if doe_name:
+  if doe_name is not None:
       agora_model.doe_name = doe_name
-  if number_configurations_per_iteration:
+  if number_configurations_per_iteration is not None:
       agora_model.number_configurations_per_iteration = number_configurations_per_iteration
-  if number_observations_per_configuration:
+  if number_observations_per_configuration is not None:
       agora_model.number_observations_per_configuration = number_observations_per_configuration
-  if max_number_iteration:
+  if max_number_iteration is not None:
       agora_model.max_number_iteration = max_number_iteration
-  if max_mae:
+  if max_mae is not None:
       agora_model.max_mae = max_mae
-  if min_r2:
+  if min_r2 is not None:
       agora_model.min_r2 = min_r2
-  if validation_split:
+  if validation_split is not None:
       agora_model.validation_split = validation_split
-  if k_value:
+  if k_value is not None:
       agora_model.k_value = k_value
-  if min_distance:
+  if min_distance is not None:
       if min_distance < 0 or min_distance > 1:
           print('[LOGIC ERROR] The minimum distance parameter of the agora tag must be [0..1]')
           print('                    Provided value: "{0}"'.format(min_distance))
