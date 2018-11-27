@@ -45,6 +45,7 @@ minimal_R2 <- configurations %>% .[grepl("MIN_R2",.)] %>% unlist %>% .[2] %>% as
 max_mae <- configurations %>% .[grepl("MAX_MAE",.)] %>% unlist %>% .[2] %>% as.numeric
 iteration <- configurations %>% .[grepl("ITERATION_COUNTER",.)] %>% unlist %>% .[2] %>% as.numeric
 max_iter <- configurations %>% .[grepl("MAX_NUMBER_ITERATION",.)] %>% unlist %>% .[2] %>% as.numeric
+current_nconf <- configurations %>% .[grepl("NUMBER_CONFIGURATIONS_PER_ITERATION",.)] %>% unlist %>% .[2] %>% as.numeric
 
 if(any(grepl("DOE_LIMITS", configurations))){
   limits <- configurations[grepl("DOE_LIMITS", configurations)]
@@ -232,14 +233,18 @@ if (nconfiguration <= nfolds) {
 
 if (file.exists("models.log")) {
   old_models <- read_csv(file = "models.log")
-  if (iteration == 1) {
+  old_models <- old_models %>% filter(nconf == current_nconf)
+  if(dim(old_models)[1] == 0){
+    run <- 1
+  } else if (iteration == 1) {
     run <- max(old_models$run) + 1
   } else {
+    
     run <- max(old_models$run)
   }
 } else {
   run <- 1
-  write("model, R2, MAE, iteration, run", file = "models.log")
+  write("model, R2, MAE, iteration, run, nconf, metric", file = "models.log")
 }
 
 if(exists("holdout_results_df")){
@@ -250,7 +255,7 @@ if(exists("holdout_results_df")){
   error("No results from models fits found, after model fitting. This should not happen...")
 }
 
-models_info <- models_info %>% mutate(iteration = iteration, run = run)
+models_info <- models_info %>% mutate(iteration = iteration, run = run, nconf = current_nconf, metric = metric_name)
 write_csv(models_info, path = "models.log", append = TRUE)
 
 # CHECK THE CHOSEN MODEL AND MAKE FITS IF NECESSARY -----------------------
@@ -274,6 +279,7 @@ if(!exists("models_df")){
     d_temp <- stacking_df %>% pull(metric_name)
     stacking_df <- stacking_df %>% select(-metric_name) %>% as.matrix()
     stacking_weights <- compute_stacking_weights(stacking_df, d_temp)
+    print(stacking_weights)
     rm(d_temp, stacking_df)
   } else{
     models_df <- chosen_model %>% mutate(fitted_models = map(.x = models, .f = fit_selected_model, observation_df, input_columns, metric_name))

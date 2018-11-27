@@ -107,7 +107,10 @@ predict_selected_model <- function(model_name, model_fit, sub_cv_df, new_data, m
              select(models, pred_obs, grouped_id) %>%
              spread(key = models, value = pred_obs, drop = TRUE) %>%
              select(-grouped_id) %>%
+             t() %>%
              magrittr::multiply_by(stacking_weights) %>%
+             t() %>%
+             as.tibble() %>%
              mutate(Y_fit = rowSums(.)) %>%
              pull(Y_fit)
            list(fit = Y_hat, sd = -1) 
@@ -159,7 +162,7 @@ cross_validation <- function(used_models, nfolds, observation_df, configuration_
   cv_df <- cv_df %>% mutate(measures = pmap(list(model_name = models,
                                             model_fit = fitted_models,
                                             fold = fold),
-                                            compute_cv_measures,
+                                            possibly(compute_cv_measures, list(R2 = NA, MAE = NA, predicted_values = NA)),
                                             observation_df,
                                             configuration_df,
                                             folds,
@@ -282,9 +285,12 @@ holdout_validation <- function(holdout_fold_selected,  configuration_df, holdout
   cv_df <- cross_validation(models_df$models, nfolds, training_df, training_conf_df, input_columns, metric_name)
   
   stacking_df <- create_stacking_df(cv_df, training_conf_df, training_df, input_columns)
+  stacking_df <- stacking_df %>% na.omit
   d_temp <- stacking_df %>% pull(metric_name)
   stacking_df <- stacking_df %>% select(-metric_name) %>% as.matrix()
   stacking_weights <- compute_stacking_weights(stacking_df, d_temp)
+  
+  print(stacking_weights)
   
   holdout_validation_df <- holdout_set_validation(models_df, cv_df, stacking_weights, holdout_conf, holdout_test)
   holdout_validation_df <- holdout_validation_df %>% mutate(MAE = MAE / error_normalization_value)
