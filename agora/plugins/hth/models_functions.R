@@ -16,7 +16,7 @@ fit_selected_model <- function(model_name, training_data, inputs_columns, metric
     # IF THERE IS ONLY 1 OBSERVATION SD IS NA, CHANGE IT TO 0
     training_data <- training_data %>% mutate(sd = replace(sd, is.na(sd), 0))
     
-    X <- training_data %>% select(input_columns)
+    X <- training_data %>% select(input_columns) %>% as.matrix
     Y <- training_data %>% pull(mean)
     
     if(all(near(0, training_data$sd))) {
@@ -121,18 +121,18 @@ predict_selected_model <- function(model_name, model_fit, sub_cv_df, new_data, m
 
 # CREATE MODEL LIST -------------------------------------------------------
 
-model_list <- function(ninputs) {
-  if(ninputs > 1){
+model_list <- function(ninputs, zero_range_variable) {
+  if(ninputs == 1 | zero_range_variable){
+    used_models <- tibble(models = c("linear",
+                                     "linear2",
+                                     "mars",
+                                     "polymars"))
+  } else if(ninputs > 1){
     used_models <- tibble(models = c("linear",
                                      "linear2",
                                      "mars",
                                      "polymars",
                                      "kriging"))
-  } else if(ninputs == 1){
-    used_models <- tibble(models = c("linear",
-                                     "linear2",
-                                     "mars",
-                                     "polymars"))
   } else {
     stop("Error: Wrong number of input columns for model list creation.")
   }
@@ -273,14 +273,14 @@ create_sub_cv_df <- function(model_name, cv_df)
   }
 }
 
-holdout_validation <- function(holdout_fold_selected,  configuration_df, holdout_folds, observation_df, metric_name, input_columns, nfolds, error_normalization_value) {
+holdout_validation <- function(holdout_fold_selected,  configuration_df, holdout_folds, observation_df, metric_name, input_columns, nfolds, error_normalization_value, zero_range_variable) {
   training_conf_df <- configuration_df %>% filter(holdout_folds != holdout_fold_selected)
   training_df <- observation_df %>% inner_join(training_conf_df, by = input_columns)
   holdout_conf <- configuration_df %>% filter(holdout_folds == holdout_fold_selected) %>% inner_join(observation_df, by = input_columns) %>% distinct()
   holdout_test <- holdout_conf %>% pull(metric_name)
   holdout_conf <- holdout_conf %>% select_at(input_columns)
   
-  models_df <- model_list(length(input_columns))
+  models_df <- model_list(length(input_columns), zero_range_variable)
   models_df <- models_df %>% mutate(fitted_models = map(.x = models, .f = fit_selected_model, training_df, input_columns, metric_name))
   cv_df <- cross_validation(models_df$models, nfolds, training_df, training_conf_df, input_columns, metric_name)
   
@@ -294,4 +294,13 @@ holdout_validation <- function(holdout_fold_selected,  configuration_df, holdout
   
   holdout_validation_df <- holdout_set_validation(models_df, cv_df, stacking_weights, holdout_conf, holdout_test)
   holdout_validation_df <- holdout_validation_df %>% mutate(MAE = MAE / error_normalization_value)
+}
+
+# HELPER FUNCTIONS --------------------------------------------------------
+
+# Determine if range of vector is FP 0.
+zero_range <- function(x) {
+  if (length(x) == 1) return(TRUE)
+  x <- range(x) / mean(x)
+  isTRUE(near(x[1], x[2]))
 }

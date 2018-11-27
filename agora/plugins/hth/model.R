@@ -11,6 +11,15 @@ suppressMessages(suppressPackageStartupMessages(library("rlang")))
 # This ensures R does not use scientific notation on numbers
 options(scipen = 100)
 
+# DEFINE HELPER FUNCTION --------------------------------------------------
+
+# Determine if range of vector is FP 0.
+zero_range <- function(x) {
+  if (length(x) == 1) return(TRUE)
+  x <- range(x) / mean(x)
+  isTRUE(near(x[1], x[2]))
+}
+
 # GET THE ARGUMENTS -------------------------------------------------------
 
 args = commandArgs(trailingOnly = TRUE)
@@ -29,7 +38,7 @@ if (length(args) < 1)
 # SET WORKSPACE PATH AND VARIABLES ----------------------------------------
 
 setwd(root_path)
-source("get_knobs_config_list.R")
+source("get_config_list.R")
 source("models_functions.R")
 
 configurations <- readLines(con = "agora_config.env")
@@ -115,9 +124,13 @@ if (storage_type == "CASSANDRA") {
 
 # PREPARE DOE OPTIONS -----------------------------------------------------
 
-writeLines(str_c("Number of KNOBS: ", nknobs, "\nNumber of FEATURES: ", dim(features_names)[1], if(is.null(features_names)){"0"}))
-# MAKE NAMES LOWERCASE
+writeLines(str_c("Number of KNOBS: ", nknobs, "\nNumber of FEATURES: ", length(features_names)[1], if(is.null(features_names)){"0"}))
+# MAKE NAMES LOWERCASE FOR CASSANDRA (JUST TO BE SURE)
 knobs_names <- str_to_lower(knobs_names)
+if(!is.null(features_names)){
+  features_names <- str_to_lower(features_names)
+}
+metric_name <- str_to_lower(metric_name)
 # GET COLUMN NAMES OF DSE AND INPUT
 dse_columns <- c(knobs_names, features_names, metric_name)
 input_columns <- c(knobs_names, features_names)
@@ -132,17 +145,14 @@ if (storage_type == "CASSANDRA") {
 # CREATE DESIGN SPACE GRID ------------------------------------------------
 
 # BEWARE does not account for the features !!!!!!  GET GRID CONFIGURATION
-knobs_config_list <- get_knobs_config_list(storage_type, knobs_container_name, conn)
-# CREATE KNOB TRANSFORM LIST
-knob_transform <- sapply(knobs_config_list, function(knob_config) {
-  knob_adjusted_max <- max(knob_config) - min(knob_config)
-  knob_min <- min(knob_config)
-  return(c(knob_min, knob_adjusted_max))
-})
+knobs_config_list <- get_config_list(storage_type, knobs_container_name, conn)
+if(!is.null(features_names)){
+features_config_list <- get_config_list(storage_type, features_container_name, conn)
+}
 
 # CREATE DESIGN SPACE GRID
-design_space_grid <- expand.grid(knobs_config_list)
-colnames(design_space_grid) <- knobs_names
+design_space_grid <- expand.grid(c(knobs_config_list, features_config_list))
+colnames(design_space_grid) <- c(knobs_names, features_names)
 
 if(exists("limits")){
   for(limits_iter in limits){
@@ -182,6 +192,7 @@ if (error_normalization_value == 0)
 
 configuration_df <- unique(observation_df %>% select(input_columns))
 nconfiguration <- nrow(configuration_df)
+zero_range_variable <- configuration_df %>% map_lgl(zero_range) %>% any
 
 # STOP IF THERE ARE NO OBSERVATIONS
 if (nconfiguration == 0) {
@@ -197,7 +208,7 @@ writeLines("I fit models now.")
 
 if (nconfiguration <= nfolds) {
   nfolds <- nconfiguration
-  models_df <- model_list(length(input_columns))
+  models_df <- model_list(length(input_columns), zero_range_variable)
   models_df <- models_df %>% mutate(fitted_models = map(.x = models, .f = fit_selected_model, observation_df, input_columns, metric_name))
   cv_df <- cross_validation(models_df$models, nfolds, observation_df, configuration_df, input_columns, metric_name)
   # THERE IS NO R2, BECAUSE OUTPUT WOULD BE A SINGULAR VALUE MOST OF THE TIME
@@ -222,7 +233,8 @@ if (nconfiguration <= nfolds) {
                      metric_name,
                      input_columns,
                      nfolds,
-                     error_normalization_value))
+                     error_normalization_value,
+                     zero_range_variable))
   holdout_results_df <- holdout_results_df %>% unnest(res) %>% group_by(models) %>% summarize(R2 = mean(R2, na.rm = TRUE), MAE = mean(MAE, na.rm = TRUE))
 
   # MODEL SELECTION AND LEARNING
@@ -267,11 +279,11 @@ if(dim(chosen_model)[1] == 0){
 
 if(!exists("models_df")){
   if(grepl("bagging", chosen_model)){
-    models_df <- model_list(length(input_columns))
+    models_df <- model_list(length(input_columns), zero_range_variable)
     models_df <- models_df %>% mutate(fitted_models = map(.x = models, .f = fit_selected_model, observation_df, input_columns, metric_name))
     cv_df <- cross_validation(models_df$models, nfolds, observation_df, configuration_df, input_columns, metric_name)
   } else if(chosen_model == "stacking"){
-    models_df <- model_list(length(input_columns))
+    models_df <- model_list(length(input_columns), zero_range_variable)
     models_df <- models_df %>% mutate(fitted_models = map(.x = models, .f = fit_selected_model, observation_df, input_columns, metric_name))
     cv_df <- cross_validation(models_df$models, nfolds, observation_df, configuration_df, input_columns, metric_name)
 
