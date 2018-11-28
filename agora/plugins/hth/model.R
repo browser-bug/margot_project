@@ -144,7 +144,7 @@ if (storage_type == "CASSANDRA") {
 
 # CREATE DESIGN SPACE GRID ------------------------------------------------
 
-# BEWARE does not account for the features !!!!!!  GET GRID CONFIGURATION
+# GET GRID CONFIGURATION
 knobs_config_list <- get_config_list(storage_type, knobs_container_name, conn)
 if(!is.null(features_names)){
   features_config_list <- get_config_list(storage_type, features_container_name, conn)

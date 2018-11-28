@@ -79,7 +79,6 @@ if (storage_type == "CASSANDRA"){
   metrics_container_name <- paste(storage_address, "/", application_name, "_metrics.csv", sep = "")
   
   knobs_names <- read_csv(knobs_container_name) %>% pull(name)
-  features_names <- read_csv(features_container_name) %>% pull(name)
   metric_names <- read_csv(metrics_container_name) %>% pull(name)
   
   conn <- NULL
@@ -91,26 +90,17 @@ nknobs <- length(knobs_names)
 if (nknobs == 0)  {
   stop("Error: no knobs found. Please specify the knobs.")
 }
-if (length(features_names) == 0)  {
-  features_names <- NULL
-}
 
-writeLines(str_c("Number of KNOBS: ", nknobs, "\nNumber of FEATURES: ", length(features_names)[1], if(is.null(features_names)){"0"}))
+writeLines(str_c("Number of KNOBS: ", nknobs))
 
 ################################# PREPARE DOE OPTIONS #################################
 
 # MAKE NAMES LOWERCASE FOR CASSANDRA (JUST TO BE SURE)
 knobs_names <- str_to_lower(knobs_names)
-if(!is.null(features_names)){
-  features_names <- str_to_lower(features_names)
-}
 metric_name <- str_to_lower(metric_name)
 
 # GET GRID CONFIGURATION
 knobs_config_list <- get_config_list(storage_type, knobs_container_name, conn)
-if(!is.null(features_names)){
-  features_config_list <- get_config_list(storage_type, features_container_name, conn)
-}
 
 # SET THE DOE OPTIONS
 doe_options <- list(nobs = doe_obs_per_iter, eps = doe_eps)
