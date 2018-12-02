@@ -8,7 +8,7 @@ suppressMessages(suppressPackageStartupMessages(library("DiceKriging")))
 suppressMessages(suppressPackageStartupMessages(library("rlang")))
 
 # SET OPTIONS -------------------------------------------------------------
-# This ensures R does not use scientific notation on numbers
+# This ensures R does not use scientific notation on numbers (important when writing results)
 options(scipen = 100)
 
 # DEFINE HELPER FUNCTION --------------------------------------------------
@@ -82,7 +82,6 @@ if (storage_type == "CASSANDRA") {
   features_container_name <- paste("margot.", application_name, "_features", sep = "")
   observation_container_name <- paste("margot.", application_name, "_trace", sep = "")
   model_container_name <- paste("margot.", application_name, "_model", sep = "")
-  doe_container_name <- paste("margot.", application_name, "_doe", sep = "")
   # LOAD DRIVER AND ACCESS DATABASE
   driver <- JDBC("com.github.adejanovski.cassandra.jdbc.CassandraDriver", "cassandra-jdbc-wrapper-3.1.0.jar", identifier.quote = "'")
   full_address_string <- paste("jdbc:cassandra://", storage_address, ":9042", sep = "")
@@ -104,7 +103,6 @@ if (storage_type == "CASSANDRA") {
   features_container_name <- paste(storage_address, "/", application_name, "_features.csv", sep = "")
   observation_container_name <- paste(storage_address, "/", application_name, "_trace.csv", sep = "")
   model_container_name <- paste(storage_address, "/", application_name, "_model.csv", sep = "")
-  doe_container_name <- paste(storage_address, "/", application_name, "_doe.csv", sep = "")
   # GET KNOBS AND FEATURES NAMES
   knobs_names <- read_csv(knobs_container_name) %>% pull(name)
   features_names <- read_csv(features_container_name) %>% pull(name)

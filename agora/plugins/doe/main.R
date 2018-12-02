@@ -33,7 +33,6 @@ configurations <- strsplit(configurations, '"')
 storage_type <- configurations %>% .[grepl("STORAGE_TYPE",.)] %>% unlist %>% .[2]
 storage_address <- configurations %>% .[grepl("STORAGE_ADDRESS",.)] %>% unlist %>% .[2]
 application_name <- configurations %>% .[grepl("APPLICATION_NAME",.)] %>% unlist %>% .[2]
-metric_name <- configurations %>% .[grepl("METRIC_NAME",.)] %>% unlist %>% .[2]
 algorithm <- configurations %>% .[grepl("DOE_NAME",.)] %>% unlist %>% .[2]
 doe_eps <- configurations %>% .[grepl("MINIMUM_DISTANCE",.)] %>% unlist %>% .[2] %>% as.numeric
 doe_obs_per_conf <- configurations %>% .[grepl("NUMBER_OBSERVATIONS_PER_CONFIGURATION",.)] %>% unlist %>% .[2] %>% as.numeric
@@ -44,8 +43,6 @@ if(any(grepl("DOE_LIMITS", configurations))){
   limits <- strsplit(limits, ";")[[1]]
 }
 
-print(paste("Started DOE plugin. Metric:", metric_name))
-
 ########################### LOAD DATA #######################################
 # CREATE THE TABLES NAMES
 application_name <- gsub("/", "_", application_name)
@@ -54,8 +51,6 @@ if (storage_type == "CASSANDRA"){
   suppressMessages(suppressPackageStartupMessages(library("RJDBC")))  # connect to database using JDBC codecs
   
   knobs_container_name <- paste("margot.", application_name, "_knobs", sep = "")
-  features_container_name <- paste("margot.", application_name, "_features", sep = "")
-  observation_container_name <- paste("margot.", application_name, "_trace", sep = "")
   model_container_name <- paste("margot.", application_name, "_model", sep = "")
   doe_container_name <- paste("margot.", application_name, "_doe", sep = "")
   metrics_container_name <- paste("margot.", application_name, "_metrics", sep = "")
@@ -67,13 +62,10 @@ if (storage_type == "CASSANDRA"){
   
   # READ CONFIGURATION FROM CASSANDRA
   knobs_names <- dbGetQuery(conn, paste("SELECT name FROM ", knobs_container_name, sep = ""))
-  features_names <- dbGetQuery(conn, paste("SELECT name FROM ", features_container_name, sep = ""))
   metric_names <- dbGetQuery(conn, paste("SELECT name FROM ", metrics_container_name, sep = ""))
   
 } else if (storage_type == "CSV"){
   knobs_container_name <- paste(storage_address, "/", application_name, "_knobs.csv", sep = "")
-  features_container_name <- paste(storage_address, "/", application_name, "_features.csv", sep = "")
-  observation_container_name <- paste(storage_address, "/", application_name, "_trace.csv", sep = "")
   model_container_name <- paste(storage_address, "/", application_name, "_model.csv", sep = "")
   doe_container_name <- paste(storage_address, "/", application_name, "_doe.csv", sep = "")
   metrics_container_name <- paste(storage_address, "/", application_name, "_metrics.csv", sep = "")
@@ -97,11 +89,8 @@ writeLines(str_c("Number of KNOBS: ", nknobs))
 
 # MAKE NAMES LOWERCASE FOR CASSANDRA (JUST TO BE SURE)
 knobs_names <- str_to_lower(knobs_names)
-metric_name <- str_to_lower(metric_name)
-
 # GET GRID CONFIGURATION
 knobs_config_list <- get_config_list(storage_type, knobs_container_name, conn)
-
 # SET THE DOE OPTIONS
 doe_options <- list(nobs = doe_obs_per_iter, eps = doe_eps)
 
