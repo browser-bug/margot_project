@@ -69,6 +69,15 @@ namespace beholder
       // clients blacklist, implemented as an unordered set since we do not need any sorting
       std::unordered_set<std::string> clients_blacklist;
 
+      // data structure to store the residuals from the observations received,
+      // i.e. the difference between the predicted value by the model and the actual value.
+      // This structure maps every metric (name) to its buffer of residuals.
+      // The buffer will be as big as the beholder parameter "window_size" instructs.
+      std::unordered_map<std::string, std::vector<std::pair <float, std::string>>> residuals_map;
+
+      // TODO: correct the above comment and delete the following array
+      // array to store the timestamp of the first and last element of the current window
+      //std::string [2] = {};
 
 
       // these are the function used to communicate using MQTT topics

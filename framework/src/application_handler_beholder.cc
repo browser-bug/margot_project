@@ -60,12 +60,6 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
   // release the lock while parsing the message
   guard.unlock();
 
-  // data structure to store the residuals from the observations received,
-  // i.e. the difference between the predicted value by the model and the actual value.
-  // This structure maps every metric (name) to its buffer of residuals.
-  // The buffer will be as big as the beholder parameter "window_size" instructs.
-  std::unordered_map<std::string, std::vector<float>> residuals_map;
-
   //TODO: rearrange this parsing after having chosen what the beholder really receives from mqtt.
   // declare the fields of the incoming message
   std::string client_id;
@@ -193,14 +187,16 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
     {
       agora::debug("metric ", metric_fields_vec[index], " already present, filling buffer");
       // metric already present, need to add to the buffer the new residual
-      search->second.emplace_back(current_residual);
+      auto temp_pair = std::make_pair(current_residual, timestamp);
+      search->second.emplace_back(temp_pair);
     }
     else
     {
       agora::debug("creation of buffer for metric and first insertion: ", metric_fields_vec[index]);
       // need to create the mapping for the current metric. It's the first time you meet this metric
-      std::vector<float> temp_vector;
-      temp_vector.emplace_back(current_residual);
+      auto temp_pair = std::make_pair(current_residual, timestamp);
+      std::vector<std::pair <float, std::string>> temp_vector;
+      temp_vector.emplace_back(temp_pair);
       residuals_map.emplace(metric_fields_vec[index], temp_vector);
     }
   }
