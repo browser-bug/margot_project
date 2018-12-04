@@ -49,7 +49,7 @@ namespace agora
       virtual void insert_trace_entry( const application_description_t& description, const std::string& values ) = 0;
 
       virtual application_list_t load_clients( const std::string& application_name ) = 0;
-      virtual observations_list_t load_client_observations( const std::string& application_name, const std::string& client_name ) = 0;
+      virtual observations_list_t load_client_observations( const std::string& application_name, const std::string& client_name, const std::string& query_select ) = 0;
 
       virtual void erase( const std::string& application_name ) = 0;
 

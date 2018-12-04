@@ -1451,7 +1451,7 @@ application_list_t CassandraClient::load_clients( const std::string& application
 }
 
 
-observations_list_t CassandraClient::load_client_observations( const std::string& application_name, const std::string& client_name )
+observations_list_t CassandraClient::load_client_observations( const std::string& application_name, const std::string& client_name, const std::string& query_select )
 {
 
   // this will contain the list of all the observations in the trace belonging to a specific pair of application-client
@@ -1684,7 +1684,7 @@ observations_list_t CassandraClient::load_client_observations( const std::string
   };
 
   // perform the query
-  const std::string query = "SELECT * FROM " + table_name + " WHERE client_id = '" + client_name + "' ALLOW FILTERING;";
+  const std::string query = "SELECT " + query_select + " FROM " + table_name + " WHERE client_id = '" + client_name + "' ALLOW FILTERING;";
   execute_query_synch(query, result_handler);
 
 

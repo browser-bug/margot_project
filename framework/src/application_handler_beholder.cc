@@ -23,6 +23,7 @@
 #include <sstream>
 #include <algorithm>
 #include <limits>
+#include <set>
 
 #include "beholder/application_handler_beholder.hpp"
 #include "beholder/parameters_beholder.hpp"
@@ -40,6 +41,7 @@ RemoteApplicationHandler::RemoteApplicationHandler( const std::string& applicati
   description = agora::io::storage.load_description(application_name);
   agora::debug("Number of total metrics: ", description.metrics.size());
   agora::debug("Window size: ", Parameters_beholder::window_size);
+  agora::debug("Window size: ", Parameters_beholder::training_windows);
 
 
 }
@@ -104,6 +106,13 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
 
   // gets the name of the fields of the metric to be filled in
   // NB: note that the beholder observation message always contains the metric names, also when all the metrics are enabled.
+  // This is because in this way we know which metrics must be observed by the beholder
+  // according to the user's settings in the XML configuration file.
+  // This is needed because there could be metrics which would be available but that should not be monitored
+  // by the beholder, again according to the user preferences.
+  // The margot heel just sends us the name of the metrics which should be observed.
+  // While gathering the metric names from the DB would have meant to lose the information of which metric
+  // should be actually monitored out of all those available.
   stream >> metric_fields;
   agora::debug("metric_fields: ", metric_fields);
 
@@ -113,6 +122,8 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
   //   features.append(",");
   // }
 
+  // Separate the parsed information (basically CSV, i.e. strings with comma separated values)
+  // into the respective vectors.
   // build the vector of metric names provided in the observation
   std::vector<std::string> metric_fields_vec;
   std::stringstream ssmf(metric_fields);
@@ -170,6 +181,55 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
     return;
   }
 
+  // Check if we have consistency in the observed metrics (by the beholder) and the current received metrics.
+  // If this is the first observation for the current application than the check will not be done
+  // but a set of metrics will be initialized. The metrics received in the following observations
+  // will be compared to the set built at the beginning.
+  if (residuals_map.size() == 0){
+      // if no residuals in memory than this is the first observation received by the beholder
+      // then we initialize the reference_metrics settings
+      for (auto i: metric_fields_vec){
+          reference_metric_names.emplace(i);
+      }
+
+      // preparing the 'select' query for Cassandra for the 2nd step of cass_date_time_to_epoch
+      // It is done here to only compute the string once and save resources and time
+      query_select = "day, time, client_id, ";
+      for (auto i: description.knobs){
+          query_select.append(i.name);
+          query_select.append(",");
+      }
+      for (auto i: description.features){
+          query_select.append(i.name);
+          query_select.append(",");
+      }
+      for (auto i: metric_fields_vec){
+          query_select.append(i);
+          query_select.append(",");
+      }
+      for (auto i: metric_fields_vec){
+          query_select.append("model_");
+          query_select.append(i);
+          query_select.append(",");
+      }
+      // to remove the last comma
+      query_select.pop_back();
+
+
+  } else {
+      // this is not the first observation and the application handler has already been initialized,
+      // we need to compare the metrics received in the last observation with the reference ones.
+      std::set<std::string> temp_metric_names;
+      for (auto i: metric_fields_vec){
+          temp_metric_names.emplace(i);
+      }
+      if ((metric_fields_vec.size() != reference_metric_names.size()) || (temp_metric_names != reference_metric_names)){
+          agora::info("Error in the observation received, mismatch in the metrics received wrt the metrics used for training.");
+          return;
+      }
+  }
+
+
   // this is a critical section
   guard.lock();
 
@@ -182,13 +242,23 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
     agora::debug("Current residual for metric ", metric_fields_vec[index], " is: ", current_residual);
 
     auto search = residuals_map.find(metric_fields_vec[index]);
+    auto search_counter = residuals_map_counter.find(metric_fields_vec[index]);
 
-    if (search != residuals_map.end())
+    if ((search != residuals_map.end()) && (search_counter != residuals_map_counter.end()))
     {
       agora::debug("metric ", metric_fields_vec[index], " already present, filling buffer");
       // metric already present, need to add to the buffer the new residual
       auto temp_pair = std::make_pair(current_residual, timestamp);
       search->second.emplace_back(temp_pair);
+      // increase the counter of observations for the current metric
+      search_counter->second = search_counter->second + 1;
+    }
+    else if (((search == residuals_map.end()) && (search_counter != residuals_map_counter.end())) ||
+    ((search != residuals_map.end()) && (search_counter == residuals_map_counter.end()))) {
+        // If the current metric in analysis in only found in one of the two maps then there is an error
+        // because the maps should contain the same keys, since their insertion is basically parallel.
+        agora::info("Error: mismatch between the two residual map structures.");
+        return;
     }
     else
     {
@@ -198,6 +268,8 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
       std::vector<std::pair <float, std::string>> temp_vector;
       temp_vector.emplace_back(temp_pair);
       residuals_map.emplace(metric_fields_vec[index], temp_vector);
+      // start counting the observations for the current metrics
+      residuals_map_counter.emplace(metric_fields_vec[index], 1);
     }
   }
 
@@ -212,6 +284,32 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
       agora::pedantic("Buffer for metric ", i.first, " filled in, starting CDT on the current window.");
 
       // TODO: start computation for CDT
+      // Gathering the number of residuals for the current metric:
+      auto search_counter = residuals_map_counter.find(i.first);
+      // Just an additional check. If it arrives here there should be the counter obviously.
+      if (search_counter != residuals_map_counter.end()){
+          if (search_counter->second == Parameters_beholder::window_size * Parameters_beholder::training_windows){
+              // we are in training
+              if (search_counter->second <= Parameters_beholder::window_size * Parameters_beholder::training_windows){
+                  // this is the last training window
+              } else {
+                  // this is not the last training window
+              }
+          } else {
+              // we are in production phase
+          }
+
+      } else {
+          // Just an additional check
+          agora::info("Error: no observation counter found for metric: ", i.first);
+          return;
+      }
+
+
+
+
+
+
 
       // TODO at the end of the CDT, empty the filled-in buffer.
       i.second.clear();
@@ -219,12 +317,28 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
       // if (/*CDT positivo*/){
       //     status = ApplicationStatus::COMPUTING;
       // }
+
+      // TODO: as soon as the CDT is positive should we move to the 2nd phase or should we keep going to analyze all
+      // the metrics available anyway?
     }
   }
+
+  // TODO: according to what we plan on doing in the second phase, should we keep track of which are the metrics that returned a positive
+  // CDT? This could actually be useful only if according to this we behave in a particular way in the 2nd step or if we
+  // just delete some attributes of the trace.
 
   // STEP 2 of CDT: analysis with granularity on the single client
 
   // UNLOCK the guard because we are accessing the db????
+
+  // TODO: Now the query returns the values for all the metrics enabled for the beholder.
+  // Consider instead asking to cassandra just the intersection between the metrics enabled for the beholder
+  // and the one(s) that resulted in a positive CDT.
+  // Question: do we need to however do the hyphotesis test on all the metrics (regardless of which resulted in a positive CDT)
+  // or should we just test the postive ones to the CDT???
+  // Should I do a multivariate Welch's test (does it even exist?) across all themetrics?
+  // If I have different number of observations for them??
+  // In any case at the end of the parsing, check that the number of parsed metrics corresponds to the reference one.
 
   // if need to start the step 2 of CDT:
   if (true /* status == ApplicationStatus::COMPUTING */)
@@ -244,7 +358,15 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
 
     // DB QUERY TEST: query to retrieve all the distinct clients which are running a specif application
     // to be performed in case of positive CDT, for the second level hypothesis test.
+    // It is better to always re-run this query and avoid saving the client list for re-use
+    // because there could be some new clients.
     clients_list = agora::io::storage.load_clients(description.application_name);
+
+    // Check that the list of clients is not is not empty
+    if (clients_list.size() == 0){
+        agora::info("Something is wrong, the list of clients received from the DB is empty!");
+        return;
+    }
 
     for (auto i : clients_list)
     {
@@ -256,7 +378,7 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
     {
       // DB QUERY TEST: query to retrieve all the observations for a pair application-client_name
       // for (auto i: clients_list){
-      //     observations_list = agora::io::storage.load_client_observations(description.application_name, i);
+      //     observations_list = agora::io::storage.load_client_observations(description.application_name, i, query_select);
       //
       //     // Second level hypothesis test on client-specific observations_list
       //     // Here you basically choose whether each client is bad or not.
@@ -268,8 +390,10 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
       // TODO: this is a test with just one row. Later on wrap this (the following) in a for loop to scan every row.
       // so instead of observations_list[0] there should be observations_list[i]
       std::unordered_map<std::string, std::vector<float>> client_residuals_map;
-      //observations_list = agora::io::storage.load_client_observations(description.application_name, "alberto_Surface_Pro_2_6205");
-      observations_list = agora::io::storage.load_client_observations(description.application_name, i);
+      //observations_list = agora::io::storage.load_client_observations(description.application_name, "alberto_Surface_Pro_2_6205", query_select);
+
+
+      observations_list = agora::io::storage.load_client_observations(description.application_name, i, query_select);
       agora::debug("\nParsing the trace for client ", i);
 
       // NB: here I could choose to avoid iterating over some possibly already blacklisted

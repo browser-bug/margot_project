@@ -27,6 +27,7 @@
 #include <unordered_map>
 #include <cstdint>
 #include <cassert>
+#include <set>
 
 #include "agora/virtual_io.hpp"
 #include "agora/common_objects.hpp"
@@ -69,15 +70,37 @@ namespace beholder
       // clients blacklist, implemented as an unordered set since we do not need any sorting
       std::unordered_set<std::string> clients_blacklist;
 
+      // set containing the metrics observed by the beholder
+      // NB: these are not all the available metrics, or all the ENABLED metrics,
+      // but are instead the metrics the the user explicitely set to be monitored
+      // by the beholder in the XML config file.
+      // This is to say that it could be the same as all the currently enabled metrics,
+      // but it also may be different, according to the user settings.
+      std::set<std::string> reference_metric_names;
+
       // data structure to store the residuals from the observations received,
       // i.e. the difference between the predicted value by the model and the actual value.
-      // This structure maps every metric (name) to its buffer of residuals.
+      // This structure maps every metric (name) to a pair.
+      // The pair's first element is the buffer of residuals for the metric of interested.
       // The buffer will be as big as the beholder parameter "window_size" instructs.
+      // The pair's second element is a string containing the timestamp of the corresponding residual.
+      // The timestamp of the first and last element in the current window allows us to pinpoint
+      // the change detection time range later on in Cassandra's trace
+      // We could have different windows for every metric observed, this is the reason why the
+      // timestamp of the first and last element are not unique across the whole application handler.
       std::unordered_map<std::string, std::vector<std::pair <float, std::string>>> residuals_map;
 
-      // TODO: correct the above comment and delete the following array
-      // array to store the timestamp of the first and last element of the current window
-      //std::string [2] = {};
+      // data structure to store the counter of the received residuals for each meatric so far
+      // useful to understand when the training phase is finished for each metrics
+      // considering the case in which not all observations contain residuals for every metric
+      // thus leaving us with some metrics which already have completed the training and others
+      // which are still gathering observations
+      std::unordered_map<std::string, int> residuals_map_counter;
+
+      // String containing the 'select' part of the query to Cassandra
+      // to only receive the metrics enabled for the beholder analysis by the user
+      std::string query_select;
+
 
 
       // these are the function used to communicate using MQTT topics
