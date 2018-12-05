@@ -224,6 +224,9 @@ namespace beholder
     {
       // we are in production phase
     }
+
+    // return true if a change has been detected either in the mean or in the variance
+    return change_detected_mean || change_detected_variance;
   }
 
 }
