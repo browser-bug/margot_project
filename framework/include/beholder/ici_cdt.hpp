@@ -1,4 +1,4 @@
-/* beholder/parameters_beholder.hpp
+/* beholder/ici_cdt.hpp
  * Copyright (C) 2018 Alberto Bendin
  *
  * This library is free software; you can redistribute it and/or
@@ -21,9 +21,29 @@
 #ifndef MARGOT_BEHOLDER_ICI_CDT
 #define MARGOT_BEHOLDER_ICI_CDT
 
+#include <vector>
+#include <string>
+
+#include "beholder/ici_test_data.hpp"
+
+
 namespace beholder
 {
-  bool perform_ici_cdt ();
+    class IciCdt
+    {
+
+
+      private:
+
+
+
+      public:
+
+        static bool perform_ici_cdt(Data_ici_test& data_test, const std::vector<std::pair <float, std::string>>& window_pair);
+
+    };
+
+
 }
 
 #endif // MARGOT_BEHOLDER_ICI_CDT

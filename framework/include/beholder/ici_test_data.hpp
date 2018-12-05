@@ -1,4 +1,4 @@
-/* beholder/parameters_beholder.hpp
+/* beholder/ici_test_data.hpp
  * Copyright (C) 2018 Alberto Bendin
  *
  * This library is free software; you can redistribute it and/or
@@ -18,15 +18,17 @@
  */
 
 
-#include "beholder/parameters_beholder.hpp"
+#ifndef MARGOT_BEHOLDER_ICI_TEST_DATA
+#define MARGOT_BEHOLDER_ICI_TEST_DATA
 
 namespace beholder
 {
 
-  int Parameters_beholder::window_size = 20;
-  int Parameters_beholder::training_windows = 5;
-  float Parameters_beholder::gamma_mean = 3;
-  float Parameters_beholder::gamma_variance = 3;
-  int Parameters_beholder::bad_clients_threshold = 20;
+  struct Data_ici_test
+  {
+    std::vector<float> training_observations;
+  };
 
 }
+
+#endif // MARGOT_BEHOLDER_ICI_TEST_DATA

@@ -31,6 +31,7 @@
 
 #include "agora/virtual_io.hpp"
 #include "agora/common_objects.hpp"
+#include "beholder/ici_test_data.hpp"
 
 namespace beholder
 {
@@ -101,7 +102,9 @@ namespace beholder
       // to only receive the metrics enabled for the beholder analysis by the user
       std::string query_select;
 
-
+      // ICI CDT data structures:
+      // It maps every metric to its struct of data for the CDT
+      std::unordered_map<std::string, Data_ici_test> ici_cdt_map;
 
       // these are the function used to communicate using MQTT topics
 

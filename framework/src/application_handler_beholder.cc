@@ -27,6 +27,7 @@
 
 #include "beholder/application_handler_beholder.hpp"
 #include "beholder/parameters_beholder.hpp"
+#include "beholder/ici_cdt.hpp"
 #include "agora/logger.hpp"
 
 
@@ -289,15 +290,47 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
     }
   }
 
+  // just universal variables to control the change detection and thus the flow of the CDT itself
+  // since we do not care to actually check all the metrics, but it is enough a metric (the first)
+  // to trigger the 2nd step of the hierarchiacla CDT.
+  bool change_detected = false;
+  std::string change_metric;
+
   // Check whether one (or more) buffers is (are) filled in
   // up to the beholder's window_size parameter.
   for (auto& i : residuals_map)
   {
+    // if a change has been detected then stop the 1st step of the CDT
+    if (change_detected){
+        break;
+    }
     agora::debug("i.second.size(): ", i.second.size());
 
     if (i.second.size() == Parameters_beholder::window_size)
     {
       agora::pedantic("Buffer for metric ", i.first, " filled in, starting CDT on the current window.");
+
+      // Check if we already have a ici_cdt_map for the current metric, if not create it
+      auto search_ici_map = ici_cdt_map.find(i.first);
+
+      // If it finds the ici_cdt_map for the current metric then use it
+      if (search_ici_map != ici_cdt_map.end())
+      {
+          change_detected = IciCdt::perform_ici_cdt(search_ici_map->second, i.second);
+          // if the change has been detected save the (first) metric for which the change has been detected
+          // This could be useful to gather the timestamp of the current window for that metric
+          // to be used later on in the 2nd step of Cassandra
+          if (change_detected){
+              change_metric = i.first;
+          }
+      } else {
+          // It did not find the ici_cdt_map for the current metric then create it
+          Data_ici_test new_ici_struct;
+          change_detected = IciCdt::perform_ici_cdt(new_ici_struct, i.second);
+          ici_cdt_map.emplace(i.first, new_ici_struct);
+          // It cannot detect a change if this is the first full window for that metric,
+          // so basically avoid the if to check for the boolean "change_detected"
+      }
 
       // TODO: start computation for CDT
       // Gathering the number of residuals for the current metric:
@@ -306,6 +339,7 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
       // Just an additional check. If it arrives here there should be the counter obviously.
       if (search_counter != residuals_map_counter.end())
       {
+
         if (search_counter->second == Parameters_beholder::window_size * Parameters_beholder::training_windows)
         {
           // we are in training

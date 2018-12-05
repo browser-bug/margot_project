@@ -87,10 +87,10 @@ void print_usage( void )
   std::cout << "                                DEFAULT = \"5\"" << std::endl;
   std::cout << " --gamma_mean <float>           Parameter to configure the delay in the detection of the change in the mean." << std::endl;
   std::cout << "                                If greater than 1 it delays the change detection reducing the number of false positives." << std::endl;
-  std::cout << "                                DEFAULT = \"1\"" << std::endl;
+  std::cout << "                                DEFAULT = \"3\"" << std::endl;
   std::cout << " --gamma_variance <float>       Parameter to configure the delay in the detection of the change in the variance." << std::endl;
   std::cout << "                                If greater than 1 it delays the change detection reducing the number of false positives." << std::endl;
-  std::cout << "                                DEFAULT = \"1\"" << std::endl;
+  std::cout << "                                DEFAULT = \"3\"" << std::endl;
   std::cout << " --bad_clients_threshold <int>  The percentage of clients for every application" << std::endl;
   std::cout << "                                that is allowed to behave \"badly\" wrt to the model" << std::endl;
   std::cout << "                                DEFAULT = \"20\"" << std::endl;

@@ -1,4 +1,4 @@
-/* beholder/parameters_beholder.hpp
+/* beholder/ici_cdt.cc
  * Copyright (C) 2018 Alberto Bendin
  *
  * This library is free software; you can redistribute it and/or
@@ -18,15 +18,13 @@
  */
 
 
+#include "beholder/ici_cdt.hpp"
 #include "beholder/parameters_beholder.hpp"
+#include "agora/logger.hpp"
 
 namespace beholder
 {
+    bool IciCdt::perform_ici_cdt(Data_ici_test& data_test, const std::vector<std::pair <float, std::string>>& window_pair){
 
-  int Parameters_beholder::window_size = 20;
-  int Parameters_beholder::training_windows = 5;
-  float Parameters_beholder::gamma_mean = 3;
-  float Parameters_beholder::gamma_variance = 3;
-  int Parameters_beholder::bad_clients_threshold = 20;
-
+    }
 }

@@ -61,6 +61,8 @@ set( BEHOLODER_HEADERS
   ${MARGOT_HDR_PATH}/beholder/global_view_beholder.hpp
   ${MARGOT_HDR_PATH}/beholder/application_handler_beholder.hpp
 	${MARGOT_HDR_PATH}/beholder/parameters_beholder.hpp
+	${MARGOT_HDR_PATH}/beholder/ici_test_data.hpp
+	${MARGOT_HDR_PATH}/beholder/ici_cdt.hpp
 )
 
 
@@ -92,6 +94,7 @@ set( BEHOLDER_SOURCES
 	${SRC_PATH}/global_view_beholder
 	${SRC_PATH}/application_handler_beholder
 	${SRC_PATH}/parameters_beholder
+	${SRC_PATH}/ici_cdt
 )
 
 # add the collector monitor if enabled
