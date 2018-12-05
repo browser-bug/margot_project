@@ -20,6 +20,7 @@ class AgoraModel:
     self.number_observation = '5'
     self.pause_polling = ''
     self.pause_timeout = ''
+    self.beholder_metrics = []
     self.metrics_predictors = {}
     self.knobs_values = {}
     self.features_values = {}
@@ -44,6 +45,7 @@ class AgoraModel:
     dump_string = '{0}\n    Number observation:{1}'.format(dump_string, self.number_observation)
     dump_string = '{0}\n    Pause polling time:{1}'.format(dump_string, self.pause_polling)
     dump_string = '{0}\n    Pause timeout:     {1}'.format(dump_string, self.pause_timeout)
+    dump_string = '{0}\n    Beholder Metrics:  {1}'.format(dump_string, self.beholder_metrics)
     dump_string = '{0}\n    Exploring:         {1}'.format(dump_string, self.knobs_values)
     dump_string = '{0}\n    Predicting:        {1}'.format(dump_string, self.metrics_predictors)
     dump_string = '{0}\n    Given:             {1}'.format(dump_string, self.features_values)

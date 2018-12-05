@@ -402,6 +402,14 @@ def generate_block_body( block_model, op_lists, cc ):
         knobs = sorted([x for x in block_model.agora_model.knobs_values])
         features = sorted([x for x in block_model.agora_model.features_values])
         metrics = sorted([x for x in block_model.agora_model.metrics_monitors])
+        # get the list of metrics enabled for the beholder analysis
+        beholder_metrics = sorted([x for x in block_model.agora_model.beholder_metrics])
+
+        # actually understand whether or not the user specified some metrics for the beholder
+        beholderMetricsExplicit = False
+        # if there is at least one element in the list of metrics then the user specified the metrics for the beholder explicitly
+        if len(beholder_metrics) > 0:
+          beholderMetricsExplicit = True
 
         # start to compose the list of terms to send to
         knob_terms = []
@@ -421,6 +429,15 @@ def generate_block_body( block_model, op_lists, cc ):
         metric_name_list = []
         # prepare a list also for the currently enabled metric predictions
         metric_prediction_list = []
+        # structures as the ones above but for the case in which the user explicitly specified the beholder metrics
+        if beholderMetricsExplicit:
+          beholder_metric_terms = []
+          # prepare a list also for the currently enabled metric names
+          beholder_metric_name_list = []
+          # prepare a list also for the currently enabled metric predictions
+          beholder_metric_prediction_list = []
+          # prepare a list also for all the beholder-enabled metric predictions
+          all_beholder_metric_prediction_list = []
 
         # NB:  the following "for-else-break" structure is to "continue" the outer loop when we meet the disabled monitor.
         #      This is needed NOT to enque the disabled monitor's value in the message
@@ -445,9 +462,28 @@ def generate_block_body( block_model, op_lists, cc ):
               metric_name_list.append('std::string("{0}")'.format(metric))
               # if the current metric is one of the enabled ones then append the metric's prediction from the model to the list of metric predictions
               metric_prediction_list.append('std::to_string({0}::manager.get_mean<OperatingPointSegments::METRICS, static_cast<std::size_t>({0}::Metric::{1})>())'.format(block_model.block_name, metric.upper()))
+              # put in the beholder lists just the intersection of the currently enabled metrics and the beholder metrics
+              if beholderMetricsExplicit:
+                if metric in beholder_metrics:
+                  # if the current metric is one of the enabled ones then append the monitor's value to the list of metric values
+                  beholder_metric_terms.append('std::to_string(monitor::{0}.last())'.format(related_monitor))
+                  # if the current metric is one of the enabled ones then append the metric's name to the list of metric names
+                  beholder_metric_name_list.append('std::string("{0}")'.format(metric))
+                  # if the current metric is one of the enabled ones then append the metric's prediction from the model to the list of metric predictions
+                  beholder_metric_prediction_list.append('std::to_string({0}::manager.get_mean<OperatingPointSegments::METRICS, static_cast<std::size_t>({0}::Metric::{1})>())'.format(block_model.block_name, metric.upper()))
+
         metric_string = ' + "," + '.join(metric_terms)
         # use the same technique of join also for the currently enabled metric names
         metric_names = ' + "," + '.join(metric_name_list)
+
+        if beholderMetricsExplicit:
+            # build the list of all the beholder-enabled metrics (not just the currently available ones, but all those specified by the user)
+            for metric in beholder_metrics:
+                # if the current metric is one of the enabled ones then append the metric's name to the list of metric names
+                all_beholder_metric_prediction_list.append('std::string("{0}")'.format(metric))
+            beholder_metric_string = ' + "," + '.join(beholder_metric_terms)
+            # use the same technique of join also for the currently enabled metric names
+            beholder_metric_names = ' + "," + '.join(beholder_metric_name_list)
 
         # at run-time condition: if the client has the model then send the observation
         # to both the agora and beholder application handlers
@@ -456,8 +492,20 @@ def generate_block_body( block_model, op_lists, cc ):
         # use the same technique of join also for the currently enabled metric predictions
         metric_predictions = ' + "," + '.join(metric_prediction_list)
 
-        #build the message for the beholder
-        send_beholder_string = ' + " " + '.join([metric_string, metric_predictions, metric_names])
+        if beholderMetricsExplicit:
+            # use the same technique of join also for the currently enabled metric predictions
+            beholder_metric_predictions = ' + "," + '.join(beholder_metric_prediction_list)
+            # enqueue the list of all the metrics that the user enabled for the beholder analysis
+            all_beholder_metric_names = ' + "," + '.join(all_beholder_metric_prediction_list)
+
+        #build the message for the beholder according to the case in which the beholder metrics are explicitly specified or not
+        if beholderMetricsExplicit:
+            # if the user enabled some explict metrics for the beholder, then enqueue send just the currently enabled metrics observations and the list of all the beholder-enabled metrics
+            # so that the beholder always knows how many metrics it currently receives out of all those it could potentially receive
+            send_beholder_string = ' + " " + '.join([beholder_metric_string, beholder_metric_predictions, beholder_metric_names, all_beholder_metric_names])
+        else:
+            # if the user does not explicitly states the metrics enabled for the beholder than it is assumed that all of them are
+            send_beholder_string = ' + " " + '.join([metric_string, metric_predictions, metric_names])
 
         # append also the metric names to the message that will be sent to agora
         if feature_terms:
@@ -501,6 +549,14 @@ def generate_block_body( block_model, op_lists, cc ):
         knobs = sorted([x for x in block_model.agora_model.knobs_values])
         features = sorted([x for x in block_model.agora_model.features_values])
         metrics = sorted([x for x in block_model.agora_model.metrics_monitors])
+        # get the list of metrics enabled for the beholder analysis
+        beholder_metrics = sorted([x for x in block_model.agora_model.beholder_metrics])
+
+        # actually understand whether or not the user specified some metrics for the beholder
+        beholderMetricsExplicit = False
+        # if there is at least one element in the list of metrics then the user specified the metrics for the beholder explicitly
+        if len(beholder_metrics) > 0:
+          beholderMetricsExplicit = True
 
         # start to compose the list of terms to send to
         knob_terms = []
@@ -520,6 +576,15 @@ def generate_block_body( block_model, op_lists, cc ):
         metric_name_list = []
         # prepare a list also for the currently enabled metric predictions
         metric_prediction_list = []
+        # structures as the ones above but for the case in which the user explicitly specified the beholder metrics
+        if beholderMetricsExplicit:
+          beholder_metric_terms = []
+          # prepare a list also for the currently enabled metric names
+          beholder_metric_name_list = []
+          # prepare a list also for the currently enabled metric predictions
+          beholder_metric_prediction_list = []
+          # prepare a list also for all the beholder-enabled metric predictions
+          all_beholder_metric_prediction_list = []
         for metric in metrics:
             related_monitor = block_model.agora_model.metrics_monitors[metric]
             metric_terms.append('std::to_string(monitor::{0}.last())'.format(related_monitor))
@@ -527,10 +592,28 @@ def generate_block_body( block_model, op_lists, cc ):
             metric_name_list.append('std::string("{0}")'.format(metric))
             # if the current metric is one of the enabled ones then append the metric's prediction from the model to the list of metric predictions
             metric_prediction_list.append('std::to_string({0}::manager.get_mean<OperatingPointSegments::METRICS, static_cast<std::size_t>({0}::Metric::{1})>())'.format(block_model.block_name, metric.upper()))
+            # put in the beholder lists just the intersection of the currently enabled metrics and the beholder metrics
+            if beholderMetricsExplicit:
+              if metric in beholder_metrics:
+                # if the current metric is one of the enabled ones then append the monitor's value to the list of metric values
+                beholder_metric_terms.append('std::to_string(monitor::{0}.last())'.format(related_monitor))
+                # if the current metric is one of the enabled ones then append the metric's name to the list of metric names
+                beholder_metric_name_list.append('std::string("{0}")'.format(metric))
+                # if the current metric is one of the enabled ones then append the metric's prediction from the model to the list of metric predictions
+                beholder_metric_prediction_list.append('std::to_string({0}::manager.get_mean<OperatingPointSegments::METRICS, static_cast<std::size_t>({0}::Metric::{1})>())'.format(block_model.block_name, metric.upper()))
         metric_string = ' + "," + '.join(metric_terms)
 
         # use the same technique of join also for the currently enabled metric names
         metric_names = ' + "," + '.join(metric_name_list)
+
+        if beholderMetricsExplicit:
+            # build the list of all the beholder-enabled metrics (not just the currently available ones, but all those specified by the user)
+            for metric in beholder_metrics:
+                # if the current metric is one of the enabled ones then append the metric's name to the list of metric names
+                all_beholder_metric_prediction_list.append('std::string("{0}")'.format(metric))
+            beholder_metric_string = ' + "," + '.join(beholder_metric_terms)
+            # use the same technique of join also for the currently enabled metric names
+            beholder_metric_names = ' + "," + '.join(beholder_metric_name_list)
 
         # at run-time condition: if the client has the model then send the observation
         # to both the agora and beholder application handlers
@@ -539,8 +622,19 @@ def generate_block_body( block_model, op_lists, cc ):
         # use the same technique of join also for the currently enabled metric predictions
         metric_predictions = ' + "," + '.join(metric_prediction_list)
 
-        #build the message for the beholder
-        send_beholder_string = ' + " " + '.join([metric_string, metric_predictions, metric_names])
+        if beholderMetricsExplicit:
+            # use the same technique of join also for the currently enabled metric predictions
+            beholder_metric_predictions = ' + "," + '.join(beholder_metric_prediction_list)# enqueue the list of all the metrics that the user enabled for the beholder analysis
+            all_beholder_metric_names = ' + "," + '.join(all_beholder_metric_prediction_list)
+
+        #build the message for the beholder according to the case in which the beholder metrics are explicitly specified or not
+        if beholderMetricsExplicit:
+            # if the user enabled some explict metrics for the beholder, then enqueue send just the currently enabled metrics observations and the list of all the beholder-enabled metrics
+            # so that the beholder always knows how many metrics it currently receives out of all those it could potentially receive
+            send_beholder_string = ' + " " + '.join([beholder_metric_string, beholder_metric_predictions, beholder_metric_names, all_beholder_metric_names])
+        else:
+            # if the user does not explicitly states the metrics enabled for the beholder than it is assumed that all of them are
+            send_beholder_string = ' + " " + '.join([metric_string, metric_predictions, metric_names])
 
         if feature_terms:
             send_string = ' + " " + '.join([knob_string, feature_string, metric_string, metric_predictions])
@@ -584,6 +678,14 @@ def generate_block_body( block_model, op_lists, cc ):
         knobs = sorted([x for x in block_model.agora_model.knobs_values])
         features = sorted([x for x in block_model.agora_model.features_values])
         metrics = sorted([x for x in block_model.agora_model.metrics_monitors])
+        # get the list of metrics enabled for the beholder analysis
+        beholder_metrics = sorted([x for x in block_model.agora_model.beholder_metrics])
+
+        # actually understand whether or not the user specified some metrics for the beholder
+        beholderMetricsExplicit = False
+        # if there is at least one element in the list of metrics then the user specified the metrics for the beholder explicitly
+        if len(beholder_metrics) > 0:
+          beholderMetricsExplicit = True
 
         # start to compose the list of terms to send to
         knob_terms = []
@@ -603,6 +705,15 @@ def generate_block_body( block_model, op_lists, cc ):
         metric_name_list = []
         # prepare a list also for the currently enabled metric predictions
         metric_prediction_list = []
+        # structures as the ones above but for the case in which the user explicitly specified the beholder metrics
+        if beholderMetricsExplicit:
+          beholder_metric_terms = []
+          # prepare a list also for the currently enabled metric names
+          beholder_metric_name_list = []
+          # prepare a list also for the currently enabled metric predictions
+          beholder_metric_prediction_list = []
+          # prepare a list also for all the beholder-enabled metric predictions
+          all_beholder_metric_prediction_list = []
         for metric in metrics:
             related_monitor = block_model.agora_model.metrics_monitors[metric]
             metric_terms.append('std::to_string(monitor::{0}.last())'.format(related_monitor))
@@ -610,10 +721,28 @@ def generate_block_body( block_model, op_lists, cc ):
             metric_name_list.append('std::string("{0}")'.format(metric))
             # if the current metric is one of the enabled ones then append the metric's prediction from the model to the list of metric predictions
             metric_prediction_list.append('std::to_string({0}::manager.get_mean<OperatingPointSegments::METRICS, static_cast<std::size_t>({0}::Metric::{1})>())'.format(block_model.block_name, metric.upper()))
+            # put in the beholder lists just the intersection of the currently enabled metrics and the beholder metrics
+            if beholderMetricsExplicit:
+              if metric in beholder_metrics:
+                # if the current metric is one of the enabled ones then append the monitor's value to the list of metric values
+                beholder_metric_terms.append('std::to_string(monitor::{0}.last())'.format(related_monitor))
+                # if the current metric is one of the enabled ones then append the metric's name to the list of metric names
+                beholder_metric_name_list.append('std::string("{0}")'.format(metric))
+                # if the current metric is one of the enabled ones then append the metric's prediction from the model to the list of metric predictions
+                beholder_metric_prediction_list.append('std::to_string({0}::manager.get_mean<OperatingPointSegments::METRICS, static_cast<std::size_t>({0}::Metric::{1})>())'.format(block_model.block_name, metric.upper()))
         metric_string = ' + "," + '.join(metric_terms)
 
         # use the same technique of join also for the currently enabled metric names
         metric_names = ' + "," + '.join(metric_name_list)
+
+        if beholderMetricsExplicit:
+            # build the list of all the beholder-enabled metrics (not just the currently available ones, but all those specified by the user)
+            for metric in beholder_metrics:
+                # if the current metric is one of the enabled ones then append the metric's name to the list of metric names
+                all_beholder_metric_prediction_list.append('std::string("{0}")'.format(metric))
+            beholder_metric_string = ' + "," + '.join(beholder_metric_terms)
+            # use the same technique of join also for the currently enabled metric names
+            beholder_metric_names = ' + "," + '.join(beholder_metric_name_list)
 
         # at run-time condition: if the client has the model then send the observation
         # to both the agora and beholder application handlers
@@ -622,8 +751,19 @@ def generate_block_body( block_model, op_lists, cc ):
         # use the same technique of join also for the currently enabled metric predictions
         metric_predictions = ' + "," + '.join(metric_prediction_list)
 
-        #build the message for the beholder
-        send_beholder_string = ' + " " + '.join([metric_string, metric_predictions, metric_names])
+        if beholderMetricsExplicit:
+            # use the same technique of join also for the currently enabled metric predictions
+            beholder_metric_predictions = ' + "," + '.join(beholder_metric_prediction_list)# enqueue the list of all the metrics that the user enabled for the beholder analysis
+            all_beholder_metric_names = ' + "," + '.join(all_beholder_metric_prediction_list)
+
+        #build the message for the beholder according to the case in which the beholder metrics are explicitly specified or not
+        if beholderMetricsExplicit:
+            # if the user enabled some explict metrics for the beholder, then enqueue send just the currently enabled metrics observations and the list of all the beholder-enabled metrics
+            # so that the beholder always knows how many metrics it currently receives out of all those it could potentially receive
+            send_beholder_string = ' + " " + '.join([beholder_metric_string, beholder_metric_predictions, beholder_metric_names, all_beholder_metric_names])
+        else:
+            # if the user does not explicitly states the metrics enabled for the beholder than it is assumed that all of them are
+            send_beholder_string = ' + " " + '.join([metric_string, metric_predictions, metric_names])
 
         if feature_terms:
             send_string = ' + " " + '.join([knob_string, feature_string, metric_string, metric_predictions])

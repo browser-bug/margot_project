@@ -37,6 +37,27 @@ def parse_agora( agora_xml_element, namespace = ''):
       if int(agora_model.pause_timeout)<-1:
         raise Exception("Invalid pause timeout value. Please insert an integer > -2!")
 
+  # get (all) the "beholder" element, even though it should be just one element
+  beholder_xml_elements = get_elements(agora_xml_element, 'beholder', namespace = namespace, unique = True)
+
+  #parse the beholder information
+  if beholder_xml_elements:
+
+      # parse it
+      beholder_values = get_parameter(beholder_xml_elements[0], 'metrics', required = True)
+
+      # make sure that all the metric names are lowercase
+      beholder_values = beholder_values.lower()
+
+      # validate the values
+      beholder_values = beholder_values.replace(' ', '')
+      beholder_values = beholder_values.replace(',', ' ')
+      values = beholder_values.split(' ')
+      beholder_values = [x for x in values]
+
+      # add the information to the agora model
+      agora_model.beholder_metrics = beholder_values
+
   # get all the knobs
   knobs_xml_elements = get_elements(agora_xml_element, 'explore', namespace = namespace, required = True )
 

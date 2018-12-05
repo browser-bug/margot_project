@@ -23,7 +23,7 @@
 
 namespace beholder
 {
-    bool perform_ici_cdt ();
+  bool perform_ici_cdt ();
 }
 
 #endif // MARGOT_BEHOLDER_ICI_CDT

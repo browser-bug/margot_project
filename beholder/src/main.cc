@@ -253,29 +253,29 @@ int main( int argc, char* argv[] )
 
         break;
 
-    case 17:
-      std::istringstream ( optarg ) >> beholder::Parameters_beholder::gamma_mean;
+      case 17:
+        std::istringstream ( optarg ) >> beholder::Parameters_beholder::gamma_mean;
 
-      if (beholder::Parameters_beholder::gamma_mean < 0)
-      {
-        std::cerr << "Error: invalid gamma_mean number " << beholder::Parameters_beholder::gamma_mean << ", it cannot be negative" << std::endl;
-        return EXIT_FAILURE;
-      }
+        if (beholder::Parameters_beholder::gamma_mean < 0)
+        {
+          std::cerr << "Error: invalid gamma_mean number " << beholder::Parameters_beholder::gamma_mean << ", it cannot be negative" << std::endl;
+          return EXIT_FAILURE;
+        }
 
-      break;
+        break;
 
-  case 18:
-    std::istringstream ( optarg ) >> beholder::Parameters_beholder::gamma_variance;
+      case 18:
+        std::istringstream ( optarg ) >> beholder::Parameters_beholder::gamma_variance;
 
-    if (beholder::Parameters_beholder::gamma_variance < 0)
-    {
-      std::cerr << "Error: invalid gamma_variance number " << beholder::Parameters_beholder::gamma_variance << ", it cannot be negative" << std::endl;
-      return EXIT_FAILURE;
-    }
+        if (beholder::Parameters_beholder::gamma_variance < 0)
+        {
+          std::cerr << "Error: invalid gamma_variance number " << beholder::Parameters_beholder::gamma_variance << ", it cannot be negative" << std::endl;
+          return EXIT_FAILURE;
+        }
 
-    break;
+        break;
 
-case 19:
+      case 19:
         std::istringstream ( optarg ) >> beholder::Parameters_beholder::bad_clients_threshold;
 
         if (beholder::Parameters_beholder::bad_clients_threshold < 0)
