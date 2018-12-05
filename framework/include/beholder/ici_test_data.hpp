@@ -26,7 +26,37 @@ namespace beholder
 
   struct Data_ici_test
   {
+    // vector to store the observations belonging to the training set
     std::vector<float> training_observations;
+
+    // counter of the observed (complete) windows up to now
+    int window_number;
+
+    // training phase data structures:
+    std::vector<float> training_sample_mean; // M(s)
+    std::vector<float> training_sample_variance; // S(s)
+    std::vector<float> training_sample_variance_transformed; // V(s)
+    float h0;
+
+    // data structure for the CDT:
+    float reference_sample_mean_mean;
+    float reference_sample_mean_variance;
+    float reference_sample_variance_mean;
+    float reference_sample_variance_variance;
+    float current_sample_mean_mean;
+    float previous_sample_mean_mean;
+    float current_sample_mean_variance;
+    float current_sample_variance_variance;
+    float current_sample_variance_mean;
+    float previous_sample_variance_mean;
+    float current_mean_conf_interval_upper;
+    float current_mean_conf_interval_lower;
+    float previous_mean_conf_interval_upper;
+    float previous_mean_conf_interval_lower;
+    float current_variance_conf_interval_upper;
+    float current_variance_conf_interval_lower;
+    float previous_variance_conf_interval_upper;
+    float previous_variance_conf_interval_lower;
   };
 
 }

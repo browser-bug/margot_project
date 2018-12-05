@@ -94,6 +94,8 @@ void print_usage( void )
   std::cout << " --bad_clients_threshold <int>  The percentage of clients for every application" << std::endl;
   std::cout << "                                that is allowed to behave \"badly\" wrt to the model" << std::endl;
   std::cout << "                                DEFAULT = \"20\"" << std::endl;
+  std::cout << " --variance_off                 Disables the variance feature from the ICI CDT." << std::endl;
+  std::cout << "                                DEFAULT = \"false\"" << std::endl;
 }
 
 
@@ -145,6 +147,7 @@ int main( int argc, char* argv[] )
     {"gamma_mean",             required_argument, 0,  17   },
     {"gamma_variance",         required_argument, 0,  18   },
     {"bad_clients_threshold",  required_argument, 0,  19   },
+    {"variance_off",  no_argument, 0,  20   },
     {0,                        0,                 0,  0   }
   };
 
@@ -285,6 +288,10 @@ int main( int argc, char* argv[] )
         }
 
         break;
+
+    case 20:
+            beholder::Parameters_beholder::variance_off = true;
+            break;
 
       default:
         std::cerr << "Unable to parse the option \"" << optarg << "\"" << std::endl;

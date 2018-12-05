@@ -31,6 +31,7 @@ namespace beholder
     static float gamma_mean;
     static float gamma_variance;
     static int bad_clients_threshold;
+    static bool variance_off;
   };
 
 }

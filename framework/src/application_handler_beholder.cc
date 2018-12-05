@@ -316,6 +316,7 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
       // If it finds the ici_cdt_map for the current metric then use it
       if (search_ici_map != ici_cdt_map.end())
       {
+          agora::pedantic("Continuing CDT for metric ", i.first);
           change_detected = IciCdt::perform_ici_cdt(search_ici_map->second, i.second);
           // if the change has been detected save the (first) metric for which the change has been detected
           // This could be useful to gather the timestamp of the current window for that metric
@@ -326,44 +327,47 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
       } else {
           // It did not find the ici_cdt_map for the current metric then create it
           Data_ici_test new_ici_struct;
+          // initilize the window number to zero
+          new_ici_struct.window_number = 0;
+          agora::pedantic("Initialized structure for metric ", i.first, ", starting CDT! ");
           change_detected = IciCdt::perform_ici_cdt(new_ici_struct, i.second);
           ici_cdt_map.emplace(i.first, new_ici_struct);
           // It cannot detect a change if this is the first full window for that metric,
           // so basically avoid the if to check for the boolean "change_detected"
       }
 
-      // TODO: start computation for CDT
-      // Gathering the number of residuals for the current metric:
-      auto search_counter = residuals_map_counter.find(i.first);
-
-      // Just an additional check. If it arrives here there should be the counter obviously.
-      if (search_counter != residuals_map_counter.end())
-      {
-
-        if (search_counter->second == Parameters_beholder::window_size * Parameters_beholder::training_windows)
-        {
-          // we are in training
-          if (search_counter->second <= Parameters_beholder::window_size * Parameters_beholder::training_windows)
-          {
-            // this is the last training window
-          }
-          else
-          {
-            // this is not the last training window
-          }
-        }
-        else
-        {
-          // we are in production phase
-        }
-
-      }
-      else
-      {
-        // Just an additional check
-        agora::info("Error: no observation counter found for metric: ", i.first);
-        return;
-      }
+      // // TODO: start computation for CDT
+      // // Gathering the number of residuals for the current metric:
+      // auto search_counter = residuals_map_counter.find(i.first);
+      //
+      // // Just an additional check. If it arrives here there should be the counter obviously.
+      // if (search_counter != residuals_map_counter.end())
+      // {
+      //
+      //   if (search_counter->second == Parameters_beholder::window_size * Parameters_beholder::training_windows)
+      //   {
+      //     // we are in training
+      //     if (search_counter->second <= Parameters_beholder::window_size * Parameters_beholder::training_windows)
+      //     {
+      //       // this is the last training window
+      //     }
+      //     else
+      //     {
+      //       // this is not the last training window
+      //     }
+      //   }
+      //   else
+      //   {
+      //     // we are in production phase
+      //   }
+      //
+      // }
+      // else
+      // {
+      //   // Just an additional check
+      //   agora::info("Error: no observation counter found for metric: ", i.first);
+      //   return;
+      // }
 
 
 

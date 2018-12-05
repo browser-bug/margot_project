@@ -28,5 +28,6 @@ namespace beholder
   float Parameters_beholder::gamma_mean = 3;
   float Parameters_beholder::gamma_variance = 3;
   int Parameters_beholder::bad_clients_threshold = 20;
+  bool Parameters_beholder::variance_off = false;
 
 }
