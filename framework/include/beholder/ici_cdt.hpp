@@ -29,19 +29,19 @@
 
 namespace beholder
 {
-    class IciCdt
-    {
+  class IciCdt
+  {
 
 
-      private:
+    private:
 
 
 
-      public:
+    public:
 
-        static bool perform_ici_cdt(Data_ici_test& data_test, const std::vector<std::pair <float, std::string>>& window_pair);
+      static bool perform_ici_cdt(Data_ici_test& data_test, const std::vector<std::pair <float, std::string>>& window_pair);
 
-    };
+  };
 
 
 }

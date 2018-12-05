@@ -301,9 +301,11 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
   for (auto& i : residuals_map)
   {
     // if a change has been detected then stop the 1st step of the CDT
-    if (change_detected){
-        break;
+    if (change_detected)
+    {
+      break;
     }
+
     agora::debug("i.second.size(): ", i.second.size());
 
     if (i.second.size() == Parameters_beholder::window_size)
@@ -316,24 +318,28 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
       // If it finds the ici_cdt_map for the current metric then use it
       if (search_ici_map != ici_cdt_map.end())
       {
-          agora::pedantic("Continuing CDT for metric ", i.first);
-          change_detected = IciCdt::perform_ici_cdt(search_ici_map->second, i.second);
-          // if the change has been detected save the (first) metric for which the change has been detected
-          // This could be useful to gather the timestamp of the current window for that metric
-          // to be used later on in the 2nd step of Cassandra
-          if (change_detected){
-              change_metric = i.first;
-          }
-      } else {
-          // It did not find the ici_cdt_map for the current metric then create it
-          Data_ici_test new_ici_struct;
-          // initilize the window number to zero
-          new_ici_struct.window_number = 0;
-          agora::pedantic("Initialized structure for metric ", i.first, ", starting CDT! ");
-          change_detected = IciCdt::perform_ici_cdt(new_ici_struct, i.second);
-          ici_cdt_map.emplace(i.first, new_ici_struct);
-          // It cannot detect a change if this is the first full window for that metric,
-          // so basically avoid the if to check for the boolean "change_detected"
+        agora::pedantic("Continuing CDT for metric ", i.first);
+        change_detected = IciCdt::perform_ici_cdt(search_ici_map->second, i.second);
+
+        // if the change has been detected save the (first) metric for which the change has been detected
+        // This could be useful to gather the timestamp of the current window for that metric
+        // to be used later on in the 2nd step of Cassandra
+        if (change_detected)
+        {
+          change_metric = i.first;
+        }
+      }
+      else
+      {
+        // It did not find the ici_cdt_map for the current metric then create it
+        Data_ici_test new_ici_struct;
+        // initilize the window number to zero
+        new_ici_struct.window_number = 0;
+        agora::pedantic("Initialized structure for metric ", i.first, ", starting CDT! ");
+        change_detected = IciCdt::perform_ici_cdt(new_ici_struct, i.second);
+        ici_cdt_map.emplace(i.first, new_ici_struct);
+        // It cannot detect a change if this is the first full window for that metric,
+        // so basically avoid the if to check for the boolean "change_detected"
       }
 
       // // TODO: start computation for CDT

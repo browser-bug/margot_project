@@ -289,9 +289,9 @@ int main( int argc, char* argv[] )
 
         break;
 
-    case 20:
-            beholder::Parameters_beholder::variance_off = true;
-            break;
+      case 20:
+        beholder::Parameters_beholder::variance_off = true;
+        break;
 
       default:
         std::cerr << "Unable to parse the option \"" << optarg << "\"" << std::endl;
