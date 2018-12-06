@@ -40,6 +40,7 @@ create_doe <- function(knobs_config_list, doe_options, knobs_names, model_contai
   }
   
   if(doe_options$nobs >= nrow(full_design)){
+    warning("configuration_per_iteration is greater than full factorial design. algorithm set to the full_factorial")
     algorithm = "full_factorial"
   }
 
