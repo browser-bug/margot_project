@@ -17,6 +17,7 @@ create_doe <- function(knobs_config_list, doe_options, knobs_names, model_contai
     discarded_designs <- discarded_designs %>% setdiff(full_design)
   }
   
+  if(doe_options$nobs >= nrow(full_design))
 
 # Write model table -------------------------------------------------------
 
@@ -38,6 +39,9 @@ create_doe <- function(knobs_config_list, doe_options, knobs_names, model_contai
     write.table(temp_df, file = model_container_name, col.names = TRUE, row.names = FALSE, sep = ",", dec = ".")
   }
   
+  if(doe_options$nobs >= nrow(full_design)){
+    algorithm = "full_factorial"
+  }
 
 # Generate points to explore ----------------------------------------------
   
@@ -79,7 +83,7 @@ create_doe <- function(knobs_config_list, doe_options, knobs_names, model_contai
     }
 
 # Map points to the application DOE ---------------------------------------
-
+    
     if (length(knobs_config_list) > 1) {
       # Create matrix of all the possible knob design points
       design_space_grid <- as.matrix(full_design)
