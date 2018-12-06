@@ -333,6 +333,11 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
       {
         // It did not find the ici_cdt_map for the current metric then create it
         Data_ici_test new_ici_struct;
+        // save the application name and metric name in the data structure
+        // to make those information easily available from the struct once it is passed around
+        // (handy in logs)
+        new_ici_struct.app_name = description.application_name;
+        new_ici_struct.metric_name = i.first;
         // initilize the window number to zero
         new_ici_struct.window_number = 0;
         agora::pedantic("Initialized structure for metric ", i.first, ", starting CDT! ");

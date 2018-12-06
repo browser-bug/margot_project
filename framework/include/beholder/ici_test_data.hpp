@@ -24,8 +24,16 @@
 namespace beholder
 {
 
+
+  // data structure for the ICI change detection test related to each application-metric pair
   struct Data_ici_test
   {
+    // application name
+    std::string app_name;
+
+    // metric name
+    std::string metric_name;
+
     // vector to store the observations belonging to the training set
     std::vector<float> training_observations;
 
