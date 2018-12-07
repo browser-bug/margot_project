@@ -327,7 +327,7 @@ if (storage_type == "CASSANDRA"){
   temp_df <- design_space_grid %>% mutate(!!metric_avg := as.numeric(Y_final$fit))
   temp_df <- temp_df %>% mutate(!!metric_std := as.numeric(Y_final$sd))
   model_csv <- model_csv %>% select(-!!str_c(metric_name, "_std"), -!!str_c(metric_name, "_avg"))
-  model_csv <- inner_join(temp_df, model_csv)
+  model_csv <- inner_join(model_csv, temp_df)
   write.table(model_csv, file = model_container_name, col.names = TRUE, row.names = FALSE, sep = ",", dec = ".")
 }
 
