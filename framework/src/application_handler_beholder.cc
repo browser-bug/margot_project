@@ -27,6 +27,7 @@
 
 #include "beholder/application_handler_beholder.hpp"
 #include "beholder/parameters_beholder.hpp"
+#include "beholder/observation_data.hpp"
 #include "beholder/ici_cdt.hpp"
 #include "agora/logger.hpp"
 
@@ -42,7 +43,7 @@ RemoteApplicationHandler::RemoteApplicationHandler( const std::string& applicati
   description = agora::io::storage.load_description(application_name);
   agora::debug("Number of total metrics: ", description.metrics.size());
   agora::debug("Window size: ", Parameters_beholder::window_size);
-  agora::debug("Window size: ", Parameters_beholder::training_windows);
+  agora::debug("Number of windows used for training: ", Parameters_beholder::training_windows);
 
 
 }
@@ -62,233 +63,15 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
 
   // release the lock while parsing the message
   // QUESTION: should I release the lock here? Could it break the order of messages and build a not consistent window?
-  guard.unlock();
 
-  //TODO: rearrange this parsing after having chosen what the beholder really receives from mqtt.
-  // declare the fields of the incoming message
-  std::string client_id;
-  std::string timestamp;
-  //std::string configuration;
-  //std::string features;
-  std::string metrics;
-  std::string metric_fields;
-  std::string estimates;
-  std::string user_enabled_metrics;
+  // struct to store the current observation received
+  Observation_data observation;
 
-  // parse the message
-  std::stringstream stream(values);
-  stream >> timestamp;
-  agora::debug("Timestamp: ", timestamp);
-  stream >> client_id;
-  agora::debug("client_id: ", client_id);
+  // parse the received observation
+  RemoteApplicationHandler::parse_observation(observation, values);
 
-  // check whether the client which sent the current observation is in the blacklist.
-  // if that's the case then discard the observation, otherwise keep parameter_string
-  auto search = clients_blacklist.find(client_id);
-
-  if (search != clients_blacklist.end())    // if client name fouund in the blacklist than return
-  {
-    agora::info("Observation from client ", client_id, " rejected because blacklisted client");
-    return;
-  }
-
-  //stream >> configuration;
-
-  // if (!description.features.empty()) // parse the features only if we have them
-  // {
-  //   stream >> features;
-  // }
-
-  // gets the observed values
-  stream >> metrics;
-  agora::debug("metrics: ", metrics);
-
-  // gets the model values
-  stream >> estimates;
-  agora::debug("estimates: ", estimates );
-
-  // gets the name of the fields of the metric to be filled in
-  // NB: note that the beholder observation message always contains the metric names, also when all the metrics are enabled.
-  // This is because in this way we know which metrics must be observed by the beholder
-  // according to the user's settings in the XML configuration file.
-  // This is needed because there could be metrics which would be available but that should not be monitored
-  // by the beholder, again according to the user preferences.
-  // The margot heel just sends us the name of the metrics which should be observed.
-  // While gathering the metric names from the DB would have meant to lose the information of which metric
-  // should be actually monitored out of all those available.
-  stream >> metric_fields;
-  agora::debug("metric_fields: ", metric_fields);
-
-  // if this is the first message then parse also the last part of the message where the heel enqueues the whole list of user-enabled-beholder-metrics
-  // if this list is not present than there is the assumption that all the metrics should be analized, even though the user did not explicitely stated that
-  if (reference_metric_names.size() == 0)
-  {
-    stream >> user_enabled_metrics;
-
-    //if there is no list than get the reference metrics from the application description, it is assumed that all of them are enabled
-    if (user_enabled_metrics == "")
-    {
-      for (auto i : description.metrics)
-      {
-        reference_metric_names.emplace(i.name);
-      }
-    }
-    else
-    {
-      // Separate the parsed information (basically CSV, i.e. strings with comma separated values)
-      // and put them into the reference set for the user enabled beholder metrics
-      std::stringstream ssm(user_enabled_metrics);
-
-      while ( ssm.good() )
-      {
-        std::string substr;
-        getline( ssm, substr, ',' );
-        reference_metric_names.emplace(substr);
-      }
-    }
-
-    // preparing the 'select' query for Cassandra for the 2nd step of cassandra
-    // It is done here to only compute the string once and save resources and time
-    query_select = "day, time, client_id, ";
-
-    for (auto i : description.knobs)
-    {
-      query_select.append(i.name);
-      query_select.append(",");
-    }
-
-    for (auto i : description.features)
-    {
-      query_select.append(i.name);
-      query_select.append(",");
-    }
-
-    for (auto i : reference_metric_names)
-    {
-      query_select.append(i);
-      query_select.append(",");
-    }
-
-    for (auto i : reference_metric_names)
-    {
-      query_select.append("model_");
-      query_select.append(i);
-      query_select.append(",");
-    }
-
-    // to remove the last comma
-    query_select.pop_back();
-  }
-
-  // append the coma to connect the different the features with the metrics
-  // if (!features.empty())
-  // {
-  //   features.append(",");
-  // }
-
-  // Separate the parsed information (basically CSV, i.e. strings with comma separated values)
-  // into the respective vectors.
-  // build the vector of metric names provided in the observation
-  std::vector<std::string> metric_fields_vec;
-  std::stringstream ssmf(metric_fields);
-
-  while ( ssmf.good() )
-  {
-    std::string substr;
-    getline( ssmf, substr, ',' );
-    metric_fields_vec.push_back( substr );
-  }
-
-  for (auto i : metric_fields_vec)
-  {
-    agora::debug("metric_fields separated: ", i);
-  }
-
-  // build the vector of observed metrics provided in the observation
-  std::vector<float> metrics_vec;
-  std::stringstream ssm(metrics);
-
-  while ( ssm.good() )
-  {
-    std::string substr;
-    getline( ssm, substr, ',' );
-    metrics_vec.push_back( std::stof(substr) );
-  }
-
-  for (auto i : metrics_vec)
-  {
-    agora::debug("metrics separated: ", i);
-  }
-
-  // build the vector of observed metrics provided in the observation
-  std::vector<float> estimates_vec;
-  std::stringstream ssme(estimates);
-
-  while ( ssme.good() )
-  {
-    std::string substr;
-    getline( ssme, substr, ',' );
-    estimates_vec.push_back( std::stof(substr) );
-  }
-
-  for (auto i : estimates_vec)
-  {
-    agora::debug("estimates separated: ", i);
-  }
-
-
-  // Check if we have consistency in the quantity of measures received,
-  // i.e. if the vector of metric names is as big as the one of the observed metrics and the one of the estimates
-  if ((metric_fields_vec.size() != metrics_vec.size()) || (metrics_vec.size() != estimates_vec.size()))
-  {
-    agora::info("Error in the observation received, mismatch in the number of fields.");
-    return;
-  }
-
-
-  // this is a critical section
-  guard.lock();
-
-  // Insert the residuals in the right buffers according to the metric name
-  for (auto index = 0; index < metric_fields_vec.size(); index++)
-  {
-    // NB: note that the residual is computed with abs()!!
-    // TODO: is this correct?
-    auto current_residual = abs(estimates_vec[index] - metrics_vec[index]);
-    agora::debug("Current residual for metric ", metric_fields_vec[index], " is: ", current_residual);
-
-    auto search = residuals_map.find(metric_fields_vec[index]);
-    auto search_counter = residuals_map_counter.find(metric_fields_vec[index]);
-
-    if ((search != residuals_map.end()) && (search_counter != residuals_map_counter.end()))
-    {
-      agora::debug("metric ", metric_fields_vec[index], " already present, filling buffer");
-      // metric already present, need to add to the buffer the new residual
-      auto temp_pair = std::make_pair(current_residual, timestamp);
-      search->second.emplace_back(temp_pair);
-      // increase the counter of observations for the current metric
-      search_counter->second = search_counter->second + 1;
-    }
-    else if (((search == residuals_map.end()) && (search_counter != residuals_map_counter.end())) ||
-             ((search != residuals_map.end()) && (search_counter == residuals_map_counter.end())))
-    {
-      // If the current metric in analysis in only found in one of the two maps then there is an error
-      // because the maps should contain the same keys, since their insertion is basically parallel.
-      agora::info("Error: mismatch between the two residual map structures.");
-      return;
-    }
-    else
-    {
-      agora::debug("creation of buffer for metric and first insertion: ", metric_fields_vec[index]);
-      // need to create the mapping for the current metric. It's the first time you meet this metric
-      auto temp_pair = std::make_pair(current_residual, timestamp);
-      std::vector<std::pair <float, std::string>> temp_vector;
-      temp_vector.emplace_back(temp_pair);
-      residuals_map.emplace(metric_fields_vec[index], temp_vector);
-      // start counting the observations for the current metrics
-      residuals_map_counter.emplace(metric_fields_vec[index], 1);
-    }
-  }
+  // fill in the buffers with the current observations
+  RemoteApplicationHandler::fill_buffer(observation);
 
   // just universal variables to control the change detection and thus the flow of the CDT itself
   // since we do not care to actually check all the metrics, but it is enough a metric (the first)
@@ -699,4 +482,215 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
     // ApplicationStatus to READY?
   }
 
+}
+
+
+// method to parse the received observation
+void RemoteApplicationHandler::parse_observation(Observation_data& observation, const std::string& values)
+{
+  // declare the temporary variables to store the fields of the incoming message
+  std::string metrics;
+  std::string metric_fields;
+  std::string estimates;
+  std::string user_enabled_metrics;
+
+  // parse the timestamp and the client_id
+  std::stringstream stream(values);
+  stream >> observation.timestamp;
+  agora::debug("Timestamp: ", observation.timestamp);
+  stream >> observation.client_id;
+  agora::debug("client_id: ", observation.client_id);
+
+  // check whether the client which sent the current observation is in the blacklist.
+  // if that's the case then discard the observation, otherwise keep parameter_string
+  auto search = clients_blacklist.find(observation.client_id);
+
+  if (search != clients_blacklist.end())    // if client name fouund in the blacklist than return
+  {
+    agora::info("Observation from client ", observation.client_id, " rejected because blacklisted client");
+    return;
+  }
+
+  // get the observed values
+  stream >> metrics;
+  agora::debug("metrics: ", metrics);
+
+  // gets the model values
+  stream >> estimates;
+  agora::debug("estimates: ", estimates );
+
+  // gets the name of the fields of the metric to be filled in
+  // NB: note that the beholder observation message always contains the metric names, also when all the metrics are enabled.
+  // This is because in this way we know which metrics must be observed by the beholder
+  // according to the user's settings in the XML configuration file.
+  // This is needed because there could be metrics which would be available but that should not be monitored
+  // by the beholder, again according to the user preferences.
+  // The margot heel just sends us the name of the metrics which should be observed.
+  // While gathering the metric names from the DB would have meant to lose the information of which metric
+  // should be actually monitored out of all those available.
+  stream >> metric_fields;
+  agora::debug("metric_fields: ", metric_fields);
+
+  // if this is the first message then parse also the last part of the message where the heel enqueues the whole list of user-enabled-beholder-metrics
+  // if this list is not present than there is the assumption that all the metrics should be analized, even though the user did not explicitely stated that
+  if (reference_metric_names.size() == 0)
+  {
+    stream >> user_enabled_metrics;
+
+    //if there is no list than get the reference metrics from the application description, it is assumed that all of them are enabled
+    if (user_enabled_metrics == "")
+    {
+      for (auto i : description.metrics)
+      {
+        reference_metric_names.emplace(i.name);
+      }
+    }
+    else
+    {
+      // Separate the parsed information (basically CSV, i.e. strings with comma separated values)
+      // and put them into the reference set for the user enabled beholder metrics
+      std::stringstream ssm(user_enabled_metrics);
+
+      while ( ssm.good() )
+      {
+        std::string substr;
+        getline( ssm, substr, ',' );
+        reference_metric_names.emplace(substr);
+      }
+    }
+
+    // preparing the 'select' query for Cassandra for the 2nd step of cassandra
+    // It is done here to only compute the string once and save resources and time
+    query_select = "day, time, client_id, ";
+
+    for (auto i : description.knobs)
+    {
+      query_select.append(i.name);
+      query_select.append(",");
+    }
+
+    for (auto i : description.features)
+    {
+      query_select.append(i.name);
+      query_select.append(",");
+    }
+
+    for (auto i : reference_metric_names)
+    {
+      query_select.append(i);
+      query_select.append(",");
+    }
+
+    for (auto i : reference_metric_names)
+    {
+      query_select.append("model_");
+      query_select.append(i);
+      query_select.append(",");
+    }
+
+    // to remove the last comma
+    query_select.pop_back();
+  }
+
+
+  // Separate the parsed information (basically CSV, i.e. strings with comma separated values)
+  // into the respective vectors.
+  // build the vector of metric names provided in the observation
+  std::stringstream ssmf(metric_fields);
+
+  while ( ssmf.good() )
+  {
+    std::string substr;
+    getline( ssmf, substr, ',' );
+    observation.metric_fields_vec.push_back( substr );
+  }
+
+  for (auto i : observation.metric_fields_vec)
+  {
+    agora::debug("metric_fields separated: ", i);
+  }
+
+  // build the vector of observed metrics provided in the observation
+  std::stringstream ssm(metrics);
+
+  while ( ssm.good() )
+  {
+    std::string substr;
+    getline( ssm, substr, ',' );
+    observation.metrics_vec.push_back( std::stof(substr) );
+  }
+
+  for (auto i : observation.metrics_vec)
+  {
+    agora::debug("metrics separated: ", i);
+  }
+
+  // build the vector of observed metrics provided in the observation
+  std::stringstream ssme(estimates);
+
+  while ( ssme.good() )
+  {
+    std::string substr;
+    getline( ssme, substr, ',' );
+    observation.estimates_vec.push_back( std::stof(substr) );
+  }
+
+  for (auto i : observation.estimates_vec)
+  {
+    agora::debug("estimates separated: ", i);
+  }
+
+
+  // Check if we have consistency in the quantity of measures received,
+  // i.e. if the vector of metric names is as big as the one of the observed metrics and the one of the estimates
+  if ((observation.metric_fields_vec.size() != observation.metrics_vec.size()) || (observation.metrics_vec.size() != observation.estimates_vec.size()))
+  {
+    agora::info("Error in the observation received, mismatch in the number of fields.");
+    return;
+  }
+}
+
+// method which adds the parsed values to the current observation to the respective buffers
+void RemoteApplicationHandler::fill_buffer(Observation_data& observation)
+{
+  // Insert the residuals in the right buffers according to the metric name
+  for (auto index = 0; index < observation.metric_fields_vec.size(); index++)
+  {
+    // NB: note that the residual is computed with abs()!!
+    // TODO: is this correct?
+    auto current_residual = abs(observation.estimates_vec[index] - observation.metrics_vec[index]);
+    agora::debug("Current residual for metric ", observation.metric_fields_vec[index], " is: ", current_residual);
+
+    auto search = residuals_map.find(observation.metric_fields_vec[index]);
+    auto search_counter = residuals_map_counter.find(observation.metric_fields_vec[index]);
+
+    if ((search != residuals_map.end()) && (search_counter != residuals_map_counter.end()))
+    {
+      agora::debug("metric ", observation.metric_fields_vec[index], " already present, filling buffer");
+      // metric already present, need to add to the buffer the new residual
+      auto temp_pair = std::make_pair(current_residual, observation.timestamp);
+      search->second.emplace_back(temp_pair);
+      // increase the counter of observations for the current metric
+      search_counter->second = search_counter->second + 1;
+    }
+    else if (((search == residuals_map.end()) && (search_counter != residuals_map_counter.end())) ||
+             ((search != residuals_map.end()) && (search_counter == residuals_map_counter.end())))
+    {
+      // If the current metric in analysis in only found in one of the two maps then there is an error
+      // because the maps should contain the same keys, since their insertion is basically parallel.
+      agora::info("Error: mismatch between the two residual map structures.");
+      return;
+    }
+    else
+    {
+      agora::debug("creation of buffer for metric and first insertion: ", observation.metric_fields_vec[index]);
+      // need to create the mapping for the current metric. It's the first time you meet this metric
+      auto temp_pair = std::make_pair(current_residual, observation.timestamp);
+      std::vector<std::pair <float, std::string>> temp_vector;
+      temp_vector.emplace_back(temp_pair);
+      residuals_map.emplace(observation.metric_fields_vec[index], temp_vector);
+      // start counting the observations for the current metrics
+      residuals_map_counter.emplace(observation.metric_fields_vec[index], 1);
+    }
+  }
 }

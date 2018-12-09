@@ -282,9 +282,77 @@ namespace beholder
       {
         change_detected_mean = true;
         agora::info(log_prefix, "CHANGE DETECTED in MEAN, window number ", data_test.window_number);
-        agora::pedantic(log_prefix, "between observation number ", ((data_test.window_number * Parameters_beholder::window_size) - (Parameters_beholder::window_size - 1)), " with value: ", window_pair.front().first);
+        agora::pedantic(log_prefix, "between observation number ", ((data_test.window_number * Parameters_beholder::window_size) - (Parameters_beholder::window_size - 1)), " with value: ",
+                        window_pair.front().first);
         agora::pedantic(log_prefix, "and observation number ", (data_test.window_number * Parameters_beholder::window_size), " with value: ", window_pair.back().first);
         return true;
+      }
+
+      if (!variance_off)
+      {
+        // save the previous sample-variance mean
+        previous_sample_variance_mean = current_sample_variance_mean;
+        //save the previous sample-variance confidence interval (lower and upper)
+        previous_variance_conf_interval_lower = current_variance_conf_interval_lower;
+        previous_variance_conf_interval_upper = current_variance_conf_interval_upper;
+
+        // compute the sample variance S(s);
+        sum = 0;
+
+        for (auto j : current_window)
+        {
+          sum += powf((j - mean), 2);
+        }
+
+        float sample_variance = sum;
+
+        // compute the V(s)=T(S(s))
+        float sample_variance_transformed = powf((sample_variance / (window_size - 1)), h0);
+
+        // sample variance mean:
+        current_sample_variance_mean = ((previous_sample_variance_mean * (window_number - 1)) + sample_variance_transformed) / window_number;
+
+        // sample variance variance:
+        current_sample_variance_variance = (reference_sample_variance_variance / sqrtf(window_number));
+
+        // compute the confidence interval for the current sample variance
+        current_variance_conf_interval_lower = current_sample_variance_mean - (gamma_variance * current_sample_variance_variance);
+        current_variance_conf_interval_upper = current_sample_variance_mean + (gamma_variance * current_sample_variance_variance);
+        std::cout << "Current window confidence interval for variance: [" << current_variance_conf_interval_lower << "," << current_variance_conf_interval_upper << "]" << std::endl;
+
+
+        // compute the intersection between the current confidence interval and the previous one
+        // for the lower bound choose the greater of the two
+        if (current_variance_conf_interval_lower < previous_variance_conf_interval_lower)
+        {
+          current_variance_conf_interval_lower = previous_variance_conf_interval_lower;
+        }
+
+        // for the upper bound choose the lower of the two
+        if (current_variance_conf_interval_upper > previous_variance_conf_interval_upper)
+        {
+          current_variance_conf_interval_upper = previous_variance_conf_interval_upper;
+        }
+
+        outfileICIlines << " " << current_variance_conf_interval_lower << " " << current_variance_conf_interval_upper << " " << current_sample_variance_mean;
+
+        std::cout << "Current intersection confidence interval for variance: [" << current_variance_conf_interval_lower << "," << current_variance_conf_interval_upper << "]" << std::endl;
+
+        // check whether the intersection of the confidence interval is valid,
+        // i.e. if the lower bound is still the lower one and the upper bound is still the upper one
+        if (!change_detected_variance && current_variance_conf_interval_lower > current_variance_conf_interval_upper)
+        {
+          change_detected_variance = true;
+          change_variance_win_number = window_number;
+          change_variance_lower_win = lower_cdt_window;
+          change_variance_upper_win = upper_cdt_window;
+          std::cout << "CHANGE DETECTED in VARIANCE, sequence number " << change_variance_win_number << std::endl;
+          // outfileConf << lower_cdt_window << " ";
+          std::cout << "between observation " << change_variance_lower_win <<  " with value: " << observations[change_variance_lower_win] << std::endl;
+          // outfileConf << upper_cdt_window << std::endl;
+          std::cout << "between observation " << change_variance_upper_win <<  " with value: " << observations[change_variance_upper_win] << std::endl;
+
+        }
       }
     }
 

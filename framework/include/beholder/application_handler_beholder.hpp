@@ -32,6 +32,8 @@
 #include "agora/virtual_io.hpp"
 #include "agora/common_objects.hpp"
 #include "beholder/ici_test_data.hpp"
+#include "beholder/observation_data.hpp"
+
 
 namespace beholder
 {
@@ -121,6 +123,9 @@ namespace beholder
         // send the command
         agora::io::remote.send_message({{"agora/" + description.application_name + "/commands"}, command});
       }
+
+      void parse_observation(Observation_data& observation, const std::string& values);
+      void fill_buffer(Observation_data& observation);
 
     public:
 
