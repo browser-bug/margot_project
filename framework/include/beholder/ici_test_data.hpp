@@ -52,19 +52,13 @@ namespace beholder
     float reference_sample_variance_mean;
     float reference_sample_variance_variance;
     float current_sample_mean_mean;
-    float previous_sample_mean_mean;
     float current_sample_mean_variance;
     float current_sample_variance_variance;
     float current_sample_variance_mean;
-    float previous_sample_variance_mean;
     float current_mean_conf_interval_upper;
     float current_mean_conf_interval_lower;
-    float previous_mean_conf_interval_upper;
-    float previous_mean_conf_interval_lower;
     float current_variance_conf_interval_upper;
     float current_variance_conf_interval_lower;
-    float previous_variance_conf_interval_upper;
-    float previous_variance_conf_interval_lower;
   };
 
 }
