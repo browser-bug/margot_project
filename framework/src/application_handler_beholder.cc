@@ -79,18 +79,28 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
   bool change_detected = false;
   std::string change_metric;
 
+  // variables to save the time range in which the change was detected.
+  // This will be useful in the 2nd step of the hierarchical CDT.
+  std::string change_window_timestamp_front = "";
+  std::string change_window_timestamp_back = "";
+
+
   // Check whether one (or more) buffers is (are) filled in
   // up to the beholder's window_size parameter.
   for (auto& i : residuals_map)
   {
-    // if a change has been detected then stop the 1st step of the CDT
+    // if a change has been detected then exit from the for cycle to stop the 1st step of the CDT.
+    // Before doing so reset all the buffers for the metrics, whatever their state is.
     if (change_detected)
     {
-      break;
+      i.second.clear();
+      // go to the next metric (next iteration of the for cycle), if available, until the cycle has finished
+      continue;
     }
 
     agora::debug("i.second.size(): ", i.second.size());
 
+    // if any buffer is filled in then perform the ici cdt on it
     if (i.second.size() == Parameters_beholder::window_size)
     {
       agora::pedantic("Buffer for metric ", i.first, " filled in, starting CDT on the current window.");
@@ -103,22 +113,15 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
       {
         agora::pedantic("Continuing CDT for metric ", i.first);
         change_detected = IciCdt::perform_ici_cdt(search_ici_map->second, i.second);
-
-        // if the change has been detected save the (first) metric for which the change has been detected
-        // This could be useful to gather the timestamp of the current window for that metric
-        // to be used later on in the 2nd step of Cassandra
-        if (change_detected)
-        {
-          change_metric = i.first;
-        }
       }
       else
       {
-        // It did not find the ici_cdt_map for the current metric then create it
+        // It did not find the ici_cdt_map for the current metric then create it.
+        // This is basically the first window to be analized for the current metric.
+        // Obviously it will be part of the training phase of the ici cdt for that metric.
         Data_ici_test new_ici_struct;
         // save the application name and metric name in the data structure
-        // to make those information easily available from the struct once it is passed around
-        // (handy in logs)
+        // to make those information easily available from the struct once it is passed around (handy in logs)
         new_ici_struct.app_name = description.application_name;
         new_ici_struct.metric_name = i.first;
         // initilize the window number to zero
@@ -126,84 +129,34 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
         agora::pedantic("Initialized structure for metric ", i.first, ", starting CDT! ");
         change_detected = IciCdt::perform_ici_cdt(new_ici_struct, i.second);
         ici_cdt_map.emplace(i.first, new_ici_struct);
-        // It cannot detect a change if this is the first full window for that metric,
+        // It cannot detect a change if this is the first full window for that metric, we are in training of cdt
         // so basically avoid the if to check for the boolean "change_detected"
       }
 
-      // // TODO: start computation for CDT
-      // // Gathering the number of residuals for the current metric:
-      // auto search_counter = residuals_map_counter.find(i.first);
-      //
-      // // Just an additional check. If it arrives here there should be the counter obviously.
-      // if (search_counter != residuals_map_counter.end())
-      // {
-      //
-      //   if (search_counter->second == Parameters_beholder::window_size * Parameters_beholder::training_windows)
-      //   {
-      //     // we are in training
-      //     if (search_counter->second <= Parameters_beholder::window_size * Parameters_beholder::training_windows)
-      //     {
-      //       // this is the last training window
-      //     }
-      //     else
-      //     {
-      //       // this is not the last training window
-      //     }
-      //   }
-      //   else
-      //   {
-      //     // we are in production phase
-      //   }
-      //
-      // }
-      // else
-      // {
-      //   // Just an additional check
-      //   agora::info("Error: no observation counter found for metric: ", i.first);
-      //   return;
-      // }
-
-
-
-
-
-
-
-      // TODO at the end of the CDT, empty the filled-in buffer.
-      i.second.clear();
-
-      // if (/*CDT positivo*/){
-      //     status = ApplicationStatus::COMPUTING;
-      // }
-
-      // TODO: as soon as the CDT is positive should we move to the 2nd phase or should we keep going to analyze all
-      // the metrics available anyway?
-      // ACCORDING TO DAVIDE WE EXIT IMMEDIATELY AFTER THE FIRST POSITIVE
+      // if the change has been detected save the name of the (first) metric for which the change has been detected
+      // This could be useful later on.
+      // Save also the timestamp of the first and last element of the window
+      // to be able to pinpoint where the change was detected. This will be needed
+      // in the 2nd step of the CDT.
+      if (change_detected)
+      {
+        change_metric = i.first; // TODO: do we need thisw????
+        change_window_timestamp_front = i.second.front().second;
+        change_window_timestamp_back = i.second.back().second;
+        // set the status variable according so that the lock can be released
+        status = ApplicationStatus::COMPUTING;
+        // Empty the (filled-in) buffer for the current metric.
+        i.second.clear();
+      }
     }
   }
 
-  // TODO: according to what we plan on doing in the second phase, should we keep track of which are the metrics that returned a positive
-  // CDT? This could actually be useful only if according to this we behave in a particular way in the 2nd step or if we
-  // just delete some attributes of the trace. NO
-
   // STEP 2 of CDT: analysis with granularity on the single client
 
-  // UNLOCK the guard because we are accessing the db???? WE ARE SAFE FOR THE COMPUTING STATUS CHECK
-
-  // TODO: Now the query returns the values for all the metrics enabled for the beholder.
-  // Consider instead asking to cassandra just the intersection between the metrics enabled for the beholder
-  // and the one(s) that resulted in a positive CDT.
-  // Question: do we need to however do the hyphotesis test on all the metrics (regardless of which resulted in a positive CDT)
-  // or should we just test the postive ones to the CDT???
-  // BY DAVIDE: JUST 2ND STEP ON VARIABLES ENABLED FOR BEHOLDER (POSSIBLY ALL OF THEM, WE DO NOT KNOW THEORETICALLY WHICH WAS POSITIVE IN THE 1ST STEP)
-  // BUT EXIT (consider it positive as bad client) ON THE FIRST POSITIVE ONE,
-  // Should I do a multivariate Welch's test (does it even exist?) across all themetrics?
-  // If I have different number of observations for them??
-  // In any case at the end of the parsing, check that the number of parsed metrics corresponds to the reference one.
-
   // if need to start the step 2 of CDT:
-  if (true /* status == ApplicationStatus::COMPUTING */)
+  if (status == ApplicationStatus::COMPUTING)
   {
+    guard.unlock();
 
     // to store the observations belonging to a pair application-client_name_t
     observations_list_t observations_list;
@@ -230,31 +183,19 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
       return;
     }
 
+    agora::debug("Client list without duplicates:");
     for (auto i : clients_list)
     {
-      agora::debug("Client list without duplicates: ", i);
+      agora::debug(i);
     }
 
     // cycle over all the clients of the specific application
     for (auto i : clients_list)
     {
-      // DB QUERY TEST: query to retrieve all the observations for a pair application-client_name
-      // for (auto i: clients_list){
-      //     observations_list = agora::io::storage.load_client_observations(description.application_name, i, query_select);
-      //
-      //     // Second level hypothesis test on client-specific observations_list
-      //     // Here you basically choose whether each client is bad or not.
-      //     // create a counter system for good, bad clients, so that you can choose, at the end of this cycle
-      //     // if the number of bad clients is above the predefined threshold and act accordingly
-      //     // either blacklisting or trigger re-training or nothing
-      // }
-
-      // TODO: this is a test with just one row. Later on wrap this (the following) in a for loop to scan every row.
-      // so instead of observations_list[0] there should be observations_list[i]
+      // data structure to save the residuals for the specific application-client pair
       std::unordered_map<std::string, std::vector<float>> client_residuals_map;
+
       //observations_list = agora::io::storage.load_client_observations(description.application_name, "alberto_Surface_Pro_2_6205", query_select);
-
-
       observations_list = agora::io::storage.load_client_observations(description.application_name, i, query_select);
       agora::debug("\nParsing the trace for client ", i);
 
@@ -432,7 +373,10 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
 
 
         // Once I know what the outcome of the hypothesis TEST is,
-        // Shoould I re-gain the lock of the guard to "end" the decisions about this application? The following stuff...
+        // TODO: Shoould I re-gain the lock of the guard to "end" the decisions about this application?
+        // Or can I keep asynchronous w/o lock? Does it even make a difference?
+
+        // guard.lock();
 
         // according to the quality (GOOD/BAD) of the currently analyzed client, enqueue it in the good/bad_clients_list
         if (false /* client is bad */)
@@ -461,6 +405,7 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
       // reset blacklist?
       // reset observation buffers?
       // ApplicationStatus to READY?
+      // set change_detected to false?
     }
 
     // TODO: manage the unlock/lock of this DB access phase

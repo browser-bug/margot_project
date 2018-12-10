@@ -93,6 +93,7 @@ namespace beholder
       // timestamp of the first and last element are not unique across the whole application handler.
       std::unordered_map<std::string, std::vector<std::pair <float, std::string>>> residuals_map;
 
+      // TODO: do we really need this structure?
       // data structure to store the counter of the received residuals for each meatric so far
       // useful to understand when the training phase is finished for each metrics
       // considering the case in which not all observations contain residuals for every metric
