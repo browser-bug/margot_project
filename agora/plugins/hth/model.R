@@ -171,14 +171,14 @@ if (any(!ind_complete)) {
   print(observation_df %>% filter(!ind_complete))
   observation_df <- observation_df %>% filter(ind_complete)
 }
-nobserved_orig <- nrow(observation_df)
+# nobserved_orig <- nrow(observation_df)
 # DISCARD OBSERVATION OUTSIDE THE DESIGN SPACE GRID
-observation_df <- inner_join(observation_df, design_space_grid, by = input_columns)
+# observation_df <- inner_join(observation_df, design_space_grid, by = input_columns)
 nobserved <- nrow(observation_df)
-if (nobserved_orig > nobserved) {
-  warning("There were some observation outside of the design grid and were discarded.")
-}
-rm(ind_complete, nobserved_orig)
+# if (nobserved_orig > nobserved) {
+#   warning("There were some observation outside of the design grid and were discarded.")
+# }
+# rm(ind_complete, nobserved_orig)
 
 # GET MAE NORMALIZATION VALUES --------------------------------------------
 
