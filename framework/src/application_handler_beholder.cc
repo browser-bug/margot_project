@@ -202,6 +202,8 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
       observations_list = agora::io::storage.load_client_observations(description.application_name, i, query_select);
       agora::debug("\nParsing the trace for client ", i);
 
+
+
       // NB: here I could choose to avoid iterating over some possibly already blacklisted
       // clients. Of course in this case I should check whether the element iterator already
       // belongs in the blacklist like this:
@@ -215,6 +217,9 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
       // cycle over each row j of the trace for each client i (for the current application)
       for (auto j : observations_list)
       {
+        parse_and_insert_observation_for_client_from_trace(client_residuals_map, j);
+      }
+
 
         agora::debug("\nString from trace to be parsed: ", j);
         // TODO: parse the string. Taking into account the number of enabled metrics in the current observation.
@@ -368,41 +373,85 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
 
           auto search = client_residuals_map.find(*name_ref);
           // Load the ici_cdt_map for the current metric
+          // This is needed to get the timestamp of the window where the change ws detected.
+          // Here we need to save the element before that window in a vector (1st in pair),
+          // and the elements after that window in another corresponding vector (2nd in pair)
           auto search_ici_map = ici_cdt_map.find(*name_ref);
 
           if (search != client_residuals_map.end() && search_ici_map != ici_cdt_map.end())
           {
             agora::debug("metric ", *name_ref, " already present, filling buffer");
             // metric already present, need to add to the buffer the new residual
-            //TODO: compare timestamp: if before the change
+            //TODO: compare timestamp: if before the change insert in the 1st vector of the pair
             if (obs_year_month_day[index] < search_ici_map->second.front_year_month_day){
+                // if the current date is older than the one from the first element of the
+                // change window then add it to the "before" change window vector.
                 search->second.first.emplace_back(current_residual);
             } else if (obs_year_month_day[index] == search_ici_map->second.front_year_month_day){
+                // if the current observation date is the same as the date of the 1st element of the
+                // change window then compare the time. If the current observation's timestamp
+                // comes first in the day then add it to the "before" change window vector
                 if (obs_time_of_day[index] < search_ici_map->second.front_time_of_day){
                     search->second.first.emplace_back(current_residual);
                 }
-                // if after the change
-
+                // if after the change insert in the 2nd vector of the pair
             } else if (obs_year_month_day[index] > search_ici_map->second.back_year_month_day){
+                // if the current date is newer than the one from the last element of the
+                // change window then add it to the "after" change window vector.
                 search->second.second.emplace_back(current_residual);
             } else if (obs_year_month_day[index] == search_ici_map->second.back_year_month_day){
+                // if the current observation date is the same as the date of the last element of the
+                // change window then compare the time. If the current observation's timestamp
+                // comes later in the day then add it to the "after" change window vector
                 if (obs_time_of_day[index] > search_ici_map->second.back_time_of_day){
                     search->second.second.emplace_back(current_residual);
                 }
             }
-
           }
-          else
+          // if we did not find any key with the current metric's name under analysis in the struct
+          // then theoretically we should initialize the corresponding struct for the metric
+          else if (search_ici_map != ici_cdt_map.end())
           {
-            agora::debug("creation of buffer for metric and first insertion: ", *name_ref);
-            // need to create the mapping for the current metric. It's the first time you meet this metric
-            std::vector<float> temp_vector_before;
-            std::vector<float> temp_vector_after;
             // check that this first value inserted is actually before the change window
             // insert the current observation in the vector of the residuals before the change
-            temp_vector_before.emplace_back(current_residual);
-            auto temp_pair = std::make_pair(temp_vector_before, temp_vector_after);
-            client_residuals_map.emplace(*name_ref, temp_pair);
+            // Theoretically one would expect that the first observation for a certain metric coming
+            // from a client would always be before the change window. But actually this is not necessarily
+            // true. A client could have started the computation after the change window,
+            // and we would have detected the change thanks to observations coming from other
+            // clients that were already working before the one under analysis, obviously.
+            // Of course we are interested in comparing the behavior of the distribution of the
+            // observations before and after the change. So in a situation in which we just have
+            // "after" the change observations we immediately skip the analysis for the current metric for this client.
+            // bool to control if the first observation is actually before the change window
+            bool valid_metric = false;
+            if (obs_year_month_day[index] < search_ici_map->second.front_year_month_day){
+                // if the current date is older than the one from the first element of the
+                // change window then add it to the "before" change window vector.
+                valid_metric = true;
+            } else if (obs_year_month_day[index] == search_ici_map->second.front_year_month_day){
+                // if the current observation date is the same as the date of the 1st element of the
+                // change window then compare the time. If the current observation's timestamp
+                // comes first in the day then add it to the "before" change window vector
+                if (obs_time_of_day[index] < search_ici_map->second.front_time_of_day){
+                    valid_metric = true;
+                }
+            }
+            // if the first observation is before the change window then initialize its struct
+            if (valid_metric){
+                agora::debug("creation of buffer for metric and first insertion: ", *name_ref);
+                // need to create the mapping for the current metric. It's the first time you meet this metric
+                std::vector<float> temp_vector_before;
+                std::vector<float> temp_vector_after;
+                temp_vector_before.emplace_back(current_residual);
+                auto temp_pair = std::make_pair(temp_vector_before, temp_vector_after);
+                client_residuals_map.emplace(*name_ref, temp_pair);
+            } else {
+                agora::debug("Skipping the creation of buffer for metric ", *name_ref, " because we do not have observations before the hypothetical change window");
+            }
+          }
+          else {
+              agora::info("Error: no \"ici_cdt_map\" struct found for thìe metric: ", *name_ref);
+              return;
           }
         }
 

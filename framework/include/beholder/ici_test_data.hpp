@@ -62,7 +62,9 @@ namespace beholder
     float current_variance_conf_interval_upper;
     float current_variance_conf_interval_lower;
 
-    // data to save the timestamps of the first and last element of the current window in case of positive ici cdt
+    // data to save the timestamps of the first and last element of the current window
+    // in case of positive ici cdt. This will be useful to pinpoint the change window
+    // when reading from the trace to perform the 2nd step of the hierarchical cdt.
     cass_uint32_t front_year_month_day;
     cass_int64_t front_time_of_day;
     cass_uint32_t back_year_month_day;
