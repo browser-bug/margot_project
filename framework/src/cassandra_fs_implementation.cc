@@ -1058,13 +1058,13 @@ void CassandraClient::insert_trace_entry( const application_description_t& descr
   }
 
   time_t secs_since_epoch;
-  uint64_t nanosecs_since_secs;
+  int64_t nanosecs_since_secs;
   std::istringstream( values.substr(0, pos_first_coma) ) >> secs_since_epoch;
   std::istringstream( values.substr(pos_first_coma + 1, pos_second_coma - pos_first_coma) ) >> nanosecs_since_secs;
 
   // now we have to convert them in the funny cassandra format
   cass_uint32_t year_month_day = cass_date_from_epoch(secs_since_epoch);
-  cass_uint64_t time_of_day = cass_time_from_epoch(secs_since_epoch);
+  cass_int64_t time_of_day = cass_time_from_epoch(secs_since_epoch);
 
 
   // now we add to the time of a day the missing information

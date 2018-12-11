@@ -35,6 +35,7 @@ namespace beholder
 
     private:
 
+      static void compute_timestamps(Data_ici_test& data_test, const std::vector<std::pair <float, std::string>>& window_pair);
 
 
     public:

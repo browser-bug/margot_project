@@ -81,8 +81,8 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
 
   // variables to save the time range in which the change was detected.
   // This will be useful in the 2nd step of the hierarchical CDT.
-  std::string change_window_timestamp_front = "";
-  std::string change_window_timestamp_back = "";
+  // std::string change_window_timestamp_front = "";
+  // std::string change_window_timestamp_back = "";
 
 
   // Check whether one (or more) buffers is (are) filled in
@@ -141,8 +141,8 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
       if (change_detected)
       {
         change_metric = i.first; // TODO: do we need thisw????
-        change_window_timestamp_front = i.second.front().second;
-        change_window_timestamp_back = i.second.back().second;
+        //change_window_timestamp_front = i.second.front().second;
+        //change_window_timestamp_back = i.second.back().second;
         // set the status variable according so that the lock can be released
         status = ApplicationStatus::COMPUTING;
         // Empty the (filled-in) buffer for the current metric.
@@ -192,8 +192,11 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
     // cycle over all the clients of the specific application
     for (auto i : clients_list)
     {
-      // data structure to save the residuals for the specific application-client pair
-      std::unordered_map<std::string, std::vector<float>> client_residuals_map;
+      // data structure to save the residuals for the specific application-client pair before the change
+      // the structure is organized as a map which maps the name of the metric to a pair
+      // The first element of the pair is a vector containing the residuals for that metric before the change windows
+      // The second element of the pair is a vector containing the residuals for that metric after the change windows
+      std::unordered_map<std::string, std::pair < std::vector<float>, std::vector<float>>> client_residuals_map;
 
       //observations_list = agora::io::storage.load_client_observations(description.application_name, "alberto_Surface_Pro_2_6205", query_select);
       observations_list = agora::io::storage.load_client_observations(description.application_name, i, query_select);
@@ -215,9 +218,13 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
 
         agora::debug("\nString from trace to be parsed: ", j);
         // TODO: parse the string. Taking into account the number of enabled metrics in the current observation.
-        // we need to know which metric(s) we have to retrieve and compare with the model estimation
+        // we need to know which metric(s) we have to retrieve and compare with the model estimation.
+        // Basically we keep only production phase observations, and of these we only consider metrics (enabled for the beholder)
+        // for which the real observed values is available, to be compared with the model value.
         std::string obs_client_id;
-        std::vector <std::string> obs_timestamp;
+        // std::vector <std::string> obs_timestamp;
+        std::vector <cass_uint32_t> obs_year_month_day;
+        std::vector <cass_int64_t> obs_time_of_day;
         std::vector <std::string> obs_configuration;
         std::vector <std::string> obs_features;
         std::vector <std::string> obs_metrics;
@@ -226,14 +233,22 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
         std::vector<std::string> metric_fields_vec;
         std::stringstream str_observation(j);
 
-        std::string current_date;
+        //std::string current_date;
+        //str_observation >> current_date;
+        cass_uint32_t current_date;
         str_observation >> current_date;
-        std::string current_time;
+        obs_year_month_day.emplace_back(current_date);
+        cass_int64_t current_time;
         str_observation >> current_time;
-        obs_timestamp.emplace_back(current_date);
-        obs_timestamp.emplace_back(current_time);
-        agora::debug("Date parsed: ", obs_timestamp[0]);
-        agora::debug("Time parsed: ", obs_timestamp[1]);
+        obs_year_month_day.emplace_back(current_time);
+
+        //std::string current_time;
+
+        //str_observation >> current_time;
+        // obs_timestamp.emplace_back(current_date);
+        // obs_timestamp.emplace_back(current_time);
+        // agora::debug("Date parsed: ", obs_timestamp[0]);
+        // agora::debug("Time parsed: ", obs_timestamp[1]);
 
         str_observation >> obs_client_id;
         agora::debug("Client_id parsed: ", obs_client_id);
@@ -260,7 +275,7 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
           num_features--;
         }
 
-        int num_metrics = description.metrics.size();
+        int num_metrics = reference_metric_names.size();
 
         while ( num_metrics > 0 )
         {
@@ -271,11 +286,11 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
           num_metrics--;
         }
 
-        num_metrics = description.metrics.size();
+        num_metrics = reference_metric_names.size();
 
         // variable to understand if the current row from trace was from a training phase
-        // It would have all the estimates to "N/A"
-        // In that case the current row in analysis can be discarded because there is way
+        // It would have ALL the estimates to "N/A"
+        // In that case the current row in analysis can be discarded because there is no way
         // of computing the residuals. In the beholder we validate the model, thus the estimates...
         bool is_training_row = true;
 
@@ -297,8 +312,9 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
         }
 
         // Check if we have consistency in the quantity of measures parsed,
-        // i.e. if the vector of metric names is as big as the one of the observed metrics and is the same size as the number of metrics for the current application
-        if ((obs_metrics.size() != obs_estimates.size()) || (obs_metrics.size() != description.metrics.size()))
+        // i.e. if the vector of metric names is as big as the one of the observed metrics
+        // and is the same size as the number of metrics enabled for the beholder for the current application
+        if ((obs_metrics.size() != obs_estimates.size()) || (obs_metrics.size() != reference_metric_names.size()))
         {
           agora::info("Error in the parsed observation, mismatch in the number of fields.");
           return;
@@ -313,16 +329,15 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
 
         // Insert the residuals in the right residual maps structure
         // In this phase I have not the information about the names of the metrics from the trace
-        // But I parsed them all, and I know they are inserted in the trace in alphabetical order
+        // But I parsed them all (the beholder-enabled ones), and I know they are inserted in the trace in alphabetical order
         // according to "description.metrics". So basically I know which metric is the first one
         // (and which estimate is the first one), which is the second one...
-        // I kept the same map structure of the residuals computation for the 1st step of CDT
-        // but theoretically here I know that I just have a certain number of metrics and where
-        // to position them. I could have build a different structure, a simpler one.
+        // I kept the same map structure of the residuals computation for the 1st step of CDT.
         // As of now I chose to maintain the mapping to have the metric name built in the structure.
-        for (auto index = 0; index < description.metrics.size(); index++)
+        auto name_ref = reference_metric_names.begin();
+        for (auto index = 0; index < reference_metric_names.size(); index++, std::advance(name_ref, 1))
         {
-          // Check whether the metric in analysis was available or if it was a disabled one-->"null" in trace-->parsed as "N/A"
+          // Check whether the metric in analysis was available and valid or if it was a disabled one-->"null" in trace-->parsed as "N/A"
           if (obs_estimates[index] == "N/A")
           {
             // for the current version, if a metric is disabled its corresponding prediction must be disable too
@@ -337,7 +352,7 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
               return;
             }
           }
-          // to catch the case in which the estimate was null but the metric was present. Theoretically impossible by design.
+          // to catch the case in which the metric was null but the estimate was present (not null). Theoretically impossible by design.
           else if (obs_metrics[index] == "N/A")
           {
             agora::info("Error in the parsed observation, mismatch between the observed and predicted metric.");
@@ -349,23 +364,45 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
           // NB: note that the residual is computed with abs()!!
           // TODO: is this correct?
           auto current_residual = abs(std::stof(obs_estimates[index]) - std::stof(obs_metrics[index]));
-          agora::debug("Current residual for metric ", description.metrics[index].name, " is: ", current_residual);
+          agora::debug("Current residual for metric ", *name_ref, " is: ", current_residual);
 
-          auto search = client_residuals_map.find(description.metrics[index].name);
+          auto search = client_residuals_map.find(*name_ref);
+          // Load the ici_cdt_map for the current metric
+          auto search_ici_map = ici_cdt_map.find(*name_ref);
 
-          if (search != client_residuals_map.end())
+          if (search != client_residuals_map.end() && search_ici_map != ici_cdt_map.end())
           {
-            agora::debug("metric ", description.metrics[index].name, " already present, filling buffer");
+            agora::debug("metric ", *name_ref, " already present, filling buffer");
             // metric already present, need to add to the buffer the new residual
-            search->second.emplace_back(current_residual);
+            //TODO: compare timestamp: if before the change
+            if (obs_year_month_day[index] < search_ici_map->second.front_year_month_day){
+                search->second.first.emplace_back(current_residual);
+            } else if (obs_year_month_day[index] == search_ici_map->second.front_year_month_day){
+                if (obs_time_of_day[index] < search_ici_map->second.front_time_of_day){
+                    search->second.first.emplace_back(current_residual);
+                }
+                // if after the change
+
+            } else if (obs_year_month_day[index] > search_ici_map->second.back_year_month_day){
+                search->second.second.emplace_back(current_residual);
+            } else if (obs_year_month_day[index] == search_ici_map->second.back_year_month_day){
+                if (obs_time_of_day[index] > search_ici_map->second.back_time_of_day){
+                    search->second.second.emplace_back(current_residual);
+                }
+            }
+
           }
           else
           {
-            agora::debug("creation of buffer for metric and first insertion: ", description.metrics[index].name);
+            agora::debug("creation of buffer for metric and first insertion: ", *name_ref);
             // need to create the mapping for the current metric. It's the first time you meet this metric
-            std::vector<float> temp_vector;
-            temp_vector.emplace_back(current_residual);
-            client_residuals_map.emplace(description.metrics[index].name, temp_vector);
+            std::vector<float> temp_vector_before;
+            std::vector<float> temp_vector_after;
+            // check that this first value inserted is actually before the change window
+            // insert the current observation in the vector of the residuals before the change
+            temp_vector_before.emplace_back(current_residual);
+            auto temp_pair = std::make_pair(temp_vector_before, temp_vector_after);
+            client_residuals_map.emplace(*name_ref, temp_pair);
           }
         }
 
@@ -406,6 +443,7 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
       // reset observation buffers?
       // ApplicationStatus to READY?
       // set change_detected to false?
+      // reset to null the cdt window front and back in struct data.tast/ici_cdt_map
     }
 
     // TODO: manage the unlock/lock of this DB access phase

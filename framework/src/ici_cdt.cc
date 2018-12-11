@@ -285,6 +285,10 @@ namespace beholder
         agora::pedantic(log_prefix, "between observation number ", ((data_test.window_number * Parameters_beholder::window_size) - (Parameters_beholder::window_size - 1)), " with value: ",
                         window_pair.front().first);
         agora::pedantic(log_prefix, "and observation number ", (data_test.window_number * Parameters_beholder::window_size), " with value: ", window_pair.back().first);
+
+        // convert and save the change window timestamp (as Cassandra does to make it comparable) of the first and last elements of the window
+        compute_timestamps(data_test, window_pair);
+
         return true;
       }
 
@@ -347,6 +351,10 @@ namespace beholder
           agora::pedantic(log_prefix, "between observation number ", ((data_test.window_number * Parameters_beholder::window_size) - (Parameters_beholder::window_size - 1)), " with value: ",
                           window_pair.front().first);
           agora::pedantic(log_prefix, "and observation number ", (data_test.window_number * Parameters_beholder::window_size), " with value: ", window_pair.back().first);
+
+          // convert and save the change window timestamp (as Cassandra does to make it comparable) of the first and last elements of the window
+          compute_timestamps(data_test, window_pair);
+
           return true;
         }
       }
@@ -355,5 +363,38 @@ namespace beholder
     // return true if a change has been detected either in the mean or in the variance
     return change_detected_mean || change_detected_variance;
   }
+
+  void IciCdt::compute_timestamps(Data_ici_test& data_test, const std::vector<std::pair <float, std::string>>& window_pair){
+      //first element timestamp
+      const auto front_pos_first_coma = window_pair.front().second.find_first_of(',', 0);
+      time_t front_secs_since_epoch;
+      int64_t front_nanosecs_since_secs;
+      std::istringstream( window_pair.front().second.substr(0, front_pos_first_coma) ) >> front_secs_since_epoch;
+      std::istringstream( window_pair.front().second.substr(front_pos_first_coma + 1, std::string::npos) ) >> front_nanosecs_since_secs;
+
+      // now we have to convert them in the funny cassandra format
+      data_test.front_year_month_day = cass_date_from_epoch(front_secs_since_epoch);
+      data_test.front_time_of_day = cass_time_from_epoch(front_secs_since_epoch);
+
+
+      // now we add to the time of a day the missing information
+      data_test.front_time_of_day += front_nanosecs_since_secs;
+
+      //second element timestamp
+      const auto back_pos_first_coma = window_pair.back().second.find_first_of(',', 0);
+      time_t back_secs_since_epoch;
+      int64_t back_nanosecs_since_secs;
+      std::istringstream( window_pair.back().second.substr(0, back_pos_first_coma) ) >> back_secs_since_epoch;
+      std::istringstream( window_pair.back().second.substr(back_pos_first_coma + 1, std::string::npos) ) >> back_nanosecs_since_secs;
+
+      // now we have to convert them in the funny cassandra format
+      data_test.back_year_month_day = cass_date_from_epoch(back_secs_since_epoch);
+      data_test.back_time_of_day = cass_time_from_epoch(back_secs_since_epoch);
+
+
+      // now we add to the time of a day the missing information
+      data_test.back_time_of_day += back_nanosecs_since_secs;
+  }
+
 
 }

@@ -21,6 +21,8 @@
 #ifndef MARGOT_BEHOLDER_ICI_TEST_DATA
 #define MARGOT_BEHOLDER_ICI_TEST_DATA
 
+#include "agora/virtual_io.hpp"
+
 namespace beholder
 {
 
@@ -59,6 +61,12 @@ namespace beholder
     float current_mean_conf_interval_lower;
     float current_variance_conf_interval_upper;
     float current_variance_conf_interval_lower;
+
+    // data to save the timestamps of the first and last element of the current window in case of positive ici cdt
+    cass_uint32_t front_year_month_day;
+    cass_int64_t front_time_of_day;
+    cass_uint32_t back_year_month_day;
+    cass_int64_t back_time_of_day;
   };
 
 }
