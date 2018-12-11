@@ -40,6 +40,7 @@ namespace beholder
 
   using application_description_t = agora::application_description_t;
   using application_list_t = agora::application_list_t;
+  using observation_t = std::string;
   using observations_list_t = agora::observations_list_t;
 
   // for the beholder we are just interested in knowing whether the application has the model or not
@@ -126,7 +127,9 @@ namespace beholder
       }
 
       void parse_observation(Observation_data& observation, const std::string& values);
-      void fill_buffer(Observation_data& observation);
+      void fill_buffers(Observation_data& observation);
+      void parse_and_insert_observations_for_client_from_trace(std::unordered_map<std::string, std::pair < std::vector<float>, std::vector<float>>>& client_residuals_map, const observation_t j);
+
 
     public:
 

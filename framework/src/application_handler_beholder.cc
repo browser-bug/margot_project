@@ -68,10 +68,10 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
   Observation_data observation;
 
   // parse the received observation
-  RemoteApplicationHandler::parse_observation(observation, values);
+  parse_observation(observation, values);
 
   // fill in the buffers with the current observations
-  RemoteApplicationHandler::fill_buffer(observation);
+  fill_buffers(observation);
 
   // just universal variables to control the change detection and thus the flow of the CDT itself
   // since we do not care to actually check all the metrics, but it is enough a metric (the first)
@@ -170,7 +170,7 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
     // store the list of bad clients for the current observation (not yet blacklisted)
     application_list_t bad_clients_list;
 
-    // DB QUERY TEST: query to retrieve all the distinct clients which are running a specif application
+    // query to retrieve all the distinct clients which are running a specif application
     // to be performed in case of positive CDT, for the second level hypothesis test.
     // It is better to always re-run this query and avoid saving the client list for re-use
     // because there could be some new clients.
@@ -184,6 +184,7 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
     }
 
     agora::debug("Client list without duplicates:");
+
     for (auto i : clients_list)
     {
       agora::debug(i);
@@ -202,8 +203,6 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
       observations_list = agora::io::storage.load_client_observations(description.application_name, i, query_select);
       agora::debug("\nParsing the trace for client ", i);
 
-
-
       // NB: here I could choose to avoid iterating over some possibly already blacklisted
       // clients. Of course in this case I should check whether the element iterator already
       // belongs in the blacklist like this:
@@ -217,268 +216,34 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
       // cycle over each row j of the trace for each client i (for the current application)
       for (auto j : observations_list)
       {
-        parse_and_insert_observation_for_client_from_trace(client_residuals_map, j);
+        parse_and_insert_observations_for_client_from_trace(client_residuals_map, j);
       }
 
 
-        agora::debug("\nString from trace to be parsed: ", j);
-        // TODO: parse the string. Taking into account the number of enabled metrics in the current observation.
-        // we need to know which metric(s) we have to retrieve and compare with the model estimation.
-        // Basically we keep only production phase observations, and of these we only consider metrics (enabled for the beholder)
-        // for which the real observed values is available, to be compared with the model value.
-        std::string obs_client_id;
-        // std::vector <std::string> obs_timestamp;
-        std::vector <cass_uint32_t> obs_year_month_day;
-        std::vector <cass_int64_t> obs_time_of_day;
-        std::vector <std::string> obs_configuration;
-        std::vector <std::string> obs_features;
-        std::vector <std::string> obs_metrics;
-        std::vector <std::string> obs_estimates;
-
-        std::vector<std::string> metric_fields_vec;
-        std::stringstream str_observation(j);
-
-        //std::string current_date;
-        //str_observation >> current_date;
-        cass_uint32_t current_date;
-        str_observation >> current_date;
-        obs_year_month_day.emplace_back(current_date);
-        cass_int64_t current_time;
-        str_observation >> current_time;
-        obs_year_month_day.emplace_back(current_time);
-
-        //std::string current_time;
-
-        //str_observation >> current_time;
-        // obs_timestamp.emplace_back(current_date);
-        // obs_timestamp.emplace_back(current_time);
-        // agora::debug("Date parsed: ", obs_timestamp[0]);
-        // agora::debug("Time parsed: ", obs_timestamp[1]);
-
-        str_observation >> obs_client_id;
-        agora::debug("Client_id parsed: ", obs_client_id);
-
-        int num_knobs = description.knobs.size();
-
-        while ( num_knobs > 0 )
-        {
-          std::string current_knob;
-          str_observation >> current_knob;
-          obs_configuration.emplace_back(current_knob);
-          agora::debug("Knob parsed: ", current_knob);
-          num_knobs--;
-        }
-
-        int num_features = description.features.size();
-
-        while ( num_features > 0 )
-        {
-          std::string current_feature;
-          str_observation >> current_feature;
-          obs_features.emplace_back(current_feature);
-          agora::debug("Feature parsed: ", current_feature);
-          num_features--;
-        }
-
-        int num_metrics = reference_metric_names.size();
-
-        while ( num_metrics > 0 )
-        {
-          std::string current_metric;
-          str_observation >> current_metric;
-          obs_metrics.emplace_back(current_metric);
-          agora::debug("Metrics parsed: ", current_metric);
-          num_metrics--;
-        }
-
-        num_metrics = reference_metric_names.size();
-
-        // variable to understand if the current row from trace was from a training phase
-        // It would have ALL the estimates to "N/A"
-        // In that case the current row in analysis can be discarded because there is no way
-        // of computing the residuals. In the beholder we validate the model, thus the estimates...
-        bool is_training_row = true;
-
-        while ( num_metrics > 0 )
-        {
-          std::string current_estimate;
-          str_observation >> current_estimate;
-
-          // if there is at least an estimate different from "N/A" then the current row is not from
-          // training and can be used in the CDT analysis for the residuals.
-          if ((current_estimate != "N/A") || (!is_training_row))
-          {
-            is_training_row = false;
-          }
-
-          obs_estimates.emplace_back(current_estimate);
-          agora::debug("Estimate parsed: ", current_estimate);
-          num_metrics--;
-        }
-
-        // Check if we have consistency in the quantity of measures parsed,
-        // i.e. if the vector of metric names is as big as the one of the observed metrics
-        // and is the same size as the number of metrics enabled for the beholder for the current application
-        if ((obs_metrics.size() != obs_estimates.size()) || (obs_metrics.size() != reference_metric_names.size()))
-        {
-          agora::info("Error in the parsed observation, mismatch in the number of fields.");
-          return;
-        }
-
-        // if the current row from trace is from a training phase discard this row and go to the next;
-        if (is_training_row)
-        {
-          agora::debug("Discarding current row because it was from a training phase");
-          continue;
-        }
-
-        // Insert the residuals in the right residual maps structure
-        // In this phase I have not the information about the names of the metrics from the trace
-        // But I parsed them all (the beholder-enabled ones), and I know they are inserted in the trace in alphabetical order
-        // according to "description.metrics". So basically I know which metric is the first one
-        // (and which estimate is the first one), which is the second one...
-        // I kept the same map structure of the residuals computation for the 1st step of CDT.
-        // As of now I chose to maintain the mapping to have the metric name built in the structure.
-        auto name_ref = reference_metric_names.begin();
-        for (auto index = 0; index < reference_metric_names.size(); index++, std::advance(name_ref, 1))
-        {
-          // Check whether the metric in analysis was available and valid or if it was a disabled one-->"null" in trace-->parsed as "N/A"
-          if (obs_estimates[index] == "N/A")
-          {
-            // for the current version, if a metric is disabled its corresponding prediction must be disable too
-            if (obs_metrics[index] == "N/A")
-            {
-              // skip the comparison on this metric between it was not enabled
-              continue;
-            }
-            else
-            {
-              agora::info("Error in the parsed observation, mismatch between the observed and predicted metric.");
-              return;
-            }
-          }
-          // to catch the case in which the metric was null but the estimate was present (not null). Theoretically impossible by design.
-          else if (obs_metrics[index] == "N/A")
-          {
-            agora::info("Error in the parsed observation, mismatch between the observed and predicted metric.");
-            return;
-          }
-
-          // if we arrive here then the parsed metric should be valid (one of the enabled ones at least)
-
-          // NB: note that the residual is computed with abs()!!
-          // TODO: is this correct?
-          auto current_residual = abs(std::stof(obs_estimates[index]) - std::stof(obs_metrics[index]));
-          agora::debug("Current residual for metric ", *name_ref, " is: ", current_residual);
-
-          auto search = client_residuals_map.find(*name_ref);
-          // Load the ici_cdt_map for the current metric
-          // This is needed to get the timestamp of the window where the change ws detected.
-          // Here we need to save the element before that window in a vector (1st in pair),
-          // and the elements after that window in another corresponding vector (2nd in pair)
-          auto search_ici_map = ici_cdt_map.find(*name_ref);
-
-          if (search != client_residuals_map.end() && search_ici_map != ici_cdt_map.end())
-          {
-            agora::debug("metric ", *name_ref, " already present, filling buffer");
-            // metric already present, need to add to the buffer the new residual
-            //TODO: compare timestamp: if before the change insert in the 1st vector of the pair
-            if (obs_year_month_day[index] < search_ici_map->second.front_year_month_day){
-                // if the current date is older than the one from the first element of the
-                // change window then add it to the "before" change window vector.
-                search->second.first.emplace_back(current_residual);
-            } else if (obs_year_month_day[index] == search_ici_map->second.front_year_month_day){
-                // if the current observation date is the same as the date of the 1st element of the
-                // change window then compare the time. If the current observation's timestamp
-                // comes first in the day then add it to the "before" change window vector
-                if (obs_time_of_day[index] < search_ici_map->second.front_time_of_day){
-                    search->second.first.emplace_back(current_residual);
-                }
-                // if after the change insert in the 2nd vector of the pair
-            } else if (obs_year_month_day[index] > search_ici_map->second.back_year_month_day){
-                // if the current date is newer than the one from the last element of the
-                // change window then add it to the "after" change window vector.
-                search->second.second.emplace_back(current_residual);
-            } else if (obs_year_month_day[index] == search_ici_map->second.back_year_month_day){
-                // if the current observation date is the same as the date of the last element of the
-                // change window then compare the time. If the current observation's timestamp
-                // comes later in the day then add it to the "after" change window vector
-                if (obs_time_of_day[index] > search_ici_map->second.back_time_of_day){
-                    search->second.second.emplace_back(current_residual);
-                }
-            }
-          }
-          // if we did not find any key with the current metric's name under analysis in the struct
-          // then theoretically we should initialize the corresponding struct for the metric
-          else if (search_ici_map != ici_cdt_map.end())
-          {
-            // check that this first value inserted is actually before the change window
-            // insert the current observation in the vector of the residuals before the change
-            // Theoretically one would expect that the first observation for a certain metric coming
-            // from a client would always be before the change window. But actually this is not necessarily
-            // true. A client could have started the computation after the change window,
-            // and we would have detected the change thanks to observations coming from other
-            // clients that were already working before the one under analysis, obviously.
-            // Of course we are interested in comparing the behavior of the distribution of the
-            // observations before and after the change. So in a situation in which we just have
-            // "after" the change observations we immediately skip the analysis for the current metric for this client.
-            // bool to control if the first observation is actually before the change window
-            bool valid_metric = false;
-            if (obs_year_month_day[index] < search_ici_map->second.front_year_month_day){
-                // if the current date is older than the one from the first element of the
-                // change window then add it to the "before" change window vector.
-                valid_metric = true;
-            } else if (obs_year_month_day[index] == search_ici_map->second.front_year_month_day){
-                // if the current observation date is the same as the date of the 1st element of the
-                // change window then compare the time. If the current observation's timestamp
-                // comes first in the day then add it to the "before" change window vector
-                if (obs_time_of_day[index] < search_ici_map->second.front_time_of_day){
-                    valid_metric = true;
-                }
-            }
-            // if the first observation is before the change window then initialize its struct
-            if (valid_metric){
-                agora::debug("creation of buffer for metric and first insertion: ", *name_ref);
-                // need to create the mapping for the current metric. It's the first time you meet this metric
-                std::vector<float> temp_vector_before;
-                std::vector<float> temp_vector_after;
-                temp_vector_before.emplace_back(current_residual);
-                auto temp_pair = std::make_pair(temp_vector_before, temp_vector_after);
-                client_residuals_map.emplace(*name_ref, temp_pair);
-            } else {
-                agora::debug("Skipping the creation of buffer for metric ", *name_ref, " because we do not have observations before the hypothetical change window");
-            }
-          }
-          else {
-              agora::info("Error: no \"ici_cdt_map\" struct found for thìe metric: ", *name_ref);
-              return;
-          }
-        }
-
-        // TODO: Execute the 2nd step of CDT: hypothesis TEST
 
 
-        // Once I know what the outcome of the hypothesis TEST is,
-        // TODO: Shoould I re-gain the lock of the guard to "end" the decisions about this application?
-        // Or can I keep asynchronous w/o lock? Does it even make a difference?
+      // TODO: Execute on the specific client the 2nd step of CDT: hypothesis TEST
+      bool confirmed_change = false;
+      //confirmed_change = HypCdt::perform_hypothesis_test(client_residuals_map);
 
-        // guard.lock();
 
-        // according to the quality (GOOD/BAD) of the currently analyzed client, enqueue it in the good/bad_clients_list
-        if (false /* client is bad */)
-        {
-          // bad_clients_list.emplace(/*client_name*/);
-        }
-        else
-        {
-          // good_clients_list.emplace(/*client_name*/);
-        }
+      // Once I know what the outcome of the hypothesis TEST is,
+      // TODO: Shoould I re-gain the lock of the guard to "end" the decisions about this application?
+      // Or can I keep asynchronous w/o lock? Does it even make a difference?
 
+      // guard.lock();
+
+      // according to the quality (GOOD/BAD) of the currently analyzed client, enqueue it in the good/bad_clients_list
+      if (false /* client is bad */)
+      {
+        // bad_clients_list.emplace(/*client_name*/);
+      }
+      else
+      {
+        // good_clients_list.emplace(/*client_name*/);
       }
 
     }
-
-
 
     // compute the percentage of bad clients and compare it wrt the predefined threshold
     float bad_clients_percentage = ((bad_clients_list.size() / clients_list.size()) * 100);
@@ -496,6 +261,7 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
     }
 
     // TODO: manage the unlock/lock of this DB access phase
+
   }
 
 
@@ -517,7 +283,7 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
 }
 
 
-// method to parse the received observation
+// method to parse the received observation from mqtt messages
 void RemoteApplicationHandler::parse_observation(Observation_data& observation, const std::string& values)
 {
   // declare the temporary variables to store the fields of the incoming message
@@ -683,7 +449,7 @@ void RemoteApplicationHandler::parse_observation(Observation_data& observation, 
 }
 
 // method which adds the parsed values to the current observation to the respective buffers
-void RemoteApplicationHandler::fill_buffer(Observation_data& observation)
+void RemoteApplicationHandler::fill_buffers(Observation_data& observation)
 {
   // Insert the residuals in the right buffers according to the metric name
   for (auto index = 0; index < observation.metric_fields_vec.size(); index++)
@@ -723,6 +489,268 @@ void RemoteApplicationHandler::fill_buffer(Observation_data& observation)
       residuals_map.emplace(observation.metric_fields_vec[index], temp_vector);
       // start counting the observations for the current metrics
       residuals_map_counter.emplace(observation.metric_fields_vec[index], 1);
+    }
+  }
+}
+
+// method which receives as parameters the list of observations from a specific client from the trace
+// and parses them and inserts its residuals in the corresponding map structure
+void RemoteApplicationHandler::parse_and_insert_observations_for_client_from_trace(std::unordered_map<std::string, std::pair < std::vector<float>, std::vector<float>>>& client_residuals_map,
+    const observation_t j)
+{
+  agora::debug("\nString from trace to be parsed: ", j);
+  // TODO: parse the string. Taking into account the number of enabled metrics in the current observation.
+  // we need to know which metric(s) we have to retrieve and compare with the model estimation.
+  // Basically we keep only production phase observations, and of these we only consider metrics (enabled for the beholder)
+  // for which the real observed values is available, to be compared with the model value.
+  std::string obs_client_id;
+  // std::vector <std::string> obs_timestamp;
+  std::vector <cass_uint32_t> obs_year_month_day;
+  std::vector <cass_int64_t> obs_time_of_day;
+  std::vector <std::string> obs_configuration;
+  std::vector <std::string> obs_features;
+  std::vector <std::string> obs_metrics;
+  std::vector <std::string> obs_estimates;
+
+  std::vector<std::string> metric_fields_vec;
+  std::stringstream str_observation(j);
+
+  //std::string current_date;
+  //str_observation >> current_date;
+  cass_uint32_t current_date;
+  str_observation >> current_date;
+  obs_year_month_day.emplace_back(current_date);
+  cass_int64_t current_time;
+  str_observation >> current_time;
+  obs_year_month_day.emplace_back(current_time);
+
+  //std::string current_time;
+
+  //str_observation >> current_time;
+  // obs_timestamp.emplace_back(current_date);
+  // obs_timestamp.emplace_back(current_time);
+  // agora::debug("Date parsed: ", obs_timestamp[0]);
+  // agora::debug("Time parsed: ", obs_timestamp[1]);
+
+  str_observation >> obs_client_id;
+  agora::debug("Client_id parsed: ", obs_client_id);
+
+  int num_knobs = description.knobs.size();
+
+  while ( num_knobs > 0 )
+  {
+    std::string current_knob;
+    str_observation >> current_knob;
+    obs_configuration.emplace_back(current_knob);
+    agora::debug("Knob parsed: ", current_knob);
+    num_knobs--;
+  }
+
+  int num_features = description.features.size();
+
+  while ( num_features > 0 )
+  {
+    std::string current_feature;
+    str_observation >> current_feature;
+    obs_features.emplace_back(current_feature);
+    agora::debug("Feature parsed: ", current_feature);
+    num_features--;
+  }
+
+  int num_metrics = reference_metric_names.size();
+
+  while ( num_metrics > 0 )
+  {
+    std::string current_metric;
+    str_observation >> current_metric;
+    obs_metrics.emplace_back(current_metric);
+    agora::debug("Metrics parsed: ", current_metric);
+    num_metrics--;
+  }
+
+  num_metrics = reference_metric_names.size();
+
+  // variable to understand if the current row from trace was from a training phase
+  // It would have ALL the estimates to "N/A"
+  // In that case the current row in analysis can be discarded because there is no way
+  // of computing the residuals. In the beholder we validate the model, thus the estimates...
+  bool is_training_row = true;
+
+  while ( num_metrics > 0 )
+  {
+    std::string current_estimate;
+    str_observation >> current_estimate;
+
+    // if there is at least an estimate different from "N/A" then the current row is not from
+    // training and can be used in the CDT analysis for the residuals.
+    if ((current_estimate != "N/A") || (!is_training_row))
+    {
+      is_training_row = false;
+    }
+
+    obs_estimates.emplace_back(current_estimate);
+    agora::debug("Estimate parsed: ", current_estimate);
+    num_metrics--;
+  }
+
+  // Check if we have consistency in the quantity of measures parsed,
+  // i.e. if the vector of metric names is as big as the one of the observed metrics
+  // and is the same size as the number of metrics enabled for the beholder for the current application
+  if ((obs_metrics.size() != obs_estimates.size()) || (obs_metrics.size() != reference_metric_names.size()))
+  {
+    agora::info("Error in the parsed observation, mismatch in the number of fields.");
+    return;
+  }
+
+  // if the current row from trace is from a training phase discard this row and go to the next;
+  if (is_training_row)
+  {
+    agora::debug("Discarding current row because it was from a training phase");
+    return;
+  }
+
+  // Insert the residuals in the right residual maps structure
+  // In this phase I have not the information about the names of the metrics from the trace
+  // But I parsed them all (the beholder-enabled ones), and I know they are inserted in the trace in alphabetical order
+  // according to "description.metrics". So basically I know which metric is the first one
+  // (and which estimate is the first one), which is the second one...
+  // I kept the same map structure of the residuals computation for the 1st step of CDT.
+  // As of now I chose to maintain the mapping to have the metric name built in the structure.
+  auto name_ref = reference_metric_names.begin();
+
+  for (auto index = 0; index < reference_metric_names.size(); index++, std::advance(name_ref, 1))
+  {
+    // Check whether the metric in analysis was available and valid or if it was a disabled one-->"null" in trace-->parsed as "N/A"
+    if (obs_estimates[index] == "N/A")
+    {
+      // for the current version, if a metric is disabled its corresponding prediction must be disable too
+      if (obs_metrics[index] == "N/A")
+      {
+        // skip the comparison on this metric between it was not enabled
+        return;
+      }
+      else
+      {
+        agora::info("Error in the parsed observation, mismatch between the observed and predicted metric.");
+        return;
+      }
+    }
+    // to catch the case in which the metric was null but the estimate was present (not null). Theoretically impossible by design.
+    else if (obs_metrics[index] == "N/A")
+    {
+      agora::info("Error in the parsed observation, mismatch between the observed and predicted metric.");
+      return;
+    }
+
+    // if we arrive here then the parsed metric should be valid (one of the enabled ones at least)
+
+    // NB: note that the residual is computed with abs()!!
+    // TODO: is this correct?
+    auto current_residual = abs(std::stof(obs_estimates[index]) - std::stof(obs_metrics[index]));
+    agora::debug("Current residual for metric ", *name_ref, " is: ", current_residual);
+
+    auto search = client_residuals_map.find(*name_ref);
+    // Load the ici_cdt_map for the current metric
+    // This is needed to get the timestamp of the window where the change ws detected.
+    // Here we need to save the element before that window in a vector (1st in pair),
+    // and the elements after that window in another corresponding vector (2nd in pair)
+    auto search_ici_map = ici_cdt_map.find(*name_ref);
+
+    if (search != client_residuals_map.end() && search_ici_map != ici_cdt_map.end())
+    {
+      agora::debug("metric ", *name_ref, " already present, filling buffer");
+
+      // metric already present, need to add to the buffer the new residual
+      //TODO: compare timestamp: if before the change insert in the 1st vector of the pair
+      if (obs_year_month_day[index] < search_ici_map->second.front_year_month_day)
+      {
+        // if the current date is older than the one from the first element of the
+        // change window then add it to the "before" change window vector.
+        search->second.first.emplace_back(current_residual);
+      }
+      else if (obs_year_month_day[index] == search_ici_map->second.front_year_month_day)
+      {
+        // if the current observation date is the same as the date of the 1st element of the
+        // change window then compare the time. If the current observation's timestamp
+        // comes first in the day then add it to the "before" change window vector
+        if (obs_time_of_day[index] < search_ici_map->second.front_time_of_day)
+        {
+          search->second.first.emplace_back(current_residual);
+        }
+
+        // if after the change insert in the 2nd vector of the pair
+      }
+      else if (obs_year_month_day[index] > search_ici_map->second.back_year_month_day)
+      {
+        // if the current date is newer than the one from the last element of the
+        // change window then add it to the "after" change window vector.
+        search->second.second.emplace_back(current_residual);
+      }
+      else if (obs_year_month_day[index] == search_ici_map->second.back_year_month_day)
+      {
+        // if the current observation date is the same as the date of the last element of the
+        // change window then compare the time. If the current observation's timestamp
+        // comes later in the day then add it to the "after" change window vector
+        if (obs_time_of_day[index] > search_ici_map->second.back_time_of_day)
+        {
+          search->second.second.emplace_back(current_residual);
+        }
+      }
+    }
+    // if we did not find any key with the current metric's name under analysis in the struct
+    // then theoretically we should initialize the corresponding struct for the metric
+    else if (search_ici_map != ici_cdt_map.end())
+    {
+      // check that this first value inserted is actually before the change window
+      // insert the current observation in the vector of the residuals before the change
+      // Theoretically one would expect that the first observation for a certain metric coming
+      // from a client would always be before the change window. But actually this is not necessarily
+      // true. A client could have started the computation after the change window,
+      // and we would have detected the change thanks to observations coming from other
+      // clients that were already working before the one under analysis, obviously.
+      // Of course we are interested in comparing the behavior of the distribution of the
+      // observations before and after the change. So in a situation in which we just have
+      // "after" the change observations we immediately skip the analysis for the current metric for this client.
+      // bool to control if the first observation is actually before the change window
+      bool valid_metric = false;
+
+      if (obs_year_month_day[index] < search_ici_map->second.front_year_month_day)
+      {
+        // if the current date is older than the one from the first element of the
+        // change window then add it to the "before" change window vector.
+        valid_metric = true;
+      }
+      else if (obs_year_month_day[index] == search_ici_map->second.front_year_month_day)
+      {
+        // if the current observation date is the same as the date of the 1st element of the
+        // change window then compare the time. If the current observation's timestamp
+        // comes first in the day then add it to the "before" change window vector
+        if (obs_time_of_day[index] < search_ici_map->second.front_time_of_day)
+        {
+          valid_metric = true;
+        }
+      }
+
+      // if the first observation is before the change window then initialize its struct
+      if (valid_metric)
+      {
+        agora::debug("creation of buffer for metric and first insertion: ", *name_ref);
+        // need to create the mapping for the current metric. It's the first time you meet this metric
+        std::vector<float> temp_vector_before;
+        std::vector<float> temp_vector_after;
+        temp_vector_before.emplace_back(current_residual);
+        auto temp_pair = std::make_pair(temp_vector_before, temp_vector_after);
+        client_residuals_map.emplace(*name_ref, temp_pair);
+      }
+      else
+      {
+        agora::debug("Skipping the creation of buffer for metric ", *name_ref, " because we do not have observations before the hypothetical change window");
+      }
+    }
+    else
+    {
+      agora::info("Error: no \"ici_cdt_map\" struct found for thìe metric: ", *name_ref);
+      return;
     }
   }
 }
