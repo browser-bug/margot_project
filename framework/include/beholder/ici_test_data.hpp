@@ -55,8 +55,12 @@ namespace beholder
     float reference_sample_variance_variance;
     float current_sample_mean_mean;
     float current_sample_mean_variance;
-    float current_sample_variance_variance;
     float current_sample_variance_mean;
+    float current_sample_variance_variance;
+    float reference_mean_conf_interval_upper;
+    float reference_mean_conf_interval_lower;
+    float reference_variance_conf_interval_upper;
+    float reference_variance_conf_interval_lower;
     float current_mean_conf_interval_upper;
     float current_mean_conf_interval_lower;
     float current_variance_conf_interval_upper;

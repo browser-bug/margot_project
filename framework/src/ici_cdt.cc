@@ -116,8 +116,14 @@ namespace beholder
         agora::pedantic(log_prefix, "Reference_sample_mean_variance: ", data_test.reference_sample_mean_variance);
 
         // computation of confidence interval for sample mean
-        data_test.current_mean_conf_interval_lower = data_test.reference_sample_mean_mean - (Parameters_beholder::gamma_mean * data_test.reference_sample_mean_variance);
-        data_test.current_mean_conf_interval_upper = data_test.reference_sample_mean_mean + (Parameters_beholder::gamma_mean * data_test.reference_sample_mean_variance);
+        // copy of the original trainin CI that will not be modified to allow the restore
+        // of the training CI in case of test reset
+        data_test.reference_mean_conf_interval_lower = data_test.reference_sample_mean_mean - (Parameters_beholder::gamma_mean * data_test.reference_sample_mean_variance);
+        data_test.reference_mean_conf_interval_upper = data_test.reference_sample_mean_mean + (Parameters_beholder::gamma_mean * data_test.reference_sample_mean_variance);
+
+        // duplicates needed for the production phase
+        data_test.current_mean_conf_interval_lower = data_test.reference_mean_conf_interval_lower;
+        data_test.current_mean_conf_interval_upper = data_test.reference_mean_conf_interval_upper;
 
         agora::pedantic(log_prefix, "Training phase confidence interval for mean: [", data_test.current_mean_conf_interval_lower, ",", data_test.current_mean_conf_interval_upper, "]");
 
@@ -208,8 +214,15 @@ namespace beholder
 
           data_test.reference_sample_variance_variance = sqrtf(sum / (Parameters_beholder::training_windows - 1));
           // computation of confidence interval for sample variance
-          data_test.current_variance_conf_interval_lower = data_test.reference_sample_variance_mean - (Parameters_beholder::gamma_variance * data_test.reference_sample_variance_variance);
-          data_test.current_variance_conf_interval_upper = data_test.reference_sample_variance_mean + (Parameters_beholder::gamma_variance * data_test.reference_sample_variance_variance);
+          // copy of the original trainin CI that will not be modified to allow the restore
+          // of the training CI in case of test reset
+          data_test.reference_variance_conf_interval_lower = data_test.reference_sample_variance_mean - (Parameters_beholder::gamma_variance * data_test.reference_sample_variance_variance);
+          data_test.reference_variance_conf_interval_upper = data_test.reference_sample_variance_mean + (Parameters_beholder::gamma_variance * data_test.reference_sample_variance_variance);
+
+          // duplicates needed for the production phase
+          data_test.current_variance_conf_interval_lower = data_test.reference_variance_conf_interval_lower;
+          data_test.current_variance_conf_interval_upper = data_test.reference_variance_conf_interval_upper;
+
 
           agora::pedantic(log_prefix, "Training phase confidence interval for variance: [", data_test.current_variance_conf_interval_lower, ",", data_test.current_variance_conf_interval_upper, "]");
 
@@ -406,6 +419,4 @@ namespace beholder
     // now we add to the time of a day the missing information
     data_test.back_time_of_day += back_nanosecs_since_secs;
   }
-
-
 }

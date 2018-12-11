@@ -29,6 +29,7 @@
 #include "beholder/parameters_beholder.hpp"
 #include "beholder/observation_data.hpp"
 #include "beholder/ici_cdt.hpp"
+#include "beholder/hypothesis_test.hpp"
 #include "agora/logger.hpp"
 
 
@@ -140,16 +141,26 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
       // in the 2nd step of the CDT.
       if (change_detected)
       {
-        change_metric = i.first; // TODO: do we need thisw????
+        change_metric = i.first; // TODO: do we need this????
         //change_window_timestamp_front = i.second.front().second;
         //change_window_timestamp_back = i.second.back().second;
         // set the status variable according so that the lock can be released
         status = ApplicationStatus::COMPUTING;
         // Empty the (filled-in) buffer for the current metric.
         i.second.clear();
+        // every time a new change is detected by the 1st level test we reset the blacklist of clients
+        // In this way we check whether they are still behaving badly with the 2nd level test,
+        // and we give them the chance to possibly be re-considered as good clients
+        // from which to collect observations also for the 1st level test in the future.
+        clients_blacklist.clear();
       }
     }
   }
+
+  // We only perform the 2nd step of the CDT only when the 1st level detects a change.
+  // If the change is not detected then the 2nd step is not performed and the method returns
+  // and will keep performing the 1st level cdt with the future new observations.
+
 
   // STEP 2 of CDT: analysis with granularity on the single client
 
@@ -219,28 +230,18 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
         parse_and_insert_observations_for_client_from_trace(client_residuals_map, j);
       }
 
-
-
-
-      // TODO: Execute on the specific client the 2nd step of CDT: hypothesis TEST
+      // Execute on the specific client the 2nd step of CDT: hypothesis TEST
       bool confirmed_change = false;
-      //confirmed_change = HypCdt::perform_hypothesis_test(client_residuals_map);
+      confirmed_change = HypTest::perform_hypothesis_test(client_residuals_map);
 
-
-      // Once I know what the outcome of the hypothesis TEST is,
-      // TODO: Shoould I re-gain the lock of the guard to "end" the decisions about this application?
-      // Or can I keep asynchronous w/o lock? Does it even make a difference?
-
-      // guard.lock();
-
-      // according to the quality (GOOD/BAD) of the currently analyzed client, enqueue it in the good/bad_clients_list
-      if (false /* client is bad */)
+      // according to the quality (GOOD=no_change/BAD=confirmed_change) of the currently analyzed client, enqueue it in the good/bad_clients_list
+      if (confirmed_change)
       {
-        // bad_clients_list.emplace(/*client_name*/);
+        bad_clients_list.emplace(i);
       }
       else
       {
-        // good_clients_list.emplace(/*client_name*/);
+        good_clients_list.emplace(i);
       }
 
     }
@@ -248,38 +249,81 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
     // compute the percentage of bad clients and compare it wrt the predefined threshold
     float bad_clients_percentage = ((bad_clients_list.size() / clients_list.size()) * 100);
 
+    // Once I know what the outcome of the hypothesis TEST is, re-acquire the lock
+    guard.lock();
+
+
+    // if the number % of bad clients is over the user-set threshold then trigger the re-training
+    // This also covers the case in which all the clients behave badly (100%)
     if (bad_clients_percentage > Parameters_beholder::bad_clients_threshold)
     {
-      // TODO: trigger retraining and put status back to READY
-      // send_agora_command("retraining");
-      // TODO: actions post retraining
-      // reset blacklist?
-      // reset observation buffers?
-      // ApplicationStatus to READY?
-      // set change_detected to false?
-      // reset to null the cdt window front and back in struct data.tast/ici_cdt_map
+      // Basically in this case the change detected by the 1st level cdt was confirmed by the hypothesys test
+
+      // need to trigger RE-training
+      // this automatically deals with the deletion of the model and of the trace and with the reset of the doe
+      send_agora_command("retraining");
+
+      // destroy this application handler
+
     }
+    else
+    {
+      // this is the case in which either there are some bad clients but they are below threshold,
+      // or there are no bad clients at all. The behavior is the same.
+      // The change is discarded (but so are also the values coming from these bad_clients, if any).
 
-    // TODO: manage the unlock/lock of this DB access phase
+      // if there are some bad clients then put them in the blacklist
+      if (bad_clients_list.size() > 0)
+      {
+        for (auto i : bad_clients_list)
+        {
+          clients_blacklist.emplace(i);
+        }
+      }
 
+      // reset the 1st level cdt data structure for all the metrics which have a structure
+      // just keep the test configuration settings (training) and reset the rest.
+
+      // for every CDT data structure for this application
+      for (auto i : ici_cdt_map)
+      {
+        // reset its ici cdt to just the training configuration
+        // restore the sequence number to the number of windows used for training
+        i.second.window_number = Parameters_beholder::training_windows;
+        // reset the sample mean stuff
+        // restore the reference (training) sample mean-mean
+        i.second.current_sample_mean_mean = i.second.reference_sample_mean_mean;
+        // restore the training CI for the mean
+        i.second.current_mean_conf_interval_lower = i.second.reference_mean_conf_interval_lower;
+        i.second.current_mean_conf_interval_upper = i.second.reference_mean_conf_interval_upper;
+
+        // if the variance is enabled then do the same for variance too
+        if (!Parameters_beholder::variance_off)
+        {
+          // restore the reference (training) sample variance-mean
+          i.second.current_sample_variance_mean = i.second.reference_sample_variance_mean;
+          // restore the training CI for the variance
+          i.second.current_variance_conf_interval_lower = i.second.reference_variance_conf_interval_lower;
+          i.second.current_variance_conf_interval_upper = i.second.reference_variance_conf_interval_upper;
+        }
+
+        // reset the change window timestamp to be sure
+        i.second.front_year_month_day = NULL;
+        i.second.front_time_of_day = NULL;
+        i.second.back_year_month_day = NULL;
+        i.second.back_time_of_day = NULL;
+      }
+
+      // set the status back to ready
+      status = ApplicationStatus::READY;
+    }
   }
 
-
-
-  if (false /*need to enable metrics*/)
-  {
-    send_margot_command("metrics_on");
-  }
-
-  if (false /*need to trigger RE-training*/)
-  {
-    send_agora_command("retraining");
-    // TODO: actions post retraining
-    // reset blacklist?
-    // reset observation buffers?
-    // ApplicationStatus to READY?
-  }
-
+  // The following command will (probably) be never used.
+  // if (false /*need to enable metrics*/)
+  // {
+  //   send_margot_command("metrics_on");
+  // }
 }
 
 
@@ -303,7 +347,7 @@ void RemoteApplicationHandler::parse_observation(Observation_data& observation, 
   // if that's the case then discard the observation, otherwise keep parameter_string
   auto search = clients_blacklist.find(observation.client_id);
 
-  if (search != clients_blacklist.end())    // if client name fouund in the blacklist than return
+  if (search != clients_blacklist.end())    // if client name found in the blacklist than return
   {
     agora::info("Observation from client ", observation.client_id, " rejected because blacklisted client");
     return;
@@ -449,7 +493,7 @@ void RemoteApplicationHandler::parse_observation(Observation_data& observation, 
 }
 
 // method which adds the parsed values to the current observation to the respective buffers
-void RemoteApplicationHandler::fill_buffers(Observation_data& observation)
+void RemoteApplicationHandler::fill_buffers(const Observation_data& observation)
 {
   // Insert the residuals in the right buffers according to the metric name
   for (auto index = 0; index < observation.metric_fields_vec.size(); index++)
@@ -499,7 +543,7 @@ void RemoteApplicationHandler::parse_and_insert_observations_for_client_from_tra
     const observation_t j)
 {
   agora::debug("\nString from trace to be parsed: ", j);
-  // TODO: parse the string. Taking into account the number of enabled metrics in the current observation.
+  // parse the string. Taking into account the number of enabled metrics in the current observation.
   // we need to know which metric(s) we have to retrieve and compare with the model estimation.
   // Basically we keep only production phase observations, and of these we only consider metrics (enabled for the beholder)
   // for which the real observed values is available, to be compared with the model value.
@@ -651,7 +695,7 @@ void RemoteApplicationHandler::parse_and_insert_observations_for_client_from_tra
 
     auto search = client_residuals_map.find(*name_ref);
     // Load the ici_cdt_map for the current metric
-    // This is needed to get the timestamp of the window where the change ws detected.
+    // This is needed to get the timestamp of the window where the change was detected.
     // Here we need to save the element before that window in a vector (1st in pair),
     // and the elements after that window in another corresponding vector (2nd in pair)
     auto search_ici_map = ici_cdt_map.find(*name_ref);
@@ -661,7 +705,7 @@ void RemoteApplicationHandler::parse_and_insert_observations_for_client_from_tra
       agora::debug("metric ", *name_ref, " already present, filling buffer");
 
       // metric already present, need to add to the buffer the new residual
-      //TODO: compare timestamp: if before the change insert in the 1st vector of the pair
+      // compare timestamp: if before the change insert in the 1st vector of the pair
       if (obs_year_month_day[index] < search_ici_map->second.front_year_month_day)
       {
         // if the current date is older than the one from the first element of the
@@ -749,7 +793,7 @@ void RemoteApplicationHandler::parse_and_insert_observations_for_client_from_tra
     }
     else
     {
-      agora::info("Error: no \"ici_cdt_map\" struct found for thìe metric: ", *name_ref);
+      agora::info("Error: no \"ici_cdt_map\" struct found for the metric: ", *name_ref);
       return;
     }
   }
