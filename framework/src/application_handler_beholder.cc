@@ -24,6 +24,8 @@
 #include <algorithm>
 #include <limits>
 #include <set>
+#include <thread>
+
 
 #include "beholder/application_handler_beholder.hpp"
 #include "beholder/parameters_beholder.hpp"
@@ -49,7 +51,7 @@ RemoteApplicationHandler::RemoteApplicationHandler( const std::string& applicati
 
 }
 
-void RemoteApplicationHandler::new_observation( const std::string& values )
+int RemoteApplicationHandler::new_observation( const std::string& values )
 {
 
   // lock the mutex to ensure a consistent global state
@@ -59,7 +61,7 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
   // according to the handler status: ready/computing
   if ( status == ApplicationStatus::COMPUTING )
   {
-    return;
+    return 0;
   }
 
   // release the lock while parsing the message
@@ -186,7 +188,7 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
     if (clients_list.size() == 0)
     {
       agora::info("Something is wrong, the list of clients received from the DB is empty!");
-      return;
+      return 0;
     }
 
     agora::debug("Client list without duplicates:");
@@ -305,11 +307,29 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
               break;
           } else {
               // remove the metrics present in the client_residuals_map from the metric_to_be_analyzed
+              // in this way we only leave in the metric_to_be_analyzed just the names of the metrics to yet be analized.
               for (auto it : client_residuals_map){
-
+                  metric_to_be_analyzed.erase(it.first);
               }
-              // if metric_to_be_analyzed still not empty then if the timeout is not over then wait
-              // if the timeout was over then break but before breaking out set valid_client to false
+
+              // if the metric_to_be_analyzed is empty then it won't enter the next while cycle
+
+              // if we arrive here it means that metric_to_be_analyzed, meaning that some metrics to still
+              // be analized were not ready. We need to wait for more observations to come hopefully.
+              if (metric_to_be_analyzed.size() > 0){
+                  if (timeout <= 0){
+                      // if we arrive here it means that the 2nd level test has not confirmed the change as of now
+                      // and we run out of time, we need to move on.
+                      // We set the current client as a non-valid one then.
+                      valid_client = false;
+                      break;
+                  } else {
+                    // we can wait for some more observations to come
+                    // I chose to wait even if the current timeout-waitperiod is theoretically out_of_time already
+                    std::this_thread::sleep_for(std::chrono::milliseconds(Parameters_beholder::frequency_check));
+                    timeout -= Parameters_beholder::frequency_check;
+                  }
+              }
           }
       }
 
@@ -367,6 +387,7 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
       }
 
       // TODO: destroy this application handler
+      return 1;
 
     }
     else
@@ -434,6 +455,7 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
   // {
   //   send_margot_command("metrics_on");
   // }
+  return 0;
 }
 
 

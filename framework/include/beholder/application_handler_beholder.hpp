@@ -131,7 +131,7 @@ namespace beholder
 
       RemoteApplicationHandler( const std::string& application_name );
 
-      void new_observation( const std::string& values );
+      int new_observation( const std::string& values );
 
   };
 

@@ -201,7 +201,12 @@ namespace beholder
       agora::pedantic("Thread ", get_tid(), ": received a new observation for \"", application_name, "\": \"", observation, "\"");
 
       // handle the message
-      application_handler->new_observation(observation);
+      int result = application_handler->new_observation(observation);
+
+      if (result == 1){
+          // destroy the handler because the retraining was triggered
+          GlobalView::remove_handler(application_name);
+      }
     }
 
     // ---------------------------------------------------------------------------------- handle the kia message from agorà
