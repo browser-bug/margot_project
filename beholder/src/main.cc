@@ -332,18 +332,18 @@ int main( int argc, char* argv[] )
 
         break;
 
-    case 23:
-      std::istringstream ( optarg ) >> beholder::Parameters_beholder::frequency_check;
+      case 23:
+        std::istringstream ( optarg ) >> beholder::Parameters_beholder::frequency_check;
 
-      if (beholder::Parameters_beholder::frequency_check < 0)
-      {
-        std::cerr << "Error: invalid frequency_check " << beholder::Parameters_beholder::frequency_check << ", it cannot be negative" << std::endl;
-        return EXIT_FAILURE;
-      }
+        if (beholder::Parameters_beholder::frequency_check < 0)
+        {
+          std::cerr << "Error: invalid frequency_check " << beholder::Parameters_beholder::frequency_check << ", it cannot be negative" << std::endl;
+          return EXIT_FAILURE;
+        }
 
-      break;
+        break;
 
-    case 24:
+      case 24:
         beholder::Parameters_beholder::no_trace_drop = true;
         break;
 

@@ -224,8 +224,10 @@ int RemoteApplicationHandler::new_observation( const std::string& values )
       // beholder analysis this list contains the metrics yet to be tested with the hypothesis test, so once a
       // metric has been analyzed it will be removed from this structure
       std::set<std::string> metric_to_be_analyzed;
-      for (auto j : reference_metric_names){
-          metric_to_be_analyzed.emplace(j);
+
+      for (auto j : reference_metric_names)
+      {
+        metric_to_be_analyzed.emplace(j);
       }
 
       bool confirmed_change = false;
@@ -235,116 +237,132 @@ int RemoteApplicationHandler::new_observation( const std::string& values )
       // to only receive the metrics enabled for the beholder analysis by the user
       std::string query_select;
 
-      while (metric_to_be_analyzed.size() != 0 && !confirmed_change){
-          // data structure to save the residuals for the specific application-client pair before the change
-          // the structure is organized as a map which maps the name of the metric to a pair
-          // The first element of the pair is a vector containing the residuals for that metric before the change windows
-          // The second element of the pair is a vector containing the residuals for that metric after the change windows
-          std::unordered_map<std::string, std::pair < std::vector<float>, std::vector<float>>> client_residuals_map;
+      while (metric_to_be_analyzed.size() != 0 && !confirmed_change)
+      {
+        // data structure to save the residuals for the specific application-client pair before the change
+        // the structure is organized as a map which maps the name of the metric to a pair
+        // The first element of the pair is a vector containing the residuals for that metric before the change windows
+        // The second element of the pair is a vector containing the residuals for that metric after the change windows
+        std::unordered_map<std::string, std::pair < std::vector<float>, std::vector<float>>> client_residuals_map;
 
-          // preparing the 'select' query for Cassandra for the 2nd step of cassandra
-          // It is done here on the basis of whixch metrics are left to be analyzed
-          query_select = "day, time, client_id, ";
+        // preparing the 'select' query for Cassandra for the 2nd step of cassandra
+        // It is done here on the basis of whixch metrics are left to be analyzed
+        query_select = "day, time, client_id, ";
 
-          for (auto i : description.knobs)
+        for (auto i : description.knobs)
+        {
+          query_select.append(i.name);
+          query_select.append(",");
+        }
+
+        for (auto i : description.features)
+        {
+          query_select.append(i.name);
+          query_select.append(",");
+        }
+
+        for (auto i : metric_to_be_analyzed)
+        {
+          query_select.append(i);
+          query_select.append(",");
+        }
+
+        for (auto i : metric_to_be_analyzed)
+        {
+          query_select.append("model_");
+          query_select.append(i);
+          query_select.append(",");
+        }
+
+        // to remove the last comma
+        query_select.pop_back();
+
+        //observations_list = agora::io::storage.load_client_observations(description.application_name, "alberto_Surface_Pro_2_6205", query_select);
+        observations_list = agora::io::storage.load_client_observations(description.application_name, i, query_select);
+        agora::debug("\nParsing the trace for client ", i);
+
+        // cycle over each row j of the trace for each client i (for the current application)
+        for (auto j : observations_list)
+        {
+          parse_and_insert_observations_for_client_from_trace(client_residuals_map, j, metric_to_be_analyzed);
+        }
+
+        // let's analyze if any of the metrics has enough observations to perform the test
+        // remove the metrics which cannot be analyzed from the client_residuals_map
+        for (auto it = client_residuals_map.begin(); it != client_residuals_map.end();)
+        {
+          if (it->second.first.size() < Parameters_beholder::min_observations || it->second.second.size() < Parameters_beholder::min_observations)
           {
-            query_select.append(i.name);
-            query_select.append(",");
-          }
-
-          for (auto i : description.features)
-          {
-            query_select.append(i.name);
-            query_select.append(",");
-          }
-
-          for (auto i : metric_to_be_analyzed)
-          {
-            query_select.append(i);
-            query_select.append(",");
-          }
-
-          for (auto i : metric_to_be_analyzed)
-          {
-            query_select.append("model_");
-            query_select.append(i);
-            query_select.append(",");
-          }
-
-          // to remove the last comma
-          query_select.pop_back();
-
-          //observations_list = agora::io::storage.load_client_observations(description.application_name, "alberto_Surface_Pro_2_6205", query_select);
-          observations_list = agora::io::storage.load_client_observations(description.application_name, i, query_select);
-          agora::debug("\nParsing the trace for client ", i);
-
-          // cycle over each row j of the trace for each client i (for the current application)
-          for (auto j : observations_list)
-          {
-            parse_and_insert_observations_for_client_from_trace(client_residuals_map, j, metric_to_be_analyzed);
-          }
-
-          // let's analyze if any of the metrics has enough observations to perform the test
-          // remove the metrics which cannot be analyzed from the client_residuals_map
-          for (auto it = client_residuals_map.begin(); it != client_residuals_map.end();){
-              if (it->second.first.size() < Parameters_beholder::min_observations || it->second.second.size() < Parameters_beholder::min_observations){
-                  it = client_residuals_map.erase(it);
-              }
-              else {
-                  ++it;
-              }
-          }
-
-          // if there is at least a metric on which we can perform the hypothesis test
-          if (client_residuals_map.size() > 0){
-              // Execute on the specific client the 2nd step of CDT: hypothesis TEST
-              confirmed_change = HypTest::perform_hypothesis_test(client_residuals_map);
-          }
-
-          if (confirmed_change){
-              // as soon as the change is confirmed by any of the metric then exit to classify the current
-              // client under analysis as a bad one and move to the next client (if any left)
-              break;
-          } else {
-              // remove the metrics present in the client_residuals_map from the metric_to_be_analyzed
-              // in this way we only leave in the metric_to_be_analyzed just the names of the metrics to yet be analized.
-              for (auto it : client_residuals_map){
-                  metric_to_be_analyzed.erase(it.first);
-              }
-
-              // if the metric_to_be_analyzed is empty then it won't enter the next while cycle
-
-              // if we arrive here it means that metric_to_be_analyzed, meaning that some metrics to still
-              // be analized were not ready. We need to wait for more observations to come hopefully.
-              if (metric_to_be_analyzed.size() > 0){
-                  if (timeout <= 0){
-                      // if we arrive here it means that the 2nd level test has not confirmed the change as of now
-                      // and we run out of time, we need to move on.
-                      // We set the current client as a non-valid one then.
-                      valid_client = false;
-                      break;
-                  } else {
-                    // we can wait for some more observations to come
-                    // I chose to wait even if the current timeout-waitperiod is theoretically out_of_time already
-                    std::this_thread::sleep_for(std::chrono::milliseconds(Parameters_beholder::frequency_check));
-                    timeout -= Parameters_beholder::frequency_check;
-                  }
-              }
-          }
-      }
-
-      if (valid_client){
-          // according to the quality (GOOD=no_change/BAD=confirmed_change) of the currently analyzed client, enqueue it in the good/bad_clients_list
-          if (confirmed_change)
-          {
-            bad_clients_list.emplace(i);
+            it = client_residuals_map.erase(it);
           }
           else
           {
-            good_clients_list.emplace(i);
+            ++it;
           }
-      } else {
-          timeout_clients_list.emplace(i);
+        }
+
+        // if there is at least a metric on which we can perform the hypothesis test
+        if (client_residuals_map.size() > 0)
+        {
+          // Execute on the specific client the 2nd step of CDT: hypothesis TEST
+          confirmed_change = HypTest::perform_hypothesis_test(client_residuals_map);
+        }
+
+        if (confirmed_change)
+        {
+          // as soon as the change is confirmed by any of the metric then exit to classify the current
+          // client under analysis as a bad one and move to the next client (if any left)
+          break;
+        }
+        else
+        {
+          // remove the metrics present in the client_residuals_map from the metric_to_be_analyzed
+          // in this way we only leave in the metric_to_be_analyzed just the names of the metrics to yet be analized.
+          for (auto it : client_residuals_map)
+          {
+            metric_to_be_analyzed.erase(it.first);
+          }
+
+          // if the metric_to_be_analyzed is empty then it won't enter the next while cycle
+
+          // if we arrive here it means that metric_to_be_analyzed, meaning that some metrics to still
+          // be analized were not ready. We need to wait for more observations to come hopefully.
+          if (metric_to_be_analyzed.size() > 0)
+          {
+            if (timeout <= 0)
+            {
+              // if we arrive here it means that the 2nd level test has not confirmed the change as of now
+              // and we run out of time, we need to move on.
+              // We set the current client as a non-valid one then.
+              valid_client = false;
+              break;
+            }
+            else
+            {
+              // we can wait for some more observations to come
+              // I chose to wait even if the current timeout-waitperiod is theoretically out_of_time already
+              std::this_thread::sleep_for(std::chrono::milliseconds(Parameters_beholder::frequency_check));
+              timeout -= Parameters_beholder::frequency_check;
+            }
+          }
+        }
+      }
+
+      if (valid_client)
+      {
+        // according to the quality (GOOD=no_change/BAD=confirmed_change) of the currently analyzed client, enqueue it in the good/bad_clients_list
+        if (confirmed_change)
+        {
+          bad_clients_list.emplace(i);
+        }
+        else
+        {
+          good_clients_list.emplace(i);
+        }
+      }
+      else
+      {
+        timeout_clients_list.emplace(i);
       }
 
 
@@ -352,13 +370,14 @@ int RemoteApplicationHandler::new_observation( const std::string& values )
     }
 
     // compute the percentage of bad clients and compare it wrt the predefined threshold
-    float bad_clients_percentage = (((bad_clients_list.size() + timeout_clients_list.size())/ clients_list.size()) * 100);
+    float bad_clients_percentage = (((bad_clients_list.size() + timeout_clients_list.size()) / clients_list.size()) * 100);
 
     // Once I know what the outcome of the hypothesis TEST is, re-acquire the lock
     guard.lock();
 
-    if (timeout_clients_list.size() == 0){
-        // TODO: warn with a message
+    if (timeout_clients_list.size() == 0)
+    {
+      // TODO: warn with a message
     }
 
 

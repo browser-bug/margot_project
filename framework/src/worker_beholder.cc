@@ -203,9 +203,10 @@ namespace beholder
       // handle the message
       int result = application_handler->new_observation(observation);
 
-      if (result == 1){
-          // destroy the handler because the retraining was triggered
-          GlobalView::remove_handler(application_name);
+      if (result == 1)
+      {
+        // destroy the handler because the retraining was triggered
+        GlobalView::remove_handler(application_name);
       }
     }
 
