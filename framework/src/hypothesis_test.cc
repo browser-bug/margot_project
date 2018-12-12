@@ -28,6 +28,10 @@ namespace beholder
   {
     // Prefix to log strings containing the app name and the metric name
     //std::string log_prefix = data_test.app_name + ":" + data_test.metric_name + "---";
+
+    // I'll have to go through each metric present in the structure, but as soon as i find a metric
+    // which confirms the test i'll return true without analyzing the others
+
     return false;
   }
 }

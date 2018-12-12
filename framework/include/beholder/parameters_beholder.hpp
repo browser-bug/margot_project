@@ -34,6 +34,7 @@ namespace beholder
     static bool variance_off;
     static int min_observations;
     static int timeout;
+    static int frequency_check;
     static bool no_trace_drop;
   };
 

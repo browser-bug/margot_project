@@ -102,10 +102,6 @@ namespace beholder
       // which are still gathering observations
       std::unordered_map<std::string, int> residuals_map_counter;
 
-      // String containing the 'select' part of the query to Cassandra
-      // to only receive the metrics enabled for the beholder analysis by the user
-      std::string query_select;
-
       // ICI CDT data structures:
       // It maps every metric to its struct of data for the CDT
       std::unordered_map<std::string, Data_ici_test> ici_cdt_map;
@@ -128,7 +124,7 @@ namespace beholder
 
       void parse_observation(Observation_data& observation, const std::string& values);
       void fill_buffers(const Observation_data& observation);
-      void parse_and_insert_observations_for_client_from_trace(std::unordered_map<std::string, std::pair < std::vector<float>, std::vector<float>>>& client_residuals_map, const observation_t j);
+      void parse_and_insert_observations_for_client_from_trace(std::unordered_map<std::string, std::pair < std::vector<float>, std::vector<float>>>& client_residuals_map, const observation_t j, const std::set<std::string>& metric_to_be_analyzed);
 
 
     public:

@@ -173,6 +173,9 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
     // store the list of bad clients for the current observation (not yet blacklisted)
     application_list_t bad_clients_list;
 
+    // clients which did not answer in time because of the timeout
+    application_list_t timeout_clients_list;
+
     // query to retrieve all the distinct clients which are running a specif application
     // to be performed in case of positive CDT, for the second level hypothesis test.
     // It is better to always re-run this query and avoid saving the client list for re-use
@@ -193,19 +196,18 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
       agora::debug(i);
     }
 
+    // initialize timeout shared (consumed) among all the clients
+    int timeout = Parameters_beholder::timeout;
+
+    // this counter is to take into account, or better, not to take into account
+    // the number of clients which actually gave a useful answer to the hypothesis test
+    // We do not take into account the clients for which there were no enough observations
+    // to perform the 2nd level test in the count for good/bad clients.
+    //int actual_number_of_valid_clients = clients_list.size(); // TODO: do we really need this?
+
     // cycle over all the clients of the specific application
     for (auto i : clients_list)
     {
-      // data structure to save the residuals for the specific application-client pair before the change
-      // the structure is organized as a map which maps the name of the metric to a pair
-      // The first element of the pair is a vector containing the residuals for that metric before the change windows
-      // The second element of the pair is a vector containing the residuals for that metric after the change windows
-      std::unordered_map<std::string, std::pair < std::vector<float>, std::vector<float>>> client_residuals_map;
-
-      //observations_list = agora::io::storage.load_client_observations(description.application_name, "alberto_Surface_Pro_2_6205", query_select);
-      observations_list = agora::io::storage.load_client_observations(description.application_name, i, query_select);
-      agora::debug("\nParsing the trace for client ", i);
-
       // NB: here I could choose to avoid iterating over some possibly already blacklisted
       // clients. Of course in this case I should check whether the element iterator already
       // belongs in the blacklist like this:
@@ -216,33 +218,128 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
       // below, in particular I need to add the already blacklisted clients, then it becomes:
       // float bad_clients_percentage = (((bad_clients_list.size() + clients_blacklist.size()) / clients_list.size())*100);
 
-      // cycle over each row j of the trace for each client i (for the current application)
-      for (auto j : observations_list)
-      {
-        parse_and_insert_observations_for_client_from_trace(client_residuals_map, j);
+      // initialized as a duplicate of reference_metric_names, that is to say all the metrics enabled for the
+      // beholder analysis this list contains the metrics yet to be tested with the hypothesis test, so once a
+      // metric has been analyzed it will be removed from this structure
+      std::set<std::string> metric_to_be_analyzed;
+      for (auto j : reference_metric_names){
+          metric_to_be_analyzed.emplace(j);
       }
 
-      // Execute on the specific client the 2nd step of CDT: hypothesis TEST
       bool confirmed_change = false;
-      confirmed_change = HypTest::perform_hypothesis_test(client_residuals_map);
+      bool valid_client = true;
 
-      // according to the quality (GOOD=no_change/BAD=confirmed_change) of the currently analyzed client, enqueue it in the good/bad_clients_list
-      if (confirmed_change)
-      {
-        bad_clients_list.emplace(i);
+      // String containing the 'select' part of the query to Cassandra
+      // to only receive the metrics enabled for the beholder analysis by the user
+      std::string query_select;
+
+      while (metric_to_be_analyzed.size() != 0 && !confirmed_change){
+          // data structure to save the residuals for the specific application-client pair before the change
+          // the structure is organized as a map which maps the name of the metric to a pair
+          // The first element of the pair is a vector containing the residuals for that metric before the change windows
+          // The second element of the pair is a vector containing the residuals for that metric after the change windows
+          std::unordered_map<std::string, std::pair < std::vector<float>, std::vector<float>>> client_residuals_map;
+
+          // preparing the 'select' query for Cassandra for the 2nd step of cassandra
+          // It is done here on the basis of whixch metrics are left to be analyzed
+          query_select = "day, time, client_id, ";
+
+          for (auto i : description.knobs)
+          {
+            query_select.append(i.name);
+            query_select.append(",");
+          }
+
+          for (auto i : description.features)
+          {
+            query_select.append(i.name);
+            query_select.append(",");
+          }
+
+          for (auto i : metric_to_be_analyzed)
+          {
+            query_select.append(i);
+            query_select.append(",");
+          }
+
+          for (auto i : metric_to_be_analyzed)
+          {
+            query_select.append("model_");
+            query_select.append(i);
+            query_select.append(",");
+          }
+
+          // to remove the last comma
+          query_select.pop_back();
+
+          //observations_list = agora::io::storage.load_client_observations(description.application_name, "alberto_Surface_Pro_2_6205", query_select);
+          observations_list = agora::io::storage.load_client_observations(description.application_name, i, query_select);
+          agora::debug("\nParsing the trace for client ", i);
+
+          // cycle over each row j of the trace for each client i (for the current application)
+          for (auto j : observations_list)
+          {
+            parse_and_insert_observations_for_client_from_trace(client_residuals_map, j, metric_to_be_analyzed);
+          }
+
+          // let's analyze if any of the metrics has enough observations to perform the test
+          // remove the metrics which cannot be analyzed from the client_residuals_map
+          for (auto it = client_residuals_map.begin(); it != client_residuals_map.end();){
+              if (it->second.first.size() < Parameters_beholder::min_observations || it->second.second.size() < Parameters_beholder::min_observations){
+                  it = client_residuals_map.erase(it);
+              }
+              else {
+                  ++it;
+              }
+          }
+
+          // if there is at least a metric on which we can perform the hypothesis test
+          if (client_residuals_map.size() > 0){
+              // Execute on the specific client the 2nd step of CDT: hypothesis TEST
+              confirmed_change = HypTest::perform_hypothesis_test(client_residuals_map);
+          }
+
+          if (confirmed_change){
+              // as soon as the change is confirmed by any of the metric then exit to classify the current
+              // client under analysis as a bad one and move to the next client (if any left)
+              break;
+          } else {
+              // remove the metrics present in the client_residuals_map from the metric_to_be_analyzed
+              for (auto it : client_residuals_map){
+
+              }
+              // if metric_to_be_analyzed still not empty then if the timeout is not over then wait
+              // if the timeout was over then break but before breaking out set valid_client to false
+          }
       }
-      else
-      {
-        good_clients_list.emplace(i);
+
+      if (valid_client){
+          // according to the quality (GOOD=no_change/BAD=confirmed_change) of the currently analyzed client, enqueue it in the good/bad_clients_list
+          if (confirmed_change)
+          {
+            bad_clients_list.emplace(i);
+          }
+          else
+          {
+            good_clients_list.emplace(i);
+          }
+      } else {
+          timeout_clients_list.emplace(i);
       }
+
+
 
     }
 
     // compute the percentage of bad clients and compare it wrt the predefined threshold
-    float bad_clients_percentage = ((bad_clients_list.size() / clients_list.size()) * 100);
+    float bad_clients_percentage = (((bad_clients_list.size() + timeout_clients_list.size())/ clients_list.size()) * 100);
 
     // Once I know what the outcome of the hypothesis TEST is, re-acquire the lock
     guard.lock();
+
+    if (timeout_clients_list.size() == 0){
+        // TODO: warn with a message
+    }
 
 
     // if the number % of bad clients is over the user-set threshold then trigger the re-training
@@ -269,7 +366,7 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
         send_agora_command("retraining");
       }
 
-      // destroy this application handler
+      // TODO: destroy this application handler
 
     }
     else
@@ -277,6 +374,9 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
       // this is the case in which either there are some bad clients but they are below threshold,
       // or there are no bad clients at all. The behavior is the same.
       // The change is discarded (but so are also the values coming from these bad_clients, if any).
+
+      // This is also the path taken if there is no answer to the 2nd level step because the timeout
+      // has run out.
 
       // if there are some bad clients then put them in the blacklist
       if (bad_clients_list.size() > 0)
@@ -317,10 +417,10 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
         if (i.second.metric_name == change_metric)
         {
           // reset the change window timestamp to be sure
-          i.second.front_year_month_day = NULL;
-          i.second.front_time_of_day = NULL;
-          i.second.back_year_month_day = NULL;
-          i.second.back_time_of_day = NULL;
+          i.second.front_year_month_day = 0;
+          i.second.front_time_of_day = 0;
+          i.second.back_year_month_day = 0;
+          i.second.back_time_of_day = 0;
         }
       }
 
@@ -410,38 +510,6 @@ void RemoteApplicationHandler::parse_observation(Observation_data& observation, 
         reference_metric_names.emplace(substr);
       }
     }
-
-    // preparing the 'select' query for Cassandra for the 2nd step of cassandra
-    // It is done here to only compute the string once and save resources and time
-    query_select = "day, time, client_id, ";
-
-    for (auto i : description.knobs)
-    {
-      query_select.append(i.name);
-      query_select.append(",");
-    }
-
-    for (auto i : description.features)
-    {
-      query_select.append(i.name);
-      query_select.append(",");
-    }
-
-    for (auto i : reference_metric_names)
-    {
-      query_select.append(i);
-      query_select.append(",");
-    }
-
-    for (auto i : reference_metric_names)
-    {
-      query_select.append("model_");
-      query_select.append(i);
-      query_select.append(",");
-    }
-
-    // to remove the last comma
-    query_select.pop_back();
   }
 
 
@@ -550,7 +618,7 @@ void RemoteApplicationHandler::fill_buffers(const Observation_data& observation)
 // method which receives as parameters the list of observations from a specific client from the trace
 // and parses them and inserts its residuals in the corresponding map structure
 void RemoteApplicationHandler::parse_and_insert_observations_for_client_from_trace(std::unordered_map<std::string, std::pair < std::vector<float>, std::vector<float>>>& client_residuals_map,
-    const observation_t j)
+    const observation_t j, const std::set<std::string>& metric_to_be_analyzed)
 {
   agora::debug("\nString from trace to be parsed: ", j);
   // parse the string. Taking into account the number of enabled metrics in the current observation.
@@ -611,7 +679,7 @@ void RemoteApplicationHandler::parse_and_insert_observations_for_client_from_tra
     num_features--;
   }
 
-  int num_metrics = reference_metric_names.size();
+  int num_metrics = metric_to_be_analyzed.size();
 
   while ( num_metrics > 0 )
   {
@@ -622,7 +690,7 @@ void RemoteApplicationHandler::parse_and_insert_observations_for_client_from_tra
     num_metrics--;
   }
 
-  num_metrics = reference_metric_names.size();
+  num_metrics = metric_to_be_analyzed.size();
 
   // variable to understand if the current row from trace was from a training phase
   // It would have ALL the estimates to "N/A"
@@ -650,7 +718,7 @@ void RemoteApplicationHandler::parse_and_insert_observations_for_client_from_tra
   // Check if we have consistency in the quantity of measures parsed,
   // i.e. if the vector of metric names is as big as the one of the observed metrics
   // and is the same size as the number of metrics enabled for the beholder for the current application
-  if ((obs_metrics.size() != obs_estimates.size()) || (obs_metrics.size() != reference_metric_names.size()))
+  if ((obs_metrics.size() != obs_estimates.size()) || (obs_metrics.size() != metric_to_be_analyzed.size()))
   {
     agora::info("Error in the parsed observation, mismatch in the number of fields.");
     return;
@@ -670,9 +738,9 @@ void RemoteApplicationHandler::parse_and_insert_observations_for_client_from_tra
   // (and which estimate is the first one), which is the second one...
   // I kept the same map structure of the residuals computation for the 1st step of CDT.
   // As of now I chose to maintain the mapping to have the metric name built in the structure.
-  auto name_ref = reference_metric_names.begin();
+  auto name_ref = metric_to_be_analyzed.begin();
 
-  for (auto index = 0; index < reference_metric_names.size(); index++, std::advance(name_ref, 1))
+  for (auto index = 0; index < metric_to_be_analyzed.size(); index++, std::advance(name_ref, 1))
   {
     // Check whether the metric in analysis was available and valid or if it was a disabled one-->"null" in trace-->parsed as "N/A"
     if (obs_estimates[index] == "N/A")
@@ -699,7 +767,6 @@ void RemoteApplicationHandler::parse_and_insert_observations_for_client_from_tra
     // if we arrive here then the parsed metric should be valid (one of the enabled ones at least)
 
     // NB: note that the residual is computed with abs()!!
-    // TODO: is this correct?
     auto current_residual = abs(std::stof(obs_estimates[index]) - std::stof(obs_metrics[index]));
     agora::debug("Current residual for metric ", *name_ref, " is: ", current_residual);
 

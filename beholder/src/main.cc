@@ -99,6 +99,13 @@ void print_usage( void )
   std::cout << " --min_observations <int>       Minimum number of observations (before and after the change window selected" << std::endl;
   std::cout << "                                in the 1st level of the CDT) to allow the hypothesis test." << std::endl;
   std::cout << "                                DEFAULT = \"20\"" << std::endl;
+  std::cout << " --timeout <int>                Timeout to stop the waiting process during the 2nd level of the CDT" << std::endl;
+  std::cout << "                                for the observations to reach the min_observations number.[Expressed in seconds]" << std::endl;
+  std::cout << "                                DEFAULT = \"130\"" << std::endl;
+  std::cout << " --frequency_check <int>        Frequency of the check for new incoming observations in the trace table" << std::endl;
+  std::cout << "                                The check will be carried out until either the min_observations number is reached" << std::endl;
+  std::cout << "                                or the wait time runs out according to the timeout.[Expressed in seconds]" << std::endl;
+  std::cout << "                                DEFAULT = \"30\"" << std::endl;
   std::cout << " --no_trace_drop                When enabled allows to just delete the trace (after a confirmed change)" << std::endl;
   std::cout << "                                from the top to the last element of the change window." << std::endl;
   std::cout << "                                DEFAULT = \"false\"" << std::endl;
@@ -156,7 +163,8 @@ int main( int argc, char* argv[] )
     {"variance_off",  no_argument, 0,  20   },
     {"min_observations",  required_argument, 0,  21   },
     {"timeout",  required_argument, 0,  22   },
-    {"no_trace_drop",  no_argument, 0,  23   },
+    {"frequency_check",  required_argument, 0,  23   },
+    {"no_trace_drop",  no_argument, 0,  24   },
     {0,                        0,                 0,  0   }
   };
 
@@ -324,7 +332,18 @@ int main( int argc, char* argv[] )
 
         break;
 
-      case 23:
+    case 23:
+      std::istringstream ( optarg ) >> beholder::Parameters_beholder::frequency_check;
+
+      if (beholder::Parameters_beholder::frequency_check < 0)
+      {
+        std::cerr << "Error: invalid frequency_check " << beholder::Parameters_beholder::frequency_check << ", it cannot be negative" << std::endl;
+        return EXIT_FAILURE;
+      }
+
+      break;
+
+    case 24:
         beholder::Parameters_beholder::no_trace_drop = true;
         break;
 
