@@ -389,13 +389,13 @@ namespace beholder
     // At first the timestamp is a string (as passed from the asrtm) which contains:
     // "seconds(from epoch),nanoseconds". The two fields are separated by a comma.
     // We need to separate these two fields, so we look for the comma.
-    const auto front_pos_first_coma = window_pair.front().second.find_first_of(',', 0);
+    const auto front_pos_first_comma = window_pair.front().second.find_first_of(',', 0);
     time_t front_secs_since_epoch;
     int64_t front_nanosecs_since_secs;
     // substring from the beginning of the string to the comma
-    std::istringstream( window_pair.front().second.substr(0, front_pos_first_coma) ) >> front_secs_since_epoch;
+    std::istringstream( window_pair.front().second.substr(0, front_pos_first_comma) ) >> front_secs_since_epoch;
     // substring from the comma (comma excluded) to the end of the string
-    std::istringstream( window_pair.front().second.substr(front_pos_first_coma + 1, std::string::npos) ) >> front_nanosecs_since_secs;
+    std::istringstream( window_pair.front().second.substr(front_pos_first_comma + 1, std::string::npos) ) >> front_nanosecs_since_secs;
 
     // now we have to convert them in the funny cassandra format
     data_test.front_year_month_day = cass_date_from_epoch(front_secs_since_epoch);
@@ -406,11 +406,11 @@ namespace beholder
 
     // last window-element timestamp
     // do the same as above
-    const auto back_pos_first_coma = window_pair.back().second.find_first_of(',', 0);
+    const auto back_pos_first_comma = window_pair.back().second.find_first_of(',', 0);
     time_t back_secs_since_epoch;
     int64_t back_nanosecs_since_secs;
-    std::istringstream( window_pair.back().second.substr(0, back_pos_first_coma) ) >> back_secs_since_epoch;
-    std::istringstream( window_pair.back().second.substr(back_pos_first_coma + 1, std::string::npos) ) >> back_nanosecs_since_secs;
+    std::istringstream( window_pair.back().second.substr(0, back_pos_first_comma) ) >> back_secs_since_epoch;
+    std::istringstream( window_pair.back().second.substr(back_pos_first_comma + 1, std::string::npos) ) >> back_nanosecs_since_secs;
 
     // now we have to convert them in the funny cassandra format
     data_test.back_year_month_day = cass_date_from_epoch(back_secs_since_epoch);

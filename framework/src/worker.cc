@@ -183,7 +183,14 @@ namespace agora
       // get the client id
       const auto observation = new_message.payload;
 
-      if (observation.compare("retraining") == 0)
+      // look for a space in the payload
+      // we need to differentiate the case in which we are given the timestamp of the last observation
+      // to just delete the trace from its top to this element or if we are not given anything
+      // and we will delete the whole trace.
+      const auto pos_first_space = observation.find_first_of(' ', 0);
+
+      // just a check that the unique command (as of now) is the correct word "retraining"
+      if (observation.substr(0, pos_first_space).compare("retraining") == 0)
       {
         // get the application handler
         const auto application_handler = GlobalView::get_handler(application_name);
@@ -192,7 +199,16 @@ namespace agora
         pedantic("Thread ", get_tid(), ": received retraining command for application: \"", application_name);
 
         // handle the message
-        application_handler->retraining();
+        if (pos_first_space != std::string::npos)
+        {
+          // if actually there is the space then pass the whole rest of the payload containing the timestamps
+          application_handler->retraining(observation.substr(pos_first_space + 1, std::string::npos));
+        }
+        else
+        {
+          // if there is no space then pass the "null" string
+          application_handler->retraining("null");
+        }
       }
 
     }

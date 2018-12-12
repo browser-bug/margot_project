@@ -29,5 +29,7 @@ namespace beholder
   float Parameters_beholder::gamma_variance = 3;
   int Parameters_beholder::bad_clients_threshold = 20;
   bool Parameters_beholder::variance_off = false;
-
+  int Parameters_beholder::min_observations = 20;
+  int Parameters_beholder::timeout = 60;
+  bool Parameters_beholder::no_trace_drop = false;
 }

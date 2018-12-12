@@ -543,7 +543,7 @@ void RemoteApplicationHandler::bye_client( const std::string& client_name )
   }
 }
 
-void RemoteApplicationHandler::retraining( void )
+void RemoteApplicationHandler::retraining( const std::string& timestamp )
 {
 
   // if the application has no model, and we received the re-training message, something is not right
@@ -557,7 +557,7 @@ void RemoteApplicationHandler::retraining( void )
   std::unique_lock<std::mutex> guard(mutex);
 
   // update db DoE and erase the model
-  io::storage.reset_doe(description);
+  io::storage.reset_doe(description, timestamp);
 
   // update doe in RAM
   doe = io::storage.load_doe(description.application_name);

@@ -137,7 +137,7 @@ namespace agora
 
       void new_observation( const std::string& values );
 
-      void retraining( void );
+      void retraining( const std::string& timestamp );
 
       inline ApplicationStatus get_status()
       {

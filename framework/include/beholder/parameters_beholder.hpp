@@ -32,6 +32,9 @@ namespace beholder
     static float gamma_variance;
     static int bad_clients_threshold;
     static bool variance_off;
+    static int min_observations;
+    static int timeout;
+    static bool no_trace_drop;
   };
 
 }

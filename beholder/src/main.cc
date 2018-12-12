@@ -96,6 +96,12 @@ void print_usage( void )
   std::cout << "                                DEFAULT = \"20\"" << std::endl;
   std::cout << " --variance_off                 Disables the variance feature from the ICI CDT." << std::endl;
   std::cout << "                                DEFAULT = \"false\"" << std::endl;
+  std::cout << " --min_observations <int>       Minimum number of observations (before and after the change window selected" << std::endl;
+  std::cout << "                                in the 1st level of the CDT) to allow the hypothesis test." << std::endl;
+  std::cout << "                                DEFAULT = \"20\"" << std::endl;
+  std::cout << " --no_trace_drop                When enabled allows to just delete the trace (after a confirmed change)" << std::endl;
+  std::cout << "                                from the top to the last element of the change window." << std::endl;
+  std::cout << "                                DEFAULT = \"false\"" << std::endl;
 }
 
 
@@ -148,6 +154,9 @@ int main( int argc, char* argv[] )
     {"gamma_variance",         required_argument, 0,  18   },
     {"bad_clients_threshold",  required_argument, 0,  19   },
     {"variance_off",  no_argument, 0,  20   },
+    {"min_observations",  required_argument, 0,  21   },
+    {"timeout",  required_argument, 0,  22   },
+    {"no_trace_drop",  no_argument, 0,  23   },
     {0,                        0,                 0,  0   }
   };
 
@@ -291,6 +300,32 @@ int main( int argc, char* argv[] )
 
       case 20:
         beholder::Parameters_beholder::variance_off = true;
+        break;
+
+      case 21:
+        std::istringstream ( optarg ) >> beholder::Parameters_beholder::min_observations;
+
+        if (beholder::Parameters_beholder::min_observations < 0)
+        {
+          std::cerr << "Error: invalid min_observations number " << beholder::Parameters_beholder::min_observations << ", it cannot be negative" << std::endl;
+          return EXIT_FAILURE;
+        }
+
+        break;
+
+      case 22:
+        std::istringstream ( optarg ) >> beholder::Parameters_beholder::timeout;
+
+        if (beholder::Parameters_beholder::timeout < 0)
+        {
+          std::cerr << "Error: invalid timeout " << beholder::Parameters_beholder::timeout << ", it cannot be negative" << std::endl;
+          return EXIT_FAILURE;
+        }
+
+        break;
+
+      case 23:
+        beholder::Parameters_beholder::no_trace_drop = true;
         break;
 
       default:

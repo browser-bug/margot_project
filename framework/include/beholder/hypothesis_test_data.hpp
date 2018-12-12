@@ -1,4 +1,4 @@
-/* beholder/hypothesis_test.hpp
+/* beholder/hypothesis_test_data.hpp
  * Copyright (C) 2018 Alberto Bendin
  *
  * This library is free software; you can redistribute it and/or
@@ -18,31 +18,24 @@
  */
 
 
-#ifndef MARGOT_BEHOLDER_HYP_TEST
-#define MARGOT_BEHOLDER_HYP_TEST
-
-#include <vector>
-#include <string>
-#include <unordered_map>
-
-#include "beholder/hypothesis_test_data.hpp"
-
+#ifndef MARGOT_BEHOLDER_HYPOTHESIS_TEST_DATA
+#define MARGOT_BEHOLDER_HYPOTHESIS_TEST_DATA
 
 namespace beholder
 {
-  class HypTest
+
+
+  // data structure for the hypothesis test related to each application-metric pair
+  struct Hypothesis_test_data
   {
-
-
-    private:
-
-    public:
-
-      static bool perform_hypothesis_test(const std::unordered_map<std::string, std::pair < std::vector<float>, std::vector<float>>>& client_residuals_map);
+    std::string client_id;
+    std::string timestamp;
+    std::vector<std::string> metric_fields_vec;
+    std::vector<float> metrics_vec;
+    std::vector<float> estimates_vec;
 
   };
 
-
 }
 
-#endif // MARGOT_BEHOLDER_HYP_TEST
+#endif // MARGOT_BEHOLDER_HYPOTHESIS_TEST_DATA

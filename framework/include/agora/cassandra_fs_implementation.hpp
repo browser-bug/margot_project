@@ -109,7 +109,7 @@ namespace agora
       void store_doe( const application_description_t& description, const doe_t& doe );
       doe_t load_doe( const std::string& application_name );
       void update_doe( const application_description_t& description, const std::string& values );
-      void reset_doe( const application_description_t& description);
+      void reset_doe( const application_description_t& description, const std::string& timestamp);
       void create_trace_table( const application_description_t& description );
       void insert_trace_entry( const application_description_t& description, const std::string& values );
       application_list_t load_clients( const std::string& application_name );

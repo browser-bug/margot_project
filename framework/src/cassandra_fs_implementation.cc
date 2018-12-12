@@ -1100,7 +1100,7 @@ void CassandraClient::update_doe( const application_description_t& description, 
 }
 
 // reset the doe to its initial status and drop the model
-void CassandraClient::reset_doe( const application_description_t& description)
+void CassandraClient::reset_doe( const application_description_t& description, const std::string& timestamp)
 {
 
   // compose the name of the table
@@ -1383,8 +1383,29 @@ void CassandraClient::reset_doe( const application_description_t& description)
 
   execute_query_synch("DROP TABLE " + table_name + "_model;");
 
+  // delete the trace according to the content of the timestamp received
+  // by design if the timestamp == "null" then delete the whole trace
+  if (timestamp == "null")
+  {
+    // delete everything from the trace
+    execute_query_synch("TRUNCATE TABLE " + table_name + "_trace;");
+  }
+  else
+  {
+    // delete just from the top of the trace to the element passed as timestamp
+    // we need to separate the timestamp which is "year_month_day,time_of_day"
+    // look for the comma
+    const auto pos_first_comma = timestamp.find_first_of(',', 0);
+    std::string date = timestamp.substr(0, pos_first_comma);
+    std::string time = timestamp.substr(pos_first_comma + 1, std::string::npos);
 
-  //execute_query_synch("TRUNCATE TABLE " + table_name + "_trace;");
+    // TODO: check if the two parameters above are correct, if they are string or cass-unit-int32-64....
+    // we need to execute two queries:
+    // the 1st query deleted all the rows with date < date_of_the_change
+    execute_query_synch("DELETE FROM " + table_name + "_trace WHERE day < '" + date + "';");
+    // the 2nd query deletes all the rows with date = date_of_the_change but with time <= time_of_the_change
+    execute_query_synch("DELETE FROM " + table_name + "_trace WHERE day = '" + date + "' AND time <= '" + time + "';");
+  }
 }
 
 

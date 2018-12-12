@@ -24,7 +24,6 @@
 namespace beholder
 {
 
-
   // data structure for the ICI change detection test related to each application-metric pair
   struct Observation_data
   {
@@ -33,7 +32,6 @@ namespace beholder
     std::vector<std::string> metric_fields_vec;
     std::vector<float> metrics_vec;
     std::vector<float> estimates_vec;
-
   };
 
 }

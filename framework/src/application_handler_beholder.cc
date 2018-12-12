@@ -80,12 +80,6 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
   bool change_detected = false;
   std::string change_metric;
 
-  // variables to save the time range in which the change was detected.
-  // This will be useful in the 2nd step of the hierarchical CDT.
-  // std::string change_window_timestamp_front = "";
-  // std::string change_window_timestamp_back = "";
-
-
   // Check whether one (or more) buffers is (are) filled in
   // up to the beholder's window_size parameter.
   for (auto& i : residuals_map)
@@ -141,9 +135,7 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
       // in the 2nd step of the CDT.
       if (change_detected)
       {
-        change_metric = i.first; // TODO: do we need this????
-        //change_window_timestamp_front = i.second.front().second;
-        //change_window_timestamp_back = i.second.back().second;
+        change_metric = i.first;
         // set the status variable according so that the lock can be released
         status = ApplicationStatus::COMPUTING;
         // Empty the (filled-in) buffer for the current metric.
@@ -261,7 +253,21 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
 
       // need to trigger RE-training
       // this automatically deals with the deletion of the model and of the trace and with the reset of the doe
-      send_agora_command("retraining");
+      // in this version the trace is deleted just from the top element in the table up to the last element of the training window
+      if (Parameters_beholder::no_trace_drop)
+      {
+        auto search_ici_map = ici_cdt_map.find(change_metric);
+
+        if (search_ici_map != ici_cdt_map.end())
+        {
+          send_agora_command("retraining " + std::to_string(search_ici_map->second.back_year_month_day) + "," + std::to_string(search_ici_map->second.back_time_of_day));
+        }
+      }
+      else
+      {
+        // delete the whole trace
+        send_agora_command("retraining");
+      }
 
       // destroy this application handler
 
@@ -284,7 +290,7 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
       // reset the 1st level cdt data structure for all the metrics which have a structure
       // just keep the test configuration settings (training) and reset the rest.
 
-      // for every CDT data structure for this application
+      // for every CDT data structure for this application (meaning for every metric that was analyzed in the ICI CDT)
       for (auto i : ici_cdt_map)
       {
         // reset its ici cdt to just the training configuration
@@ -307,11 +313,15 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
           i.second.current_variance_conf_interval_upper = i.second.reference_variance_conf_interval_upper;
         }
 
-        // reset the change window timestamp to be sure
-        i.second.front_year_month_day = NULL;
-        i.second.front_time_of_day = NULL;
-        i.second.back_year_month_day = NULL;
-        i.second.back_time_of_day = NULL;
+        // if the data structure under analysis belongs to the metric which triggered the change first
+        if (i.second.metric_name == change_metric)
+        {
+          // reset the change window timestamp to be sure
+          i.second.front_year_month_day = NULL;
+          i.second.front_time_of_day = NULL;
+          i.second.back_year_month_day = NULL;
+          i.second.back_time_of_day = NULL;
+        }
       }
 
       // set the status back to ready
