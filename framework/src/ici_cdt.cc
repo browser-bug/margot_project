@@ -38,7 +38,7 @@ namespace beholder
     data_test.window_number++;
 
     // Prefix to log strings containing the app name and the metric name
-    std::string log_prefix = data_test.app_name + ":" + data_test.metric_name + "---";
+    std::string log_prefix = "ICI_CDT:" + data_test.app_name + ":" + data_test.metric_name + "---";
 
     // understand whether we are in the training phase or not
     if (data_test.window_number <= Parameters_beholder::training_windows)

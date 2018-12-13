@@ -35,6 +35,7 @@ namespace beholder
     static int min_observations;
     static int timeout;
     static int frequency_check;
+    static float alpha;
     static bool no_trace_drop;
   };
 

@@ -32,5 +32,6 @@ namespace beholder
   int Parameters_beholder::min_observations = 20;
   int Parameters_beholder::timeout = 130;
   int Parameters_beholder::frequency_check = 30;
+  float Parameters_beholder::alpha = 0.05;
   bool Parameters_beholder::no_trace_drop = false;
 }

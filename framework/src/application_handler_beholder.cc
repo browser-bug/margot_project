@@ -249,28 +249,28 @@ int RemoteApplicationHandler::new_observation( const std::string& values )
         // It is done here on the basis of whixch metrics are left to be analyzed
         query_select = "day, time, client_id, ";
 
-        for (auto i : description.knobs)
+        for (auto it : description.knobs)
         {
-          query_select.append(i.name);
+          query_select.append(it.name);
           query_select.append(",");
         }
 
-        for (auto i : description.features)
+        for (auto it : description.features)
         {
-          query_select.append(i.name);
+          query_select.append(it.name);
           query_select.append(",");
         }
 
-        for (auto i : metric_to_be_analyzed)
+        for (auto it : metric_to_be_analyzed)
         {
-          query_select.append(i);
+          query_select.append(it);
           query_select.append(",");
         }
 
-        for (auto i : metric_to_be_analyzed)
+        for (auto it : metric_to_be_analyzed)
         {
           query_select.append("model_");
-          query_select.append(i);
+          query_select.append(it);
           query_select.append(",");
         }
 
@@ -305,7 +305,7 @@ int RemoteApplicationHandler::new_observation( const std::string& values )
         if (client_residuals_map.size() > 0)
         {
           // Execute on the specific client the 2nd step of CDT: hypothesis TEST
-          confirmed_change = HypTest::perform_hypothesis_test(client_residuals_map);
+          confirmed_change = HypTest::perform_hypothesis_test(client_residuals_map, description.application_name, i);
         }
 
         if (confirmed_change)

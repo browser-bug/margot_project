@@ -106,6 +106,8 @@ void print_usage( void )
   std::cout << "                                The check will be carried out until either the min_observations number is reached" << std::endl;
   std::cout << "                                or the wait time runs out according to the timeout.[Expressed in seconds]" << std::endl;
   std::cout << "                                DEFAULT = \"30\"" << std::endl;
+  std::cout << " --alpha <float>                Alpha (significance level) used in the hyphotesis test." << std::endl;
+  std::cout << "                                DEFAULT = \"0.05\"" << std::endl;
   std::cout << " --no_trace_drop                When enabled allows to just delete the trace (after a confirmed change)" << std::endl;
   std::cout << "                                from the top to the last element of the change window." << std::endl;
   std::cout << "                                DEFAULT = \"false\"" << std::endl;
@@ -164,7 +166,8 @@ int main( int argc, char* argv[] )
     {"min_observations",  required_argument, 0,  21   },
     {"timeout",  required_argument, 0,  22   },
     {"frequency_check",  required_argument, 0,  23   },
-    {"no_trace_drop",  no_argument, 0,  24   },
+    {"alpha",  required_argument, 0,  24   },
+    {"no_trace_drop",  no_argument, 0,  25   },
     {0,                        0,                 0,  0   }
   };
 
@@ -344,6 +347,17 @@ int main( int argc, char* argv[] )
         break;
 
       case 24:
+        std::istringstream ( optarg ) >> beholder::Parameters_beholder::alpha;
+
+        if (beholder::Parameters_beholder::alpha < 0)
+        {
+          std::cerr << "Error: invalid alpha " << beholder::Parameters_beholder::alpha << ", it cannot be negative" << std::endl;
+          return EXIT_FAILURE;
+        }
+
+        break;
+
+      case 25:
         beholder::Parameters_beholder::no_trace_drop = true;
         break;
 

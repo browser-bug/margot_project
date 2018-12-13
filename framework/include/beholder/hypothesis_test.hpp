@@ -38,7 +38,8 @@ namespace beholder
 
     public:
 
-      static bool perform_hypothesis_test(const std::unordered_map<std::string, std::pair < std::vector<float>, std::vector<float>>>& client_residuals_map);
+      static bool perform_hypothesis_test(const std::unordered_map<std::string, std::pair < std::vector<float>, std::vector<float>>>& client_residuals_map, const std::string& application_name,
+                                          const std::string& client_name);
 
   };
 
