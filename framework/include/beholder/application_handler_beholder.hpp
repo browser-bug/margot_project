@@ -125,8 +125,8 @@ namespace beholder
         agora::io::remote.send_message({{"agora/" + description.application_name + "/commands"}, command});
       }
 
-      void parse_observation(Observation_data& observation, const std::string& values);
-      void fill_buffers(const Observation_data& observation);
+      int parse_observation(Observation_data& observation, const std::string& values);
+      int fill_buffers(const Observation_data& observation);
       void parse_and_insert_observations_for_client_from_trace(std::unordered_map<std::string, std::pair < std::vector<float>, std::vector<float>>>& client_residuals_map, const observation_t j,
           const std::set<std::string>& metric_to_be_analyzed);
 

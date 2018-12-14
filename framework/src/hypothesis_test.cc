@@ -91,6 +91,8 @@ namespace beholder
 
       // t statistic computation
       t_statistic = (x1 - x2) / (sqrtf(temp));
+      agora::debug(log_prefix, "T statistic: ", t_statistic);
+
 
       // degree of freedom associated with the variance estimates
       float v1 = n1 - 1;
@@ -98,6 +100,9 @@ namespace beholder
 
       // v degree of freedom computation with the Welch–Satterthwaite equation
       v_degree_freedom = powf(temp, 2) / ((powf(s1_2, 2) / (powf(n1, 2) * v1)) + (powf(s2_2, 2) / (powf(n2, 2) * v2)));
+      agora::debug(log_prefix, "Degree of freedom: ", v_degree_freedom);
+      agora::debug(log_prefix, "User-selected alpha: ", Parameters_beholder::alpha);
+
 
       //
       // Define our distribution, and get the probability:
@@ -117,13 +122,16 @@ namespace beholder
       // In our situation the change is confirmed when the null hypothesis (no change) is rejected,
       // and then the alternative hypothesis is not rejected.
 
+
       if (q < Parameters_beholder::alpha / 2)
       {
         confirmed_change = true;
+        agora::pedantic(log_prefix, "Critical value [", q, "] is lower than alpha/2 [", Parameters_beholder::alpha / 2, "].");
         agora::info(log_prefix, "HYPOTHESIS TEST, change confirmed!");
       }
       else
       {
+        agora::pedantic(log_prefix, "Critical value [", q, "] is greater than alpha/2 [", Parameters_beholder::alpha / 2, "].");
         agora::info(log_prefix, "HYPOTHESIS TEST, change rejected!");
       }
 
