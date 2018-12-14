@@ -37,7 +37,7 @@ namespace beholder
     // which confirms the test i'll return true without analyzing the others
 
     // cycle over the metrics available
-    for (auto i : client_residuals_map)
+    for (auto& i : client_residuals_map)
     {
       // Prefix to log strings containing the app name, the client name and the metric name
       std::string log_prefix = "HYP_TEST:" + application_name + ":" + client_name + ":" + i.first + "---";
@@ -52,7 +52,7 @@ namespace beholder
       // first population sample mean
       float x1 = 0;
 
-      for (auto j : i.second.first)
+      for (auto& j : i.second.first)
       {
         x1 += j;
       }
@@ -61,7 +61,7 @@ namespace beholder
       // second population sample mean
       float x2 = 0;
 
-      for (auto j : i.second.second)
+      for (auto& j : i.second.second)
       {
         x2 += j;
       }
@@ -71,7 +71,7 @@ namespace beholder
       // first population sample variance
       float s1_2 = 0;
 
-      for (auto j : i.second.first)
+      for (auto& j : i.second.first)
       {
         s1_2 += powf(j - x1, 2);
       }
@@ -80,7 +80,7 @@ namespace beholder
       // second population sample variance
       float s2_2 = 0;
 
-      for (auto j : i.second.second)
+      for (auto& j : i.second.second)
       {
         s2_2 += powf(j - x2, 2);
       }

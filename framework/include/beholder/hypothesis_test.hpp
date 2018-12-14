@@ -25,9 +25,6 @@
 #include <string>
 #include <unordered_map>
 
-#include "beholder/hypothesis_test_data.hpp"
-
-
 namespace beholder
 {
   class HypTest

@@ -120,7 +120,7 @@ namespace beholder
         temp_list.push_back(substr);
       }
 
-      for (auto i : temp_list)
+      for (auto& i : temp_list)
       {
         // get the application handler
         const auto application_handler = GlobalView::get_handler(i);
@@ -201,13 +201,7 @@ namespace beholder
       agora::pedantic("Thread ", get_tid(), ": received a new observation for \"", application_name, "\": \"", observation, "\"");
 
       // handle the message
-      int result = application_handler->new_observation(observation);
-
-      if (result == 1)
-      {
-        // destroy the handler because the retraining was triggered
-        GlobalView::remove_handler(application_name);
-      }
+      application_handler->new_observation(observation);
     }
 
     // ---------------------------------------------------------------------------------- handle the kia message from agorà

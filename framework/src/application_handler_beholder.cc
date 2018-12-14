@@ -53,7 +53,7 @@ RemoteApplicationHandler::RemoteApplicationHandler( const std::string& applicati
 
 }
 
-int RemoteApplicationHandler::new_observation( const std::string& values )
+void RemoteApplicationHandler::new_observation( const std::string& values )
 {
 
   // lock the mutex to ensure a consistent global state
@@ -63,7 +63,7 @@ int RemoteApplicationHandler::new_observation( const std::string& values )
   // according to the handler status: ready/computing
   if ( status == ApplicationStatus::COMPUTING )
   {
-    return 0;
+    return;
   }
 
   // release the lock while parsing the message
@@ -77,7 +77,7 @@ int RemoteApplicationHandler::new_observation( const std::string& values )
 
   if (parse_outcome == 1)
   {
-    return 0;
+    return;
   }
 
   // fill in the buffers with the current observations
@@ -85,7 +85,7 @@ int RemoteApplicationHandler::new_observation( const std::string& values )
 
   if (filling_outcome == 1)
   {
-    return 0;
+    return;
   }
 
   agora::pedantic(log_prefix, "Observation successfully parsed and inserted in buffers.");
@@ -208,12 +208,12 @@ int RemoteApplicationHandler::new_observation( const std::string& values )
     if (clients_list.size() == 0)
     {
       agora::info(log_prefix, "Something is wrong, the list of clients received from the DB is empty!");
-      return 0;
+      return;
     }
 
     agora::debug(log_prefix, "Client list without duplicates:");
 
-    for (auto i : clients_list)
+    for (auto& i : clients_list)
     {
       agora::debug(log_prefix, i);
     }
@@ -221,14 +221,10 @@ int RemoteApplicationHandler::new_observation( const std::string& values )
     // initialize timeout shared (consumed) among all the clients
     int timeout = Parameters_beholder::timeout;
 
-    // this counter is to take into account, or better, not to take into account
-    // the number of clients which actually gave a useful answer to the hypothesis test
-    // We do not take into account the clients for which there were no enough observations
-    // to perform the 2nd level test in the count for good/bad clients.
-    //int actual_number_of_valid_clients = clients_list.size(); // TODO: do we really need this?
+
 
     // cycle over all the clients of the specific application
-    for (auto i : clients_list)
+    for (auto& i : clients_list)
     {
       agora::pedantic(log_prefix, "Starting the 2nd level of CDT for client: ", i, ". Setting up the metrics to be analyzed...");
 
@@ -237,7 +233,7 @@ int RemoteApplicationHandler::new_observation( const std::string& values )
       // metric has been analyzed it will be removed from this structure
       std::set<std::string> metric_to_be_analyzed;
 
-      for (auto j : reference_metric_names)
+      for (auto& j : reference_metric_names)
       {
         metric_to_be_analyzed.emplace(j);
         agora::debug(log_prefix, "Metric to be analyzed for client ", i, ": ", j);
@@ -267,25 +263,25 @@ int RemoteApplicationHandler::new_observation( const std::string& values )
         // It is done here on the basis of whixch metrics are left to be analyzed
         query_select = "day, time, client_id, ";
 
-        for (auto it : description.knobs)
+        for (auto& it : description.knobs)
         {
           query_select.append(it.name);
           query_select.append(",");
         }
 
-        for (auto it : description.features)
+        for (auto& it : description.features)
         {
           query_select.append(it.name);
           query_select.append(",");
         }
 
-        for (auto it : metric_to_be_analyzed)
+        for (auto& it : metric_to_be_analyzed)
         {
           query_select.append(it);
           query_select.append(",");
         }
 
-        for (auto it : metric_to_be_analyzed)
+        for (auto& it : metric_to_be_analyzed)
         {
           query_select.append("model_");
           query_select.append(it);
@@ -303,7 +299,7 @@ int RemoteApplicationHandler::new_observation( const std::string& values )
         agora::debug("\n", log_prefix, "Trace query executed successfully for client ", i, ", starting the parsing of its observations.");
 
         // cycle over each row j of the trace for each client i (for the current application)
-        for (auto j : observations_list)
+        for (auto& j : observations_list)
         {
           parse_and_insert_observations_for_client_from_trace(client_residuals_map, j, metric_to_be_analyzed);
         }
@@ -354,7 +350,7 @@ int RemoteApplicationHandler::new_observation( const std::string& values )
         {
           // remove the metrics present in the client_residuals_map from the metric_to_be_analyzed
           // in this way we only leave in the metric_to_be_analyzed just the names of the metrics to yet be analized.
-          for (auto it : client_residuals_map)
+          for (auto& it : client_residuals_map)
           {
             metric_to_be_analyzed.erase(it.first);
           }
@@ -424,7 +420,7 @@ int RemoteApplicationHandler::new_observation( const std::string& values )
     if (timeout_clients_list.size() == 0)
     {
       // TODO: do Something else??
-      agora::info(log_prefix, "WARINING: all the clients run out of time for the hypothesis test. The re-training will be triggered since 100% of the clients are behaving awkwardly.");
+      agora::info(log_prefix, "WARNING: all the clients run out of time for the hypothesis test. The re-training will be triggered since 100% of the clients are behaving awkwardly.");
     }
 
 
@@ -457,9 +453,11 @@ int RemoteApplicationHandler::new_observation( const std::string& values )
         send_agora_command("retraining");
       }
 
-      // destroy this application handler
-      return 1;
-
+      // reset the whole application handler
+      clients_blacklist.clear();
+      residuals_map.clear();
+      ici_cdt_map.clear();
+      agora::info(log_prefix, "Resetting the whole application handler after having triggered the re-training!");
     }
     else
     {
@@ -473,7 +471,7 @@ int RemoteApplicationHandler::new_observation( const std::string& values )
       // if there are some bad clients then put them in the blacklist
       if (bad_clients_list.size() > 0)
       {
-        for (auto i : bad_clients_list)
+        for (auto& i : bad_clients_list)
         {
           agora::debug(log_prefix, "Putting in blacklist client: ", i);
           clients_blacklist.emplace(i);
@@ -485,7 +483,7 @@ int RemoteApplicationHandler::new_observation( const std::string& values )
       agora::info(log_prefix, "Resetting the first level of the CDT to its initial configuration and setting back the status to READY.");
 
       // for every CDT data structure for this application (meaning for every metric that was analyzed in the ICI CDT)
-      for (auto i : ici_cdt_map)
+      for (auto& i : ici_cdt_map)
       {
         // reset its ici cdt to just the training configuration
         // restore the sequence number to the number of windows used for training
@@ -528,7 +526,7 @@ int RemoteApplicationHandler::new_observation( const std::string& values )
   // {
   //   send_margot_command("metrics_on");
   // }
-  return 0;
+  return;
 }
 
 
@@ -587,7 +585,7 @@ int RemoteApplicationHandler::parse_observation(Observation_data& observation, c
     //if there is no list than get the reference metrics from the application description, it is assumed that all of them are enabled
     if (user_enabled_metrics == "")
     {
-      for (auto i : description.metrics)
+      for (auto& i : description.metrics)
       {
         reference_metric_names.emplace(i.name);
       }
@@ -620,7 +618,7 @@ int RemoteApplicationHandler::parse_observation(Observation_data& observation, c
     observation.metric_fields_vec.push_back( substr );
   }
 
-  for (auto i : observation.metric_fields_vec)
+  for (auto& i : observation.metric_fields_vec)
   {
     agora::debug(log_prefix, "metric_fields separated: ", i);
   }
@@ -635,7 +633,7 @@ int RemoteApplicationHandler::parse_observation(Observation_data& observation, c
     observation.metrics_vec.push_back( std::stof(substr) );
   }
 
-  for (auto i : observation.metrics_vec)
+  for (auto& i : observation.metrics_vec)
   {
     agora::debug(log_prefix, "metrics separated: ", i);
   }
@@ -650,7 +648,7 @@ int RemoteApplicationHandler::parse_observation(Observation_data& observation, c
     observation.estimates_vec.push_back( std::stof(substr) );
   }
 
-  for (auto i : observation.estimates_vec)
+  for (auto& i : observation.estimates_vec)
   {
     agora::debug(log_prefix, "estimates separated: ", i);
   }
@@ -680,19 +678,15 @@ int RemoteApplicationHandler::fill_buffers(const Observation_data& observation)
     agora::debug(log_prefix, "Current residual for metric ", observation.metric_fields_vec[index], " is: ", current_residual);
 
     auto search = residuals_map.find(observation.metric_fields_vec[index]);
-    auto search_counter = residuals_map_counter.find(observation.metric_fields_vec[index]);
 
-    if ((search != residuals_map.end()) && (search_counter != residuals_map_counter.end()))
+    if (search != residuals_map.end())
     {
       agora::debug(log_prefix, "metric ", observation.metric_fields_vec[index], " already present, filling buffer");
       // metric already present, need to add to the buffer the new residual
       auto temp_pair = std::make_pair(current_residual, observation.timestamp);
       search->second.emplace_back(temp_pair);
-      // increase the counter of observations for the current metric
-      search_counter->second = search_counter->second + 1;
     }
-    else if (((search == residuals_map.end()) && (search_counter != residuals_map_counter.end())) ||
-             ((search != residuals_map.end()) && (search_counter == residuals_map_counter.end())))
+    else if ((search == residuals_map.end()) || (search != residuals_map.end()))
     {
       // If the current metric in analysis in only found in one of the two maps then there is an error
       // because the maps should contain the same keys, since their insertion is basically parallel.
@@ -707,8 +701,6 @@ int RemoteApplicationHandler::fill_buffers(const Observation_data& observation)
       std::vector<std::pair <float, std::string>> temp_vector;
       temp_vector.emplace_back(temp_pair);
       residuals_map.emplace(observation.metric_fields_vec[index], temp_vector);
-      // start counting the observations for the current metrics
-      residuals_map_counter.emplace(observation.metric_fields_vec[index], 1);
     }
   }
 

@@ -97,16 +97,8 @@ namespace beholder
       // timestamp of the first and last element are not unique across the whole application handler.
       std::unordered_map<std::string, std::vector<std::pair <float, std::string>>> residuals_map;
 
-      // TODO: do we really need this structure?
-      // data structure to store the counter of the received residuals for each meatric so far
-      // useful to understand when the training phase is finished for each metrics
-      // considering the case in which not all observations contain residuals for every metric
-      // thus leaving us with some metrics which already have completed the training and others
-      // which are still gathering observations
-      std::unordered_map<std::string, int> residuals_map_counter;
-
       // ICI CDT data structures:
-      // It maps every metric to its struct of data for the CDT
+      // It maps every metric to its struct of data for the ICI CDT
       std::unordered_map<std::string, Data_ici_test> ici_cdt_map;
 
       // these are the function used to communicate using MQTT topics
@@ -135,7 +127,7 @@ namespace beholder
 
       RemoteApplicationHandler( const std::string& application_name );
 
-      int new_observation( const std::string& values );
+      void new_observation( const std::string& values );
 
   };
 

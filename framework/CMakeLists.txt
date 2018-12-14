@@ -65,7 +65,6 @@ set( BEHOLODER_HEADERS
 	${MARGOT_HDR_PATH}/beholder/ici_test_data.hpp
 	${MARGOT_HDR_PATH}/beholder/ici_cdt.hpp
 	${MARGOT_HDR_PATH}/beholder/hypothesis_test.hpp
-	${MARGOT_HDR_PATH}/beholder/hypothesis_test_data.hpp
 )
 
 

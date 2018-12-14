@@ -48,7 +48,7 @@ namespace beholder
       agora::pedantic(log_prefix, "Training window number ", data_test.window_number, " out of ", Parameters_beholder::training_windows);
 
       // enqueue the current observation in the training set
-      for (auto i : window_pair)
+      for (auto& i : window_pair)
       {
         data_test.training_observations.emplace_back(i.first);
       }
@@ -57,7 +57,7 @@ namespace beholder
       // sample mean M(s):
       float sum = 0;
 
-      for (auto i : window_pair)
+      for (auto& i : window_pair)
       {
         sum += i.first;
       }
@@ -74,7 +74,7 @@ namespace beholder
       {
         sum = 0;
 
-        for (auto i : window_pair)
+        for (auto& i : window_pair)
         {
           sum += powf((i.first - mean), 2);
         }
@@ -92,7 +92,7 @@ namespace beholder
         // compute the reference sample-mean mean
         sum = 0;
 
-        for (auto i : data_test.training_sample_mean)
+        for (auto& i : data_test.training_sample_mean)
         {
           sum += i;
         }
@@ -107,7 +107,7 @@ namespace beholder
         // reference sample-mean variance
         sum = 0;
 
-        for (auto i : data_test.training_sample_mean)
+        for (auto& i : data_test.training_sample_mean)
         {
           sum += powf((i - data_test.reference_sample_mean_mean), 2);
         }
@@ -139,7 +139,7 @@ namespace beholder
           {
             sum = 0;
 
-            for (auto i : data_test.training_observations)
+            for (auto& i : data_test.training_observations)
             {
               // i-th observation raised to the power of "order"
               sum += powf(i, order);
@@ -184,7 +184,7 @@ namespace beholder
 
           // compute V(s)=T(S(s)), the power-law transform gaussianization of the sample variance
           // use directly the sample variance w/o gaussianization
-          for (auto i : data_test.training_sample_variance)
+          for (auto& i : data_test.training_sample_variance)
           {
             agora::pedantic(log_prefix, "Sample Variance = ", i);
             data_test.training_sample_variance_transformed.emplace_back(pow((i / (Parameters_beholder::window_size - 1)), data_test.h0));
@@ -194,7 +194,7 @@ namespace beholder
           // use the sample variance w/ gaussianization V(s)
           sum = 0;
 
-          for (auto i : data_test.training_sample_variance_transformed)
+          for (auto& i : data_test.training_sample_variance_transformed)
           {
             sum += i;
           }
@@ -207,7 +207,7 @@ namespace beholder
           // reference sample-variance variance
           sum = 0;
 
-          for (auto i : data_test.training_sample_variance_transformed)
+          for (auto& i : data_test.training_sample_variance_transformed)
           {
             sum += powf((i - data_test.reference_sample_variance_mean), 2);
           }
@@ -250,7 +250,7 @@ namespace beholder
       // compute the sample mean M(s):
       float sum = 0;
 
-      for (auto i : window_pair)
+      for (auto& i : window_pair)
       {
         sum += i.first;
       }
@@ -318,7 +318,7 @@ namespace beholder
         // compute the sample variance S(s);
         sum = 0;
 
-        for (auto i : window_pair)
+        for (auto& i : window_pair)
         {
           sum += powf((i.first - mean), 2);
         }
