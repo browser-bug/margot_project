@@ -28,11 +28,7 @@ namespace beholder
   // data structure for the hypothesis test related to each application-metric pair
   struct Hypothesis_test_data
   {
-    std::string client_id;
-    std::string timestamp;
-    std::vector<std::string> metric_fields_vec;
-    std::vector<float> metrics_vec;
-    std::vector<float> estimates_vec;
+
 
   };
 

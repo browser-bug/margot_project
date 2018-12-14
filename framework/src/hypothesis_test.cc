@@ -40,7 +40,7 @@ namespace beholder
     for (auto i : client_residuals_map)
     {
       // Prefix to log strings containing the app name, the client name and the metric name
-      std::string log_prefix = "HYP_TEST" + application_name + ":" + client_name + ":" + i.first + "---";
+      std::string log_prefix = "HYP_TEST:" + application_name + ":" + client_name + ":" + i.first + "---";
 
       float t_statistic;
       float v_degree_freedom;

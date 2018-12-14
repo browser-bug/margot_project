@@ -71,6 +71,9 @@ namespace beholder
       // about the application behavior
       application_description_t description;
 
+      // Prefix to log strings containing the application name
+      std::string log_prefix;
+
       // clients blacklist, implemented as an unordered set since we do not need any sorting
       std::unordered_set<std::string> clients_blacklist;
 
