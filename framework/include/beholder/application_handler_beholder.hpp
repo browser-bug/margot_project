@@ -64,6 +64,15 @@ namespace beholder
       // to protect the data structure
       std::mutex mutex;
 
+      // suffix counter for plot file
+      int suffix_plot;
+
+      // output files to plot the ICI CDT curves
+      // the structure maps each metric name (key) to a pair, whose first element is the file
+      // containing all the observations collected and used in the ICI CDT, the second file
+      // contains the ICI for the mean and for the variance of every window of the CDT.
+      std::unordered_map<std::string, std::pair<std::fstream, std::fstream>> output_files_map;
+
       // to handle the progress of the elaboration
       ApplicationStatus status;
 

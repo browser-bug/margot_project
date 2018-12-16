@@ -38,7 +38,7 @@
 using namespace beholder;
 
 RemoteApplicationHandler::RemoteApplicationHandler( const std::string& application_name )
-  : status(ApplicationStatus::READY)
+  : status(ApplicationStatus::READY), suffix_plot(1)
 {
   // Prefix to log strings containing the application name
   log_prefix = "APP_HANDLER:" + application_name + "---";
@@ -457,6 +457,22 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
       clients_blacklist.clear();
       residuals_map.clear();
       ici_cdt_map.clear();
+
+      // for every possible metric available (beholder-enabled metric)
+      for (auto& i : reference_metric_names){
+          auto search = output_files_map.find(i);
+          // if there is the file structure related to that metric
+          if (search != output_files_map.end()){
+              // if the file is open then close it
+              if (search->second.first.is_open()){
+                  search->second.first.close();
+              }
+          }
+      }
+      // destroy the current mapping to output files since the next run will have different naming suffixes
+      output_files_map.clear();
+      // increase the naming suffix counter
+      suffix_plot++;
       agora::info(log_prefix, "Resetting the whole application handler after having triggered the re-training!");
     }
     else
@@ -515,6 +531,45 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
           i.second.back_time_of_day = 0;
         }
       }
+
+      // for every possible metric available (beholder-enabled metric)
+      for (auto& i : reference_metric_names){
+          auto search = output_files_map.find(i);
+          // if there is the file structure related to that metric
+          if (search != output_files_map.end()){
+              // if the file is open
+              if (search->second.first.is_open()){
+                  // copy the training lines in the output files for the next iteration, with naming siffix++
+                  // prepare the next files:
+                  std::fstream current_metric_observations_file;
+                  std::fstream current_metric_ici_file;
+                  std::string file_path_obs = Parameters_beholder::workspace_folder + "observations_" + search->first + "_" + std::to_string(suffix_plot + 1) + ".txt";
+                  std::string file_path_ici = Parameters_beholder::workspace_folder + "ici_" + search->first + "_" + std::to_string(suffix_plot) + ".txt";
+                  current_metric_observations_file.open(file_path_obs, std::fstream::out);
+                  current_metric_ici_file.open(file_path_ici, std::fstream::out);
+                  std::string temp_line;
+                  // copy into the new file the observations related to the training phase
+                  for (int index = 0; index < Parameters_beholder::window_size * Parameters_beholder::training_windows; index++){
+                      std::getline(search->second.first, temp_line);    // Check whether this method automatically rewinds the file and keeps the position across cycles. It should.
+                      current_metric_observations_file << temp_line << std::endl; // TODO: check whether this result in a double endline
+                  }
+                  current_metric_observations_file.flush();
+                  // close the old file
+                  search->second.first.close();
+                  // remove from the map the old file
+                  // Or even better replace the old with the new ones, so that you do not need to delete a mapping and
+                  // re-create it.
+                  // Basically I need to replace the pair here.
+                  // I need to use the move operator to assign because the fstreams are not coyable...
+                  auto temp_pair_file = std::make_pair(std::move(current_metric_observations_file), std::move(current_metric_ici_file));
+                  search->second = std::move(temp_pair_file);
+              }
+          }
+      }
+      // destroy the current mapping to output files since the next run will have different naming suffixes
+      output_files_map.clear();
+      // increase the naming suffix counter
+      suffix_plot++;
 
       // set the status back to ready
       status = ApplicationStatus::READY;
@@ -685,13 +740,16 @@ int RemoteApplicationHandler::fill_buffers(const Observation_data& observation)
       // metric already present, need to add to the buffer the new residual
       auto temp_pair = std::make_pair(current_residual, observation.timestamp);
       search->second.emplace_back(temp_pair);
-    }
-    else if ((search == residuals_map.end()) || (search != residuals_map.end()))
-    {
-      // If the current metric in analysis in only found in one of the two maps then there is an error
-      // because the maps should contain the same keys, since their insertion is basically parallel.
-      agora::warning(log_prefix, "Error: mismatch between the two residual map structures.");
-      return 1;
+      // manage the output to file
+      auto search_file = output_files_map.find(observation.metric_fields_vec[index]);
+      if (search_file == output_files_map.end()){
+          agora::warning(log_prefix, "Error: attempting to write to a file_output_map which does not exist.");
+          return 1;
+      }
+      // if we arrive here (as it is supposed to be) we need to append  the current observation
+      // to an already created output-file mapping for the current metric
+      search_file->second.first << current_residual << std::endl;
+      search_file->second.first.flush();
     }
     else
     {
@@ -701,6 +759,29 @@ int RemoteApplicationHandler::fill_buffers(const Observation_data& observation)
       std::vector<std::pair <float, std::string>> temp_vector;
       temp_vector.emplace_back(temp_pair);
       residuals_map.emplace(observation.metric_fields_vec[index], temp_vector);
+      // manage the output to file
+      auto search_file = output_files_map.find(observation.metric_fields_vec[index]);
+      if (search_file != output_files_map.end()){
+          agora::warning(log_prefix, "Error: attempting the creation of a file_output_map which is already present.");
+          return 1;
+      }
+      // if we arrive here (as it is supposed to be) we need to create a new output-file mapping for the current metric
+      // current output file
+      std::fstream current_metric_observations_file;
+      std::fstream current_metric_ici_file;
+      //std::vector<std::ofstream> test;
+      //test.emplace_back("bobo", std::ofstream::out);
+      std::string file_path_obs = Parameters_beholder::workspace_folder + "observations_" + observation.metric_fields_vec[index] + "_" + std::to_string(suffix_plot) + ".txt";
+      std::string file_path_ici = Parameters_beholder::workspace_folder + "ici_" + observation.metric_fields_vec[index] + "_" + std::to_string(suffix_plot) + ".txt";
+      current_metric_observations_file.open(file_path_obs, std::fstream::out);
+      current_metric_ici_file.open(file_path_ici, std::fstream::out);
+      current_metric_observations_file << current_residual << std::endl;
+      current_metric_observations_file.flush();
+      auto temp_pair_file = std::make_pair(std::move(current_metric_observations_file), std::move(current_metric_ici_file));
+
+      //std::pair<std::ofstream, std::ofstream> temp_pair_file = std::make_pair(file_path_obs, std::ofstream::out, file_path_ici, std::ofstream::out);
+      //std::pair<std::ofstream, std::ofstream> temp_pair_file (file_path_obs, std::ofstream::out, file_path_ici, std::ofstream::out);
+      output_files_map.emplace(observation.metric_fields_vec[index], std::move(temp_pair_file));
     }
   }
 

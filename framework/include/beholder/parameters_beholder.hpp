@@ -21,11 +21,14 @@
 #ifndef MARGOT_BEHOLDER_BEHOLDER_PARAMETERS
 #define MARGOT_BEHOLDER_BEHOLDER_PARAMETERS
 
+#include <string>
+
 namespace beholder
 {
 
   struct Parameters_beholder
   {
+    static std::string workspace_folder;
     static int window_size;
     static int training_windows;
     static float gamma_mean;

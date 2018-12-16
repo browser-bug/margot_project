@@ -37,6 +37,8 @@ void print_usage( void )
 {
   std::cout << "Usage: beholder [options]" << std::endl;
   std::cout << "Optional arguments:" << std::endl;
+  std::cout << " --workspace_folder <path>      Where the application store temporary files" << std::endl;
+  std::cout << "                                to plot the ICI CDT curves" << std::endl;
   std::cout << "--------------------------------------------------------------------------------" << std::endl;
   std::cout << " --storage_implementation <str> The name of the actual storage used by beholder (same as agorà)" << std::endl;
   std::cout << "                                Available alternatives:" << std::endl;
@@ -168,6 +170,7 @@ int main( int argc, char* argv[] )
     {"frequency_check",  required_argument, 0,  23   },
     {"alpha",  required_argument, 0,  24   },
     {"no_trace_drop",  no_argument, 0,  25   },
+    {"workspace_folder",       required_argument, 0,  26   },
     {0,                        0,                 0,  0   }
   };
 
@@ -359,6 +362,16 @@ int main( int argc, char* argv[] )
 
       case 25:
         beholder::Parameters_beholder::no_trace_drop = true;
+        break;
+
+      case 26:
+        if (optarg[0] != '/')
+        {
+          std::cerr << "Error: please use absolute path for the workspace folder" << std::endl;
+          return EXIT_FAILURE;
+        }
+
+        workspace_folder = std::string(optarg);
         break;
 
       default:
