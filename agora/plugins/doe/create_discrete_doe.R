@@ -17,7 +17,9 @@ create_doe <- function(knobs_config_list, doe_options, knobs_names, model_contai
     discarded_designs <- discarded_designs %>% setdiff(full_design)
   }
   
-  if(doe_options$nobs >= nrow(full_design))
+  if(doe_options$nobs >= nrow(full_design)){
+    algorithm <- "full_factorial"
+  }
 
 # Write model table -------------------------------------------------------
 
