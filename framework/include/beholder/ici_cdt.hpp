@@ -40,7 +40,8 @@ namespace beholder
 
     public:
 
-      static bool perform_ici_cdt(Data_ici_test& data_test, const std::vector<std::pair <float, std::string>>& window_pair);
+      static bool perform_ici_cdt(Data_ici_test& data_test, const std::vector<std::pair <float, std::string>>& window_pair,
+                                  std::unordered_map<std::string, std::pair<std::fstream, std::fstream>>& output_files_map);
 
   };
 

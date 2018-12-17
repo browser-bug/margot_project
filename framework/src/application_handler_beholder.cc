@@ -51,6 +51,36 @@ RemoteApplicationHandler::RemoteApplicationHandler( const std::string& applicati
   //agora::debug(log_prefix, "Number of windows used for training: ", Parameters_beholder::training_windows);
 
 
+  // create the workspace root folder
+  application_workspace = Parameters_beholder::workspace_folder;
+
+  if (Parameters_beholder::workspace_folder.back() != '/')
+  {
+    application_workspace.append("/");
+  }
+
+  application_workspace.append("beholder/");
+
+  std::stringstream path_stream(description.application_name);
+  std::string&& current_path = "";
+
+  while (std::getline(path_stream, current_path, '/'))
+  {
+    application_workspace.append(current_path + "/");
+    const bool is_created = create_folder(application_workspace);
+
+    if (!is_created)
+    {
+      agora::warning("Unable to create the folder \"", application_workspace, "\" with errno=", errno);
+      throw std::runtime_error("Unable to create the folder \"" + application_workspace + "\" with errno=" + std::to_string(errno) );
+    }
+  }
+
+  // write the output file used to plot the training/operational phase windows
+  std::ofstream outfileConf (application_workspace + "configTestWindows.txt", std::ofstream::out);
+  outfileConf << Parameters_beholder::window_size << " ";
+  outfileConf << Parameters_beholder::training_windows << " ";
+  outfileConf.close();
 }
 
 void RemoteApplicationHandler::new_observation( const std::string& values )
@@ -124,7 +154,7 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
       if (search_ici_map != ici_cdt_map.end())
       {
         agora::debug(log_prefix, "CDT data for metric ", i.first, " found. Continuing CDT!");
-        change_detected = IciCdt::perform_ici_cdt(search_ici_map->second, i.second);
+        change_detected = IciCdt::perform_ici_cdt(search_ici_map->second, i.second, output_files_map);
       }
       else
       {
@@ -139,7 +169,7 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
         // initilize the window number to zero
         new_ici_struct.window_number = 0;
         agora::debug(log_prefix, "CDT data for metric ", i.first, " NOT found. Initialized CDT data structure and starting CDT!");
-        change_detected = IciCdt::perform_ici_cdt(new_ici_struct, i.second);
+        change_detected = IciCdt::perform_ici_cdt(new_ici_struct, i.second, output_files_map);
         ici_cdt_map.emplace(i.first, new_ici_struct);
         // It cannot detect a change if this is the first full window for that metric, we are in training of cdt
         // so basically avoid the if to check for the boolean "change_detected"
@@ -459,16 +489,27 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
       ici_cdt_map.clear();
 
       // for every possible metric available (beholder-enabled metric)
-      for (auto& i : reference_metric_names){
-          auto search = output_files_map.find(i);
-          // if there is the file structure related to that metric
-          if (search != output_files_map.end()){
-              // if the file is open then close it
-              if (search->second.first.is_open()){
-                  search->second.first.close();
-              }
+      for (auto& i : reference_metric_names)
+      {
+        auto search = output_files_map.find(i);
+
+        // if there is the file structure related to that metric
+        if (search != output_files_map.end())
+        {
+          // if the observation file is open then close it
+          if (search->second.first.is_open())
+          {
+            search->second.first.close();
           }
+
+          // if the ici file is open then close it
+          if (search->second.second.is_open())
+          {
+            search->second.second.close();
+          }
+        }
       }
+
       // destroy the current mapping to output files since the next run will have different naming suffixes
       output_files_map.clear();
       // increase the naming suffix counter
@@ -533,39 +574,51 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
       }
 
       // for every possible metric available (beholder-enabled metric)
-      for (auto& i : reference_metric_names){
-          auto search = output_files_map.find(i);
-          // if there is the file structure related to that metric
-          if (search != output_files_map.end()){
-              // if the file is open
-              if (search->second.first.is_open()){
-                  // copy the training lines in the output files for the next iteration, with naming siffix++
-                  // prepare the next files:
-                  std::fstream current_metric_observations_file;
-                  std::fstream current_metric_ici_file;
-                  std::string file_path_obs = Parameters_beholder::workspace_folder + "observations_" + search->first + "_" + std::to_string(suffix_plot + 1) + ".txt";
-                  std::string file_path_ici = Parameters_beholder::workspace_folder + "ici_" + search->first + "_" + std::to_string(suffix_plot) + ".txt";
-                  current_metric_observations_file.open(file_path_obs, std::fstream::out);
-                  current_metric_ici_file.open(file_path_ici, std::fstream::out);
-                  std::string temp_line;
-                  // copy into the new file the observations related to the training phase
-                  for (int index = 0; index < Parameters_beholder::window_size * Parameters_beholder::training_windows; index++){
-                      std::getline(search->second.first, temp_line);    // Check whether this method automatically rewinds the file and keeps the position across cycles. It should.
-                      current_metric_observations_file << temp_line << std::endl; // TODO: check whether this result in a double endline
-                  }
-                  current_metric_observations_file.flush();
-                  // close the old file
-                  search->second.first.close();
-                  // remove from the map the old file
-                  // Or even better replace the old with the new ones, so that you do not need to delete a mapping and
-                  // re-create it.
-                  // Basically I need to replace the pair here.
-                  // I need to use the move operator to assign because the fstreams are not coyable...
-                  auto temp_pair_file = std::make_pair(std::move(current_metric_observations_file), std::move(current_metric_ici_file));
-                  search->second = std::move(temp_pair_file);
-              }
+      for (auto& i : reference_metric_names)
+      {
+        auto search = output_files_map.find(i);
+
+        // if there is the file structure related to that metric
+        if (search != output_files_map.end())
+        {
+          // if the file is open
+          if (search->second.first.is_open())
+          {
+            // copy the training lines in the output files for the next iteration, with naming siffix++
+            // prepare the next files:
+            std::fstream current_metric_observations_file;
+            std::fstream current_metric_ici_file;
+            std::string file_path_obs = application_workspace + search->first + "/observations_" + search->first + "_" + std::to_string(suffix_plot + 1) + ".txt";
+            std::string file_path_ici = application_workspace + search->first + "/ici_" + search->first + "_" + std::to_string(suffix_plot) + ".txt";
+            current_metric_observations_file.open(file_path_obs, std::fstream::out);
+            current_metric_ici_file.open(file_path_ici, std::fstream::out);
+            std::string temp_line;
+
+            // copy into the new file the observations related to the training phase
+            for (int index = 0; index < Parameters_beholder::window_size * Parameters_beholder::training_windows; index++)
+            {
+              std::getline(search->second.first, temp_line);    // Check whether this method automatically rewinds the file and keeps the position across cycles. It should.
+              current_metric_observations_file << temp_line << std::endl; // TODO: check whether this result in a double endline
+            }
+
+            current_metric_observations_file.flush();
+            // copy just the first line (training CI info) from the old ici output file to the new one
+            std::getline(search->second.second, temp_line);    // Check whether this method automatically rewinds the file and keeps the position across cycles. It should.
+            current_metric_ici_file << temp_line << std::endl; // TODO: check whether this result in a double endline
+            current_metric_observations_file.flush();
+            // close the old file
+            search->second.first.close();
+            // remove from the map the old file
+            // Or even better replace the old with the new ones, so that you do not need to delete a mapping and
+            // re-create it.
+            // Basically I need to replace the pair here.
+            // I need to use the move operator to assign because the fstreams are not coyable...
+            auto temp_pair_file = std::make_pair(std::move(current_metric_observations_file), std::move(current_metric_ici_file));
+            search->second = std::move(temp_pair_file);
           }
+        }
       }
+
       // destroy the current mapping to output files since the next run will have different naming suffixes
       output_files_map.clear();
       // increase the naming suffix counter
@@ -742,10 +795,13 @@ int RemoteApplicationHandler::fill_buffers(const Observation_data& observation)
       search->second.emplace_back(temp_pair);
       // manage the output to file
       auto search_file = output_files_map.find(observation.metric_fields_vec[index]);
-      if (search_file == output_files_map.end()){
-          agora::warning(log_prefix, "Error: attempting to write to a file_output_map which does not exist.");
-          return 1;
+
+      if (search_file == output_files_map.end())
+      {
+        agora::warning(log_prefix, "Error: attempting to write to a file_output_map which does not exist.");
+        return 1;
       }
+
       // if we arrive here (as it is supposed to be) we need to append  the current observation
       // to an already created output-file mapping for the current metric
       search_file->second.first << current_residual << std::endl;
@@ -761,18 +817,21 @@ int RemoteApplicationHandler::fill_buffers(const Observation_data& observation)
       residuals_map.emplace(observation.metric_fields_vec[index], temp_vector);
       // manage the output to file
       auto search_file = output_files_map.find(observation.metric_fields_vec[index]);
-      if (search_file != output_files_map.end()){
-          agora::warning(log_prefix, "Error: attempting the creation of a file_output_map which is already present.");
-          return 1;
+
+      if (search_file != output_files_map.end())
+      {
+        agora::warning(log_prefix, "Error: attempting the creation of a file_output_map which is already present.");
+        return 1;
       }
+
       // if we arrive here (as it is supposed to be) we need to create a new output-file mapping for the current metric
       // current output file
       std::fstream current_metric_observations_file;
       std::fstream current_metric_ici_file;
       //std::vector<std::ofstream> test;
       //test.emplace_back("bobo", std::ofstream::out);
-      std::string file_path_obs = Parameters_beholder::workspace_folder + "observations_" + observation.metric_fields_vec[index] + "_" + std::to_string(suffix_plot) + ".txt";
-      std::string file_path_ici = Parameters_beholder::workspace_folder + "ici_" + observation.metric_fields_vec[index] + "_" + std::to_string(suffix_plot) + ".txt";
+      std::string file_path_obs = application_workspace + observation.metric_fields_vec[index] + "/observations_" + observation.metric_fields_vec[index] + "_" + std::to_string(suffix_plot) + ".txt";
+      std::string file_path_ici = application_workspace + observation.metric_fields_vec[index] + "/ici_" + observation.metric_fields_vec[index] + "_" + std::to_string(suffix_plot) + ".txt";
       current_metric_observations_file.open(file_path_obs, std::fstream::out);
       current_metric_ici_file.open(file_path_ici, std::fstream::out);
       current_metric_observations_file << current_residual << std::endl;

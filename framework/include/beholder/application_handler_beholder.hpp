@@ -28,6 +28,8 @@
 #include <cstdint>
 #include <cassert>
 #include <set>
+#include <sys/stat.h> // to create directories, only for linux systems
+
 
 #include "agora/virtual_io.hpp"
 #include "agora/common_objects.hpp"
@@ -66,6 +68,9 @@ namespace beholder
 
       // suffix counter for plot file
       int suffix_plot;
+
+      // application-specific root workspace
+      std::string application_workspace;
 
       // output files to plot the ICI CDT curves
       // the structure maps each metric name (key) to a pair, whose first element is the file
@@ -124,6 +129,12 @@ namespace beholder
       {
         // send the command
         agora::io::remote.send_message({{"agora/" + description.application_name + "/commands"}, command});
+      }
+
+      inline bool create_folder( const std::string& path )
+      {
+        int rc = mkdir(path.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH );
+        return rc == 0 || errno == EEXIST;
       }
 
       int parse_observation(Observation_data& observation, const std::string& values);

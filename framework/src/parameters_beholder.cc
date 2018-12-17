@@ -22,7 +22,7 @@
 
 namespace beholder
 {
-  std::string Parameters_beholder::workspace_folder = "";
+  std::string Parameters_beholder::workspace_folder = "./";
   int Parameters_beholder::window_size = 20;
   int Parameters_beholder::training_windows = 5;
   float Parameters_beholder::gamma_mean = 3;
