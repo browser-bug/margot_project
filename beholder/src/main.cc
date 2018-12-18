@@ -19,7 +19,7 @@
 
 #include <cstdlib>
 #include <iostream>
-#include <getopt.h>
+// #include <getopt.h>
 #include <stdexcept>
 #include <sstream>
 
@@ -32,12 +32,16 @@
 #include "beholder/worker_beholder.hpp"
 #include "beholder/parameters_beholder.hpp"
 
+#include <boost/program_options/options_description.hpp>
+#include <boost/program_options/parsers.hpp>
+#include <boost/program_options/variables_map.hpp>
+
 
 void print_usage( void )
 {
   std::cout << "Usage: beholder [options]" << std::endl;
   std::cout << "Optional arguments:" << std::endl;
-  std::cout << " --workspace_folder <path>      Where the application store temporary files" << std::endl;
+  std::cout << " --workspace_folder <path>      Where the application stores temporary files" << std::endl;
   std::cout << "                                to plot the ICI CDT curves" << std::endl;
   std::cout << "--------------------------------------------------------------------------------" << std::endl;
   std::cout << " --storage_implementation <str> The name of the actual storage used by beholder (same as agorà)" << std::endl;
@@ -115,11 +119,42 @@ void print_usage( void )
   std::cout << "                                DEFAULT = \"false\"" << std::endl;
 }
 
+namespace po = boost::program_options;
+po::options_description opts_desc("Optional arguments for the Beholder:");
+po::variables_map opts_vm;
+
+
+void ParseCommandLine(int argc, char* argv[])
+{
+  // Parse command line params
+  try
+  {
+    po::store(po::parse_command_line(argc, argv, opts_desc), opts_vm);
+  }
+  catch (...)
+  {
+    std::cout << "Usage: " << argv[0] << " [options]\n";
+    std::cout << opts_desc << std::endl;
+    ::exit(EXIT_FAILURE);
+  }
+
+  po::notify(opts_vm);
+
+  // Check for help request
+  if (opts_vm.count("help"))
+  {
+    std::cout << "Usage: " << argv[0] << " [options]\n";
+    std::cout << opts_desc << std::endl;
+    ::exit(EXIT_SUCCESS);
+  }
+}
+
+
 
 int main( int argc, char* argv[] )
 {
   // variables to control the application behavior
-  int opt = -1;
+  // int opt = -1;
   std::string storage_implementation = "cassandra";
   std::string storage_address = "127.0.0.1";
   std::string storage_username = "";
@@ -139,247 +174,401 @@ int main( int argc, char* argv[] )
   std::string min_log_level = "info";
   int number_of_threads = 3;
 
+  // Handle the program options
+  opts_desc.add_options()
+  ("help,h", "print this help message")
+  ("storage_implementation", po::value<std::string>(&storage_implementation)->
+   default_value(storage_implementation),
+   "The name of the actual storage used by beholder (same as agorà). Available alternatives: - \"cassandra\". <str>")
+  ("storage_address", po::value<std::string>(&storage_address)->
+   default_value(storage_address),
+   "A reference to the storage, depending on its actual implementation: for \"cassandra\" the address of a cluster. <str>")
+  ("storage_username", po::value<std::string>(&storage_username)->
+   default_value(storage_username),
+   "The username for authentication purpose, if any. <str>")
+  ("storage_password", po::value<std::string>(&storage_password)->
+   default_value(storage_password),
+   "The password for authentication purpose, if any. <str>")
+  ("mqtt_implementation", po::value<std::string>(&mqtt_implementation)->
+   default_value(mqtt_implementation),
+   "The name of the actual MQTT client used by beholder (same as agorà). Available alternatives: - \"paho\". <str>")
+  ("broker_url", po::value<std::string>(&broker_url)->
+   default_value(broker_url),
+   "The url of the MQTT broker. <str>")
+  ("broker_username", po::value<std::string>(&broker_username)->
+   default_value(broker_username),
+   "The username for authentication purpose, if any. <str>")
+  ("broker_password", po::value<std::string>(&broker_password)->
+   default_value(broker_password),
+   "The password for authentication purpose, if any. <str>")
+  ("client_certificate", po::value<std::string>(&client_certificate)->
+   default_value(client_certificate),
+   "The path to the client certificate (e.g. client.crt), if any. <str>")
+  ("client_key", po::value<std::string>(&client_key)->
+   default_value(client_key),
+   "The path to the private key (e.g. client.key), if any. <str>")
+  ("mqtt_qos", po::value<int>(&mqtt_qos)->
+   default_value(mqtt_qos),
+   "The MQTT quality of service level [0-2]. <int>")
+  ("min_log_level", po::value<std::string>(&min_log_level)->
+   default_value(min_log_level),
+   "The minimum level of logging (stdout). Available alternatives: - \"disabled\" - \"warning\" - \"info\" - \"pedantic\" - \"debug\". <str>")
+  ("number_of_threads", po::value<int>(&number_of_threads)->
+   default_value(number_of_threads),
+   "The number of workers to process messages. NOTE: it is recommended to have at least one worker for each managed application. <int>")
+  ("window_size", po::value<int>(&beholder::Parameters_beholder::window_size)->
+   default_value(beholder::Parameters_beholder::window_size),
+   "The number of observations that fit in a single window of samples. <int>")
+  ("training_windows", po::value<int>(&beholder::Parameters_beholder::training_windows)->
+   default_value(beholder::Parameters_beholder::training_windows),
+   "Number of observation windows to be used as training for the CDT. <int>")
+  ("gamma_mean", po::value<float>(&beholder::Parameters_beholder::gamma_mean)->
+   default_value(beholder::Parameters_beholder::gamma_mean),
+   "Parameter to configure the delay in the detection of the change in the mean. If greater than 1 it delays the change detection reducing the number of false positives. <float>")
+  ("gamma_variance", po::value<float>(&beholder::Parameters_beholder::gamma_variance)->
+   default_value(beholder::Parameters_beholder::gamma_variance),
+   "Parameter to configure the delay in the detection of the change in the variance. If greater than 1 it delays the change detection reducing the number of false positives. <float>")
+  ("bad_clients_threshold", po::value<int>(&beholder::Parameters_beholder::bad_clients_threshold)->
+   default_value(beholder::Parameters_beholder::bad_clients_threshold),
+   "The percentage of clients for every application that is allowed to behave \"badly\" wrt to the model. <int>")
+  ("variance_off", po::bool_switch(&beholder::Parameters_beholder::variance_off)->
+   default_value(beholder::Parameters_beholder::variance_off),
+   "Disables the variance feature from the ICI CDT.")
+  ("min_observations", po::value<int>(&beholder::Parameters_beholder::min_observations)->
+   default_value(beholder::Parameters_beholder::min_observations),
+   "Minimum number of observations (before and after the change window selected in the 1st level of the CDT) to allow the hypothesis test. <int>")
+  ("timeout", po::value<int>(&beholder::Parameters_beholder::timeout)->
+   default_value(beholder::Parameters_beholder::timeout),
+   "Timeout to stop the waiting process during the 2nd level of the CDT for the observations to reach the min_observations number.[Expressed in seconds]. <int>")
+  ("frequency_check", po::value<int>(&beholder::Parameters_beholder::frequency_check)->
+   default_value(beholder::Parameters_beholder::frequency_check),
+   "Frequency of the check for new incoming observations in the trace table. The check will be carried out until either the min_observations number is reached or the wait time runs out according to the timeout.[Expressed in seconds] <int>")
+  ("alpha", po::value<float>(&beholder::Parameters_beholder::alpha)->
+   default_value(beholder::Parameters_beholder::alpha),
+   "Alpha (significance level) used in the hyphotesis test. <float>")
+  ("no_trace_drop", po::bool_switch(&beholder::Parameters_beholder::no_trace_drop)->
+   default_value(beholder::Parameters_beholder::no_trace_drop),
+   "When enabled allows to just delete the trace (after a confirmed change) from the top to the last element of the change window.")
+  ("workspace_folder", po::value<std::string>(&beholder::Parameters_beholder::workspace_folder)->
+   default_value(beholder::Parameters_beholder::workspace_folder),
+   "Absolute path where the application stores temporary files to plot the ICI CDT curves. <path>")
+  ;
+  ParseCommandLine(argc, argv);
 
-
-  // parsing the program options
-  static struct option long_options[] =
+  // validation of the args
+  if (mqtt_qos < 0 || mqtt_qos > 2)
   {
-    {"help",                   no_argument, 0,  0   },
-    {"storage_implementation", required_argument, 0,  1   },
-    {"storage_address",        required_argument, 0,  2   },
-    {"storage_username",       required_argument, 0,  3   },
-    {"storage_password",       required_argument, 0,  4   },
-    {"mqtt_implementation",    required_argument, 0,  5   },
-    {"broker_url",             required_argument, 0,  6   },
-    {"broker_username",        required_argument, 0,  7   },
-    {"broker_password",        required_argument, 0,  8   },
-    {"broker_ca",              required_argument, 0,  9   },
-    {"client_certificate",     required_argument, 0,  10   },
-    {"client_key",             required_argument, 0,  11   },
-    {"qos",                    required_argument, 0,  12   },
-    {"min_log_level",          required_argument, 0,  13   },
-    {"threads",                required_argument, 0,  14   },
-    {"window_size",            required_argument, 0,  15   },
-    {"training_windows",       required_argument, 0,  16   },
-    {"gamma_mean",             required_argument, 0,  17   },
-    {"gamma_variance",         required_argument, 0,  18   },
-    {"bad_clients_threshold",  required_argument, 0,  19   },
-    {"variance_off",  no_argument, 0,  20   },
-    {"min_observations",  required_argument, 0,  21   },
-    {"timeout",  required_argument, 0,  22   },
-    {"frequency_check",  required_argument, 0,  23   },
-    {"alpha",  required_argument, 0,  24   },
-    {"no_trace_drop",  no_argument, 0,  25   },
-    {"workspace_folder",       required_argument, 0,  26   },
-    {0,                        0,                 0,  0   }
-  };
-
-  int long_index = 0;
-
-  while ((opt = getopt_long(argc, argv, "h:",
-                            long_options, &long_index )) != -1)
-  {
-    switch (opt)
-    {
-      case 0:
-        std::cout << "Beholder remote application handler" << std::endl;
-        print_usage();
-        return EXIT_SUCCESS;
-        break;
-
-      case 1:
-        storage_implementation = std::string(optarg);
-        break;
-
-      case 2:
-        storage_address = std::string(optarg);
-        break;
-
-      case 3:
-        storage_username = std::string(optarg);
-        break;
-
-      case 4:
-        storage_password = std::string(optarg);
-        break;
-
-      case 5:
-        mqtt_implementation = std::string(optarg);
-        break;
-
-      case 6:
-        broker_url = std::string(optarg);
-        break;
-
-      case 7:
-        broker_username = std::string(optarg);
-        break;
-
-      case 8:
-        broker_password = std::string(optarg);
-        break;
-
-      case 9:
-        broker_trust_store = std::string(optarg);
-        break;
-
-      case 10:
-        client_certificate = std::string(optarg);
-        break;
-
-      case 11:
-        client_key = std::string(optarg);
-        break;
-
-      case 12:
-        std::istringstream ( optarg ) >> mqtt_qos;
-
-        if (mqtt_qos < 0 || mqtt_qos > 2)
-        {
-          std::cerr << "Error: invalid MQTT quality of service " << mqtt_qos << ", should be [0,3]" << std::endl;
-          return EXIT_FAILURE;
-        }
-
-        break;
-
-      case 13:
-        min_log_level = std::string(optarg);
-        break;
-
-      case 14:
-        std::istringstream ( optarg ) >> number_of_threads;
-
-        if (number_of_threads < 0)
-        {
-          std::cerr << "Error: invalid number of threads " << number_of_threads << ", it cannot be negative" << std::endl;
-          return EXIT_FAILURE;
-        }
-
-        break;
-
-      case 15:
-        std::istringstream ( optarg ) >> beholder::Parameters_beholder::window_size;
-
-        if (beholder::Parameters_beholder::window_size < 0)
-        {
-          std::cerr << "Error: invalid observation window size " << beholder::Parameters_beholder::window_size << ", it cannot be negative" << std::endl;
-          return EXIT_FAILURE;
-        }
-
-        break;
-
-      case 16:
-        std::istringstream ( optarg ) >> beholder::Parameters_beholder::training_windows;
-
-        if (beholder::Parameters_beholder::training_windows < 0)
-        {
-          std::cerr << "Error: invalid training_windows number " << beholder::Parameters_beholder::training_windows << ", it cannot be negative" << std::endl;
-          return EXIT_FAILURE;
-        }
-
-        break;
-
-      case 17:
-        std::istringstream ( optarg ) >> beholder::Parameters_beholder::gamma_mean;
-
-        if (beholder::Parameters_beholder::gamma_mean < 0)
-        {
-          std::cerr << "Error: invalid gamma_mean number " << beholder::Parameters_beholder::gamma_mean << ", it cannot be negative" << std::endl;
-          return EXIT_FAILURE;
-        }
-
-        break;
-
-      case 18:
-        std::istringstream ( optarg ) >> beholder::Parameters_beholder::gamma_variance;
-
-        if (beholder::Parameters_beholder::gamma_variance < 0)
-        {
-          std::cerr << "Error: invalid gamma_variance number " << beholder::Parameters_beholder::gamma_variance << ", it cannot be negative" << std::endl;
-          return EXIT_FAILURE;
-        }
-
-        break;
-
-      case 19:
-        std::istringstream ( optarg ) >> beholder::Parameters_beholder::bad_clients_threshold;
-
-        if (beholder::Parameters_beholder::bad_clients_threshold < 0)
-        {
-          std::cerr << "Error: invalid percentage threshold for bad clients behavior " << beholder::Parameters_beholder::bad_clients_threshold << ", it cannot be negative" << std::endl;
-          return EXIT_FAILURE;
-        }
-
-        break;
-
-      case 20:
-        beholder::Parameters_beholder::variance_off = true;
-        break;
-
-      case 21:
-        std::istringstream ( optarg ) >> beholder::Parameters_beholder::min_observations;
-
-        if (beholder::Parameters_beholder::min_observations < 0)
-        {
-          std::cerr << "Error: invalid min_observations number " << beholder::Parameters_beholder::min_observations << ", it cannot be negative" << std::endl;
-          return EXIT_FAILURE;
-        }
-
-        break;
-
-      case 22:
-        std::istringstream ( optarg ) >> beholder::Parameters_beholder::timeout;
-
-        if (beholder::Parameters_beholder::timeout < 0)
-        {
-          std::cerr << "Error: invalid timeout " << beholder::Parameters_beholder::timeout << ", it cannot be negative" << std::endl;
-          return EXIT_FAILURE;
-        }
-
-        break;
-
-      case 23:
-        std::istringstream ( optarg ) >> beholder::Parameters_beholder::frequency_check;
-
-        if (beholder::Parameters_beholder::frequency_check < 0)
-        {
-          std::cerr << "Error: invalid frequency_check " << beholder::Parameters_beholder::frequency_check << ", it cannot be negative" << std::endl;
-          return EXIT_FAILURE;
-        }
-
-        break;
-
-      case 24:
-        std::istringstream ( optarg ) >> beholder::Parameters_beholder::alpha;
-
-        if (beholder::Parameters_beholder::alpha < 0)
-        {
-          std::cerr << "Error: invalid alpha " << beholder::Parameters_beholder::alpha << ", it cannot be negative" << std::endl;
-          return EXIT_FAILURE;
-        }
-
-        break;
-
-      case 25:
-        beholder::Parameters_beholder::no_trace_drop = true;
-        break;
-
-      case 26:
-        if (optarg[0] != '/')
-        {
-          std::cerr << "Error: please use absolute path for the workspace folder" << std::endl;
-          return EXIT_FAILURE;
-        }
-
-        workspace_folder = std::string(optarg);
-        break;
-
-      default:
-        std::cerr << "Unable to parse the option \"" << optarg << "\"" << std::endl;
-        print_usage();
-        return EXIT_FAILURE;
-    }
+    std::cerr << "Error: invalid MQTT quality of service " << mqtt_qos << ", should be [0,3]" << std::endl;
+    return EXIT_FAILURE;
   }
+
+  if (number_of_threads < 0)
+  {
+    std::cerr << "Error: invalid number of threads " << number_of_threads << ", it cannot be negative" << std::endl;
+    return EXIT_FAILURE;
+  }
+
+  if (beholder::Parameters_beholder::window_size < 0)
+  {
+    std::cerr << "Error: invalid observation window size " << beholder::Parameters_beholder::window_size << ", it cannot be negative" << std::endl;
+    return EXIT_FAILURE;
+  }
+
+  if (beholder::Parameters_beholder::training_windows < 0)
+  {
+    std::cerr << "Error: invalid training_windows number " << beholder::Parameters_beholder::training_windows << ", it cannot be negative" << std::endl;
+    return EXIT_FAILURE;
+  }
+
+  if (beholder::Parameters_beholder::gamma_mean < 0)
+  {
+    std::cerr << "Error: invalid gamma_mean number " << beholder::Parameters_beholder::gamma_mean << ", it cannot be negative" << std::endl;
+    return EXIT_FAILURE;
+  }
+
+  if (beholder::Parameters_beholder::gamma_variance < 0)
+  {
+    std::cerr << "Error: invalid gamma_variance number " << beholder::Parameters_beholder::gamma_variance << ", it cannot be negative" << std::endl;
+    return EXIT_FAILURE;
+  }
+
+  if (beholder::Parameters_beholder::bad_clients_threshold < 0)
+  {
+    std::cerr << "Error: invalid percentage threshold for bad clients behavior " << beholder::Parameters_beholder::bad_clients_threshold << ", it cannot be negative" << std::endl;
+    return EXIT_FAILURE;
+  }
+
+  if (beholder::Parameters_beholder::min_observations < 0)
+  {
+    std::cerr << "Error: invalid min_observations number " << beholder::Parameters_beholder::min_observations << ", it cannot be negative" << std::endl;
+    return EXIT_FAILURE;
+  }
+
+  if (beholder::Parameters_beholder::timeout < 0)
+  {
+    std::cerr << "Error: invalid timeout " << beholder::Parameters_beholder::timeout << ", it cannot be negative" << std::endl;
+    return EXIT_FAILURE;
+  }
+
+  if (beholder::Parameters_beholder::frequency_check < 0)
+  {
+    std::cerr << "Error: invalid frequency_check " << beholder::Parameters_beholder::frequency_check << ", it cannot be negative" << std::endl;
+    return EXIT_FAILURE;
+  }
+
+  if (beholder::Parameters_beholder::alpha < 0)
+  {
+    std::cerr << "Error: invalid alpha " << beholder::Parameters_beholder::alpha << ", it cannot be negative" << std::endl;
+    return EXIT_FAILURE;
+  }
+
+  if (beholder::Parameters_beholder::workspace_folder != "./" && beholder::Parameters_beholder::workspace_folder.front() != '/')
+  {
+    std::cerr << "Error: please use absolute path for the workspace folder" << std::endl;
+    return EXIT_FAILURE;
+  }
+
+
+
+  // // parsing the program options
+  // static struct option long_options[] =
+  // {
+  //   //{"help",                   no_argument, 0,  0   },
+  //   //{"storage_implementation", required_argument, 0,  1   },
+  //   //{"storage_address",        required_argument, 0,  2   },
+  //   //{"storage_username",       required_argument, 0,  3   },
+  //   //{"storage_password",       required_argument, 0,  4   },
+  //   // {"mqtt_implementation",    required_argument, 0,  5   },
+  //   // {"broker_url",             required_argument, 0,  6   },
+  //   // {"broker_username",        required_argument, 0,  7   },
+  //   // {"broker_password",        required_argument, 0,  8   },
+  //   // {"broker_ca",              required_argument, 0,  9   },
+  //   // {"client_certificate",     required_argument, 0,  10   },
+  //   // {"client_key",             required_argument, 0,  11   },
+  //   // {"qos",                    required_argument, 0,  12   },
+  //   //{"min_log_level",          required_argument, 0,  13   },
+  //   //{"threads",                required_argument, 0,  14   },
+  //   // {"window_size",            required_argument, 0,  15   },
+  //   // {"training_windows",       required_argument, 0,  16   },
+  //   // {"gamma_mean",             required_argument, 0,  17   },
+  //   // {"gamma_variance",         required_argument, 0,  18   },
+  //   // {"bad_clients_threshold",  required_argument, 0,  19   },
+  //   {"variance_off",  no_argument, 0,  20   },
+  //   {"min_observations",  required_argument, 0,  21   },
+  //   {"timeout",  required_argument, 0,  22   },
+  //   {"frequency_check",  required_argument, 0,  23   },
+  //   {"alpha",  required_argument, 0,  24   },
+  //   {"no_trace_drop",  no_argument, 0,  25   },
+  //   {"workspace_folder",       required_argument, 0,  26   },
+  //   {0,                        0,                 0,  0   }
+  // };
+
+  // int long_index = 0;
+
+  // while ((opt = getopt_long(argc, argv, "h:",
+  //                           long_options, &long_index )) != -1)
+  // {
+  //   switch (opt)
+  //   {
+  //     // case 0:
+  //     //   std::cout << "Beholder remote application handler" << std::endl;
+  //     //   print_usage();
+  //     //   return EXIT_SUCCESS;
+  //     //   break;
+  //     //
+  //     // case 1:
+  //     //   storage_implementation = std::string(optarg);
+  //     //   break;
+  //     //
+  //     // case 2:
+  //     //   storage_address = std::string(optarg);
+  //     //   break;
+  //     //
+  //     // case 3:
+  //     //   storage_username = std::string(optarg);
+  //     //   break;
+  //     //
+  //     // case 4:
+  //     //   storage_password = std::string(optarg);
+  //     //   break;
+  //     //
+  //     // case 5:
+  //     //   mqtt_implementation = std::string(optarg);
+  //     //   break;
+  //     //
+  //     // case 6:
+  //     //   broker_url = std::string(optarg);
+  //     //   break;
+  //     //
+  //     // case 7:
+  //     //   broker_username = std::string(optarg);
+  //     //   break;
+  //     //
+  //     // case 8:
+  //     //   broker_password = std::string(optarg);
+  //     //   break;
+  //     //
+  //     // case 9:
+  //     //   broker_trust_store = std::string(optarg);
+  //     //   break;
+  //     //
+  //     // case 10:
+  //     //   client_certificate = std::string(optarg);
+  //     //   break;
+  //     //
+  //     // case 11:
+  //     //   client_key = std::string(optarg);
+  //     //   break;
+  //
+  //     case 12:
+  //       std::istringstream ( optarg ) >> mqtt_qos;
+  //
+  //       if (mqtt_qos < 0 || mqtt_qos > 2)
+  //       {
+  //         std::cerr << "Error: invalid MQTT quality of service " << mqtt_qos << ", should be [0,3]" << std::endl;
+  //         return EXIT_FAILURE;
+  //       }
+  //
+  //       break;
+  //
+  //     case 13:
+  //       min_log_level = std::string(optarg);
+  //       break;
+  //
+  //     case 14:
+  //       std::istringstream ( optarg ) >> number_of_threads;
+  //
+  //       if (number_of_threads < 0)
+  //       {
+  //         std::cerr << "Error: invalid number of threads " << number_of_threads << ", it cannot be negative" << std::endl;
+  //         return EXIT_FAILURE;
+  //       }
+  //
+  //       break;
+  //
+  //     case 15:
+  //       std::istringstream ( optarg ) >> beholder::Parameters_beholder::window_size;
+  //
+  //       if (beholder::Parameters_beholder::window_size < 0)
+  //       {
+  //         std::cerr << "Error: invalid observation window size " << beholder::Parameters_beholder::window_size << ", it cannot be negative" << std::endl;
+  //         return EXIT_FAILURE;
+  //       }
+  //
+  //       break;
+  //
+  //     case 16:
+  //       std::istringstream ( optarg ) >> beholder::Parameters_beholder::training_windows;
+  //
+  //       if (beholder::Parameters_beholder::training_windows < 0)
+  //       {
+  //         std::cerr << "Error: invalid training_windows number " << beholder::Parameters_beholder::training_windows << ", it cannot be negative" << std::endl;
+  //         return EXIT_FAILURE;
+  //       }
+  //
+  //       break;
+  //
+  //     case 17:
+  //       std::istringstream ( optarg ) >> beholder::Parameters_beholder::gamma_mean;
+  //
+  //       if (beholder::Parameters_beholder::gamma_mean < 0)
+  //       {
+  //         std::cerr << "Error: invalid gamma_mean number " << beholder::Parameters_beholder::gamma_mean << ", it cannot be negative" << std::endl;
+  //         return EXIT_FAILURE;
+  //       }
+  //
+  //       break;
+  //
+  //     case 18:
+  //       std::istringstream ( optarg ) >> beholder::Parameters_beholder::gamma_variance;
+  //
+  //       if (beholder::Parameters_beholder::gamma_variance < 0)
+  //       {
+  //         std::cerr << "Error: invalid gamma_variance number " << beholder::Parameters_beholder::gamma_variance << ", it cannot be negative" << std::endl;
+  //         return EXIT_FAILURE;
+  //       }
+  //
+  //       break;
+  //
+  //     case 19:
+  //       std::istringstream ( optarg ) >> beholder::Parameters_beholder::bad_clients_threshold;
+  //
+  //       if (beholder::Parameters_beholder::bad_clients_threshold < 0)
+  //       {
+  //         std::cerr << "Error: invalid percentage threshold for bad clients behavior " << beholder::Parameters_beholder::bad_clients_threshold << ", it cannot be negative" << std::endl;
+  //         return EXIT_FAILURE;
+  //       }
+  //
+  //       break;
+  //
+  //     case 20:
+  //       beholder::Parameters_beholder::variance_off = true;
+  //       break;
+  //
+  //     case 21:
+  //       std::istringstream ( optarg ) >> beholder::Parameters_beholder::min_observations;
+  //
+  //       if (beholder::Parameters_beholder::min_observations < 0)
+  //       {
+  //         std::cerr << "Error: invalid min_observations number " << beholder::Parameters_beholder::min_observations << ", it cannot be negative" << std::endl;
+  //         return EXIT_FAILURE;
+  //       }
+  //
+  //       break;
+  //
+  //     case 22:
+  //       std::istringstream ( optarg ) >> beholder::Parameters_beholder::timeout;
+  //
+  //       if (beholder::Parameters_beholder::timeout < 0)
+  //       {
+  //         std::cerr << "Error: invalid timeout " << beholder::Parameters_beholder::timeout << ", it cannot be negative" << std::endl;
+  //         return EXIT_FAILURE;
+  //       }
+  //
+  //       break;
+  //
+  //     case 23:
+  //       std::istringstream ( optarg ) >> beholder::Parameters_beholder::frequency_check;
+  //
+  //       if (beholder::Parameters_beholder::frequency_check < 0)
+  //       {
+  //         std::cerr << "Error: invalid frequency_check " << beholder::Parameters_beholder::frequency_check << ", it cannot be negative" << std::endl;
+  //         return EXIT_FAILURE;
+  //       }
+  //
+  //       break;
+  //
+  //     case 24:
+  //       std::istringstream ( optarg ) >> beholder::Parameters_beholder::alpha;
+  //
+  //       if (beholder::Parameters_beholder::alpha < 0)
+  //       {
+  //         std::cerr << "Error: invalid alpha " << beholder::Parameters_beholder::alpha << ", it cannot be negative" << std::endl;
+  //         return EXIT_FAILURE;
+  //       }
+  //
+  //       break;
+  //
+  //     case 25:
+  //       beholder::Parameters_beholder::no_trace_drop = true;
+  //       break;
+  //
+  //     case 26:
+  //       if (optarg[0] != '/')
+  //       {
+  //         std::cerr << "Error: please use absolute path for the workspace folder" << std::endl;
+  //         return EXIT_FAILURE;
+  //       }
+  //
+  //       beholder::Parameters_beholder::workspace_folder = std::string(optarg);
+  //       break;
+  //
+  //     default:
+  //       std::cerr << "Unable to parse the option \"" << optarg << "\"" << std::endl;
+  //       print_usage();
+  //       return EXIT_FAILURE;
+  //   }
+  // }
 
   // set the level of logging
   if (min_log_level.compare("disabled") == 0)
