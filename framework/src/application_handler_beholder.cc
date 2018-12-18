@@ -78,6 +78,9 @@ RemoteApplicationHandler::RemoteApplicationHandler( const std::string& applicati
 
   // write the output file used to plot the training/operational phase windows
   std::ofstream outfileConf (application_workspace + "configTestWindows.txt", std::ofstream::out);
+  if (!outfileConf.is_open()){
+      agora::warning(log_prefix, "Error: the output configuration file has not been created!");
+  }
   outfileConf << Parameters_beholder::window_size << " ";
   outfileConf << Parameters_beholder::training_windows << " ";
   outfileConf.close();
@@ -584,14 +587,36 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
           // if the file is open
           if (search->second.first.is_open())
           {
+              // the metric subdirectory should have already been created (because we reach this point only if the
+              // structure of the metric in analysis has been created), but there should be theoretically
+              // no harm in making sure about that.
+              std::string metric_folder_path = application_workspace + search->first + "/";
+
+              // creation of output file folders (the suffix subdirectory)
+              metric_folder_path = metric_folder_path + std::to_string(suffix_plot + 1) + "/";
+              bool is_created = create_folder(metric_folder_path);
+
+              if (!is_created)
+              {
+                agora::warning("Unable to create the folder \"", metric_folder_path, "\" with errno=", errno);
+                throw std::runtime_error("Unable to create the folder \"" + metric_folder_path + "\" with errno=" + std::to_string(errno) );
+              }
+
             // copy the training lines in the output files for the next iteration, with naming siffix++
             // prepare the next files:
             std::fstream current_metric_observations_file;
             std::fstream current_metric_ici_file;
-            std::string file_path_obs = application_workspace + search->first + "/observations_" + search->first + "_" + std::to_string(suffix_plot + 1) + ".txt";
-            std::string file_path_ici = application_workspace + search->first + "/ici_" + search->first + "_" + std::to_string(suffix_plot) + ".txt";
+            std::string file_path_obs = metric_folder_path + "observations_" + search->first + "_" + std::to_string(suffix_plot + 1) + ".txt";
+            std::string file_path_ici = metric_folder_path + "ici_" + search->first + "_" + std::to_string(suffix_plot + 1) + ".txt";
             current_metric_observations_file.open(file_path_obs, std::fstream::out);
             current_metric_ici_file.open(file_path_ici, std::fstream::out);
+            if (!current_metric_observations_file.is_open()){
+                agora::warning(log_prefix, "Error: the (future)output observation file has not been created!");
+            }
+            if (!current_metric_ici_file.is_open()){
+                agora::warning(log_prefix, "Error: the (future) output ici file has not been created!");
+            }
+
             std::string temp_line;
 
             // copy into the new file the observations related to the training phase
@@ -824,16 +849,42 @@ int RemoteApplicationHandler::fill_buffers(const Observation_data& observation)
         return 1;
       }
 
+      // creation of output file folders (the metric subdirectory)
+      std::string metric_folder_path = application_workspace + observation.metric_fields_vec[index] + "/";
+      bool is_created = create_folder(metric_folder_path);
+
+      if (!is_created)
+      {
+        agora::warning("Unable to create the folder \"", metric_folder_path, "\" with errno=", errno);
+        throw std::runtime_error("Unable to create the folder \"" + metric_folder_path + "\" with errno=" + std::to_string(errno) );
+      }
+
+      // creation of output file folders (the suffix subdirectory)
+      metric_folder_path = metric_folder_path + std::to_string(suffix_plot) + "/";
+      is_created = create_folder(metric_folder_path);
+
+      if (!is_created)
+      {
+        agora::warning("Unable to create the folder \"", metric_folder_path, "\" with errno=", errno);
+        throw std::runtime_error("Unable to create the folder \"" + metric_folder_path + "\" with errno=" + std::to_string(errno) );
+      }
+
       // if we arrive here (as it is supposed to be) we need to create a new output-file mapping for the current metric
       // current output file
       std::fstream current_metric_observations_file;
       std::fstream current_metric_ici_file;
       //std::vector<std::ofstream> test;
       //test.emplace_back("bobo", std::ofstream::out);
-      std::string file_path_obs = application_workspace + observation.metric_fields_vec[index] + "/observations_" + observation.metric_fields_vec[index] + "_" + std::to_string(suffix_plot) + ".txt";
-      std::string file_path_ici = application_workspace + observation.metric_fields_vec[index] + "/ici_" + observation.metric_fields_vec[index] + "_" + std::to_string(suffix_plot) + ".txt";
+      std::string file_path_obs = metric_folder_path + "observations_" + observation.metric_fields_vec[index] + "_" + std::to_string(suffix_plot) + ".txt";
+      std::string file_path_ici = metric_folder_path + "ici_" + observation.metric_fields_vec[index] + "_" + std::to_string(suffix_plot) + ".txt";
       current_metric_observations_file.open(file_path_obs, std::fstream::out);
       current_metric_ici_file.open(file_path_ici, std::fstream::out);
+      if (!current_metric_observations_file.is_open()){
+          agora::warning(log_prefix, "Error: the output observation file has not been created!");
+      }
+      if (!current_metric_ici_file.is_open()){
+          agora::warning(log_prefix, "Error: the output ici file has not been created!");
+      }
       current_metric_observations_file << current_residual << std::endl;
       current_metric_observations_file.flush();
       auto temp_pair_file = std::make_pair(std::move(current_metric_observations_file), std::move(current_metric_ici_file));
