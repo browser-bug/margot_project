@@ -29,6 +29,7 @@ namespace beholder
   struct Parameters_beholder
   {
     static std::string workspace_folder;
+    static bool output_files;
     static int window_size;
     static int training_windows;
     static float gamma_mean;

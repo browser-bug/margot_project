@@ -44,9 +44,12 @@ namespace beholder
     // select the correct output file for the ICI curves plot for the current metric
     auto search_file = output_files_map.find(data_test.metric_name);
 
-    if (search_file == output_files_map.end())
+    if (Parameters_beholder::output_files)
     {
-      agora::warning(log_prefix, "Error: attempting to write to a file_output_map which does not exist.");
+      if (search_file == output_files_map.end())
+      {
+        agora::warning(log_prefix, "Error: attempting to write to a file_output_map which does not exist.");
+      }
     }
 
     // understand whether we are in the training phase or not
@@ -136,7 +139,10 @@ namespace beholder
 
         agora::pedantic(log_prefix, "Training phase confidence interval for mean: [", data_test.current_mean_conf_interval_lower, ",", data_test.current_mean_conf_interval_upper, "]");
 
-        search_file->second.second << 1 << " " << data_test.current_mean_conf_interval_lower << " " << data_test.current_mean_conf_interval_upper << " " << data_test.reference_sample_mean_mean;
+        if (Parameters_beholder::output_files)
+        {
+          search_file->second.second << 1 << " " << data_test.current_mean_conf_interval_lower << " " << data_test.current_mean_conf_interval_upper << " " << data_test.reference_sample_mean_mean;
+        }
 
         // compute the reference sample-variance
         if (!Parameters_beholder::variance_off)
@@ -236,7 +242,11 @@ namespace beholder
 
 
           agora::pedantic(log_prefix, "Training phase confidence interval for variance: [", data_test.current_variance_conf_interval_lower, ",", data_test.current_variance_conf_interval_upper, "]");
-          search_file->second.second << " " << data_test.current_variance_conf_interval_lower << " " << data_test.current_variance_conf_interval_upper << " " << data_test.reference_sample_variance_mean;
+
+          if (Parameters_beholder::output_files)
+          {
+            search_file->second.second << " " << data_test.current_variance_conf_interval_lower << " " << data_test.current_variance_conf_interval_upper << " " << data_test.reference_sample_variance_mean;
+          }
 
           // check if the CI for variance is valid (i.e. if it is not a NAN)
           if (isnanf(data_test.current_variance_conf_interval_lower) || isnanf(data_test.current_variance_conf_interval_upper))
@@ -247,7 +257,10 @@ namespace beholder
 
         }
 
-        search_file->second.second << "\n";
+        if (Parameters_beholder::output_files)
+        {
+          search_file->second.second << "\n";
+        }
       }
     }
     else
@@ -302,7 +315,11 @@ namespace beholder
       }
 
       agora::pedantic(log_prefix, "Current intersection confidence interval for mean: [", data_test.current_mean_conf_interval_lower, ",", data_test.current_mean_conf_interval_upper, "]");
-      search_file->second.second << lower_cdt_window << " " << data_test.current_mean_conf_interval_lower << " " << data_test.current_mean_conf_interval_upper << " " << data_test.current_sample_mean_mean;
+
+      if (Parameters_beholder::output_files)
+      {
+        search_file->second.second << lower_cdt_window << " " << data_test.current_mean_conf_interval_lower << " " << data_test.current_mean_conf_interval_upper << " " << data_test.current_sample_mean_mean;
+      }
 
       // check whether the intersection of the confidence interval is valid,
       // i.e. if the lower bound is still the lower one and the upper bound is still the upper one
@@ -369,7 +386,11 @@ namespace beholder
         }
 
         agora::pedantic(log_prefix, "Current intersection confidence interval for variance: [", data_test.current_variance_conf_interval_lower, ",", data_test.current_variance_conf_interval_upper, "]");
-        search_file->second.second << " " << data_test.current_variance_conf_interval_lower << " " << data_test.current_variance_conf_interval_upper << " " << data_test.current_sample_variance_mean;
+
+        if (Parameters_beholder::output_files)
+        {
+          search_file->second.second << " " << data_test.current_variance_conf_interval_lower << " " << data_test.current_variance_conf_interval_upper << " " << data_test.current_sample_variance_mean;
+        }
 
         // check whether the intersection of the confidence interval is valid,
         // i.e. if the lower bound is still the lower one and the upper bound is still the upper one
@@ -388,7 +409,10 @@ namespace beholder
         }
       }
 
-      search_file->second.second << "\n";
+      if (Parameters_beholder::output_files)
+      {
+        search_file->second.second << "\n";
+      }
     }
 
     // return true if a change has been detected either in the mean or in the variance

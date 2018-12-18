@@ -22,6 +22,7 @@
 // #include <getopt.h>
 #include <stdexcept>
 #include <sstream>
+#include <libgen.h>
 
 
 #include "agora/logger.hpp"
@@ -37,87 +38,87 @@
 #include <boost/program_options/variables_map.hpp>
 
 
-void print_usage( void )
-{
-  std::cout << "Usage: beholder [options]" << std::endl;
-  std::cout << "Optional arguments:" << std::endl;
-  std::cout << " --workspace_folder <path>      Where the application stores temporary files" << std::endl;
-  std::cout << "                                to plot the ICI CDT curves" << std::endl;
-  std::cout << "--------------------------------------------------------------------------------" << std::endl;
-  std::cout << " --storage_implementation <str> The name of the actual storage used by beholder (same as agorà)" << std::endl;
-  std::cout << "                                Available alternatives:" << std::endl;
-  std::cout << "                                 - \"cassandra\" [DEFAULT]" << std::endl;
-  std::cout << " --storage_address <str>        A reference to the storage, depending on its" << std::endl;
-  std::cout << "                                actual implementation:" << std::endl;
-  std::cout << "                                 - for \"cassandra\" the address of a cluster" << std::endl;
-  std::cout << "                                   DEFAULT = \"127.0.0.1\"" << std::endl;
-  std::cout << " --storage_username <str>       The username for authentication purpose, if any" << std::endl;
-  std::cout << "                                DEFAULT = \"\"" << std::endl;
-  std::cout << " --storage_password <str>       The password for authentication purpose, if any" << std::endl;
-  std::cout << "                                DEFAULT = \"\"" << std::endl;
-  std::cout << "--------------------------------------------------------------------------------" << std::endl;
-  std::cout << " --mqtt_implementation <str>    The name of the actual MQTT client used by beholder (same as agorà)" << std::endl;
-  std::cout << "                                Available alternatives:" << std::endl;
-  std::cout << "                                 - \"paho\" [DEFAULT]" << std::endl;
-  std::cout << " --broker_url <str>             The url of the MQTT broker" << std::endl;
-  std::cout << "                                DEFAULT = \"127.0.0.1:1883\"" << std::endl;
-  std::cout << " --broker_username <str>        The username for authentication purpose, if any" << std::endl;
-  std::cout << "                                DEFAULT = \"\"" << std::endl;
-  std::cout << " --broker_password <str>        The password for authentication purpose, if any" << std::endl;
-  std::cout << "                                DEFAULT = \"\"" << std::endl;
-  std::cout << " --broker_ca <str>              The path to the broker certificate (e.g. ca.crt), if any" << std::endl;
-  std::cout << "                                DEFAULT = \"\"" << std::endl;
-  std::cout << " --client_certificate <str>     The path to the client certificate (e.g. client.crt), if any" << std::endl;
-  std::cout << "                                DEFAULT = \"\"" << std::endl;
-  std::cout << " --client_private_key <str>     The path to the private key (e.g. client.key), if any" << std::endl;
-  std::cout << "                                DEFAULT = \"\"" << std::endl;
-  std::cout << " --qos int                      The MQTT quality of service level [0-2]" << std::endl;
-  std::cout << "                                DEFAULT = \"2\"" << std::endl;
-  std::cout << "--------------------------------------------------------------------------------" << std::endl;
-  std::cout << " --min_log_level <str>          The minimum level of logging (stdout)" << std::endl;
-  std::cout << "                                Available alternatives:" << std::endl;
-  std::cout << "                                 - \"disabled\"" << std::endl;
-  std::cout << "                                 - \"warning\"" << std::endl;
-  std::cout << "                                 - \"info\"" << std::endl;
-  std::cout << "                                 - \"pedantic\"" << std::endl;
-  std::cout << "                                 - \"debug\"" << std::endl;
-  std::cout << "                                DEFAULT = \"info\"" << std::endl;
-  std::cout << " --threads <int>                The number of workers to process messages" << std::endl;
-  std::cout << "                                NOTE: it is recommended to have at least one" << std::endl;
-  std::cout << "                                worker for each managed application" << std::endl;
-  std::cout << "                                DEFAULT = \"3\"" << std::endl;
-  std::cout << "--------------------------------------------------------------------------------" << std::endl;
-  std::cout << " --window_size <int>            The number of observations that fit in a single window of samples" << std::endl;
-  std::cout << "                                DEFAULT = \"20\"" << std::endl;
-  std::cout << " --training_windows <int>       Number of observation windows to be used as training for the CDT" << std::endl;
-  std::cout << "                                DEFAULT = \"5\"" << std::endl;
-  std::cout << " --gamma_mean <float>           Parameter to configure the delay in the detection of the change in the mean." << std::endl;
-  std::cout << "                                If greater than 1 it delays the change detection reducing the number of false positives." << std::endl;
-  std::cout << "                                DEFAULT = \"3\"" << std::endl;
-  std::cout << " --gamma_variance <float>       Parameter to configure the delay in the detection of the change in the variance." << std::endl;
-  std::cout << "                                If greater than 1 it delays the change detection reducing the number of false positives." << std::endl;
-  std::cout << "                                DEFAULT = \"3\"" << std::endl;
-  std::cout << " --bad_clients_threshold <int>  The percentage of clients for every application" << std::endl;
-  std::cout << "                                that is allowed to behave \"badly\" wrt to the model" << std::endl;
-  std::cout << "                                DEFAULT = \"20\"" << std::endl;
-  std::cout << " --variance_off                 Disables the variance feature from the ICI CDT." << std::endl;
-  std::cout << "                                DEFAULT = \"false\"" << std::endl;
-  std::cout << " --min_observations <int>       Minimum number of observations (before and after the change window selected" << std::endl;
-  std::cout << "                                in the 1st level of the CDT) to allow the hypothesis test." << std::endl;
-  std::cout << "                                DEFAULT = \"20\"" << std::endl;
-  std::cout << " --timeout <int>                Timeout to stop the waiting process during the 2nd level of the CDT" << std::endl;
-  std::cout << "                                for the observations to reach the min_observations number.[Expressed in seconds]" << std::endl;
-  std::cout << "                                DEFAULT = \"130\"" << std::endl;
-  std::cout << " --frequency_check <int>        Frequency of the check for new incoming observations in the trace table" << std::endl;
-  std::cout << "                                The check will be carried out until either the min_observations number is reached" << std::endl;
-  std::cout << "                                or the wait time runs out according to the timeout.[Expressed in seconds]" << std::endl;
-  std::cout << "                                DEFAULT = \"30\"" << std::endl;
-  std::cout << " --alpha <float>                Alpha (significance level) used in the hyphotesis test." << std::endl;
-  std::cout << "                                DEFAULT = \"0.05\"" << std::endl;
-  std::cout << " --no_trace_drop                When enabled allows to just delete the trace (after a confirmed change)" << std::endl;
-  std::cout << "                                from the top to the last element of the change window." << std::endl;
-  std::cout << "                                DEFAULT = \"false\"" << std::endl;
-}
+// void print_usage( void )
+// {
+//   std::cout << "Usage: beholder [options]" << std::endl;
+//   std::cout << "Optional arguments:" << std::endl;
+//   std::cout << " --workspace_folder <path>      Where the application stores temporary files" << std::endl;
+//   std::cout << "                                to plot the ICI CDT curves" << std::endl;
+//   std::cout << "--------------------------------------------------------------------------------" << std::endl;
+//   std::cout << " --storage_implementation <str> The name of the actual storage used by beholder (same as agorà)" << std::endl;
+//   std::cout << "                                Available alternatives:" << std::endl;
+//   std::cout << "                                 - \"cassandra\" [DEFAULT]" << std::endl;
+//   std::cout << " --storage_address <str>        A reference to the storage, depending on its" << std::endl;
+//   std::cout << "                                actual implementation:" << std::endl;
+//   std::cout << "                                 - for \"cassandra\" the address of a cluster" << std::endl;
+//   std::cout << "                                   DEFAULT = \"127.0.0.1\"" << std::endl;
+//   std::cout << " --storage_username <str>       The username for authentication purpose, if any" << std::endl;
+//   std::cout << "                                DEFAULT = \"\"" << std::endl;
+//   std::cout << " --storage_password <str>       The password for authentication purpose, if any" << std::endl;
+//   std::cout << "                                DEFAULT = \"\"" << std::endl;
+//   std::cout << "--------------------------------------------------------------------------------" << std::endl;
+//   std::cout << " --mqtt_implementation <str>    The name of the actual MQTT client used by beholder (same as agorà)" << std::endl;
+//   std::cout << "                                Available alternatives:" << std::endl;
+//   std::cout << "                                 - \"paho\" [DEFAULT]" << std::endl;
+//   std::cout << " --broker_url <str>             The url of the MQTT broker" << std::endl;
+//   std::cout << "                                DEFAULT = \"127.0.0.1:1883\"" << std::endl;
+//   std::cout << " --broker_username <str>        The username for authentication purpose, if any" << std::endl;
+//   std::cout << "                                DEFAULT = \"\"" << std::endl;
+//   std::cout << " --broker_password <str>        The password for authentication purpose, if any" << std::endl;
+//   std::cout << "                                DEFAULT = \"\"" << std::endl;
+//   std::cout << " --broker_ca <str>              The path to the broker certificate (e.g. ca.crt), if any" << std::endl;
+//   std::cout << "                                DEFAULT = \"\"" << std::endl;
+//   std::cout << " --client_certificate <str>     The path to the client certificate (e.g. client.crt), if any" << std::endl;
+//   std::cout << "                                DEFAULT = \"\"" << std::endl;
+//   std::cout << " --client_private_key <str>     The path to the private key (e.g. client.key), if any" << std::endl;
+//   std::cout << "                                DEFAULT = \"\"" << std::endl;
+//   std::cout << " --qos int                      The MQTT quality of service level [0-2]" << std::endl;
+//   std::cout << "                                DEFAULT = \"2\"" << std::endl;
+//   std::cout << "--------------------------------------------------------------------------------" << std::endl;
+//   std::cout << " --min_log_level <str>          The minimum level of logging (stdout)" << std::endl;
+//   std::cout << "                                Available alternatives:" << std::endl;
+//   std::cout << "                                 - \"disabled\"" << std::endl;
+//   std::cout << "                                 - \"warning\"" << std::endl;
+//   std::cout << "                                 - \"info\"" << std::endl;
+//   std::cout << "                                 - \"pedantic\"" << std::endl;
+//   std::cout << "                                 - \"debug\"" << std::endl;
+//   std::cout << "                                DEFAULT = \"info\"" << std::endl;
+//   std::cout << " --threads <int>                The number of workers to process messages" << std::endl;
+//   std::cout << "                                NOTE: it is recommended to have at least one" << std::endl;
+//   std::cout << "                                worker for each managed application" << std::endl;
+//   std::cout << "                                DEFAULT = \"3\"" << std::endl;
+//   std::cout << "--------------------------------------------------------------------------------" << std::endl;
+//   std::cout << " --window_size <int>            The number of observations that fit in a single window of samples" << std::endl;
+//   std::cout << "                                DEFAULT = \"20\"" << std::endl;
+//   std::cout << " --training_windows <int>       Number of observation windows to be used as training for the CDT" << std::endl;
+//   std::cout << "                                DEFAULT = \"5\"" << std::endl;
+//   std::cout << " --gamma_mean <float>           Parameter to configure the delay in the detection of the change in the mean." << std::endl;
+//   std::cout << "                                If greater than 1 it delays the change detection reducing the number of false positives." << std::endl;
+//   std::cout << "                                DEFAULT = \"3\"" << std::endl;
+//   std::cout << " --gamma_variance <float>       Parameter to configure the delay in the detection of the change in the variance." << std::endl;
+//   std::cout << "                                If greater than 1 it delays the change detection reducing the number of false positives." << std::endl;
+//   std::cout << "                                DEFAULT = \"3\"" << std::endl;
+//   std::cout << " --bad_clients_threshold <int>  The percentage of clients for every application" << std::endl;
+//   std::cout << "                                that is allowed to behave \"badly\" wrt to the model" << std::endl;
+//   std::cout << "                                DEFAULT = \"20\"" << std::endl;
+//   std::cout << " --variance_off                 Disables the variance feature from the ICI CDT." << std::endl;
+//   std::cout << "                                DEFAULT = \"false\"" << std::endl;
+//   std::cout << " --min_observations <int>       Minimum number of observations (before and after the change window selected" << std::endl;
+//   std::cout << "                                in the 1st level of the CDT) to allow the hypothesis test." << std::endl;
+//   std::cout << "                                DEFAULT = \"20\"" << std::endl;
+//   std::cout << " --timeout <int>                Timeout to stop the waiting process during the 2nd level of the CDT" << std::endl;
+//   std::cout << "                                for the observations to reach the min_observations number.[Expressed in seconds]" << std::endl;
+//   std::cout << "                                DEFAULT = \"130\"" << std::endl;
+//   std::cout << " --frequency_check <int>        Frequency of the check for new incoming observations in the trace table" << std::endl;
+//   std::cout << "                                The check will be carried out until either the min_observations number is reached" << std::endl;
+//   std::cout << "                                or the wait time runs out according to the timeout.[Expressed in seconds]" << std::endl;
+//   std::cout << "                                DEFAULT = \"30\"" << std::endl;
+//   std::cout << " --alpha <float>                Alpha (significance level) used in the hyphotesis test." << std::endl;
+//   std::cout << "                                DEFAULT = \"0.05\"" << std::endl;
+//   std::cout << " --no_trace_drop                When enabled allows to just delete the trace (after a confirmed change)" << std::endl;
+//   std::cout << "                                from the top to the last element of the change window." << std::endl;
+//   std::cout << "                                DEFAULT = \"false\"" << std::endl;
+// }
 
 namespace po = boost::program_options;
 po::options_description opts_desc("Optional arguments for the Beholder:");
@@ -173,6 +174,18 @@ int main( int argc, char* argv[] )
   std::string plugin_folder;
   std::string min_log_level = "info";
   int number_of_threads = 3;
+
+
+  char result[ PATH_MAX ];
+  ssize_t count = readlink("/proc/self/exe", result, PATH_MAX);
+  const char* path;
+
+  if (count != -1)
+  {
+    path = dirname(result);
+  }
+
+  beholder::Parameters_beholder::workspace_folder = path;
 
   // Handle the program options
   opts_desc.add_options()
@@ -252,6 +265,9 @@ int main( int argc, char* argv[] )
   ("workspace_folder", po::value<std::string>(&beholder::Parameters_beholder::workspace_folder)->
    default_value(beholder::Parameters_beholder::workspace_folder),
    "Absolute path where the application stores temporary files to plot the ICI CDT curves. <path>")
+  ("output_files_off", po::bool_switch(&beholder::Parameters_beholder::output_files)->
+   default_value(beholder::Parameters_beholder::output_files),
+   "Disable the creation of the files needed to plot the ICI curves.")
   ;
   ParseCommandLine(argc, argv);
 
@@ -322,7 +338,7 @@ int main( int argc, char* argv[] )
     return EXIT_FAILURE;
   }
 
-  if (beholder::Parameters_beholder::workspace_folder != "./" && beholder::Parameters_beholder::workspace_folder.front() != '/')
+  if (beholder::Parameters_beholder::workspace_folder != "./workspace/" && beholder::Parameters_beholder::workspace_folder.front() != '/')
   {
     std::cerr << "Error: please use absolute path for the workspace folder" << std::endl;
     return EXIT_FAILURE;

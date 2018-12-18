@@ -30,7 +30,6 @@
 #include <set>
 #include <sys/stat.h> // to create directories, only for linux systems
 
-
 #include "agora/virtual_io.hpp"
 #include "agora/common_objects.hpp"
 #include "beholder/ici_test_data.hpp"
