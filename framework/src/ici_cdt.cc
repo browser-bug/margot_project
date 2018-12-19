@@ -32,9 +32,6 @@ namespace beholder
     bool change_detected_mean = false;
     bool change_detected_variance = false;
 
-    // bool used to know whether the computed CI for variance is valid or if it is a NAN
-    bool valid_variance = true;
-
     // increase the current windows number
     data_test.window_number++;
 
@@ -251,7 +248,7 @@ namespace beholder
           // check if the CI for variance is valid (i.e. if it is not a NAN)
           if (isnanf(data_test.current_variance_conf_interval_lower) || isnanf(data_test.current_variance_conf_interval_upper))
           {
-            valid_variance = false;
+            data_test.valid_variance = false;
           }
 
 
@@ -339,7 +336,7 @@ namespace beholder
 
       // as soon as a change is detected the system returns a true, without even checking whether it is for the mean or for the variance
       // thus here I won't even check the variance if the mean already detected a change.
-      if (!Parameters_beholder::variance_off && !change_detected_mean)
+      if (!Parameters_beholder::variance_off && !change_detected_mean && data_test.valid_variance)
       {
         // save the previous sample-variance mean
         float previous_sample_variance_mean = data_test.current_sample_variance_mean;

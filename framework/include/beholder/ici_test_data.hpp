@@ -42,6 +42,9 @@ namespace beholder
     // counter of the observed (complete) windows up to now
     int window_number;
 
+    // bool to check if the variance CI is valid or if it is null (NaN):
+    bool valid_variance;
+
     // training phase data structures:
     std::vector<float> training_sample_mean; // M(s)
     std::vector<float> training_sample_variance; // S(s)

@@ -181,6 +181,8 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
         new_ici_struct.metric_name = i.first;
         // initilize the window number to zero
         new_ici_struct.window_number = 0;
+        // initialize the valid_variance to true
+        new_ici_struct.valid_variance = true;
         agora::debug(log_prefix, "CDT data for metric ", i.first, " NOT found. Initialized CDT data structure and starting CDT!");
         change_detected = IciCdt::perform_ici_cdt(new_ici_struct, i.second, output_files_map);
         ici_cdt_map.emplace(i.first, new_ici_struct);
