@@ -153,7 +153,7 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
       continue;
     }
 
-    agora::debug(log_prefix, "Current filling level of the buffer for metric ", i.first, ": ", i.second.size());
+    agora::debug(log_prefix, "Current filling level of the buffer for metric ", i.first, ": ", i.second.size(), "/", Parameters_beholder::window_size);
 
     // if any buffer is filled in then perform the ici cdt on it
     if (i.second.size() == Parameters_beholder::window_size)
@@ -190,6 +190,9 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
         // so basically avoid the if to check for the boolean "change_detected"
       }
 
+      // Empty the (filled-in) buffer for the current metric.
+      i.second.clear();
+
       // if the change has been detected save the name of the (first) metric for which the change has been detected
       // This could be useful later on.
       // Save also the timestamp of the first and last element of the window
@@ -203,8 +206,6 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
         change_metric = i.first;
         // set the status variable according so that the lock can be released
         status = ApplicationStatus::COMPUTING;
-        // Empty the (filled-in) buffer for the current metric.
-        i.second.clear();
         // every time a new change is detected by the 1st level test we reset the blacklist of clients
         // In this way we check whether they are still behaving badly with the 2nd level test,
         // and we give them the chance to possibly be re-considered as good clients
@@ -631,7 +632,7 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
 
               if (!current_metric_observations_file.is_open())
               {
-                agora::warning(log_prefix, "Error: the (future)output observation file has not been created!");
+                agora::warning(log_prefix, "Error: the (future) output observation file has not been created!");
               }
 
               if (!current_metric_ici_file.is_open())
@@ -847,13 +848,15 @@ int RemoteApplicationHandler::fill_buffers(const Observation_data& observation)
       {
         auto search_file = output_files_map.find(observation.metric_fields_vec[index]);
 
+        // if we arrive here the output file for the current metric should be already available, because it goes 1:1
+        // with the respective metric buffer. If that is not the case something is not right...
         if (search_file == output_files_map.end())
         {
           agora::warning(log_prefix, "Error: attempting to write to a file_output_map which does not exist.");
           return 1;
         }
 
-        // if we arrive here (as it is supposed to be) we need to append  the current observation
+        // if we arrive here (as it is supposed to be) we need to append the current observation
         // to an already created output-file mapping for the current metric
         search_file->second.first << current_residual << std::endl;
         search_file->second.first.flush();

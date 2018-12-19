@@ -47,6 +47,11 @@ namespace beholder
       {
         agora::warning(log_prefix, "Error: attempting to write to a file_output_map which does not exist.");
       }
+
+      if (!search_file->second.second.is_open())
+      {
+        agora::warning(log_prefix, "Error: the current metric ICI output file has not been opened!");
+      }
     }
 
     // understand whether we are in the training phase or not
@@ -139,6 +144,12 @@ namespace beholder
         if (Parameters_beholder::output_files)
         {
           search_file->second.second << 1 << " " << data_test.current_mean_conf_interval_lower << " " << data_test.current_mean_conf_interval_upper << " " << data_test.reference_sample_mean_mean;
+        }
+
+        // check if the CI for mean is valid (i.e. if it is not a NAN)
+        if (isnanf(data_test.current_mean_conf_interval_lower) || isnanf(data_test.current_mean_conf_interval_upper))
+        {
+          agora::warning(log_prefix, "WARNING: the training CI for feature MEAN is NaN. This test is totally useless!");
         }
 
         // compute the reference sample-variance
@@ -249,6 +260,7 @@ namespace beholder
           if (isnanf(data_test.current_variance_conf_interval_lower) || isnanf(data_test.current_variance_conf_interval_upper))
           {
             data_test.valid_variance = false;
+            agora::warning(log_prefix, "WARNING: the training CI for feature VARIANCE is NaN. From now on the variance will not be taken into account for this metric.");
           }
 
 
@@ -331,6 +343,12 @@ namespace beholder
         // convert and save the change window timestamp (as Cassandra does to make it comparable) of the first and last elements of the window
         compute_timestamps(data_test, window_pair);
 
+        // flush the output file to write the ICI info of the current window
+        if (Parameters_beholder::output_files)
+        {
+          search_file->second.second.flush();
+        }
+
         return true;
       }
 
@@ -402,6 +420,12 @@ namespace beholder
           // convert and save the change window timestamp (as Cassandra does to make it comparable) of the first and last elements of the window
           compute_timestamps(data_test, window_pair);
 
+          // flush the output file to write the ICI info of the current window
+          if (Parameters_beholder::output_files)
+          {
+            search_file->second.second.flush();
+          }
+
           return true;
         }
       }
@@ -410,6 +434,12 @@ namespace beholder
       {
         search_file->second.second << "\n";
       }
+    }
+
+    // flush the output file to write the ICI info of the current window
+    if (Parameters_beholder::output_files)
+    {
+      search_file->second.second.flush();
     }
 
     // return true if a change has been detected either in the mean or in the variance
