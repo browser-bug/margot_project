@@ -630,7 +630,7 @@ int main( int argc, char* argv[] )
   }
 
   // subscribe to relevant topics
-  agora::io::remote.subscribe("beholder/status");     // to receive the status summary from agorà
+  // agora::io::remote.subscribe("beholder/status");     // to receive the status summary from agorà
   agora::io::remote.subscribe("margot/+/+/+/model");     // to receive the models from agorà
   agora::io::remote.subscribe("beholder/+/+/+/model");     // to receive the models from agorà (esplicitely addressed to the beholder in reply to the status message for the beholder-agorà sync)
   //  agora::io::remote.subscribe("margot/+/+/+/+/model");     // to receive the client-specific model from agorà
@@ -661,7 +661,7 @@ int main( int argc, char* argv[] )
   agora::ThreadPool workers(number_of_threads, beholder::beholder_worker_function);
 
   // sends the request of summary of current status to agorà
-  agora::io::remote.send_message({"agora/status", "Beholder requesting current agora status"});
+  agora::io::remote.send_message({"beholder/welcome", "Beholder requesting current agora status"});
 
   // wain until the workers have done
   agora::info("Beholder main: bootstrap complete, waiting for workers to finish");

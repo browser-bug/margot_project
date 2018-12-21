@@ -50,7 +50,9 @@ namespace beholder
   {
     READY,
     COMPUTING,
-    DISABLED
+    DISABLED,
+    TRAINING,
+    RETRAINING
   };
 
   struct timestamp_fields
@@ -102,6 +104,9 @@ namespace beholder
 
       // to handle the progress of the elaboration
       ApplicationStatus status;
+
+      // to save the application state when an handler is PAUSED
+      ApplicationStatus previous_status;
 
       // these are the data structures that actually have information
       // about the application behavior
@@ -176,17 +181,59 @@ namespace beholder
       // re-activate the beholder handler after a re-training has been issued
       inline void set_handler_ready( void )
       {
-        // only when the current status is DISABLED
-        if (status == ApplicationStatus::DISABLED)
+        // lock the mutex to ensure a consistent global state
+        std::unique_lock<std::mutex> guard(mutex);
+
+        // only when the current status is TRAINING
+        if (status == ApplicationStatus::TRAINING)
         {
-          agora::info(log_prefix, "Handler re-activated after retraining. A new model has arrived!");
+          agora::info(log_prefix, "Handler put-on-ready after training complete following a re-training request. A new model has arrived!");
           status = ApplicationStatus::READY;
         }
       }
 
+      // pause handler
+      inline void pause_handler ( void )
+      {
+        // lock the mutex to ensure a consistent global state
+        std::unique_lock<std::mutex> guard(mutex);
+
+        // only if the current status is not already DISABLED
+        if (status != ApplicationStatus::DISABLED)
+        {
+          agora::info(log_prefix, "Handler put-on-hold after agorà's' kia. Waiting for agorà's resurrection...");
+          previous_status = status;
+          status = ApplicationStatus::DISABLED;
+        }
+      }
+
+      // un_pause handler
+      inline void un_pause_handler ( void )
+      {
+        // lock the mutex to ensure a consistent global state
+        std::unique_lock<std::mutex> guard(mutex);
+
+        // only if the current status is DISABLED
+        if (status == ApplicationStatus::DISABLED)
+        {
+          agora::info(log_prefix, "Handler re-enabled after agorà's resurrection. Restored previous status.");
+          status = previous_status;
+
+          if (status == ApplicationStatus::RETRAINING)
+          {
+            // handle the retraining
+            status = TRAINING;
+          }
+
+        }
+      }
+
+
       // removes the current client from the list of active clients encountered by the beholder
       inline void bye_client( const std::string& client_id )
       {
+        // lock the mutex to ensure a consistent global state
+        std::unique_lock<std::mutex> guard(mutex);
         auto search_client = clients_list.find(client_id);
 
         if (search_client != clients_list.end())

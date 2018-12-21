@@ -108,7 +108,7 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
 
   // check whether we can analyze the incoming payload or if we need to discard it
   // according to the handler status: ready/computing/disabled
-  if ( status == ApplicationStatus::COMPUTING || status == ApplicationStatus::DISABLED)
+  if ( status != ApplicationStatus::READY )
   {
     return;
   }
@@ -543,7 +543,7 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
 
       retraining_counter++;
       agora::info(log_prefix, "Resetting the whole application handler after having triggered the re-training!");
-      status = ApplicationStatus::DISABLED;
+      status = ApplicationStatus::TRAINING;
     }
     else
     {

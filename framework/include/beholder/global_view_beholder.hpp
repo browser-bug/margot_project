@@ -109,6 +109,34 @@ namespace beholder
         with_agora = false;
       }
 
+      static inline void set_handlers_disabled()
+      {
+        std::lock_guard<std::mutex> lock(global_structure);
+
+        for (auto iterator = handled_applications.begin(); iterator != handled_applications.end(); iterator++)
+        {
+          iterator->second->pause_handler();
+        }
+      }
+
+      static inline void set_handlers_enabled()
+      {
+        std::lock_guard<std::mutex> lock(global_structure);
+
+        for (auto iterator = handled_applications.begin(); iterator != handled_applications.end(); iterator++)
+        {
+          iterator->second->un_pause_handler();
+        }
+      }
+
+      static inline int get_handlers_number()
+      {
+        std::lock_guard<std::mutex> lock(global_structure);
+
+        return handled_applications.size();
+      }
+
+
     private:
 
       static std::mutex global_structure;

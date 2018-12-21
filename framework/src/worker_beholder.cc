@@ -240,6 +240,9 @@ namespace beholder
         // temporary disable the beholder
         GlobalView::set_with_agora_false();
 
+        // disable all the handlers putting them in a pause mode
+        GlobalView::set_handlers_disabled();
+
         // log the event
         agora::info("Thread ", get_tid(), ": all the beholder's handlers have been stopped following agora's departure. Waiting for agora's resurrection.");
       }
@@ -283,14 +286,24 @@ namespace beholder
       // enable the beholder
       GlobalView::set_with_agora_true();
 
-      // log the event
-      //agora::info("Thread ", get_tid(), ": all the beholder's handlers (if any) have been restarted following agora's resurrection.");
+      // if the beholder has no handlers then it sends the welcome message to agorà
+      // this is supposed to be used if the user starts the beholder right before agorà
+      // for the initial sharing of the already present models in agorà.
+      if (GlobalView::get_handlers_number() == 0)
+      {
+        // log the event
+        agora::info("Thread ", get_tid(), ": Beholder sending welcome message to agorà since the beholder has no application handlers currently.");
+        // sends the request of summary of current status to agorà
+        agora::io::remote.send_message({"beholder/welcome", "Beholder sending welcome message to agorà to inquire about possible applications with model."});
+      }
+      else
+      {
+        GlobalView::set_handlers_enabled();
+        // log the event
+        agora::info("Thread ", get_tid(), ": all the beholder's handlers have been restarted following agora's resurrection.");
+      }
 
-      // log the event
-      agora::info("Thread ", get_tid(), ": requesting current status to agorà.");
 
-      // sends the request of summary of current status to agorà
-      agora::io::remote.send_message({"agora/status", "Beholder requesting current agora status"});
 
     }
 

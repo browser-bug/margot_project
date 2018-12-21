@@ -79,23 +79,55 @@ namespace agora
     const auto start_type_pos = new_message.topic.find_last_of('/');
     const std::string message_type = new_message.topic.substr(start_type_pos);
 
-    // ---------------------------------------------------------------------------------- handle the welcome message
+    // ---------------------------------------------------------------------------------- handle the welcome message from the clients/beholder
     if (message_type.compare("/welcome") == 0)
     {
-      // get the name of the application
-      const auto application_name = new_message.topic.substr(7, start_type_pos - 7);
+      // I need to differentiate the sender of the message:
+      // if the sender is the beholder: beholder/welcome
+      if (std::count(new_message.topic.begin(), new_message.topic.end(), '/') == 1)
+      {
+        // log the event
+        info("Thread ", get_tid(), ": Received beholder welcome message.\nSending messages to beholder of the applications for which agorà has a model...");
 
-      // get the client id
-      const auto client_id = new_message.payload;
+        // io::remote.send_message({"beholder/status", ""});
 
-      // get the application handler
-      const auto application_handler = GlobalView::get_handler(application_name);
+        // log the event
+        // pedantic("Thread ", get_tid(), ": status message sent to beholder to prove agorà's vitality.\nSending messages to beholder of the applications for which agorà has a model...");
 
-      // log the event
-      pedantic("Thread ", get_tid(), ": new client \"", client_id, "\" for application \"", application_name);
+        // get the list of applications which currently have the model and whose clients' list is not empty
+        const auto app_list = GlobalView::get_handlers_with_model();
 
-      // handle the message
-      application_handler->welcome_client(client_id, application_name);
+        if (app_list.size() == 0)
+        {
+          pedantic("Thread ", get_tid(), ": agorà has no applications with model currently.");
+        }
+        else
+        {
+          for (auto& i : app_list)
+          {
+            io::remote.send_message({"beholder/" + i + "/model", ""});
+            pedantic("Thread ", get_tid(), ": model message sent to beholder to inform that there is a model for application: ", i);
+          }
+        }
+      }
+      else
+      {
+        // if the sender is a client: margot/+/+/+/welcome
+        // get the name of the application
+        const auto application_name = new_message.topic.substr(7, start_type_pos - 7);
+
+        // get the client id
+        const auto client_id = new_message.payload;
+
+        // get the application handler
+        const auto application_handler = GlobalView::get_handler(application_name);
+
+        // log the event
+        pedantic("Thread ", get_tid(), ": new client \"", client_id, "\" for application \"", application_name);
+
+        // handle the message
+        application_handler->welcome_client(client_id, application_name);
+      }
     }
 
     // ---------------------------------------------------------------------------------- handle the kia message
@@ -153,34 +185,6 @@ namespace agora
 
       // handle the message
       application_handler->new_observation(observation);
-    }
-
-    // ---------------------------------------------------------------------------------- handle the beholder status message
-    if (message_type.compare("/status") == 0)
-    {
-      // log the event
-      info("Thread ", get_tid(), ": Received beholder status request");
-
-      io::remote.send_message({"beholder/status", ""});
-
-      // log the event
-      pedantic("Thread ", get_tid(), ": status message sent to beholder to prove agorà's vitality.\nSending messages to beholder of the applications for which agorà has a model...");
-
-      // get the list of applications which currently have the model and whose clients' list is not empty
-      const auto app_list = GlobalView::get_handlers_with_model();
-
-      if (app_list.size() == 0)
-      {
-        pedantic("Thread ", get_tid(), ": agorà has no applications with model currently.");
-      }
-      else
-      {
-        for (auto& i : app_list)
-        {
-          io::remote.send_message({"beholder/" + i + "/model", ""});
-          pedantic("Thread ", get_tid(), ": model message sent to beholder to inform that there is a model for application: ", i);
-        }
-      }
     }
 
     // ---------------------------------------------------------------------------------- handle the application-specific beholder commands

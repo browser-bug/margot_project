@@ -290,7 +290,8 @@ int main( int argc, char* argv[] )
   agora::io::remote.subscribe("margot/+/+/+/observation"); // to receive the observations from the clients
   agora::io::remote.subscribe("margot/system");            // to receive external commands
   agora::io::remote.subscribe("margot/+/+/+/kia"); // we are not subscribed to margot/server/kia
-  agora::io::remote.subscribe("agora/status"); // to receive external commands from the beholder
+  agora::io::remote.subscribe("beholder/welcome");     // to welcome the beholder and answer accordingly
+  //agora::io::remote.subscribe("agora/status"); // to receive external commands from the beholder
   agora::io::remote.subscribe("agora/+/+/+/commands"); // to receive external application-specific commands from the beholder
 
   // sends a welcome message to clients
