@@ -170,6 +170,10 @@ namespace beholder
         broadcast_model = true;
       }
 
+      // before getting the handler (otherwise the handler gets constructed anyways...)
+      // we want to know if this application is already managed by the beholder
+      const bool handler_already_present = GlobalView::is_managing(application_name);
+
       // get the application handler
       const auto application_handler = GlobalView::get_handler(application_name);
 
@@ -183,7 +187,7 @@ namespace beholder
       // of and application which is already being managed by the beholder
       // and it is currently in the DISABLED status
       // (if it is in the COMPUTING status it will not do anything)
-      if (broadcast_model && GlobalView::is_managing(application_name))
+      if (broadcast_model && handler_already_present)
       {
         // set the handler status to READY to receive observations
         application_handler->set_handler_ready();
