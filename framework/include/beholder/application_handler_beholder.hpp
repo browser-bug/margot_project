@@ -49,8 +49,14 @@ namespace beholder
   enum class ApplicationStatus : uint_fast8_t
   {
     READY,
-    WITH_MODEL,
-    COMPUTING
+    COMPUTING,
+    DISABLED
+  };
+
+  struct timestamp_fields
+  {
+    std::string seconds;
+    std::string nanoseconds;
   };
 
 
@@ -67,6 +73,23 @@ namespace beholder
 
       // suffix counter for plot file
       int suffix_plot;
+
+      // counter of the total observations received (reset at every retraining - reset of ici test).
+      // When it is reset after reset if ici test it gets re-initialized at window_size*training_windows values.
+      // Does not take into account blacklisted clients or observations arrived while the handler was busy (status==COMPUTING)
+      int current_test_observations_counter;
+
+      // counter of the total number of observations analyzed by this handler (never reset)
+      // Does not take into account blacklisted clients or observations arrived while the handler was busy (status==COMPUTING)
+      int observations_counter;
+
+      // counter of the number of times the re-training has been issued (never reset);
+      // It measures the total number of times the ici test was right in detecting a change.
+      int retraining_counter;
+
+      // counter of the number of times the ici test has been reset (never reset)
+      // It measures the number of times the ici test has been rejected by the 2nd leve test
+      int ici_reset_counter;
 
       // application-specific root workspace
       std::string application_workspace;
@@ -89,6 +112,12 @@ namespace beholder
 
       // clients blacklist, implemented as an unordered set since we do not need any sorting
       std::unordered_set<std::string> clients_blacklist;
+
+      // hash-map storing the list of clients encountered as of now by this handler.
+      // the client-id is the hash key, while the value is a struct representing the timestamp
+      // The first field of the map is the "seconds", while the second field represents the "nanoseconds".
+      std::unordered_map<std::string, timestamp_fields> clients_list;
+
 
       // set containing the metrics observed by the beholder
       // NB: these are not all the available metrics, or all the ENABLED metrics,
@@ -143,6 +172,28 @@ namespace beholder
 
 
     public:
+
+      // re-activate the beholder handler after a re-training has been issued
+      inline void set_handler_ready( void )
+      {
+        // only when the current status is DISABLED
+        if (status == ApplicationStatus::DISABLED)
+        {
+          agora::info(log_prefix, "Handler re-activated after retraining. A new model has arrived!");
+          status = ApplicationStatus::READY;
+        }
+      }
+
+      // removes the current client from the list of active clients encountered by the beholder
+      inline void bye_client( const std::string& client_id )
+      {
+        auto search_client = clients_list.find(client_id);
+
+        if (search_client != clients_list.end())
+        {
+          clients_list.erase(search_client);
+        }
+      }
 
       RemoteApplicationHandler( const std::string& application_name );
 

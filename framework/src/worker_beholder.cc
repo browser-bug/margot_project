@@ -143,6 +143,10 @@ namespace beholder
       // that we need to remove to uniform the two versions of the "/model" message
       std::string application_name;
 
+      // bool to understand whether we are receiving a model from a broadcast message
+      // or a model addressed to a specific client
+      bool broadcast_model;
+
       // we are in the case of the topic with four "+" wildcards, i.e five "/"
       if (std::count(new_message.topic.begin(), new_message.topic.end(), '/') == 5)
       {
@@ -154,16 +158,36 @@ namespace beholder
 
         // get the name of the application
         application_name = new_message.topic.substr(7, start_type_pos_substring - 7);
+
+        broadcast_model = false;
       }
       // we are in the case of the topic with three "+" wildcards
       else
       {
         // get the name of the application
         application_name = new_message.topic.substr(7, start_type_pos - 7);
+
+        broadcast_model = true;
       }
 
       // get the application handler
       const auto application_handler = GlobalView::get_handler(application_name);
+
+      // in this way we only re-enable the handler if:
+      // 1) it was already present
+      // (otherwise it is useless if it is a new one the constructor sets the status to READY already)
+      // 2) if it is a model broadcast message, so after model recomputation,
+      // we do not re-enable the handler if it is just a client model message.
+      // If the following method is called in other situations it theoretically painless
+      // because it only sets the handler to READY executed when we receive a broadcast model
+      // of and application which is already being managed by the beholder
+      // and it is currently in the DISABLED status
+      // (if it is in the COMPUTING status it will not do anything)
+      if (broadcast_model && GlobalView::is_managing(application_name))
+      {
+        // set the handler status to READY to receive observations
+        application_handler->set_handler_ready();
+      }
 
       // log the event
       agora::pedantic("Thread ", get_tid(), ": new beholder handler for application \"", application_name);
@@ -204,17 +228,51 @@ namespace beholder
       application_handler->new_observation(observation);
     }
 
-    // ---------------------------------------------------------------------------------- handle the kia message from agorà
+    // ---------------------------------------------------------------------------------- handle the kia message from agorà/client
     if (message_type.compare("/kia") == 0)
     {
-      // log the event
-      agora::pedantic("Thread ", get_tid(), ": received kia message from agorà.");
+      // if there are just two slashes in the topic we are receiving the kia from agora
+      if (std::count(new_message.topic.begin(), new_message.topic.end(), '/') == 2)
+      {
+        // log the event
+        agora::pedantic("Thread ", get_tid(), ": received kia message from agorà.");
 
-      // temporary disable the beholder
-      GlobalView::set_with_agora_false();
+        // temporary disable the beholder
+        GlobalView::set_with_agora_false();
 
-      // log the event
-      agora::info("Thread ", get_tid(), ": all the beholder's handlers have been stopped following agora's departure. Waiting for agora's resurrection.");
+        // log the event
+        agora::info("Thread ", get_tid(), ": all the beholder's handlers have been stopped following agora's departure. Waiting for agora's resurrection.");
+      }
+      else
+      {
+        // we are receiving the kia message from a client
+
+        // get the name of the application
+        const auto application_name = new_message.topic.substr(7, start_type_pos - 7);
+
+        // get the client id
+        const auto client_id = new_message.payload;
+
+        // if we are managing the application we get the corresponding client
+        // and delete this client from the list of managed clients
+        if (GlobalView::is_managing(application_name))
+        {
+          // get the application handler
+          const auto application_handler = GlobalView::get_handler(application_name);
+
+          // handle the message
+          application_handler->bye_client(client_id);
+
+          // log the event
+          agora::pedantic("Thread ", get_tid(), ": received kia message from client: ", client_id, " for application: ", application_name, ". Removing client from the list of managed clients.");
+        }
+        else
+        {
+          // log the event
+          agora::debug("Thread ", get_tid(), ": received kia message from client: ", client_id, " for application: ", application_name,
+                       ". Discarding the message since the beholder is not currently managing that application.");
+        }
+      }
     }
 
     if (message_type.compare("/welcome") == 0)
