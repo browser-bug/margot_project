@@ -161,14 +161,26 @@ namespace agora
       // log the event
       info("Thread ", get_tid(), ": Received beholder status request");
 
-      // get the list of applications which currently have the model and whose clients' list is not empty
-      const auto app_list = GlobalView::get_handlers_with_active_model();
-
-      io::remote.send_message({"beholder/status", app_list});
+      io::remote.send_message({"beholder/status", ""});
 
       // log the event
-      pedantic("Thread ", get_tid(), ": status summary message sent to beholder");
+      pedantic("Thread ", get_tid(), ": status message sent to beholder to prove agorà's vitality.\nSending messages to beholder of the applications for which agorà has a model...");
 
+      // get the list of applications which currently have the model and whose clients' list is not empty
+      const auto app_list = GlobalView::get_handlers_with_model();
+
+      if (app_list.size() == 0)
+      {
+        pedantic("Thread ", get_tid(), ": agorà has no applications with model currently.");
+      }
+      else
+      {
+        for (auto& i : app_list)
+        {
+          io::remote.send_message({"beholder/" + i + "/model", ""});
+          pedantic("Thread ", get_tid(), ": model message sent to beholder to inform that there is a model for application: ", i);
+        }
+      }
     }
 
     // ---------------------------------------------------------------------------------- handle the application-specific beholder commands

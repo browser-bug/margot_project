@@ -67,28 +67,21 @@ namespace agora
       }
 
       // returns a string with the list of application_names which have active clients with the model.
-      static inline std::string get_handlers_with_active_model()
+      static inline std::vector<std::string> get_handlers_with_model()
       {
         std::lock_guard<std::mutex> lock(global_structure);
 
-        std::string temp_list = "";
+        std::vector<std::string> applications_with_model;
 
         for (auto iterator = handled_applications.begin(); iterator != handled_applications.end(); iterator++)
         {
-          if ((iterator->second->get_status() == ApplicationStatus::WITH_MODEL) && (!(iterator->second->active_clients_empty())))
+          if ((iterator->second->get_status() == ApplicationStatus::WITH_MODEL))
           {
-            if (temp_list.length() == 0)
-            {
-              temp_list = temp_list.append(iterator->second->get_application_name());
-            }
-            else
-            {
-              temp_list = temp_list.append("@" + iterator->second->get_application_name());
-            }
+            applications_with_model.emplace_back(iterator->first);
           }
         }
 
-        return temp_list;
+        return applications_with_model;
       }
 
     private:

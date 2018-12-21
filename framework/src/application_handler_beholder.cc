@@ -107,7 +107,7 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
   std::unique_lock<std::mutex> guard(mutex);
 
   // check whether we can analyze the incoming payload or if we need to discard it
-  // according to the handler status: ready/computing
+  // according to the handler status: ready/computing/disabled
   if ( status == ApplicationStatus::COMPUTING || status == ApplicationStatus::DISABLED)
   {
     return;

@@ -89,85 +89,81 @@ namespace beholder
       GlobalView::set_with_agora_true();
 
       // log the event
-      agora::pedantic("Thread ", get_tid(), ": agorà is alive and kicking! Beholder ENABLED.");
+      agora::pedantic("Thread ", get_tid(), ": agorà is alive and kicking! Beholder ENABLED.\nStarting sync with agorà of the applications for which there is a model...");
 
-      // get the list of applications
-      const auto observation = new_message.payload;
-
-      // if no application_handler of agorà has the model and active clients
-      if (observation.length() == 0)
-      {
-        // log the event
-        agora::pedantic("Thread ", get_tid(), ": received status summary. Currently no application is managed by the beholder.");
-
-        return;
-      }
-
-      // log the event
-      agora::pedantic("Thread ", get_tid(), ": received current status summary from agorà.");
-
-      // vector to store the applications' names
-      std::vector<std::string> temp_list;
-
-      // to parsee the payload
-      std::stringstream ss(observation);
-
-      // parse the incoming message and split it while filling the vector of applications' names
-      while (ss.good())
-      {
-        std::string substr;
-        getline( ss, substr, '@' );
-        temp_list.push_back(substr);
-      }
-
-      for (auto& i : temp_list)
-      {
-        // get the application handler
-        const auto application_handler = GlobalView::get_handler(i);
-
-        // log the event
-        agora::pedantic("Thread ", get_tid(), ": new beholder handler created from status for application \"", i);
-      }
+      // // get the list of applications
+      // const auto observation = new_message.payload;
+      //
+      // // if no application_handler of agorà has the model and active clients
+      // if (observation.length() == 0)
+      // {
+      //   // log the event
+      //   agora::pedantic("Thread ", get_tid(), ": received status summary. Currently no application is managed by the beholder.");
+      //
+      //   return;
+      // }
+      //
+      // // log the event
+      // agora::pedantic("Thread ", get_tid(), ": received current status summary from agorà.");
+      //
+      // // vector to store the applications' names
+      // std::vector<std::string> temp_list;
+      //
+      // // to parsee the payload
+      // std::stringstream ss(observation);
+      //
+      // // parse the incoming message and split it while filling the vector of applications' names
+      // while (ss.good())
+      // {
+      //   std::string substr;
+      //   getline( ss, substr, '@' );
+      //   temp_list.push_back(substr);
+      // }
+      //
+      // for (auto& i : temp_list)
+      // {
+      //   // get the application handler
+      //   const auto application_handler = GlobalView::get_handler(i);
+      //
+      //   // log the event
+      //   agora::pedantic("Thread ", get_tid(), ": new beholder handler created from status for application \"", i);
+      // }
     }
 
     // ---------------------------------------------------------------------------------- handle the creation of new handlers at runtime (not from status summary)
     if (message_type.compare("/model") == 0)
     {
-
-
-      // count the number of "/" to understand which type of message we are dealing with,
-      // it can be either of type:
-      // "margot/+/+/+/model"
-      // or
-      // "margot/+/+/+/+/model", where the last "+" wildcard represents the client name
-      // that we need to remove to uniform the two versions of the "/model" message
-      std::string application_name;
+      // get the name of the application
+      const std::string application_name = new_message.topic.substr(7, start_type_pos - 7);
 
       // bool to understand whether we are receiving a model from a broadcast message
-      // or a model addressed to a specific client
+      // or a messagge specifically addressed to the beholder
       bool broadcast_model;
 
-      // we are in the case of the topic with four "+" wildcards, i.e five "/"
-      if (std::count(new_message.topic.begin(), new_message.topic.end(), '/') == 5)
+      // count the letters on the first level topic to distinguish between the topic:
+      // "margot/" vs "beholder/"
+      auto num_chars = new_message.topic.find_first_of("/", 0);
+
+      // to understand which type of message we are dealing with,
+      // it can be either of type:
+      // "margot/+/+/+/model" = model broadcast
+      // or
+      // "beholder/+/+/+/model" = message sent by agora specifically for the beholder to
+      // inform the beholder of the applications for which currently agorà already has a model
+      // and for which the beholder has to prepare the handler and accept observations
+      // if "margot/..."
+      if (num_chars == 6)
       {
-        // create a substring of the topic without the last topic level
-        std::string substring = new_message.topic.substr(0, start_type_pos);
-
-        //repeat the process to find the position of the "new" last "/"
-        const auto start_type_pos_substring = substring.find_last_of('/');
-
-        // get the name of the application
-        application_name = new_message.topic.substr(7, start_type_pos_substring - 7);
-
-        broadcast_model = false;
+        // log the event
+        agora::pedantic("Thread ", get_tid(), ": received broadcast message of a (brand new) model from agorà for application: ", application_name);
+        broadcast_model = true;
       }
-      // we are in the case of the topic with three "+" wildcards
+      // if "beholder/..."
       else
       {
-        // get the name of the application
-        application_name = new_message.topic.substr(7, start_type_pos - 7);
-
-        broadcast_model = true;
+        // log the event
+        agora::pedantic("Thread ", get_tid(), ": received a startup sync message from agorà to inform that a model is available for application: ", application_name);
+        broadcast_model = false;
       }
 
       // before getting the handler (otherwise the handler gets constructed anyways...)
@@ -182,7 +178,7 @@ namespace beholder
       // (otherwise it is useless if it is a new one the constructor sets the status to READY already)
       // 2) if it is a model broadcast message, so after model recomputation,
       // we do not re-enable the handler if it is just a client model message.
-      // If the following method is called in other situations it theoretically painless
+      // If the following method is called in other situations it is theoretically painless
       // because it only sets the handler to READY executed when we receive a broadcast model
       // of and application which is already being managed by the beholder
       // and it is currently in the DISABLED status
