@@ -138,93 +138,7 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
 
   agora::pedantic(log_prefix, "Observation successfully parsed and inserted in buffers.");
 
-  // just universal variables to control the change detection and thus the flow of the CDT itself
-  // since we do not care to actually check all the metrics, but it is enough a metric (the first)
-  // to trigger the 2nd step of the hierarchiacla CDT.
-  bool change_detected = false;
-  std::string change_metric;
-
-  // Check whether one (or more) buffers is (are) filled in
-  // up to the beholder's window_size parameter.
-  for (auto& i : residuals_map)
-  {
-    // if a change has been detected then exit from the for cycle to stop the 1st step of the CDT.
-    // Before doing so reset all the buffers for the metrics, whatever their state is.
-    if (change_detected)
-    {
-      agora::debug(log_prefix, "Resetting buffer for metric ", i.first, " after change detected in metric: ", change_metric);
-      i.second.clear();
-      // go to the next metric (next iteration of the for cycle), if available, until the cycle has finished
-      continue;
-    }
-
-    agora::debug(log_prefix, "Current filling level of the buffer for metric ", i.first, ": ", i.second.size(), "/", Parameters_beholder::window_size);
-
-    // if any buffer is filled in then perform the ici cdt on it
-    if (i.second.size() == Parameters_beholder::window_size)
-    {
-      agora::debug(log_prefix, "Buffer for metric ", i.first, " filled in, starting CDT on the current window.");
-
-      // Check if we already have a ici_cdt_map for the current metric, if not create it
-      auto search_ici_map = ici_cdt_map.find(i.first);
-
-      // If it finds the ici_cdt_map for the current metric then use it
-      if (search_ici_map != ici_cdt_map.end())
-      {
-        agora::debug(log_prefix, "CDT data for metric ", i.first, " found. Continuing CDT!");
-        change_detected = IciCdt::perform_ici_cdt(search_ici_map->second, i.second, output_files_map);
-      }
-      else
-      {
-        // It did not find the ici_cdt_map for the current metric then create it.
-        // This is basically the first window to be analized for the current metric.
-        // Obviously it will be part of the training phase of the ici cdt for that metric.
-        Data_ici_test new_ici_struct;
-        // save the application name and metric name in the data structure
-        // to make those information easily available from the struct once it is passed around (handy in logs)
-        new_ici_struct.app_name = description.application_name;
-        new_ici_struct.metric_name = i.first;
-        // initilize the window number to zero
-        new_ici_struct.window_number = 0;
-        // initialize the valid_variance to true
-        new_ici_struct.valid_variance = true;
-        agora::debug(log_prefix, "CDT data for metric ", i.first, " NOT found. Initialized CDT data structure and starting CDT!");
-        change_detected = IciCdt::perform_ici_cdt(new_ici_struct, i.second, output_files_map);
-        ici_cdt_map.emplace(i.first, new_ici_struct);
-        // It cannot detect a change if this is the first full window for that metric, we are in training of cdt
-        // so basically avoid the if to check for the boolean "change_detected"
-      }
-
-      // if the change has been detected save the name of the (first) metric for which the change has been detected
-      // This could be useful later on.
-      // Save also the timestamp of the first and last element of the window
-      // to be able to pinpoint where the change was detected. This will be needed
-      // in the 2nd step of the CDT.
-      agora::debug(log_prefix, "Outcome of CDT for metric ", i.first, ": ", change_detected);
-
-      if (change_detected)
-      {
-        agora::info(log_prefix, "First level of CDT DETECTED A CHANGE in metric: ", i.first, " Resetting metric buffer, clients blacklist and setting handler to status=COMPUTING!");
-        change_metric = i.first;
-
-        // compute the Cassandra-format timestamps for the first and last element of the selected change window
-        // to make it comparable with the observations from the trace
-        change_window_timestamps.front = compute_timestamps(i.second.front().second);
-        change_window_timestamps.back = compute_timestamps(i.second.back().second);
-
-        // set the status variable according so that the lock can be released
-        status = ApplicationStatus::COMPUTING;
-        // every time a new change is detected by the 1st level test we reset the blacklist of clients
-        // In this way we check whether they are still behaving badly with the 2nd level test,
-        // and we give them the chance to possibly be re-considered as good clients
-        // from which to collect observations also for the 1st level test in the future.
-        clients_blacklist.clear();
-      }
-
-      // Empty the (filled-in) buffer for the current metric.
-      i.second.clear();
-    }
-  }
+  first_level_test();
 
   // We only perform the 2nd step of the CDT only when the 1st level detects a change.
   // If the change is not detected then the 2nd step is not performed and the method returns
@@ -250,469 +164,7 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
 
     guard.unlock();
 
-    agora::pedantic(log_prefix, "Entering 2nd level of CDT! Getting the list of clients running the application...");
-
-    // to store the observations belonging to a pair application-client_name_t
-    observations_list_t observations_list;
-
-    // store the list of clients working on the application_name
-    //application_list_t clients_list;
-
-    // store the list of good-enough clients
-    application_list_t good_clients_list;
-
-    // store the list of bad clients for the current observation (not yet blacklisted)
-    application_list_t bad_clients_list;
-
-    // clients which did not answer in time because of the timeout
-    application_list_t timeout_clients_list;
-
-    // query to retrieve all the distinct clients which are running a specif application
-    // to be performed in case of positive CDT, for the second level hypothesis test.
-    // It is better to always re-run this query and avoid saving the client list for re-use
-    // because there could be some new clients.
-    //clients_list = agora::io::storage.load_clients(description.application_name);
-
-    // Check that the list of clients is not is not empty
-    // if (clients_list.size() == 0)
-    // {
-    //   agora::info(log_prefix, "Something is wrong, the list of clients received from the DB is empty!");
-    //   return;
-    // }
-    //
-    // agora::debug(log_prefix, "Client list without duplicates:");
-    //
-    // for (auto& i : clients_list)
-    // {
-    //   agora::debug(log_prefix, i);
-    // }
-
-    // initialize timeout shared (consumed) among all the clients
-    int timeout = Parameters_beholder::timeout;
-
-    // cycle over all the clients of the specific application
-    for (auto& i : clients_list_snapshot)
-    {
-      agora::pedantic(log_prefix, "Starting the 2nd level of CDT for client: ", i.first, ". Setting up the metrics to be analyzed...");
-
-      // initialized as a duplicate of reference_metric_names, that is to say all the metrics enabled for the
-      // beholder analysis this list contains the metrics yet to be tested with the hypothesis test, so once a
-      // metric has been analyzed it will be removed from this structure
-      std::set<std::string> metric_to_be_analyzed;
-
-      for (auto& j : reference_metric_names)
-      {
-        metric_to_be_analyzed.emplace(j);
-        agora::debug(log_prefix, "Metric to be analyzed for client ", i.first, ": ", j);
-      }
-
-      bool confirmed_change = false;
-      bool valid_client = true;
-
-      // String containing the 'select' part of the query to Cassandra
-      // to only receive the metrics enabled for the beholder analysis by the user
-      std::string query_select;
-
-      // just for log purposes, to keep track of how many times we enter the while cycle
-      int while_counter = 1;
-
-      while (metric_to_be_analyzed.size() != 0 && !confirmed_change)
-      {
-        agora::debug(log_prefix, "Entering while cycle for the ", while_counter, " time for client ", i.first, " with still ", metric_to_be_analyzed.size(), " metrics to be analyzed out of a total of ",
-                     reference_metric_names.size(), " beholder-enabled metrics.");
-        // data structure to save the residuals for the specific application-client pair before the change
-        // the structure is organized as a map which maps the name of the metric to a pair
-        // The first element of the pair is a vector containing the residuals for that metric before the change windows
-        // The second element of the pair is a vector containing the residuals for that metric after the change windows
-        std::unordered_map<std::string, std::pair < std::vector<float>, std::vector<float>>> client_residuals_map;
-
-        // preparing the 'select' query for Cassandra for the 2nd step of cassandra
-        // It is done here on the basis of which metrics are left to be analyzed
-        query_select = "day, time, client_id, ";
-
-        for (auto& it : description.knobs)
-        {
-          query_select.append(it.name);
-          query_select.append(",");
-        }
-
-        for (auto& it : description.features)
-        {
-          query_select.append(it.name);
-          query_select.append(",");
-        }
-
-        for (auto& it : metric_to_be_analyzed)
-        {
-          query_select.append(it);
-          query_select.append(",");
-        }
-
-        for (auto& it : metric_to_be_analyzed)
-        {
-          query_select.append("model_");
-          query_select.append(it);
-          query_select.append(",");
-        }
-
-        // to remove the last comma
-        query_select.pop_back();
-
-        agora::debug(log_prefix, "Querying DB for client ", i.first, " to get its observations from the trace table.");
-        agora::debug(log_prefix, "Query: ", query_select);
-
-        // compute the Cassandra time format of the first observation for this current client under analysis
-        // to filter out this first value and all the previous ones from the trace.
-        cassandra_time filter_from_time = compute_timestamps(i.second);
-
-        observations_list = agora::io::storage.load_client_observations(description.application_name, i.first, query_select, std::to_string(filter_from_time.year_month_day),
-                            std::to_string(filter_from_time.time_of_day));
-        //observations_list = agora::io::storage.load_client_observations(description.application_name, "alberto_Surface_Pro_2_6205", query_select);
-
-        agora::debug("\n", log_prefix, "Trace query executed successfully for client ", i.first, ", starting the parsing of its observations.");
-
-        // cycle over each row j of the trace for each client i (for the current application)
-        for (auto& j : observations_list)
-        {
-          parse_and_insert_observations_for_client_from_trace(client_residuals_map, j, metric_to_be_analyzed);
-        }
-
-        agora::debug(log_prefix, "Finished parsing and putting in the respective buffers the result of the trace query for client: ", i.first);
-        agora::debug(log_prefix, "Computing which metrics have enough observations to actually perform the hypothesis test for client: ", i.first);
-
-        // let's analyze if any of the metrics has enough observations to perform the test
-        // remove the metrics which cannot be analyzed from the client_residuals_map
-        for (auto it = client_residuals_map.begin(); it != client_residuals_map.end();)
-        {
-          if (it->second.first.size() < Parameters_beholder::min_observations || it->second.second.size() < Parameters_beholder::min_observations)
-          {
-            it = client_residuals_map.erase(it);
-          }
-          else
-          {
-            ++it;
-          }
-        }
-
-        if (client_residuals_map.size() == metric_to_be_analyzed.size())
-        {
-          agora::debug(log_prefix, "All the ", client_residuals_map.size(), " out of ", metric_to_be_analyzed.size(), " metrics to still be analyzed can perform the test for client ", i.first);
-        }
-        else
-        {
-          agora::debug(log_prefix, "Just ", client_residuals_map.size(), " out of ", metric_to_be_analyzed.size(), " metrics to still be analyzed can perform the test for client ", i.first);
-        }
-
-        // if there is at least a metric on which we can perform the hypothesis test
-        if (client_residuals_map.size() > 0)
-        {
-          // Execute on the specific client the 2nd step of CDT: hypothesis TEST
-          confirmed_change = HypTest::perform_hypothesis_test(client_residuals_map, description.application_name, i.first);
-        }
-
-        agora::debug(log_prefix, "Outcome of hypothesis test for client ", i.first, ": ", confirmed_change);
-
-        if (confirmed_change)
-        {
-          // as soon as the change is confirmed by any of the metric then exit to classify the current
-          // client under analysis as a bad one and move to the next client (if any left)
-          agora::debug(log_prefix, "Breaking out of the while since the hypothesis test on client ", i.first, " has confirmed the change!");
-          break;
-        }
-        else
-        {
-          // remove the metrics present in the client_residuals_map from the metric_to_be_analyzed
-          // in this way we only leave in the metric_to_be_analyzed just the names of the metrics to yet be analized.
-          for (auto& it : client_residuals_map)
-          {
-            metric_to_be_analyzed.erase(it.first);
-          }
-
-          agora::debug(log_prefix, "Updated the metrics to still be analyzed for client ", i.first, ". There are still ", metric_to_be_analyzed.size(), " metrics left.");
-
-          // if the metric_to_be_analyzed is empty then it won't enter the next while cycle
-
-          if (metric_to_be_analyzed.size() > 0)
-            // if we arrive here it means that metric_to_be_analyzed is not empty, meaning that some metrics to still
-            // be analized were not ready. We need to wait for more observations to come hopefully.
-          {
-            if (timeout <= 0)
-            {
-              agora::debug(log_prefix, "Even though there are some metrics to still be analyzed for client ", i.first, " we run out of time. We consider this client a \"bad\" one...");
-              // if we arrive here it means that the 2nd level test has not confirmed the change as of now
-              // and we run out of time, we need to move on.
-              // We set the current client as a non-valid one then.
-              valid_client = false;
-              break;
-            }
-            else
-            {
-              // we can wait for some more observations to come
-              // I chose to wait even if the current timeout-waitperiod is theoretically out_of_time already
-              agora::debug(log_prefix, "Waiting ", Parameters_beholder::frequency_check, " seconds for some more observations to come hopefully. Current timeout in seconds: ", Parameters_beholder::timeout);
-              std::this_thread::sleep_for(std::chrono::milliseconds(Parameters_beholder::frequency_check));
-              timeout -= Parameters_beholder::frequency_check;
-            }
-          }
-        }
-      }
-
-      agora::debug(log_prefix, "Exited from the while cycle for client: ", i.first);
-
-      if (valid_client)
-      {
-        // according to the quality (GOOD=no_change/BAD=confirmed_change) of the currently analyzed client, enqueue it in the good/bad_clients_list
-        if (confirmed_change)
-        {
-          bad_clients_list.emplace(i.first);
-          agora::debug(log_prefix, "Emplaced the client ", i.first, " to the list of the bad ones since it confirmed the change.");
-
-        }
-        else
-        {
-          good_clients_list.emplace(i.first);
-          agora::debug(log_prefix, "Emplaced the client ", i.first, " to the list of the good ones since it denied the change.");
-        }
-      }
-      else
-      {
-        timeout_clients_list.emplace(i.first);
-        agora::debug(log_prefix, "Emplaced the client ", i.first, " to the list of the timed-out ones since it run-out of time for the hypothesis test.");
-      }
-    }
-
-    agora::pedantic(log_prefix, "Finished cycling over all the clients for the 2nd step of hierarchical CDT. Computing the fate of the application...");
-
-
-    // compute the percentage of bad clients and compare it wrt the predefined threshold
-    float bad_clients_percentage = (((bad_clients_list.size() + timeout_clients_list.size()) / clients_list_snapshot.size()) * 100);
-
-    // Once I know what the outcome of the hypothesis TEST is, re-acquire the lock
-    guard.lock();
-
-    if (timeout_clients_list.size() == 0)
-    {
-      // TODO: do Something else??
-      agora::info(log_prefix, "WARNING: all the clients run out of time for the hypothesis test. The re-training will be triggered since 100% of the clients are behaving awkwardly.");
-    }
-
-
-    // if the number % of bad clients is over the user-set threshold then trigger the re-training
-    // This also covers the case in which all the clients behave badly (100%)
-    if (bad_clients_percentage > Parameters_beholder::bad_clients_threshold)
-    {
-      agora::info(log_prefix, "TRIGGERING RE-TRAINING since the percentage of bad clients [", bad_clients_percentage, "] is greater than the user-selected acceptable one [",
-                  Parameters_beholder::bad_clients_threshold, "].");
-
-      // Basically in this case the change detected by the 1st level cdt was confirmed by the hypothesys test
-
-      // reset the whole application handler
-      clients_blacklist.clear();
-      residuals_map.clear();
-      ici_cdt_map.clear();
-      clients_list.clear();
-
-      // deal with the output files (if enabled)
-      if (Parameters_beholder::output_files)
-      {
-        // for every possible metric available (beholder-enabled metric)
-        for (auto& i : reference_metric_names)
-        {
-          auto search = output_files_map.find(i);
-
-          // if there is the file structure related to that metric
-          if (search != output_files_map.end())
-          {
-            // if the observation file is open then close it
-            if (search->second.first.is_open())
-            {
-              search->second.first.close();
-            }
-
-            // if the ici file is open then close it
-            if (search->second.second.is_open())
-            {
-              search->second.second.close();
-            }
-          }
-        }
-
-        // destroy the current mapping to output files since the next run will have different naming suffixes
-        output_files_map.clear();
-        // increase the naming suffix counter
-        suffix_plot++;
-      }
-
-      // check the actual status of the handler
-      if (status == ApplicationStatus::DISABLED)
-      {
-        // if the handler is currently disabled then we need to wait for it to be re-enabled
-        previous_status == ApplicationStatus::RETRAINING;
-        agora::info(log_prefix, "The re-training has to be triggered, but currently the handler is disabled, so we postpone the trigger to when the handler is re-enabled.");
-      }
-      else
-      {
-        agora::info(log_prefix, "Resetting the whole application handler after having triggered the re-training!");
-        retraining();
-      }
-    }
-    else
-    {
-      // this is the case in which either there are some bad clients but they are below threshold,
-      // or there are no bad clients at all. The behavior is the same.
-      // The change is discarded (but so are also the values coming from these bad_clients, if any).
-
-      agora::info(log_prefix, "The hypothesis test REJECTED the change. We keep the current model since the percentage of bad clients [", bad_clients_percentage,
-                  "] is lower than the user-selected acceptable one [", Parameters_beholder::bad_clients_threshold, "].");
-
-      // if there are some bad clients then put them in the blacklist
-      if (bad_clients_list.size() > 0)
-      {
-        for (auto& i : bad_clients_list)
-        {
-          agora::debug(log_prefix, "Putting in blacklist client: ", i);
-          clients_blacklist.emplace(i);
-        }
-      }
-
-      // reset the 1st level cdt data structure for all the metrics which have a structure
-      // just keep the test configuration settings (training) and reset the rest.
-      agora::info(log_prefix, "Resetting the first level of the CDT to its initial configuration and setting back the status to READY.");
-
-      // for every CDT data structure for this application (meaning for every metric that was analyzed in the ICI CDT)
-      for (auto& i : ici_cdt_map)
-      {
-        // reset its ici cdt to just the training configuration
-        // restore the sequence number to the number of windows used for training
-        i.second.window_number = Parameters_beholder::training_windows;
-        // reset the sample mean stuff
-        // restore the reference (training) sample mean-mean
-        i.second.current_sample_mean_mean = i.second.reference_sample_mean_mean;
-        // restore the training CI for the mean
-        i.second.current_mean_conf_interval_lower = i.second.reference_mean_conf_interval_lower;
-        i.second.current_mean_conf_interval_upper = i.second.reference_mean_conf_interval_upper;
-
-        // if the variance is enabled then do the same for variance too
-        if (!Parameters_beholder::variance_off)
-        {
-          // restore the reference (training) sample variance-mean
-          i.second.current_sample_variance_mean = i.second.reference_sample_variance_mean;
-          // restore the training CI for the variance
-          i.second.current_variance_conf_interval_lower = i.second.reference_variance_conf_interval_lower;
-          i.second.current_variance_conf_interval_upper = i.second.reference_variance_conf_interval_upper;
-        }
-
-        // if the data structure under analysis belongs to the metric which triggered the change first
-        if (i.second.metric_name == change_metric)
-        {
-          // reset the change window timestamp to be sure
-          i.second.front_window_timestamp = "";
-          i.second.back_window_timestamp = "";
-          // i.second.front_year_month_day = 0;
-          // i.second.front_time_of_day = 0;
-          // i.second.back_year_month_day = 0;
-          // i.second.back_time_of_day = 0;
-        }
-      }
-
-      if (Parameters_beholder::output_files)
-      {
-        // for every possible metric available (beholder-enabled metric)
-        for (auto& i : reference_metric_names)
-        {
-          auto search = output_files_map.find(i);
-
-          // if there is the file structure related to that metric
-          if (search != output_files_map.end())
-          {
-            // if the file is open
-            if (search->second.first.is_open())
-            {
-              // the metric subdirectory should have already been created (because we reach this point only if the
-              // structure of the metric in analysis has been created), but there should be theoretically
-              // no harm in making sure about that.
-              std::string metric_folder_path = application_workspace + search->first + "/";
-
-              // creation of output file folders (the suffix subdirectory)
-              metric_folder_path = metric_folder_path + std::to_string(suffix_plot + 1) + "/";
-              bool is_created = create_folder(metric_folder_path);
-
-              if (!is_created)
-              {
-                agora::warning("Unable to create the folder \"", metric_folder_path, "\" with errno=", errno);
-                throw std::runtime_error("Unable to create the folder \"" + metric_folder_path + "\" with errno=" + std::to_string(errno) );
-              }
-
-              // copy the training lines in the output files for the next iteration, with naming siffix++
-              // prepare the next files:
-              std::fstream current_metric_observations_file;
-              std::fstream current_metric_ici_file;
-              std::string file_path_obs = metric_folder_path + "observations_" + search->first + "_" + std::to_string(suffix_plot + 1) + ".txt";
-              std::string file_path_ici = metric_folder_path + "ici_" + search->first + "_" + std::to_string(suffix_plot + 1) + ".txt";
-              current_metric_observations_file.open(file_path_obs, std::fstream::out);
-              current_metric_ici_file.open(file_path_ici, std::fstream::out);
-
-              if (!current_metric_observations_file.is_open())
-              {
-                agora::warning(log_prefix, "Error: the (future) output observation file has not been created!");
-              }
-
-              if (!current_metric_ici_file.is_open())
-              {
-                agora::warning(log_prefix, "Error: the (future) output ici file has not been created!");
-              }
-
-              std::string temp_line;
-
-              // copy into the new file the observations related to the training phase
-              for (int index = 0; index < Parameters_beholder::window_size * Parameters_beholder::training_windows; index++)
-              {
-                std::getline(search->second.first, temp_line);    // Check whether this method automatically rewinds the file and keeps the position across cycles. It should.
-                current_metric_observations_file << temp_line << std::endl; // TODO: check whether this result in a double endline
-              }
-
-              current_metric_observations_file.flush();
-              // copy just the first line (training CI info) from the old ici output file to the new one
-              std::getline(search->second.second, temp_line);    // Check whether this method automatically rewinds the file and keeps the position across cycles. It should.
-              current_metric_ici_file << temp_line << std::endl; // TODO: check whether this result in a double endline
-              current_metric_observations_file.flush();
-              // close the old file
-              search->second.first.close();
-              // remove from the map the old file
-              // Or even better replace the old with the new ones, so that you do not need to delete a mapping and
-              // re-create it.
-              // Basically I need to replace the pair here.
-              // I need to use the move operator to assign because the fstreams are not coyable...
-              auto temp_pair_file = std::make_pair(std::move(current_metric_observations_file), std::move(current_metric_ici_file));
-              search->second = std::move(temp_pair_file);
-            }
-          }
-        }
-
-        // destroy the current mapping to output files since the next run will have different naming suffixes
-        output_files_map.clear();
-        // increase the naming suffix counter
-        suffix_plot++;
-      }
-
-      ici_reset_counter++;
-      // resetting the counter of the observations received for the current ici test. Reset to just training phase observations
-      current_test_observations_counter = Parameters_beholder::window_size * Parameters_beholder::training_windows;
-
-      // check the actual status of the handler
-      if (status == ApplicationStatus::DISABLED)
-      {
-        // if the handler is currently disabled then we need to wait for it to be re-enabled
-        previous_status = ApplicationStatus::READY;
-        agora::pedantic(log_prefix, "The handler has to be set to READY, but it is currently disabled, so we postpone this to when the handler will be un-paused.");
-      }
-      else
-      {
-        // set the status back to ready
-        status = ApplicationStatus::READY;
-        agora::pedantic(log_prefix, "Setting handler back to READY!");
-      }
-    }
+    second_level_test(clients_list_snapshot);
   }
 
   // The following command will (probably) be never used.
@@ -997,6 +449,96 @@ int RemoteApplicationHandler::fill_buffers(const Observation_data& observation)
   return 0;
 }
 
+void RemoteApplicationHandler::first_level_test( void )
+{
+  // just universal variables to control the change detection and thus the flow of the CDT itself
+  // since we do not care to actually check all the metrics, but it is enough a metric (the first)
+  // to trigger the 2nd step of the hierarchiacla CDT.
+  bool change_detected = false;
+
+  // Check whether one (or more) buffers is (are) filled in
+  // up to the beholder's window_size parameter.
+  for (auto& i : residuals_map)
+  {
+    // if a change has been detected then exit from the for cycle to stop the 1st step of the CDT.
+    // Before doing so reset all the buffers for the metrics, whatever their state is.
+    if (change_detected)
+    {
+      agora::debug(log_prefix, "Resetting buffer for metric ", i.first, " after change detected in metric: ", change_metric_name);
+      i.second.clear();
+      // go to the next metric (next iteration of the for cycle), if available, until the cycle has finished
+      continue;
+    }
+
+    agora::debug(log_prefix, "Current filling level of the buffer for metric ", i.first, ": ", i.second.size(), "/", Parameters_beholder::window_size);
+
+    // if any buffer is filled in then perform the ici cdt on it
+    if (i.second.size() == Parameters_beholder::window_size)
+    {
+      agora::debug(log_prefix, "Buffer for metric ", i.first, " filled in, starting CDT on the current window.");
+
+      // Check if we already have a ici_cdt_map for the current metric, if not create it
+      auto search_ici_map = ici_cdt_map.find(i.first);
+
+      // If it finds the ici_cdt_map for the current metric then use it
+      if (search_ici_map != ici_cdt_map.end())
+      {
+        agora::debug(log_prefix, "CDT data for metric ", i.first, " found. Continuing CDT!");
+        change_detected = IciCdt::perform_ici_cdt(search_ici_map->second, i.second, output_files_map);
+      }
+      else
+      {
+        // It did not find the ici_cdt_map for the current metric then create it.
+        // This is basically the first window to be analized for the current metric.
+        // Obviously it will be part of the training phase of the ici cdt for that metric.
+        Data_ici_test new_ici_struct;
+        // save the application name and metric name in the data structure
+        // to make those information easily available from the struct once it is passed around (handy in logs)
+        new_ici_struct.app_name = description.application_name;
+        new_ici_struct.metric_name = i.first;
+        // initilize the window number to zero
+        new_ici_struct.window_number = 0;
+        // initialize the valid_variance to true
+        new_ici_struct.valid_variance = true;
+        agora::debug(log_prefix, "CDT data for metric ", i.first, " NOT found. Initialized CDT data structure and starting CDT!");
+        change_detected = IciCdt::perform_ici_cdt(new_ici_struct, i.second, output_files_map);
+        ici_cdt_map.emplace(i.first, new_ici_struct);
+        // It cannot detect a change if this is the first full window for that metric, we are in training of cdt
+        // so basically avoid the if to check for the boolean "change_detected"
+      }
+
+      // if the change has been detected save the name of the (first) metric for which the change has been detected
+      // This could be useful later on.
+      // Save also the timestamp of the first and last element of the window
+      // to be able to pinpoint where the change was detected. This will be needed
+      // in the 2nd step of the CDT.
+      agora::debug(log_prefix, "Outcome of CDT for metric ", i.first, ": ", change_detected);
+
+      if (change_detected)
+      {
+        agora::info(log_prefix, "First level of CDT DETECTED A CHANGE in metric: ", i.first, " Resetting metric buffer, clients blacklist and setting handler to status=COMPUTING!");
+        change_metric_name = i.first;
+
+        // compute the Cassandra-format timestamps for the first and last element of the selected change window
+        // to make it comparable with the observations from the trace
+        change_window_timestamps.front = compute_timestamps(i.second.front().second);
+        change_window_timestamps.back = compute_timestamps(i.second.back().second);
+
+        // set the status variable according so that the lock can be released
+        status = ApplicationStatus::COMPUTING;
+        // every time a new change is detected by the 1st level test we reset the blacklist of clients
+        // In this way we check whether they are still behaving badly with the 2nd level test,
+        // and we give them the chance to possibly be re-considered as good clients
+        // from which to collect observations also for the 1st level test in the future.
+        clients_blacklist.clear();
+      }
+
+      // Empty the (filled-in) buffer for the current metric.
+      i.second.clear();
+    }
+  }
+}
+
 // method which receives as parameters the list of observations from a specific client from the trace
 // and parses them and inserts its residuals in the corresponding map structure
 void RemoteApplicationHandler::parse_and_insert_observations_for_client_from_trace(std::unordered_map<std::string, std::pair < std::vector<float>, std::vector<float>>>& client_residuals_map,
@@ -1257,6 +799,477 @@ void RemoteApplicationHandler::parse_and_insert_observations_for_client_from_tra
   }
 
   agora::pedantic(log_prefix, ":", obs_client_id, ": successfully parsed and inserted into buffers the observation: ", j);
+}
+
+void RemoteApplicationHandler::second_level_test( std::unordered_map<std::string, timestamp_fields>& clients_list_snapshot )
+{
+
+  agora::pedantic(log_prefix, "Entering 2nd level of CDT! Getting the list of clients running the application...");
+
+  // to store the observations belonging to a pair application-client_name_t
+  observations_list_t observations_list;
+
+  // store the list of clients working on the application_name
+  //application_list_t clients_list;
+
+  // store the list of good-enough clients
+  application_list_t good_clients_list;
+
+  // store the list of bad clients for the current observation (not yet blacklisted)
+  application_list_t bad_clients_list;
+
+  // clients which did not answer in time because of the timeout
+  application_list_t timeout_clients_list;
+
+  // query to retrieve all the distinct clients which are running a specif application
+  // to be performed in case of positive CDT, for the second level hypothesis test.
+  // It is better to always re-run this query and avoid saving the client list for re-use
+  // because there could be some new clients.
+  //clients_list = agora::io::storage.load_clients(description.application_name);
+
+  // Check that the list of clients is not is not empty
+  // if (clients_list.size() == 0)
+  // {
+  //   agora::info(log_prefix, "Something is wrong, the list of clients received from the DB is empty!");
+  //   return;
+  // }
+  //
+  // agora::debug(log_prefix, "Client list without duplicates:");
+  //
+  // for (auto& i : clients_list)
+  // {
+  //   agora::debug(log_prefix, i);
+  // }
+
+  // initialize timeout shared (consumed) among all the clients
+  int timeout = Parameters_beholder::timeout;
+
+  // cycle over all the clients of the specific application
+  for (auto& i : clients_list_snapshot)
+  {
+    agora::pedantic(log_prefix, "Starting the 2nd level of CDT for client: ", i.first, ". Setting up the metrics to be analyzed...");
+
+    // initialized as a duplicate of reference_metric_names, that is to say all the metrics enabled for the
+    // beholder analysis this list contains the metrics yet to be tested with the hypothesis test, so once a
+    // metric has been analyzed it will be removed from this structure
+    std::set<std::string> metric_to_be_analyzed;
+
+    for (auto& j : reference_metric_names)
+    {
+      metric_to_be_analyzed.emplace(j);
+      agora::debug(log_prefix, "Metric to be analyzed for client ", i.first, ": ", j);
+    }
+
+    bool confirmed_change = false;
+    bool valid_client = true;
+
+    // String containing the 'select' part of the query to Cassandra
+    // to only receive the metrics enabled for the beholder analysis by the user
+    std::string query_select;
+
+    // just for log purposes, to keep track of how many times we enter the while cycle
+    int while_counter = 1;
+
+    while (metric_to_be_analyzed.size() != 0 && !confirmed_change)
+    {
+      agora::debug(log_prefix, "Entering while cycle for the ", while_counter, " time for client ", i.first, " with still ", metric_to_be_analyzed.size(), " metrics to be analyzed out of a total of ",
+                   reference_metric_names.size(), " beholder-enabled metrics.");
+      // data structure to save the residuals for the specific application-client pair before the change
+      // the structure is organized as a map which maps the name of the metric to a pair
+      // The first element of the pair is a vector containing the residuals for that metric before the change windows
+      // The second element of the pair is a vector containing the residuals for that metric after the change windows
+      std::unordered_map<std::string, std::pair < std::vector<float>, std::vector<float>>> client_residuals_map;
+
+      // preparing the 'select' query for Cassandra for the 2nd step of cassandra
+      // It is done here on the basis of which metrics are left to be analyzed
+      query_select = "day, time, client_id, ";
+
+      for (auto& it : description.knobs)
+      {
+        query_select.append(it.name);
+        query_select.append(",");
+      }
+
+      for (auto& it : description.features)
+      {
+        query_select.append(it.name);
+        query_select.append(",");
+      }
+
+      for (auto& it : metric_to_be_analyzed)
+      {
+        query_select.append(it);
+        query_select.append(",");
+      }
+
+      for (auto& it : metric_to_be_analyzed)
+      {
+        query_select.append("model_");
+        query_select.append(it);
+        query_select.append(",");
+      }
+
+      // to remove the last comma
+      query_select.pop_back();
+
+      agora::debug(log_prefix, "Querying DB for client ", i.first, " to get its observations from the trace table.");
+      agora::debug(log_prefix, "Query: ", query_select);
+
+      // compute the Cassandra time format of the first observation for this current client under analysis
+      // to filter out this first value and all the previous ones from the trace.
+      cassandra_time filter_from_time = compute_timestamps(i.second);
+
+      observations_list = agora::io::storage.load_client_observations(description.application_name, i.first, query_select, std::to_string(filter_from_time.year_month_day),
+                          std::to_string(filter_from_time.time_of_day));
+      //observations_list = agora::io::storage.load_client_observations(description.application_name, "alberto_Surface_Pro_2_6205", query_select);
+
+      agora::debug("\n", log_prefix, "Trace query executed successfully for client ", i.first, ", starting the parsing of its observations.");
+
+      // cycle over each row j of the trace for each client i (for the current application)
+      for (auto& j : observations_list)
+      {
+        parse_and_insert_observations_for_client_from_trace(client_residuals_map, j, metric_to_be_analyzed);
+      }
+
+      agora::debug(log_prefix, "Finished parsing and putting in the respective buffers the result of the trace query for client: ", i.first);
+      agora::debug(log_prefix, "Computing which metrics have enough observations to actually perform the hypothesis test for client: ", i.first);
+
+      // let's analyze if any of the metrics has enough observations to perform the test
+      // remove the metrics which cannot be analyzed from the client_residuals_map
+      for (auto it = client_residuals_map.begin(); it != client_residuals_map.end();)
+      {
+        if (it->second.first.size() < Parameters_beholder::min_observations || it->second.second.size() < Parameters_beholder::min_observations)
+        {
+          it = client_residuals_map.erase(it);
+        }
+        else
+        {
+          ++it;
+        }
+      }
+
+      if (client_residuals_map.size() == metric_to_be_analyzed.size())
+      {
+        agora::debug(log_prefix, "All the ", client_residuals_map.size(), " out of ", metric_to_be_analyzed.size(), " metrics to still be analyzed can perform the test for client ", i.first);
+      }
+      else
+      {
+        agora::debug(log_prefix, "Just ", client_residuals_map.size(), " out of ", metric_to_be_analyzed.size(), " metrics to still be analyzed can perform the test for client ", i.first);
+      }
+
+      // if there is at least a metric on which we can perform the hypothesis test
+      if (client_residuals_map.size() > 0)
+      {
+        // Execute on the specific client the 2nd step of CDT: hypothesis TEST
+        confirmed_change = HypTest::perform_hypothesis_test(client_residuals_map, description.application_name, i.first);
+      }
+
+      agora::debug(log_prefix, "Outcome of hypothesis test for client ", i.first, ": ", confirmed_change);
+
+      if (confirmed_change)
+      {
+        // as soon as the change is confirmed by any of the metric then exit to classify the current
+        // client under analysis as a bad one and move to the next client (if any left)
+        agora::debug(log_prefix, "Breaking out of the while since the hypothesis test on client ", i.first, " has confirmed the change!");
+        break;
+      }
+      else
+      {
+        // remove the metrics present in the client_residuals_map from the metric_to_be_analyzed
+        // in this way we only leave in the metric_to_be_analyzed just the names of the metrics to yet be analized.
+        for (auto& it : client_residuals_map)
+        {
+          metric_to_be_analyzed.erase(it.first);
+        }
+
+        agora::debug(log_prefix, "Updated the metrics to still be analyzed for client ", i.first, ". There are still ", metric_to_be_analyzed.size(), " metrics left.");
+
+        // if the metric_to_be_analyzed is empty then it won't enter the next while cycle
+
+        if (metric_to_be_analyzed.size() > 0)
+          // if we arrive here it means that metric_to_be_analyzed is not empty, meaning that some metrics to still
+          // be analized were not ready. We need to wait for more observations to come hopefully.
+        {
+          if (timeout <= 0)
+          {
+            agora::debug(log_prefix, "Even though there are some metrics to still be analyzed for client ", i.first, " we run out of time. We consider this client a \"bad\" one...");
+            // if we arrive here it means that the 2nd level test has not confirmed the change as of now
+            // and we run out of time, we need to move on.
+            // We set the current client as a non-valid one then.
+            valid_client = false;
+            break;
+          }
+          else
+          {
+            // we can wait for some more observations to come
+            // I chose to wait even if the current timeout-waitperiod is theoretically out_of_time already
+            agora::debug(log_prefix, "Waiting ", Parameters_beholder::frequency_check, " seconds for some more observations to come hopefully. Current timeout in seconds: ", Parameters_beholder::timeout);
+            std::this_thread::sleep_for(std::chrono::milliseconds(Parameters_beholder::frequency_check));
+            timeout -= Parameters_beholder::frequency_check;
+          }
+        }
+      }
+    }
+
+    agora::debug(log_prefix, "Exited from the while cycle for client: ", i.first);
+
+    if (valid_client)
+    {
+      // according to the quality (GOOD=no_change/BAD=confirmed_change) of the currently analyzed client, enqueue it in the good/bad_clients_list
+      if (confirmed_change)
+      {
+        bad_clients_list.emplace(i.first);
+        agora::debug(log_prefix, "Emplaced the client ", i.first, " to the list of the bad ones since it confirmed the change.");
+
+      }
+      else
+      {
+        good_clients_list.emplace(i.first);
+        agora::debug(log_prefix, "Emplaced the client ", i.first, " to the list of the good ones since it denied the change.");
+      }
+    }
+    else
+    {
+      timeout_clients_list.emplace(i.first);
+      agora::debug(log_prefix, "Emplaced the client ", i.first, " to the list of the timed-out ones since it run-out of time for the hypothesis test.");
+    }
+  }
+
+  agora::pedantic(log_prefix, "Finished cycling over all the clients for the 2nd step of hierarchical CDT. Computing the fate of the application...");
+
+
+  // compute the percentage of bad clients and compare it wrt the predefined threshold
+  float bad_clients_percentage = (((bad_clients_list.size() + timeout_clients_list.size()) / clients_list_snapshot.size()) * 100);
+
+  // Once I know what the outcome of the hypothesis TEST is, re-acquire the lock
+  // lock the mutex to ensure a consistent global state
+  std::unique_lock<std::mutex> guard(mutex);
+
+  if (timeout_clients_list.size() == 0)
+  {
+    // TODO: do Something else??
+    agora::info(log_prefix, "WARNING: all the clients run out of time for the hypothesis test. The re-training will be triggered since 100% of the clients are behaving awkwardly.");
+  }
+
+
+  // if the number % of bad clients is over the user-set threshold then trigger the re-training
+  // This also covers the case in which all the clients behave badly (100%)
+  if (bad_clients_percentage > Parameters_beholder::bad_clients_threshold)
+  {
+    agora::info(log_prefix, "TRIGGERING RE-TRAINING since the percentage of bad clients [", bad_clients_percentage, "] is greater than the user-selected acceptable one [",
+                Parameters_beholder::bad_clients_threshold, "].");
+
+    // Basically in this case the change detected by the 1st level cdt was confirmed by the hypothesys test
+
+    // reset the whole application handler
+    clients_blacklist.clear();
+    residuals_map.clear();
+    ici_cdt_map.clear();
+    clients_list.clear();
+
+    // deal with the output files (if enabled)
+    if (Parameters_beholder::output_files)
+    {
+      // for every possible metric available (beholder-enabled metric)
+      for (auto& i : reference_metric_names)
+      {
+        auto search = output_files_map.find(i);
+
+        // if there is the file structure related to that metric
+        if (search != output_files_map.end())
+        {
+          // if the observation file is open then close it
+          if (search->second.first.is_open())
+          {
+            search->second.first.close();
+          }
+
+          // if the ici file is open then close it
+          if (search->second.second.is_open())
+          {
+            search->second.second.close();
+          }
+        }
+      }
+
+      // destroy the current mapping to output files since the next run will have different naming suffixes
+      output_files_map.clear();
+      // increase the naming suffix counter
+      suffix_plot++;
+    }
+
+    // check the actual status of the handler
+    if (status == ApplicationStatus::DISABLED)
+    {
+      // if the handler is currently disabled then we need to wait for it to be re-enabled
+      previous_status == ApplicationStatus::RETRAINING;
+      agora::info(log_prefix, "The re-training has to be triggered, but currently the handler is disabled, so we postpone the trigger to when the handler is re-enabled.");
+    }
+    else
+    {
+      agora::info(log_prefix, "Resetting the whole application handler after having triggered the re-training!");
+      retraining();
+    }
+  }
+  else
+  {
+    // this is the case in which either there are some bad clients but they are below threshold,
+    // or there are no bad clients at all. The behavior is the same.
+    // The change is discarded (but so are also the values coming from these bad_clients, if any).
+
+    agora::info(log_prefix, "The hypothesis test REJECTED the change. We keep the current model since the percentage of bad clients [", bad_clients_percentage,
+                "] is lower than the user-selected acceptable one [", Parameters_beholder::bad_clients_threshold, "].");
+
+    // if there are some bad clients then put them in the blacklist
+    if (bad_clients_list.size() > 0)
+    {
+      for (auto& i : bad_clients_list)
+      {
+        agora::debug(log_prefix, "Putting in blacklist client: ", i);
+        clients_blacklist.emplace(i);
+      }
+    }
+
+    // reset the 1st level cdt data structure for all the metrics which have a structure
+    // just keep the test configuration settings (training) and reset the rest.
+    agora::info(log_prefix, "Resetting the first level of the CDT to its initial configuration and setting back the status to READY.");
+
+    // for every CDT data structure for this application (meaning for every metric that was analyzed in the ICI CDT)
+    for (auto& i : ici_cdt_map)
+    {
+      // reset its ici cdt to just the training configuration
+      // restore the sequence number to the number of windows used for training
+      i.second.window_number = Parameters_beholder::training_windows;
+      // reset the sample mean stuff
+      // restore the reference (training) sample mean-mean
+      i.second.current_sample_mean_mean = i.second.reference_sample_mean_mean;
+      // restore the training CI for the mean
+      i.second.current_mean_conf_interval_lower = i.second.reference_mean_conf_interval_lower;
+      i.second.current_mean_conf_interval_upper = i.second.reference_mean_conf_interval_upper;
+
+      // if the variance is enabled then do the same for variance too
+      if (!Parameters_beholder::variance_off)
+      {
+        // restore the reference (training) sample variance-mean
+        i.second.current_sample_variance_mean = i.second.reference_sample_variance_mean;
+        // restore the training CI for the variance
+        i.second.current_variance_conf_interval_lower = i.second.reference_variance_conf_interval_lower;
+        i.second.current_variance_conf_interval_upper = i.second.reference_variance_conf_interval_upper;
+      }
+
+      // if the data structure under analysis belongs to the metric which triggered the change first
+      if (i.second.metric_name == change_metric_name)
+      {
+        // reset the change window timestamp to be sure
+        i.second.front_window_timestamp = "";
+        i.second.back_window_timestamp = "";
+        // i.second.front_year_month_day = 0;
+        // i.second.front_time_of_day = 0;
+        // i.second.back_year_month_day = 0;
+        // i.second.back_time_of_day = 0;
+      }
+    }
+
+    change_metric_name = "";
+
+    if (Parameters_beholder::output_files)
+    {
+      // for every possible metric available (beholder-enabled metric)
+      for (auto& i : reference_metric_names)
+      {
+        auto search = output_files_map.find(i);
+
+        // if there is the file structure related to that metric
+        if (search != output_files_map.end())
+        {
+          // if the file is open
+          if (search->second.first.is_open())
+          {
+            // the metric subdirectory should have already been created (because we reach this point only if the
+            // structure of the metric in analysis has been created), but there should be theoretically
+            // no harm in making sure about that.
+            std::string metric_folder_path = application_workspace + search->first + "/";
+
+            // creation of output file folders (the suffix subdirectory)
+            metric_folder_path = metric_folder_path + std::to_string(suffix_plot + 1) + "/";
+            bool is_created = create_folder(metric_folder_path);
+
+            if (!is_created)
+            {
+              agora::warning("Unable to create the folder \"", metric_folder_path, "\" with errno=", errno);
+              throw std::runtime_error("Unable to create the folder \"" + metric_folder_path + "\" with errno=" + std::to_string(errno) );
+            }
+
+            // copy the training lines in the output files for the next iteration, with naming siffix++
+            // prepare the next files:
+            std::fstream current_metric_observations_file;
+            std::fstream current_metric_ici_file;
+            std::string file_path_obs = metric_folder_path + "observations_" + search->first + "_" + std::to_string(suffix_plot + 1) + ".txt";
+            std::string file_path_ici = metric_folder_path + "ici_" + search->first + "_" + std::to_string(suffix_plot + 1) + ".txt";
+            current_metric_observations_file.open(file_path_obs, std::fstream::out);
+            current_metric_ici_file.open(file_path_ici, std::fstream::out);
+
+            if (!current_metric_observations_file.is_open())
+            {
+              agora::warning(log_prefix, "Error: the (future) output observation file has not been created!");
+            }
+
+            if (!current_metric_ici_file.is_open())
+            {
+              agora::warning(log_prefix, "Error: the (future) output ici file has not been created!");
+            }
+
+            std::string temp_line;
+
+            // copy into the new file the observations related to the training phase
+            for (int index = 0; index < Parameters_beholder::window_size * Parameters_beholder::training_windows; index++)
+            {
+              std::getline(search->second.first, temp_line);    // Check whether this method automatically rewinds the file and keeps the position across cycles. It should.
+              current_metric_observations_file << temp_line << std::endl; // TODO: check whether this result in a double endline
+            }
+
+            current_metric_observations_file.flush();
+            // copy just the first line (training CI info) from the old ici output file to the new one
+            std::getline(search->second.second, temp_line);    // Check whether this method automatically rewinds the file and keeps the position across cycles. It should.
+            current_metric_ici_file << temp_line << std::endl; // TODO: check whether this result in a double endline
+            current_metric_observations_file.flush();
+            // close the old file
+            search->second.first.close();
+            // remove from the map the old file
+            // Or even better replace the old with the new ones, so that you do not need to delete a mapping and
+            // re-create it.
+            // Basically I need to replace the pair here.
+            // I need to use the move operator to assign because the fstreams are not coyable...
+            auto temp_pair_file = std::make_pair(std::move(current_metric_observations_file), std::move(current_metric_ici_file));
+            search->second = std::move(temp_pair_file);
+          }
+        }
+      }
+
+      // destroy the current mapping to output files since the next run will have different naming suffixes
+      output_files_map.clear();
+      // increase the naming suffix counter
+      suffix_plot++;
+    }
+
+    ici_reset_counter++;
+    // resetting the counter of the observations received for the current ici test. Reset to just training phase observations
+    current_test_observations_counter = Parameters_beholder::window_size * Parameters_beholder::training_windows;
+
+    // check the actual status of the handler
+    if (status == ApplicationStatus::DISABLED)
+    {
+      // if the handler is currently disabled then we need to wait for it to be re-enabled
+      previous_status = ApplicationStatus::READY;
+      agora::pedantic(log_prefix, "The handler has to be set to READY, but it is currently disabled, so we postpone this to when the handler will be un-paused.");
+    }
+    else
+    {
+      // set the status back to ready
+      status = ApplicationStatus::READY;
+      agora::pedantic(log_prefix, "Setting handler back to READY!");
+    }
+  }
 }
 
 // This function converts the timestamp received in input as a comma-separated string

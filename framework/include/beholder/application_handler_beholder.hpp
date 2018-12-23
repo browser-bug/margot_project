@@ -169,6 +169,8 @@ namespace beholder
       // got from queries to Cassandra's db which went through the same kind of processing.
       window_cassandra_time change_window_timestamps;
 
+      std::string change_metric_name;
+
       // these are the function used to communicate using MQTT topics
 
       // send a command to all the clients running the application
@@ -193,8 +195,10 @@ namespace beholder
 
       int parse_observation(Observation_data& observation, const std::string& values);
       int fill_buffers(const Observation_data& observation);
+      void first_level_test( void );
       void parse_and_insert_observations_for_client_from_trace(std::unordered_map<std::string, std::pair < std::vector<float>, std::vector<float>>>& client_residuals_map, const observation_t j,
           const std::set<std::string>& metric_to_be_analyzed);
+      void second_level_test( std::unordered_map<std::string, timestamp_fields>& clients_list_snapshot );
       cassandra_time compute_timestamps(const std::string& input_timestamp);
       cassandra_time compute_timestamps(const timestamp_fields& input_timestamp);
 
