@@ -236,6 +236,18 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
   // if need to start the step 2 of CDT:
   if (status == ApplicationStatus::COMPUTING)
   {
+    // Local copy of the list of active clients right now (snapshot of the current situation).
+    // So that we have consistency on the clients and the subsequent query to db and statistics
+    // in a situation in which the lock is released, still allowing the real list ot be (possibly) updated
+    // if some clients send their "kia".
+    std::unordered_map<std::string, timestamp_fields> clients_list_snapshot;
+
+    // I am not using the "&" on purpose since I want a copy here!
+    for (auto i : clients_list)
+    {
+      clients_list_snapshot.emplace(i);
+    }
+
     guard.unlock();
 
     agora::pedantic(log_prefix, "Entering 2nd level of CDT! Getting the list of clients running the application...");
@@ -279,7 +291,7 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
     int timeout = Parameters_beholder::timeout;
 
     // cycle over all the clients of the specific application
-    for (auto& i : clients_list)
+    for (auto& i : clients_list_snapshot)
     {
       agora::pedantic(log_prefix, "Starting the 2nd level of CDT for client: ", i.first, ". Setting up the metrics to be analyzed...");
 
@@ -348,8 +360,14 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
 
         agora::debug(log_prefix, "Querying DB for client ", i.first, " to get its observations from the trace table.");
         agora::debug(log_prefix, "Query: ", query_select);
+
+        // compute the Cassandra time format of the first observation for this current client under analysis
+        // to filter out this first value and all the previous ones from the trace.
+        cassandra_time filter_from_time = compute_timestamps(i.second);
+
+        observations_list = agora::io::storage.load_client_observations(description.application_name, i.first, query_select, std::to_string(filter_from_time.year_month_day),
+                            std::to_string(filter_from_time.time_of_day));
         //observations_list = agora::io::storage.load_client_observations(description.application_name, "alberto_Surface_Pro_2_6205", query_select);
-        observations_list = agora::io::storage.load_client_observations(description.application_name, i.first, query_select);
 
         agora::debug("\n", log_prefix, "Trace query executed successfully for client ", i.first, ", starting the parsing of its observations.");
 
@@ -467,7 +485,7 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
 
 
     // compute the percentage of bad clients and compare it wrt the predefined threshold
-    float bad_clients_percentage = (((bad_clients_list.size() + timeout_clients_list.size()) / clients_list.size()) * 100);
+    float bad_clients_percentage = (((bad_clients_list.size() + timeout_clients_list.size()) / clients_list_snapshot.size()) * 100);
 
     // Once I know what the outcome of the hypothesis TEST is, re-acquire the lock
     guard.lock();
@@ -1258,6 +1276,28 @@ cassandra_time RemoteApplicationHandler::compute_timestamps(const std::string& i
   std::istringstream( input_timestamp.substr(0, front_pos_first_comma) ) >> front_secs_since_epoch;
   // substring from the comma (comma excluded) to the end of the string
   std::istringstream( input_timestamp.substr(front_pos_first_comma + 1, std::string::npos) ) >> front_nanosecs_since_secs;
+
+  // now we have to convert them in the funny cassandra format
+  result_timestamp.year_month_day = cass_date_from_epoch(front_secs_since_epoch);
+  result_timestamp.time_of_day = cass_time_from_epoch(front_secs_since_epoch);
+
+  // now we add to the time of a day the missing information
+  result_timestamp.time_of_day += front_nanosecs_since_secs;
+
+  return result_timestamp;
+}
+
+// This function converts the timestamp received in input as a "timestamp_fields" struct
+// in the Cassandra date and time format. Returns a "cassandra_time" struct.
+cassandra_time RemoteApplicationHandler::compute_timestamps(const timestamp_fields& input_timestamp)
+{
+  cassandra_time result_timestamp;
+
+  time_t front_secs_since_epoch;
+  int64_t front_nanosecs_since_secs;
+  // convert the strings in the input struct into the proper time formats
+  std::istringstream( input_timestamp.seconds ) >> front_secs_since_epoch;
+  std::istringstream( input_timestamp.nanoseconds ) >> front_nanosecs_since_secs;
 
   // now we have to convert them in the funny cassandra format
   result_timestamp.year_month_day = cass_date_from_epoch(front_secs_since_epoch);

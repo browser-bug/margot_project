@@ -1472,7 +1472,8 @@ application_list_t CassandraClient::load_clients( const std::string& application
 }
 
 
-observations_list_t CassandraClient::load_client_observations( const std::string& application_name, const std::string& client_name, const std::string& query_select )
+observations_list_t CassandraClient::load_client_observations( const std::string& application_name, const std::string& client_name, const std::string& query_select, const std::string& date,
+    const std::string& time )
 {
 
   // this will contain the list of all the observations in the trace belonging to a specific pair of application-client
@@ -1705,9 +1706,12 @@ observations_list_t CassandraClient::load_client_observations( const std::string
   };
 
   // perform the query
-  const std::string query = "SELECT " + query_select + " FROM " + table_name + " WHERE client_id = '" + client_name + "' ALLOW FILTERING;";
+  // first get all the observations from the same day but with a later time
+  const std::string query = "SELECT " + query_select + " FROM " + table_name + " WHERE client_id = '" + client_name + "' AND day = '" + date + "' AND time >= '" + time + "' ALLOW FILTERING;";
   execute_query_synch(query, result_handler);
-
+  // then get all the observations from the following days
+  const std::string query2 = "SELECT " + query_select + " FROM " + table_name + " WHERE client_id = '" + client_name + "' AND day >= '" + date + "' ALLOW FILTERING;";
+  execute_query_synch(query2, result_handler);
 
   return observations_list;
 }

@@ -99,9 +99,10 @@ namespace agora
         return fs->load_clients(application_name);
       }
 
-      inline observations_list_t load_client_observations( const std::string& application_name, const std::string& client_name, const std::string& query_select )
+      inline observations_list_t load_client_observations( const std::string& application_name, const std::string& client_name, const std::string& query_select, const std::string& date,
+          const std::string& time )
       {
-        return fs->load_client_observations(application_name, client_name, query_select);
+        return fs->load_client_observations(application_name, client_name, query_select, date, time );
       }
 
       inline std::string get_type( void ) const
