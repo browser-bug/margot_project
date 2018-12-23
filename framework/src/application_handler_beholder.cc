@@ -28,7 +28,6 @@
 
 
 #include "beholder/application_handler_beholder.hpp"
-#include "beholder/parameters_beholder.hpp"
 #include "beholder/observation_data.hpp"
 #include "beholder/ici_cdt.hpp"
 #include "beholder/hypothesis_test.hpp"
@@ -196,9 +195,6 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
         // so basically avoid the if to check for the boolean "change_detected"
       }
 
-      // Empty the (filled-in) buffer for the current metric.
-      i.second.clear();
-
       // if the change has been detected save the name of the (first) metric for which the change has been detected
       // This could be useful later on.
       // Save also the timestamp of the first and last element of the window
@@ -210,6 +206,12 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
       {
         agora::info(log_prefix, "First level of CDT DETECTED A CHANGE in metric: ", i.first, " Resetting metric buffer, clients blacklist and setting handler to status=COMPUTING!");
         change_metric = i.first;
+
+        // compute the Cassandra-format timestamps for the first and last element of the selected change window
+        // to make it comparable with the observations from the trace
+        change_window_timestamps.front = compute_timestamps(i.second.front().second);
+        change_window_timestamps.back = compute_timestamps(i.second.back().second);
+
         // set the status variable according so that the lock can be released
         status = ApplicationStatus::COMPUTING;
         // every time a new change is detected by the 1st level test we reset the blacklist of clients
@@ -218,6 +220,9 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
         // from which to collect observations also for the 1st level test in the future.
         clients_blacklist.clear();
       }
+
+      // Empty the (filled-in) buffer for the current metric.
+      i.second.clear();
     }
   }
 
@@ -272,8 +277,6 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
 
     // initialize timeout shared (consumed) among all the clients
     int timeout = Parameters_beholder::timeout;
-
-
 
     // cycle over all the clients of the specific application
     for (auto& i : clients_list)
@@ -485,32 +488,13 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
 
       // Basically in this case the change detected by the 1st level cdt was confirmed by the hypothesys test
 
-      // need to trigger RE-training
-      // this automatically deals with the deletion of the model and of the trace and with the reset of the doe
-      // in this version the trace is deleted just from the top element in the table up to the last element of the training window
-      if (Parameters_beholder::no_trace_drop)
-      {
-        auto search_ici_map = ici_cdt_map.find(change_metric);
-
-        if (search_ici_map != ici_cdt_map.end())
-        {
-          agora::pedantic(log_prefix, "Deleting the model, restoring the DOE, deleting just the rows of the trace which are before the detected change window.");
-          send_agora_command("retraining " + std::to_string(search_ici_map->second.back_year_month_day) + "," + std::to_string(search_ici_map->second.back_time_of_day));
-        }
-      }
-      else
-      {
-        agora::pedantic(log_prefix, "Deleting the model, restoring the DOE, deleting the whole trace.");
-        // delete the whole trace
-        send_agora_command("retraining");
-      }
-
       // reset the whole application handler
       clients_blacklist.clear();
       residuals_map.clear();
       ici_cdt_map.clear();
       clients_list.clear();
 
+      // deal with the output files (if enabled)
       if (Parameters_beholder::output_files)
       {
         // for every possible metric available (beholder-enabled metric)
@@ -541,9 +525,18 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
         suffix_plot++;
       }
 
-      retraining_counter++;
-      agora::info(log_prefix, "Resetting the whole application handler after having triggered the re-training!");
-      status = ApplicationStatus::TRAINING;
+      // check the actual status of the handler
+      if (status == ApplicationStatus::DISABLED)
+      {
+        // if the handler is currently disabled then we need to wait for it to be re-enabled
+        previous_status == ApplicationStatus::RETRAINING;
+        agora::info(log_prefix, "The re-training has to be triggered, but currently the handler is disabled, so we postpone the trigger to when the handler is re-enabled.");
+      }
+      else
+      {
+        agora::info(log_prefix, "Resetting the whole application handler after having triggered the re-training!");
+        retraining();
+      }
     }
     else
     {
@@ -595,10 +588,12 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
         if (i.second.metric_name == change_metric)
         {
           // reset the change window timestamp to be sure
-          i.second.front_year_month_day = 0;
-          i.second.front_time_of_day = 0;
-          i.second.back_year_month_day = 0;
-          i.second.back_time_of_day = 0;
+          i.second.front_window_timestamp = "";
+          i.second.back_window_timestamp = "";
+          // i.second.front_year_month_day = 0;
+          // i.second.front_time_of_day = 0;
+          // i.second.back_year_month_day = 0;
+          // i.second.back_time_of_day = 0;
         }
       }
 
@@ -686,8 +681,19 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
       // resetting the counter of the observations received for the current ici test. Reset to just training phase observations
       current_test_observations_counter = Parameters_beholder::window_size * Parameters_beholder::training_windows;
 
-      // set the status back to ready
-      status = ApplicationStatus::READY;
+      // check the actual status of the handler
+      if (status == ApplicationStatus::DISABLED)
+      {
+        // if the handler is currently disabled then we need to wait for it to be re-enabled
+        previous_status = ApplicationStatus::READY;
+        agora::pedantic(log_prefix, "The handler has to be set to READY, but it is currently disabled, so we postpone this to when the handler will be un-paused.");
+      }
+      else
+      {
+        // set the status back to ready
+        status = ApplicationStatus::READY;
+        agora::pedantic(log_prefix, "Setting handler back to READY!");
+      }
     }
   }
 
@@ -1132,48 +1138,49 @@ void RemoteApplicationHandler::parse_and_insert_observations_for_client_from_tra
     agora::debug(log_prefix, "Current residual for metric ", *name_ref, " is: ", current_residual);
 
     auto search = client_residuals_map.find(*name_ref);
-    // Load the ici_cdt_map for the current metric
-    // This is needed to get the timestamp of the window where the change was detected.
-    // Here we need to save the element before that window in a vector (1st in pair),
-    // and the elements after that window in another corresponding vector (2nd in pair)
-    auto search_ici_map = ici_cdt_map.find(*name_ref);
 
-    if (search != client_residuals_map.end() && search_ici_map != ici_cdt_map.end())
+    // Here we need to save the element before the change window in a vector (1st in pair),
+    // and the elements after that window in another corresponding vector (2nd in pair).
+    // NB: the timestamps of the hypothetical change window used here are referred obviously
+    // to the metric which first detected the change. It may be the same under analysis here
+    // or not.
+
+    if (search != client_residuals_map.end())
     {
       agora::debug(log_prefix, "metric ", *name_ref, " already present, filling buffer");
 
       // metric already present, need to add to the buffer the new residual
       // compare timestamp: if before the change insert in the 1st vector of the pair
-      if (obs_year_month_day[index] < search_ici_map->second.front_year_month_day)
+      if (obs_year_month_day[index] < change_window_timestamps.front.year_month_day)
       {
         // if the current date is older than the one from the first element of the
         // change window then add it to the "before" change window vector.
         search->second.first.emplace_back(current_residual);
       }
-      else if (obs_year_month_day[index] == search_ici_map->second.front_year_month_day)
+      else if (obs_year_month_day[index] == change_window_timestamps.front.year_month_day)
       {
         // if the current observation date is the same as the date of the 1st element of the
         // change window then compare the time. If the current observation's timestamp
         // comes first in the day then add it to the "before" change window vector
-        if (obs_time_of_day[index] < search_ici_map->second.front_time_of_day)
+        if (obs_time_of_day[index] < change_window_timestamps.front.time_of_day)
         {
           search->second.first.emplace_back(current_residual);
         }
 
         // if after the change insert in the 2nd vector of the pair
       }
-      else if (obs_year_month_day[index] > search_ici_map->second.back_year_month_day)
+      else if (obs_year_month_day[index] > change_window_timestamps.back.year_month_day)
       {
         // if the current date is newer than the one from the last element of the
         // change window then add it to the "after" change window vector.
         search->second.second.emplace_back(current_residual);
       }
-      else if (obs_year_month_day[index] == search_ici_map->second.back_year_month_day)
+      else if (obs_year_month_day[index] == change_window_timestamps.back.year_month_day)
       {
         // if the current observation date is the same as the date of the last element of the
         // change window then compare the time. If the current observation's timestamp
         // comes later in the day then add it to the "after" change window vector
-        if (obs_time_of_day[index] > search_ici_map->second.back_time_of_day)
+        if (obs_time_of_day[index] > change_window_timestamps.back.time_of_day)
         {
           search->second.second.emplace_back(current_residual);
         }
@@ -1181,7 +1188,7 @@ void RemoteApplicationHandler::parse_and_insert_observations_for_client_from_tra
     }
     // if we did not find any key with the current metric's name under analysis in the struct
     // then theoretically we should initialize the corresponding struct for the metric
-    else if (search_ici_map != ici_cdt_map.end())
+    else
     {
       // check that this first value inserted is actually before the change window
       // insert the current observation in the vector of the residuals before the change
@@ -1196,18 +1203,18 @@ void RemoteApplicationHandler::parse_and_insert_observations_for_client_from_tra
       // bool to control if the first observation is actually before the change window
       bool valid_metric = false;
 
-      if (obs_year_month_day[index] < search_ici_map->second.front_year_month_day)
+      if (obs_year_month_day[index] < change_window_timestamps.front.year_month_day)
       {
         // if the current date is older than the one from the first element of the
         // change window then add it to the "before" change window vector.
         valid_metric = true;
       }
-      else if (obs_year_month_day[index] == search_ici_map->second.front_year_month_day)
+      else if (obs_year_month_day[index] == change_window_timestamps.front.year_month_day)
       {
         // if the current observation date is the same as the date of the 1st element of the
         // change window then compare the time. If the current observation's timestamp
         // comes first in the day then add it to the "before" change window vector
-        if (obs_time_of_day[index] < search_ici_map->second.front_time_of_day)
+        if (obs_time_of_day[index] < change_window_timestamps.front.time_of_day)
         {
           valid_metric = true;
         }
@@ -1229,12 +1236,35 @@ void RemoteApplicationHandler::parse_and_insert_observations_for_client_from_tra
         agora::debug(log_prefix, "Skipping the creation of buffer for metric ", *name_ref, " because we do not have observations before the hypothetical change window");
       }
     }
-    else
-    {
-      agora::warning(log_prefix, "Error: no \"ici_cdt_map\" struct found for the metric: ", *name_ref);
-      return;
-    }
   }
 
   agora::pedantic(log_prefix, ":", obs_client_id, ": successfully parsed and inserted into buffers the observation: ", j);
+}
+
+// This function converts the timestamp received in input as a comma-separated string
+// of the format "seconds since epoch,nanosecond" in the Cassandra date and time format.
+// return a "cassandra_time" struct.
+cassandra_time RemoteApplicationHandler::compute_timestamps(const std::string& input_timestamp)
+{
+  cassandra_time result_timestamp;
+
+  // At first the timestamp is a string (as passed from the asrtm) which contains:
+  // "seconds(from epoch),nanoseconds". The two fields are separated by a comma.
+  // We need to separate these two fields, so we look for the comma.
+  const auto front_pos_first_comma = input_timestamp.find_first_of(',', 0);
+  time_t front_secs_since_epoch;
+  int64_t front_nanosecs_since_secs;
+  // substring from the beginning of the string to the comma
+  std::istringstream( input_timestamp.substr(0, front_pos_first_comma) ) >> front_secs_since_epoch;
+  // substring from the comma (comma excluded) to the end of the string
+  std::istringstream( input_timestamp.substr(front_pos_first_comma + 1, std::string::npos) ) >> front_nanosecs_since_secs;
+
+  // now we have to convert them in the funny cassandra format
+  result_timestamp.year_month_day = cass_date_from_epoch(front_secs_since_epoch);
+  result_timestamp.time_of_day = cass_time_from_epoch(front_secs_since_epoch);
+
+  // now we add to the time of a day the missing information
+  result_timestamp.time_of_day += front_nanosecs_since_secs;
+
+  return result_timestamp;
 }

@@ -340,8 +340,12 @@ namespace beholder
                         window_pair.front().first);
         agora::pedantic(log_prefix, "and observation number ", (data_test.window_number * Parameters_beholder::window_size), " with value: ", window_pair.back().first);
 
+        // save the timestamp of the first and last element of the window:
+        data_test.front_window_timestamp = window_pair.front().second;
+        data_test.back_window_timestamp = window_pair.back().second;
+
         // convert and save the change window timestamp (as Cassandra does to make it comparable) of the first and last elements of the window
-        compute_timestamps(data_test, window_pair);
+        // compute_timestamps(data_test, window_pair);
 
         // flush the output file to write the ICI info of the current window
         if (Parameters_beholder::output_files)
@@ -417,8 +421,12 @@ namespace beholder
                           window_pair.front().first);
           agora::pedantic(log_prefix, "and observation number ", (data_test.window_number * Parameters_beholder::window_size), " with value: ", window_pair.back().first);
 
+          // save the timestamp of the first and last element of the window:
+          data_test.front_window_timestamp = window_pair.front().second;
+          data_test.back_window_timestamp = window_pair.back().second;
+
           // convert and save the change window timestamp (as Cassandra does to make it comparable) of the first and last elements of the window
-          compute_timestamps(data_test, window_pair);
+          // compute_timestamps(data_test, window_pair);
 
           // flush the output file to write the ICI info of the current window
           if (Parameters_beholder::output_files)
@@ -444,48 +452,5 @@ namespace beholder
 
     // return true if a change has been detected either in the mean or in the variance
     return change_detected_mean || change_detected_variance;
-  }
-
-  // this function writes in the corresponding fields of the "data_test" struct the timestamps of the
-  // first and last element of the window passed as the "window_pair" parameter.
-  // The peculiarity of this method is the way is converts and saves the timestamps.
-  // Basically it converts them in the Cassandra date and time format.
-  // In this way we can effortlessly compare the timestamps with the ones from the observations
-  // got from queries to Cassandra's db which went through the same kind of processing.
-  void IciCdt::compute_timestamps(Data_ici_test& data_test, const std::vector<std::pair <float, std::string>>& window_pair)
-  {
-    // first window-element timestamp
-    // At first the timestamp is a string (as passed from the asrtm) which contains:
-    // "seconds(from epoch),nanoseconds". The two fields are separated by a comma.
-    // We need to separate these two fields, so we look for the comma.
-    const auto front_pos_first_comma = window_pair.front().second.find_first_of(',', 0);
-    time_t front_secs_since_epoch;
-    int64_t front_nanosecs_since_secs;
-    // substring from the beginning of the string to the comma
-    std::istringstream( window_pair.front().second.substr(0, front_pos_first_comma) ) >> front_secs_since_epoch;
-    // substring from the comma (comma excluded) to the end of the string
-    std::istringstream( window_pair.front().second.substr(front_pos_first_comma + 1, std::string::npos) ) >> front_nanosecs_since_secs;
-
-    // now we have to convert them in the funny cassandra format
-    data_test.front_year_month_day = cass_date_from_epoch(front_secs_since_epoch);
-    data_test.front_time_of_day = cass_time_from_epoch(front_secs_since_epoch);
-
-    // now we add to the time of a day the missing information
-    data_test.front_time_of_day += front_nanosecs_since_secs;
-
-    // last window-element timestamp
-    // do the same as above
-    const auto back_pos_first_comma = window_pair.back().second.find_first_of(',', 0);
-    time_t back_secs_since_epoch;
-    int64_t back_nanosecs_since_secs;
-    std::istringstream( window_pair.back().second.substr(0, back_pos_first_comma) ) >> back_secs_since_epoch;
-    std::istringstream( window_pair.back().second.substr(back_pos_first_comma + 1, std::string::npos) ) >> back_nanosecs_since_secs;
-
-    // now we have to convert them in the funny cassandra format
-    data_test.back_year_month_day = cass_date_from_epoch(back_secs_since_epoch);
-    data_test.back_time_of_day = cass_time_from_epoch(back_secs_since_epoch);
-
-    // now we add to the time of a day the missing information
-    data_test.back_time_of_day += back_nanosecs_since_secs;
   }
 }

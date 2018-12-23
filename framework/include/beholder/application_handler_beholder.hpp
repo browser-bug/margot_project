@@ -34,6 +34,7 @@
 #include "agora/common_objects.hpp"
 #include "beholder/ici_test_data.hpp"
 #include "beholder/observation_data.hpp"
+#include "beholder/parameters_beholder.hpp"
 
 
 namespace beholder
@@ -59,6 +60,18 @@ namespace beholder
   {
     std::string seconds;
     std::string nanoseconds;
+  };
+
+  struct cassandra_time
+  {
+    cass_uint32_t year_month_day;
+    cass_int64_t time_of_day;
+  };
+
+  struct window_cassandra_time
+  {
+    cassandra_time front;
+    cassandra_time back;
   };
 
 
@@ -148,6 +161,14 @@ namespace beholder
       // It maps every metric to its struct of data for the ICI CDT
       std::unordered_map<std::string, Data_ici_test> ici_cdt_map;
 
+      // Window containing the timestamps (in Cassandra's format) about
+      // the first and last element of the change window.
+      // We use the Cassandra's format to make the conversion to this format just once
+      // and use the information multiple times in the 2nd step of the CDT.
+      // In this way we can effortlessly compare the timestamps with the ones from the observations
+      // got from queries to Cassandra's db which went through the same kind of processing.
+      window_cassandra_time change_window_timestamps;
+
       // these are the function used to communicate using MQTT topics
 
       // send a command to all the clients running the application
@@ -174,6 +195,29 @@ namespace beholder
       int fill_buffers(const Observation_data& observation);
       void parse_and_insert_observations_for_client_from_trace(std::unordered_map<std::string, std::pair < std::vector<float>, std::vector<float>>>& client_residuals_map, const observation_t j,
           const std::set<std::string>& metric_to_be_analyzed);
+      cassandra_time compute_timestamps(const std::string& input_timestamp);
+
+      inline void retraining ( void )
+      {
+        // need to trigger RE-training
+        // this automatically deals with the deletion of the model and of the trace and with the reset of the doe
+        // in this version the trace is deleted just from the top element in the table up to the last element of the training window
+        if (Parameters_beholder::no_trace_drop)
+        {
+          agora::pedantic(log_prefix, "Deleting the model, restoring the DOE, deleting just the rows of the trace which are before the detected change window.");
+          send_agora_command("retraining " + std::to_string(change_window_timestamps.back.year_month_day) + "," + std::to_string(change_window_timestamps.back.time_of_day));
+        }
+        else
+        {
+          agora::pedantic(log_prefix, "Deleting the model, restoring the DOE, deleting the whole trace.");
+          // delete the whole trace
+          send_agora_command("retraining");
+        }
+
+        retraining_counter++;
+        status = ApplicationStatus::TRAINING;
+      }
+
 
 
     public:
@@ -221,10 +265,10 @@ namespace beholder
 
           if (status == ApplicationStatus::RETRAINING)
           {
+            agora::info(log_prefix, "Resetting the whole application handler after having triggered the re-training following handler un-pause!");
             // handle the retraining
-            status = ApplicationStatus::TRAINING;
+            retraining();
           }
-
         }
       }
 
