@@ -222,7 +222,7 @@ namespace beholder
           if (status == ApplicationStatus::RETRAINING)
           {
             // handle the retraining
-            status = TRAINING;
+            status = ApplicationStatus::TRAINING;
           }
 
         }

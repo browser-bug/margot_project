@@ -1070,7 +1070,7 @@ namespace margot
 
         // convert the measure in seconds since epoch and
         // nanosec since second
-        const auto sec_since_now = std::chrono::duration_cast< std::chrono::seconds >(now.time_since_epoch());
+        const auto sec_since_now = std::chrono::duration_cast< std::chrono::seconds >(now.time_since_epoch()); // return type: std::chrono::duration<long int>
         const auto almost_epoch = now - sec_since_now;
         const auto ns_since_sec = std::chrono::duration_cast< std::chrono::nanoseconds >(almost_epoch.time_since_epoch());
 
