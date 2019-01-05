@@ -97,11 +97,10 @@ namespace agora
         // get the list of applications which currently have the model and whose clients' list is not empty
         const auto app_list = GlobalView::get_handlers_with_model();
 
-        if (app_list.size() == 0)
-        {
-          pedantic("Thread ", get_tid(), ": agorà has no applications with model currently.");
-        }
-        else
+        io::remote.send_message({"margot/agora/beholder/welcome", ""});
+        pedantic("Thread ", get_tid(), ": agorà has no applications with model currently. Sending welcome message to beholder to aknowledge agorà's vitality.'");
+
+        if (app_list.size() != 0)
         {
           for (auto& i : app_list)
           {

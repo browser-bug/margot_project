@@ -639,6 +639,7 @@ int main( int argc, char* argv[] )
   agora::io::remote.subscribe("margot/system");            // to receive external commands, like "shutdown"
   agora::io::remote.subscribe("margot/agora/kia"); // to handle the absence of agora
   agora::io::remote.subscribe("margot/agora/welcome"); // to handle the presence of agora
+  agora::io::remote.subscribe("margot/agora/beholder/welcome"); // to handle the presence of agora (specifically addressed for beholder)
 
   // sends a welcome message to clients
   //agora::io::remote.send_message({"margot/beholder/welcome", ""});

@@ -133,12 +133,13 @@ namespace beholder
     // ---------------------------------------------------------------------------------- handle the creation of new handlers at runtime (not from status summary)
     if (message_type.compare("/model") == 0)
     {
-      // get the name of the application
-      const std::string application_name = new_message.topic.substr(7, start_type_pos - 7);
+
 
       // bool to understand whether we are receiving a model from a broadcast message
       // or a messagge specifically addressed to the beholder
       bool broadcast_model;
+
+      std::string application_name;
 
       // count the letters on the first level topic to distinguish between the topic:
       // "margot/" vs "beholder/"
@@ -154,6 +155,9 @@ namespace beholder
       // if "margot/..."
       if (num_chars == 6)
       {
+        // get the name of the application
+        application_name = new_message.topic.substr(7, start_type_pos - 7);
+
         // log the event
         agora::pedantic("Thread ", get_tid(), ": received broadcast message of a (brand new) model from agorà for application: ", application_name);
         broadcast_model = true;
@@ -161,6 +165,9 @@ namespace beholder
       // if "beholder/..."
       else
       {
+        // get the name of the application
+        application_name = new_message.topic.substr(9, start_type_pos - 9);
+
         // log the event
         agora::pedantic("Thread ", get_tid(), ": received a startup sync message from agorà to inform that a model is available for application: ", application_name);
         broadcast_model = false;
@@ -283,6 +290,7 @@ namespace beholder
       }
     }
 
+    // ---------------------------------------------------------------------------------- handle the welcome message from agorà
     if (message_type.compare("/welcome") == 0)
     {
       // log the event
@@ -291,6 +299,19 @@ namespace beholder
       // enable the beholder
       GlobalView::set_with_agora_true();
 
+      // we need to differentiate whether this is a welcome message from agorà in response to a welcome from
+      // the beholder itself (in this case we can avoid asking for applications) because agorà automatically sends them),
+      // or if this is a generic agorà "broadcast" welcome message. In the latter case we could need to ask for a status update.
+      // if there are three slashes in the topic we are receiving the welcome in response from a beholder explicit welcome
+      // and we can return because agorà will send the status update automatically.
+      // It means the beholder was started after agorà.
+      if (std::count(new_message.topic.begin(), new_message.topic.end(), '/') == 3)
+      {
+          return;
+      }
+
+      // if we reaqch this point it means the welcome message was a generic agorà welcome message
+      // it means agorà was started after the beholder (or died and was relaunched while the beholder was on)
       // if the beholder has no handlers then it sends the welcome message to agorà
       // this is supposed to be used if the user starts the beholder right before agorà
       // for the initial sharing of the already present models in agorà.
