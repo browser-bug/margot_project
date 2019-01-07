@@ -354,8 +354,9 @@ int RemoteApplicationHandler::fill_buffers(const Observation_data& observation)
     {
       agora::debug(log_prefix, "metric ", observation.metric_fields_vec[index], " already present, filling buffer");
       // metric already present, need to add to the buffer the new residual
-      auto temp_pair = std::make_pair(current_residual, observation.timestamp);
-      search->second.emplace_back(temp_pair);
+      //auto temp_pair = std::make_pair(current_residual, observation.timestamp);
+      residual_timestamp_struct temp_struct = {current_residual, observation.timestamp};
+      search->second.emplace_back(temp_struct);
 
       // manage the output to file
       if (Parameters_beholder::output_files)
@@ -380,9 +381,10 @@ int RemoteApplicationHandler::fill_buffers(const Observation_data& observation)
     {
       agora::debug(log_prefix, "creation of buffer for metric and first insertion: ", observation.metric_fields_vec[index]);
       // need to create the mapping for the current metric. It's the first time you meet this metric
-      auto temp_pair = std::make_pair(current_residual, observation.timestamp);
-      std::vector<std::pair <float, std::string>> temp_vector;
-      temp_vector.emplace_back(temp_pair);
+      //auto temp_pair = std::make_pair(current_residual, observation.timestamp);
+      residual_timestamp_struct temp_struct = {current_residual, observation.timestamp};
+      std::vector<residual_timestamp_struct> temp_vector;
+      temp_vector.emplace_back(temp_struct);
       residuals_map.emplace(observation.metric_fields_vec[index], temp_vector);
 
       // manage the output to file
@@ -523,8 +525,8 @@ void RemoteApplicationHandler::first_level_test( void )
 
         // compute the Cassandra-format timestamps for the first and last element of the selected change window
         // to make it comparable with the observations from the trace
-        change_window_timestamps.front = compute_timestamps(i.second.front().second);
-        change_window_timestamps.back = compute_timestamps(i.second.back().second);
+        change_window_timestamps.front = compute_timestamps(i.second.front().residual_timestamp);
+        change_window_timestamps.back = compute_timestamps(i.second.back().residual_timestamp);
 
         // set the status variable according so that the lock can be released
         status = ApplicationStatus::COMPUTING;

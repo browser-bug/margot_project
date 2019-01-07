@@ -35,7 +35,7 @@
 #include "beholder/ici_test_data.hpp"
 #include "beholder/observation_data.hpp"
 #include "beholder/parameters_beholder.hpp"
-#include "beholder/output_files.hpp"
+#include "beholder/common_objects_beholder.hpp"
 
 
 namespace beholder
@@ -75,11 +75,7 @@ namespace beholder
     cassandra_time back;
   };
 
-  struct residual_timestamp_struct
-  {
-    float residual_value;
-    std::string residual_timestamp;
-  };
+
 
 
   class RemoteApplicationHandler
@@ -152,10 +148,11 @@ namespace beholder
 
       // data structure to store the residuals from the observations received,
       // i.e. the difference between the predicted value by the model and the actual value.
-      // This structure maps every metric (name) to a pair.
-      // The pair's first element is the buffer of residuals for the metric of interested.
+      // This structure maps every metric (name) to a vector of structs.
+      // The vector of structs is the buffer of residuals for the metric of interested.
       // The buffer will be as big as the beholder parameter "window_size" instructs.
-      // The pair's second element is a string containing the timestamp of the corresponding residual.
+      // The struct's first element is the residual value itself.
+      // The struct's second element is a string containing the timestamp of the corresponding residual.
       // The timestamp of the first and last element in the current window allows us to pinpoint
       // the change detection time range later on in Cassandra's trace
       // We could have different windows for every metric observed, this is the reason why the

@@ -1,4 +1,4 @@
-/* beholder/output_files.hpp
+/* beholder/common_objects_beholder.hpp
  * Copyright (C) 2018 Alberto Bendin
  *
  * This library is free software; you can redistribute it and/or
@@ -18,8 +18,8 @@
  */
 
 
-#ifndef MARGOT_BEHOLDER_OUTPUT_FILES
-#define MARGOT_BEHOLDER_OUTPUT_FILES
+#ifndef MARGOT_BEHOLDER_COMMON_OBJECTS_BEHOLDER
+#define MARGOT_BEHOLDER_COMMON_OBJECTS_BEHOLDER
 
 namespace beholder
 {
@@ -31,6 +31,13 @@ namespace beholder
     std::fstream ici;
   };
 
+  // struct to bind a residual with its timestamp
+  struct residual_timestamp_struct
+  {
+    float residual_value;
+    std::string residual_timestamp;
+  };
+
 }
 
-#endif // MARGOT_BEHOLDER_OUTPUT_FILES
+#endif // MARGOT_BEHOLDER_COMMON_OBJECTS_BEHOLDER

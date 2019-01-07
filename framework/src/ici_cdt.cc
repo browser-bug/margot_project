@@ -25,7 +25,7 @@
 
 namespace beholder
 {
-  bool IciCdt::perform_ici_cdt(Data_ici_test& data_test, const std::vector<std::pair <float, std::string>>& window_pair,
+  bool IciCdt::perform_ici_cdt(Data_ici_test& data_test, const std::vector<residual_timestamp_struct>& window_pair,
                                std::unordered_map<std::string, output_files>& output_files_map)
   {
     // bool to stop the cycle when a change is detected
@@ -64,7 +64,7 @@ namespace beholder
       // enqueue the current observation in the training set
       for (auto& i : window_pair)
       {
-        data_test.training_observations.emplace_back(i.first);
+        data_test.training_observations.emplace_back(i.residual_value);
       }
 
       // compute the sample mean and the sample variance for the current window
@@ -73,7 +73,7 @@ namespace beholder
 
       for (auto& i : window_pair)
       {
-        sum += i.first;
+        sum += i.residual_value;
       }
 
       float mean = sum / Parameters_beholder::window_size;
@@ -90,7 +90,7 @@ namespace beholder
 
         for (auto& i : window_pair)
         {
-          sum += powf((i.first - mean), 2);
+          sum += powf((i.residual_value - mean), 2);
         }
 
         data_test.training_sample_variance.emplace_back(sum);
@@ -288,7 +288,7 @@ namespace beholder
 
       for (auto& i : window_pair)
       {
-        sum += i.first;
+        sum += i.residual_value;
       }
 
       float mean = sum / Parameters_beholder::window_size;
@@ -337,12 +337,12 @@ namespace beholder
         change_detected_mean = true;
         agora::info(log_prefix, "CHANGE DETECTED in MEAN, window number ", data_test.window_number);
         agora::pedantic(log_prefix, "between observation number ", ((data_test.window_number * Parameters_beholder::window_size) - (Parameters_beholder::window_size - 1)), " with value: ",
-                        window_pair.front().first);
-        agora::pedantic(log_prefix, "and observation number ", (data_test.window_number * Parameters_beholder::window_size), " with value: ", window_pair.back().first);
+                        window_pair.front().residual_value);
+        agora::pedantic(log_prefix, "and observation number ", (data_test.window_number * Parameters_beholder::window_size), " with value: ", window_pair.back().residual_value);
 
         // save the timestamp of the first and last element of the window:
-        data_test.front_window_timestamp = window_pair.front().second;
-        data_test.back_window_timestamp = window_pair.back().second;
+        data_test.front_window_timestamp = window_pair.front().residual_timestamp;
+        data_test.back_window_timestamp = window_pair.back().residual_timestamp;
 
         // convert and save the change window timestamp (as Cassandra does to make it comparable) of the first and last elements of the window
         // compute_timestamps(data_test, window_pair);
@@ -371,7 +371,7 @@ namespace beholder
 
         for (auto& i : window_pair)
         {
-          sum += powf((i.first - mean), 2);
+          sum += powf((i.residual_value - mean), 2);
         }
 
         float sample_variance = sum;
@@ -418,12 +418,12 @@ namespace beholder
           change_detected_variance = true;
           agora::info(log_prefix, "CHANGE DETECTED in VARIANCE, window number ", data_test.window_number);
           agora::pedantic(log_prefix, "between observation number ", ((data_test.window_number * Parameters_beholder::window_size) - (Parameters_beholder::window_size - 1)), " with value: ",
-                          window_pair.front().first);
-          agora::pedantic(log_prefix, "and observation number ", (data_test.window_number * Parameters_beholder::window_size), " with value: ", window_pair.back().first);
+                          window_pair.front().residual_value);
+          agora::pedantic(log_prefix, "and observation number ", (data_test.window_number * Parameters_beholder::window_size), " with value: ", window_pair.back().residual_value);
 
           // save the timestamp of the first and last element of the window:
-          data_test.front_window_timestamp = window_pair.front().second;
-          data_test.back_window_timestamp = window_pair.back().second;
+          data_test.front_window_timestamp = window_pair.front().residual_timestamp;
+          data_test.back_window_timestamp = window_pair.back().residual_timestamp;
 
           // convert and save the change window timestamp (as Cassandra does to make it comparable) of the first and last elements of the window
           // compute_timestamps(data_test, window_pair);
