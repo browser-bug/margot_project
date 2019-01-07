@@ -74,7 +74,11 @@ namespace beholder
     cassandra_time back;
   };
 
-
+  struct output_files
+  {
+      std::fstream observations;
+      std::fstream ici;
+  };
 
 
   class RemoteApplicationHandler
@@ -113,7 +117,7 @@ namespace beholder
       // the structure maps each metric name (key) to a pair, whose first element is the file
       // containing all the observations collected and used in the ICI CDT, the second file
       // contains the ICI for the mean and for the variance of every window of the CDT.
-      std::unordered_map<std::string, std::pair<std::fstream, std::fstream>> output_files_map;
+      std::unordered_map<std::string, output_files> output_files_map;
 
       // to handle the progress of the elaboration
       ApplicationStatus status;

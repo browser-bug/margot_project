@@ -194,10 +194,14 @@ namespace beholder
       {
         // set the handler status to READY to receive observations
         application_handler->set_handler_ready();
+        // log the event
+        agora::pedantic("Thread ", get_tid(), ": restored beholder handler for application \"", application_name);
       }
-
-      // log the event
-      agora::pedantic("Thread ", get_tid(), ": new beholder handler for application \"", application_name);
+      else
+      {
+        // log the event
+        agora::pedantic("Thread ", get_tid(), ": new beholder handler for application \"", application_name);
+      }
     }
 
     // ---------------------------------------------------------------------------------- handle the observation message
@@ -307,7 +311,7 @@ namespace beholder
       // It means the beholder was started after agorà.
       if (std::count(new_message.topic.begin(), new_message.topic.end(), '/') == 3)
       {
-          return;
+        return;
       }
 
       // if we reaqch this point it means the welcome message was a generic agorà welcome message

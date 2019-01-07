@@ -109,6 +109,7 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
   // according to the handler status: ready/computing/disabled
   if ( status != ApplicationStatus::READY )
   {
+    agora::debug(log_prefix, "Observation DISCARDED since handler is not in status READY!");
     return;
   }
 
@@ -206,6 +207,7 @@ int RemoteApplicationHandler::parse_observation(Observation_data& observation, c
     timestamp_separated.nanoseconds = observation.timestamp.substr(find_pos_comma + 1, std::string::npos);
     // emplace in the hashmap the current client with its timestamp struct
     clients_list.emplace(observation.client_id, timestamp_separated);
+    agora::info(log_prefix, "Not taking into account this first observation from client ", observation.client_id, " as a security measure for the correctness of the estimates.");
     // return and do not take into account this observation
     return 1;
   }
@@ -539,8 +541,8 @@ void RemoteApplicationHandler::first_level_test( void )
   }
 }
 
-// method which receives as parameters the list of observations from a specific client from the trace
-// and parses them and inserts its residuals in the corresponding map structure
+// method which receives as parameters a row from the list of observations from a specific client from the trace
+// and parses that and inserts its residuals in the corresponding map structure
 void RemoteApplicationHandler::parse_and_insert_observations_for_client_from_trace(std::unordered_map<std::string, std::pair < std::vector<float>, std::vector<float>>>& client_residuals_map,
     const observation_t j, const std::set<std::string>& metric_to_be_analyzed)
 {
@@ -551,8 +553,8 @@ void RemoteApplicationHandler::parse_and_insert_observations_for_client_from_tra
   // for which the real observed values is available, to be compared with the model value.
   std::string obs_client_id;
   // std::vector <std::string> obs_timestamp;
-  std::vector <cass_uint32_t> obs_year_month_day;
-  std::vector <cass_int64_t> obs_time_of_day;
+  cass_uint32_t obs_year_month_day;
+  cass_int64_t obs_time_of_day;
   std::vector <std::string> obs_configuration;
   std::vector <std::string> obs_features;
   std::vector <std::string> obs_metrics;
@@ -563,12 +565,8 @@ void RemoteApplicationHandler::parse_and_insert_observations_for_client_from_tra
 
   //std::string current_date;
   //str_observation >> current_date;
-  cass_uint32_t current_date;
-  str_observation >> current_date;
-  obs_year_month_day.emplace_back(current_date);
-  cass_int64_t current_time;
-  str_observation >> current_time;
-  obs_year_month_day.emplace_back(current_time);
+  str_observation >> obs_year_month_day;
+  str_observation >> obs_time_of_day;
 
   //std::string current_time;
 
@@ -711,36 +709,55 @@ void RemoteApplicationHandler::parse_and_insert_observations_for_client_from_tra
 
       // metric already present, need to add to the buffer the new residual
       // compare timestamp: if before the change insert in the 1st vector of the pair
-      if (obs_year_month_day[index] < change_window_timestamps.front.year_month_day)
+      if (obs_year_month_day < change_window_timestamps.front.year_month_day)
       {
         // if the current date is older than the one from the first element of the
         // change window then add it to the "before" change window vector.
         search->second.first.emplace_back(current_residual);
       }
-      else if (obs_year_month_day[index] == change_window_timestamps.front.year_month_day)
+      // if the change window is contained in the same day (dates of front and back are the same)
+      else if ((change_window_timestamps.front.year_month_day == change_window_timestamps.back.year_month_day) && (obs_year_month_day == change_window_timestamps.front.year_month_day))
       {
         // if the current observation date is the same as the date of the 1st element of the
         // change window then compare the time. If the current observation's timestamp
         // comes first in the day then add it to the "before" change window vector
-        if (obs_time_of_day[index] < change_window_timestamps.front.time_of_day)
+        if (obs_time_of_day < change_window_timestamps.front.time_of_day)
+        {
+          search->second.first.emplace_back(current_residual);
+        }
+        // if the current observation date is the same as the date of the last element of the
+        // change window then compare the time. If the current observation's timestamp
+        // comes later in the day then add it to the "after" change window vector
+        else if (obs_time_of_day > change_window_timestamps.back.time_of_day)
+        {
+          search->second.second.emplace_back(current_residual);
+        }
+      }
+      // if the change window is not contained in the same day (dates of front and back are not the same)
+      else if (obs_year_month_day == change_window_timestamps.front.year_month_day)
+      {
+        // if the current observation date is the same as the date of the 1st element of the
+        // change window then compare the time. If the current observation's timestamp
+        // comes first in the day then add it to the "before" change window vector
+        if (obs_time_of_day < change_window_timestamps.front.time_of_day)
         {
           search->second.first.emplace_back(current_residual);
         }
 
         // if after the change insert in the 2nd vector of the pair
       }
-      else if (obs_year_month_day[index] > change_window_timestamps.back.year_month_day)
+      else if (obs_year_month_day > change_window_timestamps.back.year_month_day)
       {
         // if the current date is newer than the one from the last element of the
         // change window then add it to the "after" change window vector.
         search->second.second.emplace_back(current_residual);
       }
-      else if (obs_year_month_day[index] == change_window_timestamps.back.year_month_day)
+      else if (obs_year_month_day == change_window_timestamps.back.year_month_day)
       {
         // if the current observation date is the same as the date of the last element of the
         // change window then compare the time. If the current observation's timestamp
         // comes later in the day then add it to the "after" change window vector
-        if (obs_time_of_day[index] > change_window_timestamps.back.time_of_day)
+        if (obs_time_of_day > change_window_timestamps.back.time_of_day)
         {
           search->second.second.emplace_back(current_residual);
         }
@@ -763,18 +780,24 @@ void RemoteApplicationHandler::parse_and_insert_observations_for_client_from_tra
       // bool to control if the first observation is actually before the change window
       bool valid_metric = false;
 
-      if (obs_year_month_day[index] < change_window_timestamps.front.year_month_day)
+      agora::debug(log_prefix, "i'm hereeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee");
+      agora::debug(log_prefix, "obs_year_month_day: ", obs_year_month_day);
+      agora::debug(log_prefix, "change_window_timestamps.front.year_month_day: ", change_window_timestamps.front.year_month_day);
+      agora::debug(log_prefix, "obs_time_of_day: ", obs_time_of_day);
+      agora::debug(log_prefix, "change_window_timestamps.front.time_of_day: ", change_window_timestamps.front.time_of_day);
+
+      if (obs_year_month_day < change_window_timestamps.front.year_month_day)
       {
         // if the current date is older than the one from the first element of the
         // change window then add it to the "before" change window vector.
         valid_metric = true;
       }
-      else if (obs_year_month_day[index] == change_window_timestamps.front.year_month_day)
+      else if (obs_year_month_day == change_window_timestamps.front.year_month_day)
       {
         // if the current observation date is the same as the date of the 1st element of the
         // change window then compare the time. If the current observation's timestamp
         // comes first in the day then add it to the "before" change window vector
-        if (obs_time_of_day[index] < change_window_timestamps.front.time_of_day)
+        if (obs_time_of_day < change_window_timestamps.front.time_of_day)
         {
           valid_metric = true;
         }
@@ -924,6 +947,13 @@ void RemoteApplicationHandler::second_level_test( std::unordered_map<std::string
       //observations_list = agora::io::storage.load_client_observations(description.application_name, "alberto_Surface_Pro_2_6205", query_select);
 
       agora::debug("\n", log_prefix, "Trace query executed successfully for client ", i.first, ", starting the parsing of its observations.");
+      agora::debug("\n", log_prefix, "Collected ", observations_list.size(), " observations from the trace.");
+
+      // cycle over each row j of the trace for each client i (for the current application)
+      for (auto& j : observations_list)
+      {
+        agora::debug(log_prefix, "Observation: ", j);
+      }
 
       // cycle over each row j of the trace for each client i (for the current application)
       for (auto& j : observations_list)
@@ -940,6 +970,8 @@ void RemoteApplicationHandler::second_level_test( std::unordered_map<std::string
       {
         if (it->second.first.size() < Parameters_beholder::min_observations || it->second.second.size() < Parameters_beholder::min_observations)
         {
+          agora::debug(log_prefix, "Insufficient data [user_requirement: ", Parameters_beholder::min_observations, "] to perform 2nd level hypothesys test on metric ", it->first,
+                       ". # observations before the change: ", it->second.first.size(), ". # observations after the change: ", it->second.second.size());
           it = client_residuals_map.erase(it);
         }
         else
@@ -962,9 +994,9 @@ void RemoteApplicationHandler::second_level_test( std::unordered_map<std::string
       {
         // Execute on the specific client the 2nd step of CDT: hypothesis TEST
         confirmed_change = HypTest::perform_hypothesis_test(client_residuals_map, description.application_name, i.first);
+        agora::debug(log_prefix, "Outcome of hypothesis test for client ", i.first, ": ", confirmed_change);
       }
 
-      agora::debug(log_prefix, "Outcome of hypothesis test for client ", i.first, ": ", confirmed_change);
 
       if (confirmed_change)
       {
@@ -1003,12 +1035,14 @@ void RemoteApplicationHandler::second_level_test( std::unordered_map<std::string
           {
             // we can wait for some more observations to come
             // I chose to wait even if the current timeout-waitperiod is theoretically out_of_time already
-            agora::debug(log_prefix, "Waiting ", Parameters_beholder::frequency_check, " seconds for some more observations to come hopefully. Current timeout in seconds: ", Parameters_beholder::timeout);
-            std::this_thread::sleep_for(std::chrono::milliseconds(Parameters_beholder::frequency_check));
+            agora::debug(log_prefix, "Waiting ", Parameters_beholder::frequency_check, " seconds for some more observations to come hopefully. Current timeout in seconds: ", timeout);
+            std::this_thread::sleep_for(std::chrono::seconds(Parameters_beholder::frequency_check));
             timeout -= Parameters_beholder::frequency_check;
           }
         }
       }
+
+      while_counter++;
     }
 
     agora::debug(log_prefix, "Exited from the while cycle for client: ", i.first);
@@ -1045,7 +1079,7 @@ void RemoteApplicationHandler::second_level_test( std::unordered_map<std::string
   // lock the mutex to ensure a consistent global state
   std::unique_lock<std::mutex> guard(mutex);
 
-  if (timeout_clients_list.size() == 0)
+  if (timeout_clients_list.size() == clients_list_snapshot.size())
   {
     // TODO: do Something else??
     agora::info(log_prefix, "WARNING: all the clients run out of time for the hypothesis test. The re-training will be triggered since 100% of the clients are behaving awkwardly.");
@@ -1066,6 +1100,7 @@ void RemoteApplicationHandler::second_level_test( std::unordered_map<std::string
     residuals_map.clear();
     ici_cdt_map.clear();
     clients_list.clear();
+    clients_list_snapshot.clear();
 
     // deal with the output files (if enabled)
     if (Parameters_beholder::output_files)
@@ -1110,6 +1145,10 @@ void RemoteApplicationHandler::second_level_test( std::unordered_map<std::string
       agora::info(log_prefix, "Resetting the whole application handler after having triggered the re-training!");
       retraining();
     }
+
+    current_test_observations_counter = 0;
+    agora::info(log_prefix, "Handler put-ON-HOLD after having triggered the re-training! Let's wait for a new model...");
+
   }
   else
   {
