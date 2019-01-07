@@ -1,4 +1,4 @@
-/* beholder/ici_cdt.hpp
+/* beholder/output_files.hpp
  * Copyright (C) 2018 Alberto Bendin
  *
  * This library is free software; you can redistribute it and/or
@@ -18,41 +18,19 @@
  */
 
 
-#ifndef MARGOT_BEHOLDER_ICI_CDT
-#define MARGOT_BEHOLDER_ICI_CDT
-
-#include <vector>
-#include <string>
-#include <sys/stat.h> // to create directories, only for linux systems
-
-
-#include "beholder/ici_test_data.hpp"
-#include "beholder/output_files.hpp"
-
+#ifndef MARGOT_BEHOLDER_OUTPUT_FILES
+#define MARGOT_BEHOLDER_OUTPUT_FILES
 
 namespace beholder
 {
-  class IciCdt
+
+  // data structure for the files to be exported ready to be used with the provided gnuplot script
+  struct output_files
   {
-
-
-    private:
-
-      inline bool create_folder( const std::string& path )
-      {
-        int rc = mkdir(path.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH );
-        return rc == 0 || errno == EEXIST;
-      }
-
-
-    public:
-
-      static bool perform_ici_cdt(Data_ici_test& data_test, const std::vector<std::pair <float, std::string>>& window_pair,
-                                  std::unordered_map<std::string, output_files>& output_files_map);
-
+    std::fstream observations;
+    std::fstream ici;
   };
-
 
 }
 
-#endif // MARGOT_BEHOLDER_ICI_CDT
+#endif // MARGOT_BEHOLDER_OUTPUT_FILES

@@ -372,8 +372,8 @@ int RemoteApplicationHandler::fill_buffers(const Observation_data& observation)
 
         // if we arrive here (as it is supposed to be) we need to append the current observation
         // to an already created output-file mapping for the current metric
-        search_file->second.first << current_residual << std::endl;
-        search_file->second.first.flush();
+        search_file->second.observations << current_residual << std::endl;
+        search_file->second.observations.flush();
       }
     }
     else
@@ -439,11 +439,11 @@ int RemoteApplicationHandler::fill_buffers(const Observation_data& observation)
 
         current_metric_observations_file << current_residual << std::endl;
         current_metric_observations_file.flush();
-        auto temp_pair_file = std::make_pair(std::move(current_metric_observations_file), std::move(current_metric_ici_file));
-
+        //auto temp_pair_file = std::make_pair(std::move(current_metric_observations_file), std::move(current_metric_ici_file));
+        output_files temp_struct_files = {std::move(current_metric_observations_file), std::move(current_metric_ici_file)};
         //std::pair<std::ofstream, std::ofstream> temp_pair_file = std::make_pair(file_path_obs, std::ofstream::out, file_path_ici, std::ofstream::out);
         //std::pair<std::ofstream, std::ofstream> temp_pair_file (file_path_obs, std::ofstream::out, file_path_ici, std::ofstream::out);
-        output_files_map.emplace(observation.metric_fields_vec[index], std::move(temp_pair_file));
+        output_files_map.emplace(observation.metric_fields_vec[index], std::move(temp_struct_files));
       }
     }
   }
@@ -1114,15 +1114,15 @@ void RemoteApplicationHandler::second_level_test( std::unordered_map<std::string
         if (search != output_files_map.end())
         {
           // if the observation file is open then close it
-          if (search->second.first.is_open())
+          if (search->second.observations.is_open())
           {
-            search->second.first.close();
+            search->second.observations.close();
           }
 
           // if the ici file is open then close it
-          if (search->second.second.is_open())
+          if (search->second.ici.is_open())
           {
-            search->second.second.close();
+            search->second.ici.close();
           }
         }
       }
@@ -1222,7 +1222,7 @@ void RemoteApplicationHandler::second_level_test( std::unordered_map<std::string
         if (search != output_files_map.end())
         {
           // if the file is open
-          if (search->second.first.is_open())
+          if (search->second.observations.is_open())
           {
             // the metric subdirectory should have already been created (because we reach this point only if the
             // structure of the metric in analysis has been created), but there should be theoretically
@@ -1263,24 +1263,25 @@ void RemoteApplicationHandler::second_level_test( std::unordered_map<std::string
             // copy into the new file the observations related to the training phase
             for (int index = 0; index < Parameters_beholder::window_size * Parameters_beholder::training_windows; index++)
             {
-              std::getline(search->second.first, temp_line);    // Check whether this method automatically rewinds the file and keeps the position across cycles. It should.
+              std::getline(search->second.observations, temp_line);    // Check whether this method automatically rewinds the file and keeps the position across cycles. It should.
               current_metric_observations_file << temp_line << std::endl; // TODO: check whether this result in a double endline
             }
 
             current_metric_observations_file.flush();
             // copy just the first line (training CI info) from the old ici output file to the new one
-            std::getline(search->second.second, temp_line);    // Check whether this method automatically rewinds the file and keeps the position across cycles. It should.
+            std::getline(search->second.ici, temp_line);    // Check whether this method automatically rewinds the file and keeps the position across cycles. It should.
             current_metric_ici_file << temp_line << std::endl; // TODO: check whether this result in a double endline
             current_metric_observations_file.flush();
             // close the old file
-            search->second.first.close();
+            search->second.observations.close();
             // remove from the map the old file
             // Or even better replace the old with the new ones, so that you do not need to delete a mapping and
             // re-create it.
             // Basically I need to replace the pair here.
             // I need to use the move operator to assign because the fstreams are not coyable...
-            auto temp_pair_file = std::make_pair(std::move(current_metric_observations_file), std::move(current_metric_ici_file));
-            search->second = std::move(temp_pair_file);
+            //auto temp_pair_file = std::make_pair(std::move(current_metric_observations_file), std::move(current_metric_ici_file));
+            output_files temp_struct_files = {std::move(current_metric_observations_file), std::move(current_metric_ici_file)};
+            search->second = std::move(temp_struct_files);
           }
         }
       }

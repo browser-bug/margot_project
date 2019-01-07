@@ -26,7 +26,7 @@
 namespace beholder
 {
   bool IciCdt::perform_ici_cdt(Data_ici_test& data_test, const std::vector<std::pair <float, std::string>>& window_pair,
-                               std::unordered_map<std::string, std::pair<std::fstream, std::fstream>>& output_files_map)
+                               std::unordered_map<std::string, output_files>& output_files_map)
   {
     // bool to stop the cycle when a change is detected
     bool change_detected_mean = false;
@@ -48,7 +48,7 @@ namespace beholder
         agora::warning(log_prefix, "Error: attempting to write to a file_output_map which does not exist.");
       }
 
-      if (!search_file->second.second.is_open())
+      if (!search_file->second.ici.is_open())
       {
         agora::warning(log_prefix, "Error: the current metric ICI output file has not been opened!");
       }
@@ -143,7 +143,7 @@ namespace beholder
 
         if (Parameters_beholder::output_files)
         {
-          search_file->second.second << 1 << " " << data_test.current_mean_conf_interval_lower << " " << data_test.current_mean_conf_interval_upper << " " << data_test.reference_sample_mean_mean;
+          search_file->second.ici << 1 << " " << data_test.current_mean_conf_interval_lower << " " << data_test.current_mean_conf_interval_upper << " " << data_test.reference_sample_mean_mean;
         }
 
         // check if the CI for mean is valid (i.e. if it is not a NAN)
@@ -253,7 +253,7 @@ namespace beholder
 
           if (Parameters_beholder::output_files)
           {
-            search_file->second.second << " " << data_test.current_variance_conf_interval_lower << " " << data_test.current_variance_conf_interval_upper << " " << data_test.reference_sample_variance_mean;
+            search_file->second.ici << " " << data_test.current_variance_conf_interval_lower << " " << data_test.current_variance_conf_interval_upper << " " << data_test.reference_sample_variance_mean;
           }
 
           // check if the CI for variance is valid (i.e. if it is not a NAN)
@@ -268,7 +268,7 @@ namespace beholder
 
         if (Parameters_beholder::output_files)
         {
-          search_file->second.second << "\n";
+          search_file->second.ici << "\n";
         }
       }
     }
@@ -327,7 +327,7 @@ namespace beholder
 
       if (Parameters_beholder::output_files)
       {
-        search_file->second.second << lower_cdt_window << " " << data_test.current_mean_conf_interval_lower << " " << data_test.current_mean_conf_interval_upper << " " << data_test.current_sample_mean_mean;
+        search_file->second.ici << lower_cdt_window << " " << data_test.current_mean_conf_interval_lower << " " << data_test.current_mean_conf_interval_upper << " " << data_test.current_sample_mean_mean;
       }
 
       // check whether the intersection of the confidence interval is valid,
@@ -350,7 +350,7 @@ namespace beholder
         // flush the output file to write the ICI info of the current window
         if (Parameters_beholder::output_files)
         {
-          search_file->second.second.flush();
+          search_file->second.ici.flush();
         }
 
         return true;
@@ -408,7 +408,7 @@ namespace beholder
 
         if (Parameters_beholder::output_files)
         {
-          search_file->second.second << " " << data_test.current_variance_conf_interval_lower << " " << data_test.current_variance_conf_interval_upper << " " << data_test.current_sample_variance_mean;
+          search_file->second.ici << " " << data_test.current_variance_conf_interval_lower << " " << data_test.current_variance_conf_interval_upper << " " << data_test.current_sample_variance_mean;
         }
 
         // check whether the intersection of the confidence interval is valid,
@@ -431,7 +431,7 @@ namespace beholder
           // flush the output file to write the ICI info of the current window
           if (Parameters_beholder::output_files)
           {
-            search_file->second.second.flush();
+            search_file->second.ici.flush();
           }
 
           return true;
@@ -440,14 +440,14 @@ namespace beholder
 
       if (Parameters_beholder::output_files)
       {
-        search_file->second.second << "\n";
+        search_file->second.ici << "\n";
       }
     }
 
     // flush the output file to write the ICI info of the current window
     if (Parameters_beholder::output_files)
     {
-      search_file->second.second.flush();
+      search_file->second.ici.flush();
     }
 
     // return true if a change has been detected either in the mean or in the variance

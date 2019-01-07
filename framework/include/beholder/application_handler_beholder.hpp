@@ -35,6 +35,7 @@
 #include "beholder/ici_test_data.hpp"
 #include "beholder/observation_data.hpp"
 #include "beholder/parameters_beholder.hpp"
+#include "beholder/output_files.hpp"
 
 
 namespace beholder
@@ -74,10 +75,10 @@ namespace beholder
     cassandra_time back;
   };
 
-  struct output_files
+  struct residual_timestamp_struct
   {
-      std::fstream observations;
-      std::fstream ici;
+    float residual_value;
+    std::string residual_timestamp;
   };
 
 
@@ -114,8 +115,8 @@ namespace beholder
       std::string application_workspace;
 
       // output files to plot the ICI CDT curves
-      // the structure maps each metric name (key) to a pair, whose first element is the file
-      // containing all the observations collected and used in the ICI CDT, the second file
+      // the structure maps each metric name (key) to a struct, whose first element "observations" is the file
+      // containing all the observations collected and used in the ICI CDT, the second file "ici"
       // contains the ICI for the mean and for the variance of every window of the CDT.
       std::unordered_map<std::string, output_files> output_files_map;
 
@@ -159,7 +160,7 @@ namespace beholder
       // the change detection time range later on in Cassandra's trace
       // We could have different windows for every metric observed, this is the reason why the
       // timestamp of the first and last element are not unique across the whole application handler.
-      std::unordered_map<std::string, std::vector<std::pair <float, std::string>>> residuals_map;
+      std::unordered_map<std::string, std::vector<residual_timestamp_struct>> residuals_map;
 
       // ICI CDT data structures:
       // It maps every metric to its struct of data for the ICI CDT
