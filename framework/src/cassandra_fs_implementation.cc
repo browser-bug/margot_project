@@ -1666,21 +1666,14 @@ observations_list_t CassandraClient::load_client_observations( const std::string
 
 
             // in order to get the nanoseconds since seconds:
-            // first convert the nanoseconds since midnight (time_of_day) to seconds using the floor
-            // see: https://docs.datastax.com/en/developer/cpp-driver/2.6/topics/basics/date_and_time/
             // 1 nanosecond = 1e^(-9)
-            auto seconds_since_midnight = floor(time_of_day / 1000000000);
-            // re-convert the seconds to "imprecise" nanoseconds (of course there is a loss of precision)
-            auto seconds_in_nanoseconds = seconds_since_midnight * 1000000000;
-            // compute the difference between the real nanoseconds and the imprecise nanoseconds
-            // and we get the number of nanoseconds since seconds (since epoch)
-            auto nanoseconds = time_of_day - seconds_in_nanoseconds;
-            auto nanosecondsv2 = time_of_day % 1000000000;
+            // see: https://docs.datastax.com/en/developer/cpp-driver/2.6/topics/basics/date_and_time/
+            // compute the modulus of nanoseconds since midnight (time_of_day) divided by one
+            // nanosecond and we get the number of nanoseconds since seconds (since epoch)
+            auto nanoseconds = time_of_day % 1000000000;
 
             debug("Seconds epoch: ", seconds);
-            debug("time_of_day: ", time_of_day);
             debug("NanoSeconds: ", nanoseconds);
-            debug("NanoSecondsv2: ", nanosecondsv2);
 
 
             //current_observation.append(asctime(localtime(&time)));
