@@ -705,7 +705,7 @@ void RemoteApplicationHandler::parse_and_insert_observations_for_client_from_tra
 
       // metric already present, need to add to the buffer the new residual
       // compare timestamp: if before the change insert in the 1st vector of the struct
-      if (timestamp.seconds < change_window_timestamps.front.seconds)
+      if (std::stol(timestamp.seconds) < std::stol(change_window_timestamps.front.seconds))
       {
         // if the current seconds_from_epoch is older than the one from the first element of the
         // change window then add it to the "before" change window vector.
@@ -713,12 +713,12 @@ void RemoteApplicationHandler::parse_and_insert_observations_for_client_from_tra
         agora::debug(log_prefix, "BEFORE CHANGE!!!!!");
       }
       // if the change window is contained in the same seconds_from_epoch (seconds of front and back are the same)
-      else if ((change_window_timestamps.front.seconds == change_window_timestamps.back.seconds) && (timestamp.seconds == change_window_timestamps.front.seconds))
+      else if ((std::stol(change_window_timestamps.front.seconds) == std::stol(change_window_timestamps.back.seconds)) && (std::stol(timestamp.seconds) == std::stol(change_window_timestamps.front.seconds)))
       {
         // if the current observation seconds is the same as the seconds of the 1st element of the
         // change window then compare the nanoseconds. If the current observation's timestamp
         // comes first in the day then add it to the "before" change window vector
-        if (timestamp.nanoseconds < change_window_timestamps.front.nanoseconds)
+        if (std::stol(timestamp.nanoseconds) < std::stol(change_window_timestamps.front.nanoseconds))
         {
           search->second.before_change.emplace_back(current_residual);
           agora::debug(log_prefix, "BEFORE CHANGE!!!!!");
@@ -726,44 +726,57 @@ void RemoteApplicationHandler::parse_and_insert_observations_for_client_from_tra
         // if the current observation seconds is the same as the seconds of the last element of the
         // change window then compare the time. If the current observation's timestamp
         // comes later in the day then add it to the "after" change window vector
-        else if (timestamp.nanoseconds > change_window_timestamps.back.nanoseconds)
+        else if (std::stol(timestamp.nanoseconds) > std::stol(change_window_timestamps.back.nanoseconds))
         {
           search->second.after_change.emplace_back(current_residual);
           agora::debug(log_prefix, "AFTER CHANGE!!!!!");
         }
+        else {
+            agora::debug(log_prefix, "JUMPING BECAUSE INSIDE CHANGE WINDOW!!!!!");
+        }
       }
       // if the change window is not contained in the same seconds (seconds of front and back are not the same)
-      else if (timestamp.seconds == change_window_timestamps.front.seconds)
+      else if (std::stol(timestamp.seconds) == std::stol(change_window_timestamps.front.seconds))
       {
         // if the current observation seconds is the same as the seconds of the 1st element of the
         // change window then compare the time. If the current observation's timestamp
         // comes first in the day then add it to the "before" change window vector
-        if (timestamp.nanoseconds < change_window_timestamps.front.nanoseconds)
+        if (std::stol(timestamp.nanoseconds) < std::stol(change_window_timestamps.front.nanoseconds))
         {
           search->second.before_change.emplace_back(current_residual);
           agora::debug(log_prefix, "BEFORE CHANGE!!!!!");
         }
+        else {
+            agora::debug(log_prefix, "JUMPING BECAUSE INSIDE CHANGE WINDOW!!!!!");
+        }
 
         // if after the change insert in the 2nd vector of the struct
       }
-      else if (timestamp.seconds > change_window_timestamps.back.seconds)
+      else if (std::stol(timestamp.seconds) > std::stol(change_window_timestamps.back.seconds))
       {
         // if the current seconds is newer than the one from the last element of the
         // change window then add it to the "after" change window vector.
         search->second.after_change.emplace_back(current_residual);
         agora::debug(log_prefix, "AFTER CHANGE!!!!!");
       }
-      else if (timestamp.seconds == change_window_timestamps.back.seconds)
+      else if (std::stol(timestamp.seconds) == std::stol(change_window_timestamps.back.seconds))
       {
         // if the current observation seconds is the same as the seconds of the last element of the
         // change window then compare the time. If the current observation's timestamp
         // comes later in the day then add it to the "after" change window vector
-        if (timestamp.nanoseconds > change_window_timestamps.back.nanoseconds)
+        if (std::stol(timestamp.nanoseconds) > std::stol(change_window_timestamps.back.nanoseconds))
         {
           search->second.after_change.emplace_back(current_residual);
           agora::debug(log_prefix, "AFTER CHANGE!!!!!");
         }
+        else {
+            agora::debug(log_prefix, "JUMPING BECAUSE INSIDE CHANGE WINDOW!!!!!");
+        }
       }
+      else {
+          agora::debug(log_prefix, "JUMPING BECAUSE INSIDE CHANGE WINDOW!!!!!");
+      }
+
     }
     // if we did not find any key with the current metric's name under analysis in the struct
     // then theoretically we should initialize the corresponding struct for the metric
@@ -784,22 +797,26 @@ void RemoteApplicationHandler::parse_and_insert_observations_for_client_from_tra
 
       agora::debug(log_prefix, "i'm hereeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee");
       agora::debug(log_prefix, "timestamp.seconds: ", timestamp.seconds);
+      agora::debug(log_prefix, "std::stol(timestamp.seconds): ", std::stol(timestamp.seconds));
       agora::debug(log_prefix, "change_window_timestamps.front.seconds: ", change_window_timestamps.front.seconds);
+      agora::debug(log_prefix, "std::stol(change_window_timestamps.front.seconds): ", std::stol(change_window_timestamps.front.seconds));
       agora::debug(log_prefix, "timestamp.nanoseconds: ", timestamp.nanoseconds);
+      agora::debug(log_prefix, "std::stol(timestamp.nanoseconds): ", std::stol(timestamp.nanoseconds));
       agora::debug(log_prefix, "change_window_timestamps.front.nanoseconds: ", change_window_timestamps.front.nanoseconds);
+      agora::debug(log_prefix, "std::stol(change_window_timestamps.front.nanoseconds): ", std::stol(change_window_timestamps.front.nanoseconds));
 
-      if (timestamp.seconds < change_window_timestamps.front.seconds)
+      if (std::stol(timestamp.seconds) < std::stol(change_window_timestamps.front.seconds))
       {
         // if the current date is older than the one from the first element of the
         // change window then add it to the "before" change window vector.
         valid_metric = true;
       }
-      else if (timestamp.seconds == change_window_timestamps.front.seconds)
+      else if (std::stol(timestamp.seconds) == std::stol(change_window_timestamps.front.seconds))
       {
         // if the current observation date is the same as the date of the 1st element of the
         // change window then compare the time. If the current observation's timestamp
         // comes first in the day then add it to the "before" change window vector
-        if (timestamp.nanoseconds < change_window_timestamps.front.nanoseconds)
+        if (std::stol(timestamp.nanoseconds) < std::stol(change_window_timestamps.front.nanoseconds))
         {
           valid_metric = true;
         }
@@ -946,7 +963,7 @@ void RemoteApplicationHandler::second_level_test( std::unordered_map<std::string
       //observations_list = agora::io::storage.load_client_observations(description.application_name, "alberto_Surface_Pro_2_6205", query_select);
 
       agora::debug("\n", log_prefix, "Trace query executed successfully for client ", i.first, ", starting the parsing of its observations.");
-      agora::debug("\n", log_prefix, "Collected ", observations_list.size(), " observations from the trace.");
+      agora::debug("\n", log_prefix, "Collected ", observations_list.size(), " observations from the trace for client: ", i.first, ".");
 
       // cycle over each row j of the trace for each client i (for the current application)
       for (auto& j : observations_list)
