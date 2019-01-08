@@ -819,7 +819,7 @@ void RemoteApplicationHandler::parse_and_insert_observations_for_client_from_tra
     }
   }
 
-  agora::pedantic(log_prefix, ":", obs_client_id, ": successfully parsed and inserted into buffers the observation: ", j);
+  agora::pedantic(log_prefix, obs_client_id, ": successfully parsed and inserted into buffers the observation: ", j);
 }
 
 void RemoteApplicationHandler::second_level_test( std::unordered_map<std::string, timestamp_fields>& clients_list_snapshot )

@@ -21,6 +21,7 @@
 #include <algorithm>
 #include <cstring>
 #include <cassert>
+#include <cmath> // for floor()
 
 #include "agora/logger.hpp"
 #include "agora/cassandra_fs_implementation.hpp"
@@ -1528,7 +1529,7 @@ observations_list_t CassandraClient::load_client_observations( const std::string
 
         while (cass_iterator_next(column_iterator))
         {
-          debug("Column: ", i);
+          //debug("Column: ", i);
           // retrieve the field value
           const CassValue* field_value = cass_iterator_get_column(column_iterator);
           cass_uint32_t year_month_day;
@@ -1546,7 +1547,7 @@ observations_list_t CassandraClient::load_client_observations( const std::string
               if (rc == CASS_OK)
               {
                 current_observation.append(std::to_string(out_value32) + " ");
-                debug("Entered int");
+                //debug("Entered int");
               }
               else
               {
@@ -1556,7 +1557,7 @@ observations_list_t CassandraClient::load_client_observations( const std::string
                 if (rc == CASS_OK)
                 {
                   current_observation.append(std::to_string(out_value64) + " ");
-                  debug("Entered int");
+                  //debug("Entered int");
                 }
                 else
                 {
@@ -1575,7 +1576,7 @@ observations_list_t CassandraClient::load_client_observations( const std::string
               if (rc == CASS_OK)
               {
                 current_observation.append(std::to_string(out_value_f) + " ");
-                debug("Entered float");
+                //debug("Entered float");
               }
               else
               {
@@ -1593,7 +1594,7 @@ observations_list_t CassandraClient::load_client_observations( const std::string
               if (rc == CASS_OK)
               {
                 current_observation.append(std::to_string(out_value_d) + " ");
-                debug("Entered double");
+                //debug("Entered double");
               }
               else
               {
@@ -1611,7 +1612,7 @@ observations_list_t CassandraClient::load_client_observations( const std::string
               if (rc == CASS_OK)
               {
                 //current_observation.append(std::to_string(out_value_date) + ",");
-                debug("Entered date");
+                //debug("Entered date");
                 got_date = true;
               }
               else
@@ -1629,7 +1630,7 @@ observations_list_t CassandraClient::load_client_observations( const std::string
               if (rc == CASS_OK)
               {
                 //current_observation.append(std::to_string(time_of_day) + ",");
-                debug("Entered time");
+                //debug("Entered time");
                 got_time = true;
               }
               else
@@ -1652,15 +1653,36 @@ observations_list_t CassandraClient::load_client_observations( const std::string
                 warning("Cassandra client: unable to convert a field to string");
               }
 
-              debug("Entered string");
+              //debug("Entered string");
               const std::string current_string_field(field_value_s, lenght_output_string);
               current_observation.append(current_string_field + " ");
           }
 
           if ((got_time == true) && (got_date == true))
           {
-            time_t time = (time_t)cass_date_time_to_epoch(year_month_day, time_of_day);
-            debug("Date and time: ", asctime(localtime(&time)));
+            // get the seconds since epoch
+            time_t seconds = (time_t)cass_date_time_to_epoch(year_month_day, time_of_day);
+            // debug("Date and time: ", asctime(localtime(&seconds)));
+
+
+            // in order to get the nanoseconds since seconds:
+            // first convert the nanoseconds since midnight (time_of_day) to seconds using the floor
+            // see: https://docs.datastax.com/en/developer/cpp-driver/2.6/topics/basics/date_and_time/
+            // 1 nanosecond = 1e^(-9)
+            auto seconds_since_midnight = floor(time_of_day / 1000000000);
+            // re-convert the seconds to "imprecise" nanoseconds (of course there is a loss of precision)
+            auto seconds_in_nanoseconds = seconds_since_midnight * 1000000000;
+            // compute the difference between the real nanoseconds and the imprecise nanoseconds
+            // and we get the number of nanoseconds since seconds (since epoch)
+            auto nanoseconds = time_of_day - seconds_in_nanoseconds;
+            auto nanosecondsv2 = time_of_day % 1000000000;
+
+            debug("Seconds epoch: ", seconds);
+            debug("time_of_day: ", time_of_day);
+            debug("NanoSeconds: ", nanoseconds);
+            debug("NanoSecondsv2: ", nanosecondsv2);
+
+
             //current_observation.append(asctime(localtime(&time)));
             //current_observation.append(",");
             current_observation.append(std::to_string(year_month_day) + " " + std::to_string(time_of_day) + " ");
@@ -1668,15 +1690,15 @@ observations_list_t CassandraClient::load_client_observations( const std::string
           }
           else if (got_time == true)
           {
-            debug("NO date");
+            //debug("NO date");
           }
           else if (got_date == true)
           {
-            debug("NO time");
+            //debug("NO time");
           }
           else
           {
-            debug("NO date and time");
+            //debug("NO date and time");
           }
 
 
