@@ -25,6 +25,7 @@
 #include <limits>
 #include <set>
 #include <thread>
+#include <cmath> // fabs
 
 
 #include "beholder/application_handler_beholder.hpp"
@@ -345,7 +346,7 @@ int RemoteApplicationHandler::fill_buffers(const Observation_data& observation)
     agora::pedantic(log_prefix, "Started the process of filling in the buffers with the parsed observations.");
 
     // NB: note that the residual is computed with abs()!!
-    float current_residual = abs(observation.estimates_vec[index] - observation.metrics_vec[index]);
+    float current_residual = fabs(observation.estimates_vec[index] - observation.metrics_vec[index]);
     agora::debug(log_prefix, "Current residual for metric ", observation.metric_fields_vec[index], " is: ", current_residual);
 
     auto search = residuals_map.find(observation.metric_fields_vec[index]);
@@ -689,7 +690,7 @@ void RemoteApplicationHandler::parse_and_insert_observations_for_client_from_tra
     // if we arrive here then the parsed metric should be valid (one of the enabled ones at least)
 
     // NB: note that the residual is computed with abs()!!
-    float current_residual = abs(std::stof(obs_estimates[index]) - std::stof(obs_metrics[index]));
+    float current_residual = fabs(std::stof(obs_estimates[index]) - std::stof(obs_metrics[index]));
     agora::debug(log_prefix, "Current residual for metric ", *name_ref, " is: ", current_residual);
 
     auto search = client_residuals_map.find(*name_ref);
