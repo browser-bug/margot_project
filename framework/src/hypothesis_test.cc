@@ -27,7 +27,7 @@ using boost::math::students_t;
 
 namespace beholder
 {
-  bool HypTest::perform_hypothesis_test(const std::unordered_map<std::string, std::pair < std::vector<float>, std::vector<float>>>& client_residuals_map, const std::string& application_name,
+  bool HypTest::perform_hypothesis_test(const std::unordered_map<std::string, residuals_from_trace>& client_residuals_map, const std::string& application_name,
                                         const std::string& client_name)
   {
 
@@ -46,13 +46,13 @@ namespace beholder
       float v_degree_freedom;
 
       // populations size
-      int n1 = i.second.first.size();
-      int n2 = i.second.second.size();
+      int n1 = i.second.before_change.size();
+      int n2 = i.second.after_change.size();
 
       // first population sample mean
       float x1 = 0;
 
-      for (auto& j : i.second.first)
+      for (auto& j : i.second.before_change)
       {
         x1 += j;
       }
@@ -61,7 +61,7 @@ namespace beholder
       // second population sample mean
       float x2 = 0;
 
-      for (auto& j : i.second.second)
+      for (auto& j : i.second.after_change)
       {
         x2 += j;
       }
@@ -71,7 +71,7 @@ namespace beholder
       // first population sample variance
       float s1_2 = 0;
 
-      for (auto& j : i.second.first)
+      for (auto& j : i.second.before_change)
       {
         s1_2 += powf(j - x1, 2);
       }
@@ -80,7 +80,7 @@ namespace beholder
       // second population sample variance
       float s2_2 = 0;
 
-      for (auto& j : i.second.second)
+      for (auto& j : i.second.after_change)
       {
         s2_2 += powf(j - x2, 2);
       }

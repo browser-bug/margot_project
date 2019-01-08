@@ -25,6 +25,8 @@
 #include <string>
 #include <unordered_map>
 
+#include "beholder/common_objects_beholder.hpp"
+
 namespace beholder
 {
   class HypTest
@@ -35,7 +37,7 @@ namespace beholder
 
     public:
 
-      static bool perform_hypothesis_test(const std::unordered_map<std::string, std::pair < std::vector<float>, std::vector<float>>>& client_residuals_map, const std::string& application_name,
+      static bool perform_hypothesis_test(const std::unordered_map<std::string, residuals_from_trace>& client_residuals_map, const std::string& application_name,
                                           const std::string& client_name);
 
   };

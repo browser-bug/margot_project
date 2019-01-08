@@ -345,7 +345,7 @@ int RemoteApplicationHandler::fill_buffers(const Observation_data& observation)
     agora::pedantic(log_prefix, "Started the process of filling in the buffers with the parsed observations.");
 
     // NB: note that the residual is computed with abs()!!
-    auto current_residual = abs(observation.estimates_vec[index] - observation.metrics_vec[index]);
+    float current_residual = abs(observation.estimates_vec[index] - observation.metrics_vec[index]);
     agora::debug(log_prefix, "Current residual for metric ", observation.metric_fields_vec[index], " is: ", current_residual);
 
     auto search = residuals_map.find(observation.metric_fields_vec[index]);
@@ -354,7 +354,6 @@ int RemoteApplicationHandler::fill_buffers(const Observation_data& observation)
     {
       agora::debug(log_prefix, "metric ", observation.metric_fields_vec[index], " already present, filling buffer");
       // metric already present, need to add to the buffer the new residual
-      //auto temp_pair = std::make_pair(current_residual, observation.timestamp);
       residual_timestamp_struct temp_struct = {current_residual, observation.timestamp};
       search->second.emplace_back(temp_struct);
 
@@ -381,7 +380,6 @@ int RemoteApplicationHandler::fill_buffers(const Observation_data& observation)
     {
       agora::debug(log_prefix, "creation of buffer for metric and first insertion: ", observation.metric_fields_vec[index]);
       // need to create the mapping for the current metric. It's the first time you meet this metric
-      //auto temp_pair = std::make_pair(current_residual, observation.timestamp);
       residual_timestamp_struct temp_struct = {current_residual, observation.timestamp};
       std::vector<residual_timestamp_struct> temp_vector;
       temp_vector.emplace_back(temp_struct);
@@ -441,10 +439,7 @@ int RemoteApplicationHandler::fill_buffers(const Observation_data& observation)
 
         current_metric_observations_file << current_residual << std::endl;
         current_metric_observations_file.flush();
-        //auto temp_pair_file = std::make_pair(std::move(current_metric_observations_file), std::move(current_metric_ici_file));
         output_files temp_struct_files = {std::move(current_metric_observations_file), std::move(current_metric_ici_file)};
-        //std::pair<std::ofstream, std::ofstream> temp_pair_file = std::make_pair(file_path_obs, std::ofstream::out, file_path_ici, std::ofstream::out);
-        //std::pair<std::ofstream, std::ofstream> temp_pair_file (file_path_obs, std::ofstream::out, file_path_ici, std::ofstream::out);
         output_files_map.emplace(observation.metric_fields_vec[index], std::move(temp_struct_files));
       }
     }
@@ -545,7 +540,7 @@ void RemoteApplicationHandler::first_level_test( void )
 
 // method which receives as parameters a row from the list of observations from a specific client from the trace
 // and parses that and inserts its residuals in the corresponding map structure
-void RemoteApplicationHandler::parse_and_insert_observations_for_client_from_trace(std::unordered_map<std::string, std::pair < std::vector<float>, std::vector<float>>>& client_residuals_map,
+void RemoteApplicationHandler::parse_and_insert_observations_for_client_from_trace(std::unordered_map<std::string, residuals_from_trace>& client_residuals_map,
     const observation_t j, const std::set<std::string>& metric_to_be_analyzed)
 {
   agora::debug("\n", log_prefix, "String from trace to be parsed: ", j);
@@ -694,13 +689,13 @@ void RemoteApplicationHandler::parse_and_insert_observations_for_client_from_tra
     // if we arrive here then the parsed metric should be valid (one of the enabled ones at least)
 
     // NB: note that the residual is computed with abs()!!
-    auto current_residual = abs(std::stof(obs_estimates[index]) - std::stof(obs_metrics[index]));
+    float current_residual = abs(std::stof(obs_estimates[index]) - std::stof(obs_metrics[index]));
     agora::debug(log_prefix, "Current residual for metric ", *name_ref, " is: ", current_residual);
 
     auto search = client_residuals_map.find(*name_ref);
 
-    // Here we need to save the element before the change window in a vector (1st in pair),
-    // and the elements after that window in another corresponding vector (2nd in pair).
+    // Here we need to save the element before the change window in a vector (1st in struct: "before_change"),
+    // and the elements after that window in another corresponding vector (2nd in struct: "after_change").
     // NB: the timestamps of the hypothetical change window used here are referred obviously
     // to the metric which first detected the change. It may be the same under analysis here
     // or not.
@@ -710,12 +705,12 @@ void RemoteApplicationHandler::parse_and_insert_observations_for_client_from_tra
       agora::debug(log_prefix, "metric ", *name_ref, " already present, filling buffer");
 
       // metric already present, need to add to the buffer the new residual
-      // compare timestamp: if before the change insert in the 1st vector of the pair
+      // compare timestamp: if before the change insert in the 1st vector of the struct
       if (obs_year_month_day < change_window_timestamps.front.year_month_day)
       {
         // if the current date is older than the one from the first element of the
         // change window then add it to the "before" change window vector.
-        search->second.first.emplace_back(current_residual);
+        search->second.before_change.emplace_back(current_residual);
       }
       // if the change window is contained in the same day (dates of front and back are the same)
       else if ((change_window_timestamps.front.year_month_day == change_window_timestamps.back.year_month_day) && (obs_year_month_day == change_window_timestamps.front.year_month_day))
@@ -725,14 +720,14 @@ void RemoteApplicationHandler::parse_and_insert_observations_for_client_from_tra
         // comes first in the day then add it to the "before" change window vector
         if (obs_time_of_day < change_window_timestamps.front.time_of_day)
         {
-          search->second.first.emplace_back(current_residual);
+          search->second.before_change.emplace_back(current_residual);
         }
         // if the current observation date is the same as the date of the last element of the
         // change window then compare the time. If the current observation's timestamp
         // comes later in the day then add it to the "after" change window vector
         else if (obs_time_of_day > change_window_timestamps.back.time_of_day)
         {
-          search->second.second.emplace_back(current_residual);
+          search->second.after_change.emplace_back(current_residual);
         }
       }
       // if the change window is not contained in the same day (dates of front and back are not the same)
@@ -743,16 +738,16 @@ void RemoteApplicationHandler::parse_and_insert_observations_for_client_from_tra
         // comes first in the day then add it to the "before" change window vector
         if (obs_time_of_day < change_window_timestamps.front.time_of_day)
         {
-          search->second.first.emplace_back(current_residual);
+          search->second.before_change.emplace_back(current_residual);
         }
 
-        // if after the change insert in the 2nd vector of the pair
+        // if after the change insert in the 2nd vector of the struct
       }
       else if (obs_year_month_day > change_window_timestamps.back.year_month_day)
       {
         // if the current date is newer than the one from the last element of the
         // change window then add it to the "after" change window vector.
-        search->second.second.emplace_back(current_residual);
+        search->second.after_change.emplace_back(current_residual);
       }
       else if (obs_year_month_day == change_window_timestamps.back.year_month_day)
       {
@@ -761,7 +756,7 @@ void RemoteApplicationHandler::parse_and_insert_observations_for_client_from_tra
         // comes later in the day then add it to the "after" change window vector
         if (obs_time_of_day > change_window_timestamps.back.time_of_day)
         {
-          search->second.second.emplace_back(current_residual);
+          search->second.after_change.emplace_back(current_residual);
         }
       }
     }
@@ -813,8 +808,8 @@ void RemoteApplicationHandler::parse_and_insert_observations_for_client_from_tra
         std::vector<float> temp_vector_before;
         std::vector<float> temp_vector_after;
         temp_vector_before.emplace_back(current_residual);
-        auto temp_pair = std::make_pair(temp_vector_before, temp_vector_after);
-        client_residuals_map.emplace(*name_ref, temp_pair);
+        residuals_from_trace temp_struct = {temp_vector_before, temp_vector_after};
+        client_residuals_map.emplace(*name_ref, temp_struct);
       }
       else
       {
@@ -899,11 +894,11 @@ void RemoteApplicationHandler::second_level_test( std::unordered_map<std::string
     {
       agora::debug(log_prefix, "Entering while cycle for the ", while_counter, " time for client ", i.first, " with still ", metric_to_be_analyzed.size(), " metrics to be analyzed out of a total of ",
                    reference_metric_names.size(), " beholder-enabled metrics.");
-      // data structure to save the residuals for the specific application-client pair before the change
-      // the structure is organized as a map which maps the name of the metric to a pair
-      // The first element of the pair is a vector containing the residuals for that metric before the change windows
-      // The second element of the pair is a vector containing the residuals for that metric after the change windows
-      std::unordered_map<std::string, std::pair < std::vector<float>, std::vector<float>>> client_residuals_map;
+      // data structure to save the residuals for the specific application-client struct before the change
+      // the structure is organized as a map which maps the name of the metric to a struct
+      // The first element of the struct is a vector containing the residuals for that metric before the change windows
+      // The second element of the struct is a vector containing the residuals for that metric after the change windows
+      std::unordered_map<std::string, residuals_from_trace> client_residuals_map;
 
       // preparing the 'select' query for Cassandra for the 2nd step of cassandra
       // It is done here on the basis of which metrics are left to be analyzed
@@ -970,10 +965,10 @@ void RemoteApplicationHandler::second_level_test( std::unordered_map<std::string
       // remove the metrics which cannot be analyzed from the client_residuals_map
       for (auto it = client_residuals_map.begin(); it != client_residuals_map.end();)
       {
-        if (it->second.first.size() < Parameters_beholder::min_observations || it->second.second.size() < Parameters_beholder::min_observations)
+        if (it->second.before_change.size() < Parameters_beholder::min_observations || it->second.after_change.size() < Parameters_beholder::min_observations)
         {
           agora::debug(log_prefix, "Insufficient data [user_requirement: ", Parameters_beholder::min_observations, "] to perform 2nd level hypothesys test on metric ", it->first,
-                       ". # observations before the change: ", it->second.first.size(), ". # observations after the change: ", it->second.second.size());
+                       ". # observations before the change: ", it->second.before_change.size(), ". # observations after the change: ", it->second.after_change.size());
           it = client_residuals_map.erase(it);
         }
         else
@@ -1279,9 +1274,8 @@ void RemoteApplicationHandler::second_level_test( std::unordered_map<std::string
             // remove from the map the old file
             // Or even better replace the old with the new ones, so that you do not need to delete a mapping and
             // re-create it.
-            // Basically I need to replace the pair here.
+            // Basically I need to replace the struct here.
             // I need to use the move operator to assign because the fstreams are not coyable...
-            //auto temp_pair_file = std::make_pair(std::move(current_metric_observations_file), std::move(current_metric_ici_file));
             output_files temp_struct_files = {std::move(current_metric_observations_file), std::move(current_metric_ici_file)};
             search->second = std::move(temp_struct_files);
           }

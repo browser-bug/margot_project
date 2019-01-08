@@ -21,6 +21,8 @@
 #ifndef MARGOT_BEHOLDER_COMMON_OBJECTS_BEHOLDER
 #define MARGOT_BEHOLDER_COMMON_OBJECTS_BEHOLDER
 
+#include <fstream>
+
 namespace beholder
 {
 
@@ -36,6 +38,14 @@ namespace beholder
   {
     float residual_value;
     std::string residual_timestamp;
+  };
+
+  // struct to store the observations from trace respectively in the before/after_change
+  // vector according to their position wrt the hypothetical change window
+  struct residuals_from_trace
+  {
+    std::vector<float> before_change;
+    std::vector<float> after_change;
   };
 
 }
