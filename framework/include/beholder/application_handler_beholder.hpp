@@ -186,7 +186,7 @@ namespace beholder
         if (Parameters_beholder::no_trace_drop)
         {
           agora::pedantic(log_prefix, "Deleting the model, restoring the DOE, deleting just the rows of the trace which are before the detected change window.");
-          send_agora_command("retraining " + std::to_string(change_window_timestamps.back.seconds) + "," + std::to_string(change_window_timestamps.back.nanoseconds));
+          send_agora_command("retraining " + change_window_timestamps.back.seconds + "," + change_window_timestamps.back.nanoseconds);
         }
         else
         {

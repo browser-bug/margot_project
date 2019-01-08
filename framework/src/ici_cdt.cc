@@ -422,8 +422,8 @@ namespace beholder
           agora::pedantic(log_prefix, "and observation number ", (data_test.window_number * Parameters_beholder::window_size), " with value: ", window_pair.back().residual_value);
 
           // save the timestamp of the first and last element of the window:
-          data_test.front_window_timestamp = window_pair.front().residual_timestamp;
-          data_test.back_window_timestamp = window_pair.back().residual_timestamp;
+          // data_test.front_window_timestamp = window_pair.front().residual_timestamp;
+          // data_test.back_window_timestamp = window_pair.back().residual_timestamp;
 
           // convert and save the change window timestamp (as Cassandra does to make it comparable) of the first and last elements of the window
           // compute_timestamps(data_test, window_pair);

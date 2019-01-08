@@ -119,9 +119,10 @@ namespace agora
       void create_trace_table( const application_description_t& description );
       void insert_trace_entry( const application_description_t& description, const std::string& values );
       application_list_t load_clients( const std::string& application_name );
-      observations_list_t load_client_observations( const std::string& application_name, const std::string& client_name, const std::string& query_select, const std::string& seconds, const std::string& nanoseconds );
+      observations_list_t load_client_observations( const std::string& application_name, const std::string& client_name, const std::string& query_select, const std::string& seconds,
+          const std::string& nanoseconds );
       void erase( const std::string& application_name );
-      cassandra_time compute_timestamps(const std::string& seconds, const std::string& nanoseconds);
+      cassandra_time compute_cassandra_timestamps(const std::string& seconds, const std::string& nanoseconds);
 
 
 

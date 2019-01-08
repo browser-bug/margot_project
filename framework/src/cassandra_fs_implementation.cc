@@ -1399,14 +1399,14 @@ void CassandraClient::reset_doe( const application_description_t& description, c
     std::string seconds = timestamp.substr(0, pos_first_comma);
     std::string nanoseconds = timestamp.substr(pos_first_comma + 1, std::string::npos);
 
-    cassandra_time date_time = compute_timestamps(const std::string &seconds, const std::string &nanoseconds);
+    cassandra_time date_time = compute_cassandra_timestamps(seconds, nanoseconds);
 
     // TODO: check if the two parameters above are correct, if they are string or cass-unit-int32-64....
     // we need to execute two queries:
     // the 1st query deleted all the rows with date < date_of_the_change
-    execute_query_synch("DELETE FROM " + table_name + "_trace WHERE day < '" + date_time.year_month_day + "';");
+    execute_query_synch("DELETE FROM " + table_name + "_trace WHERE day < '" + std::to_string(date_time.year_month_day) + "';");
     // the 2nd query deletes all the rows with date = date_of_the_change but with time <= time_of_the_change
-    execute_query_synch("DELETE FROM " + table_name + "_trace WHERE day = '" + date_time.year_month_day + "' AND time <= '" + date_time.time_of_day + "';");
+    execute_query_synch("DELETE FROM " + table_name + "_trace WHERE day = '" + std::to_string(date_time.year_month_day) + "' AND time <= '" + std::to_string(date_time.time_of_day) + "';");
   }
 }
 
@@ -1718,13 +1718,14 @@ observations_list_t CassandraClient::load_client_observations( const std::string
     }
   };
 
-  cassandra_time date_time = compute_timestamps(const std::string &seconds, const std::string &nanoseconds);
+  cassandra_time date_time = compute_cassandra_timestamps(seconds, nanoseconds);
   // perform the query
   // first get all the observations from the same day but with a later time
-  const std::string query = "SELECT " + query_select + " FROM " + table_name + " WHERE client_id = '" + client_name + "' AND day = '" + date_time.year_month_day + "' AND time > '" + date_time.time_of_day + "' ALLOW FILTERING;";
+  const std::string query = "SELECT " + query_select + " FROM " + table_name + " WHERE client_id = '" + client_name + "' AND day = '" + std::to_string(
+                              date_time.year_month_day) + "' AND time > '" + std::to_string(date_time.time_of_day) + "' ALLOW FILTERING;";
   execute_query_synch(query, result_handler);
   // then get all the observations from the following days
-  const std::string query2 = "SELECT " + query_select + " FROM " + table_name + " WHERE client_id = '" + client_name + "' AND day > '" + date_time.year_month_day + "' ALLOW FILTERING;";
+  const std::string query2 = "SELECT " + query_select + " FROM " + table_name + " WHERE client_id = '" + client_name + "' AND day > '" + std::to_string(date_time.year_month_day) + "' ALLOW FILTERING;";
   execute_query_synch(query2, result_handler);
 
   return observations_list;

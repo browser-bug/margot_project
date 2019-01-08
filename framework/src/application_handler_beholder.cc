@@ -705,57 +705,63 @@ void RemoteApplicationHandler::parse_and_insert_observations_for_client_from_tra
 
       // metric already present, need to add to the buffer the new residual
       // compare timestamp: if before the change insert in the 1st vector of the struct
-      if (obs_year_month_day < change_window_timestamps.front.year_month_day)
+      if (timestamp.seconds < change_window_timestamps.front.seconds)
       {
-        // if the current date is older than the one from the first element of the
+        // if the current seconds_from_epoch is older than the one from the first element of the
         // change window then add it to the "before" change window vector.
         search->second.before_change.emplace_back(current_residual);
+        agora::debug(log_prefix, "BEFORE CHANGE!!!!!");
       }
-      // if the change window is contained in the same day (dates of front and back are the same)
-      else if ((change_window_timestamps.front.year_month_day == change_window_timestamps.back.year_month_day) && (obs_year_month_day == change_window_timestamps.front.year_month_day))
+      // if the change window is contained in the same seconds_from_epoch (seconds of front and back are the same)
+      else if ((change_window_timestamps.front.seconds == change_window_timestamps.back.seconds) && (timestamp.seconds == change_window_timestamps.front.seconds))
       {
-        // if the current observation date is the same as the date of the 1st element of the
-        // change window then compare the time. If the current observation's timestamp
+        // if the current observation seconds is the same as the seconds of the 1st element of the
+        // change window then compare the nanoseconds. If the current observation's timestamp
         // comes first in the day then add it to the "before" change window vector
-        if (obs_time_of_day < change_window_timestamps.front.time_of_day)
+        if (timestamp.nanoseconds < change_window_timestamps.front.nanoseconds)
         {
           search->second.before_change.emplace_back(current_residual);
+          agora::debug(log_prefix, "BEFORE CHANGE!!!!!");
         }
-        // if the current observation date is the same as the date of the last element of the
+        // if the current observation seconds is the same as the seconds of the last element of the
         // change window then compare the time. If the current observation's timestamp
         // comes later in the day then add it to the "after" change window vector
-        else if (obs_time_of_day > change_window_timestamps.back.time_of_day)
+        else if (timestamp.nanoseconds > change_window_timestamps.back.nanoseconds)
         {
           search->second.after_change.emplace_back(current_residual);
+          agora::debug(log_prefix, "AFTER CHANGE!!!!!");
         }
       }
-      // if the change window is not contained in the same day (dates of front and back are not the same)
-      else if (obs_year_month_day == change_window_timestamps.front.year_month_day)
+      // if the change window is not contained in the same seconds (seconds of front and back are not the same)
+      else if (timestamp.seconds == change_window_timestamps.front.seconds)
       {
-        // if the current observation date is the same as the date of the 1st element of the
+        // if the current observation seconds is the same as the seconds of the 1st element of the
         // change window then compare the time. If the current observation's timestamp
         // comes first in the day then add it to the "before" change window vector
-        if (obs_time_of_day < change_window_timestamps.front.time_of_day)
+        if (timestamp.nanoseconds < change_window_timestamps.front.nanoseconds)
         {
           search->second.before_change.emplace_back(current_residual);
+          agora::debug(log_prefix, "BEFORE CHANGE!!!!!");
         }
 
         // if after the change insert in the 2nd vector of the struct
       }
-      else if (obs_year_month_day > change_window_timestamps.back.year_month_day)
+      else if (timestamp.seconds > change_window_timestamps.back.seconds)
       {
-        // if the current date is newer than the one from the last element of the
+        // if the current seconds is newer than the one from the last element of the
         // change window then add it to the "after" change window vector.
         search->second.after_change.emplace_back(current_residual);
+        agora::debug(log_prefix, "AFTER CHANGE!!!!!");
       }
-      else if (obs_year_month_day == change_window_timestamps.back.year_month_day)
+      else if (timestamp.seconds == change_window_timestamps.back.seconds)
       {
-        // if the current observation date is the same as the date of the last element of the
+        // if the current observation seconds is the same as the seconds of the last element of the
         // change window then compare the time. If the current observation's timestamp
         // comes later in the day then add it to the "after" change window vector
-        if (obs_time_of_day > change_window_timestamps.back.time_of_day)
+        if (timestamp.nanoseconds > change_window_timestamps.back.nanoseconds)
         {
           search->second.after_change.emplace_back(current_residual);
+          agora::debug(log_prefix, "AFTER CHANGE!!!!!");
         }
       }
     }
@@ -777,23 +783,23 @@ void RemoteApplicationHandler::parse_and_insert_observations_for_client_from_tra
       bool valid_metric = false;
 
       agora::debug(log_prefix, "i'm hereeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee");
-      agora::debug(log_prefix, "obs_year_month_day: ", obs_year_month_day);
-      agora::debug(log_prefix, "change_window_timestamps.front.year_month_day: ", change_window_timestamps.front.year_month_day);
-      agora::debug(log_prefix, "obs_time_of_day: ", obs_time_of_day);
-      agora::debug(log_prefix, "change_window_timestamps.front.time_of_day: ", change_window_timestamps.front.time_of_day);
+      agora::debug(log_prefix, "timestamp.seconds: ", timestamp.seconds);
+      agora::debug(log_prefix, "change_window_timestamps.front.seconds: ", change_window_timestamps.front.seconds);
+      agora::debug(log_prefix, "timestamp.nanoseconds: ", timestamp.nanoseconds);
+      agora::debug(log_prefix, "change_window_timestamps.front.nanoseconds: ", change_window_timestamps.front.nanoseconds);
 
-      if (obs_year_month_day < change_window_timestamps.front.year_month_day)
+      if (timestamp.seconds < change_window_timestamps.front.seconds)
       {
         // if the current date is older than the one from the first element of the
         // change window then add it to the "before" change window vector.
         valid_metric = true;
       }
-      else if (obs_year_month_day == change_window_timestamps.front.year_month_day)
+      else if (timestamp.seconds == change_window_timestamps.front.seconds)
       {
         // if the current observation date is the same as the date of the 1st element of the
         // change window then compare the time. If the current observation's timestamp
         // comes first in the day then add it to the "before" change window vector
-        if (obs_time_of_day < change_window_timestamps.front.time_of_day)
+        if (timestamp.nanoseconds < change_window_timestamps.front.nanoseconds)
         {
           valid_metric = true;
         }
@@ -802,6 +808,7 @@ void RemoteApplicationHandler::parse_and_insert_observations_for_client_from_tra
       // if the first observation is before the change window then initialize its struct
       if (valid_metric)
       {
+        agora::debug(log_prefix, "BEFORE CHANGE!!!!!");
         agora::debug(log_prefix, "creation of buffer for metric and first insertion: ", *name_ref);
         // need to create the mapping for the current metric. It's the first time you meet this metric
         std::vector<float> temp_vector_before;
@@ -934,8 +941,8 @@ void RemoteApplicationHandler::second_level_test( std::unordered_map<std::string
       agora::debug(log_prefix, "Querying DB for client ", i.first, " to get its observations from the trace table.");
       agora::debug(log_prefix, "Query: ", query_select);
 
-      observations_list = agora::io::storage.load_client_observations(description.application_name, i.first, query_select, std::to_string(i.second.seconds),
-                          std::to_string(i.second.nanoseconds));
+      observations_list = agora::io::storage.load_client_observations(description.application_name, i.first, query_select, i.second.seconds,
+                          i.second.nanoseconds);
       //observations_list = agora::io::storage.load_client_observations(description.application_name, "alberto_Surface_Pro_2_6205", query_select);
 
       agora::debug("\n", log_prefix, "Trace query executed successfully for client ", i.first, ", starting the parsing of its observations.");
