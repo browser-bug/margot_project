@@ -26,7 +26,6 @@
 #include "agora/logger.hpp"
 #include "agora/cassandra_fs_implementation.hpp"
 
-
 using namespace agora;
 
 CassandraClient::CassandraClient(const std::string& url, const std::string& username, const std::string& password)
@@ -1397,15 +1396,17 @@ void CassandraClient::reset_doe( const application_description_t& description, c
     // we need to separate the timestamp which is "year_month_day,time_of_day"
     // look for the comma
     const auto pos_first_comma = timestamp.find_first_of(',', 0);
-    std::string date = timestamp.substr(0, pos_first_comma);
-    std::string time = timestamp.substr(pos_first_comma + 1, std::string::npos);
+    std::string seconds = timestamp.substr(0, pos_first_comma);
+    std::string nanoseconds = timestamp.substr(pos_first_comma + 1, std::string::npos);
+
+    cassandra_time date_time = compute_timestamps(const std::string &seconds, const std::string &nanoseconds);
 
     // TODO: check if the two parameters above are correct, if they are string or cass-unit-int32-64....
     // we need to execute two queries:
     // the 1st query deleted all the rows with date < date_of_the_change
-    execute_query_synch("DELETE FROM " + table_name + "_trace WHERE day < '" + date + "';");
+    execute_query_synch("DELETE FROM " + table_name + "_trace WHERE day < '" + date_time.year_month_day + "';");
     // the 2nd query deletes all the rows with date = date_of_the_change but with time <= time_of_the_change
-    execute_query_synch("DELETE FROM " + table_name + "_trace WHERE day = '" + date + "' AND time <= '" + time + "';");
+    execute_query_synch("DELETE FROM " + table_name + "_trace WHERE day = '" + date_time.year_month_day + "' AND time <= '" + date_time.time_of_day + "';");
   }
 }
 
@@ -1473,8 +1474,8 @@ application_list_t CassandraClient::load_clients( const std::string& application
 }
 
 
-observations_list_t CassandraClient::load_client_observations( const std::string& application_name, const std::string& client_name, const std::string& query_select, const std::string& date,
-    const std::string& time )
+observations_list_t CassandraClient::load_client_observations( const std::string& application_name, const std::string& client_name, const std::string& query_select, const std::string& seconds,
+    const std::string& nanoseconds )
 {
 
   // this will contain the list of all the observations in the trace belonging to a specific pair of application-client
@@ -1675,10 +1676,7 @@ observations_list_t CassandraClient::load_client_observations( const std::string
             debug("Seconds epoch: ", seconds);
             debug("NanoSeconds: ", nanoseconds);
 
-
-            //current_observation.append(asctime(localtime(&time)));
-            //current_observation.append(",");
-            current_observation.append(std::to_string(year_month_day) + " " + std::to_string(time_of_day) + " ");
+            current_observation.append(std::to_string(seconds) + " " + std::to_string(nanoseconds) + " ");
             got_time = got_date = false;
           }
           else if (got_time == true)
@@ -1720,12 +1718,13 @@ observations_list_t CassandraClient::load_client_observations( const std::string
     }
   };
 
+  cassandra_time date_time = compute_timestamps(const std::string &seconds, const std::string &nanoseconds);
   // perform the query
   // first get all the observations from the same day but with a later time
-  const std::string query = "SELECT " + query_select + " FROM " + table_name + " WHERE client_id = '" + client_name + "' AND day = '" + date + "' AND time > '" + time + "' ALLOW FILTERING;";
+  const std::string query = "SELECT " + query_select + " FROM " + table_name + " WHERE client_id = '" + client_name + "' AND day = '" + date_time.year_month_day + "' AND time > '" + date_time.time_of_day + "' ALLOW FILTERING;";
   execute_query_synch(query, result_handler);
   // then get all the observations from the following days
-  const std::string query2 = "SELECT " + query_select + " FROM " + table_name + " WHERE client_id = '" + client_name + "' AND day > '" + date + "' ALLOW FILTERING;";
+  const std::string query2 = "SELECT " + query_select + " FROM " + table_name + " WHERE client_id = '" + client_name + "' AND day > '" + date_time.year_month_day + "' ALLOW FILTERING;";
   execute_query_synch(query2, result_handler);
 
   return observations_list;
@@ -1744,4 +1743,27 @@ void CassandraClient::erase( const std::string& application_name )
   execute_query_synch("DROP TABLE " + table_name + "_doe;");
   execute_query_synch("DROP TABLE " + table_name + "_model;");
   execute_query_synch("DROP TABLE " + table_name + "_trace;");
+}
+
+// This function converts the timestamp received in input as a two strings representing respectively
+// the standard ctime format of seconds since epoch and nanoseconds in the Cassandra date and time format.
+// Returns a "cassandra_time" struct.
+cassandra_time CassandraClient::compute_cassandra_timestamps(const std::string& seconds, const std::string& nanoseconds)
+{
+  cassandra_time result_timestamp;
+
+  time_t front_secs_since_epoch;
+  int64_t front_nanosecs_since_secs;
+  // convert the strings in the input struct into the proper time formats
+  std::istringstream( seconds ) >> front_secs_since_epoch;
+  std::istringstream( nanoseconds ) >> front_nanosecs_since_secs;
+
+  // now we have to convert them in the funny cassandra format
+  result_timestamp.year_month_day = cass_date_from_epoch(front_secs_since_epoch);
+  result_timestamp.time_of_day = cass_time_from_epoch(front_secs_since_epoch);
+
+  // now we add to the time of a day the missing information
+  result_timestamp.time_of_day += front_nanosecs_since_secs;
+
+  return result_timestamp;
 }

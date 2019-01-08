@@ -27,7 +27,7 @@
 
 
 #include "beholder/ici_test_data.hpp"
-#include "beholder/common_objects_beholder.hpp"
+//#include "beholder/common_objects_beholder.hpp"
 
 
 namespace beholder
@@ -47,7 +47,7 @@ namespace beholder
 
     public:
 
-      static bool perform_ici_cdt(Data_ici_test& data_test, const std::vector<residual_timestamp_struct>& window_pair,
+      static bool perform_ici_cdt(Data_ici_test& data_test, const std::vector<residual_struct>& window_pair,
                                   std::unordered_map<std::string, output_files>& output_files_map);
 
   };

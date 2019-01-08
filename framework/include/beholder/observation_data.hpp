@@ -21,6 +21,8 @@
 #ifndef MARGOT_BEHOLDER_OBSERVATION_DATA
 #define MARGOT_BEHOLDER_OBSERVATION_DATA
 
+#include "beholder/common_objects_beholder.hpp"
+
 namespace beholder
 {
 
@@ -28,7 +30,7 @@ namespace beholder
   struct Observation_data
   {
     std::string client_id;
-    std::string timestamp;
+    timestamp_fields timestamp;
     std::vector<std::string> metric_fields_vec;
     std::vector<float> metrics_vec;
     std::vector<float> estimates_vec;

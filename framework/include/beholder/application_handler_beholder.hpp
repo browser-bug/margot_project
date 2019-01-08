@@ -57,24 +57,6 @@ namespace beholder
     RETRAINING
   };
 
-  struct timestamp_fields
-  {
-    std::string seconds;
-    std::string nanoseconds;
-  };
-
-  struct cassandra_time
-  {
-    cass_uint32_t year_month_day;
-    cass_int64_t time_of_day;
-  };
-
-  struct window_cassandra_time
-  {
-    cassandra_time front;
-    cassandra_time back;
-  };
-
   class RemoteApplicationHandler
   {
 
@@ -149,24 +131,21 @@ namespace beholder
       // The vector of structs is the buffer of residuals for the metric of interested.
       // The buffer will be as big as the beholder parameter "window_size" instructs.
       // The struct's first element is the residual value itself.
-      // The struct's second element is a string containing the timestamp of the corresponding residual.
+      // The struct's second element is a another struct containing the timestamp of the corresponding residual,
+      // it has two members: two strings containing respectively the seconds since epoch and nanoseconds.
       // The timestamp of the first and last element in the current window allows us to pinpoint
       // the change detection time range later on in Cassandra's trace
       // We could have different windows for every metric observed, this is the reason why the
       // timestamp of the first and last element are not unique across the whole application handler.
-      std::unordered_map<std::string, std::vector<residual_timestamp_struct>> residuals_map;
+      std::unordered_map<std::string, std::vector<residual_struct>> residuals_map;
 
       // ICI CDT data structures:
       // It maps every metric to its struct of data for the ICI CDT
       std::unordered_map<std::string, Data_ici_test> ici_cdt_map;
 
-      // Window containing the timestamps (in Cassandra's format) about
+      // Window containing the timestamps (in Ctime's format) about
       // the first and last element of the change window.
-      // We use the Cassandra's format to make the conversion to this format just once
-      // and use the information multiple times in the 2nd step of the CDT.
-      // In this way we can effortlessly compare the timestamps with the ones from the observations
-      // got from queries to Cassandra's db which went through the same kind of processing.
-      window_cassandra_time change_window_timestamps;
+      window_timestamps change_window_timestamps;
 
       std::string change_metric_name;
 
@@ -198,8 +177,6 @@ namespace beholder
       void parse_and_insert_observations_for_client_from_trace(std::unordered_map<std::string, residuals_from_trace>& client_residuals_map, const observation_t j,
           const std::set<std::string>& metric_to_be_analyzed);
       void second_level_test( std::unordered_map<std::string, timestamp_fields>& clients_list_snapshot );
-      cassandra_time compute_timestamps(const std::string& input_timestamp);
-      cassandra_time compute_timestamps(const timestamp_fields& input_timestamp);
 
       inline void retraining ( void )
       {
@@ -209,7 +186,7 @@ namespace beholder
         if (Parameters_beholder::no_trace_drop)
         {
           agora::pedantic(log_prefix, "Deleting the model, restoring the DOE, deleting just the rows of the trace which are before the detected change window.");
-          send_agora_command("retraining " + std::to_string(change_window_timestamps.back.year_month_day) + "," + std::to_string(change_window_timestamps.back.time_of_day));
+          send_agora_command("retraining " + std::to_string(change_window_timestamps.back.seconds) + "," + std::to_string(change_window_timestamps.back.nanoseconds));
         }
         else
         {

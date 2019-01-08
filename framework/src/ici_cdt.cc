@@ -25,7 +25,7 @@
 
 namespace beholder
 {
-  bool IciCdt::perform_ici_cdt(Data_ici_test& data_test, const std::vector<residual_timestamp_struct>& window_pair,
+  bool IciCdt::perform_ici_cdt(Data_ici_test& data_test, const std::vector<residual_struct>& window_pair,
                                std::unordered_map<std::string, output_files>& output_files_map)
   {
     // bool to stop the cycle when a change is detected
@@ -341,8 +341,8 @@ namespace beholder
         agora::pedantic(log_prefix, "and observation number ", (data_test.window_number * Parameters_beholder::window_size), " with value: ", window_pair.back().residual_value);
 
         // save the timestamp of the first and last element of the window:
-        data_test.front_window_timestamp = window_pair.front().residual_timestamp;
-        data_test.back_window_timestamp = window_pair.back().residual_timestamp;
+        //data_test.change_window_timestamps.front = window_pair.front().residual_timestamp;
+        //data_test.change_window_timestamps.back = window_pair.back().residual_timestamp;
 
         // convert and save the change window timestamp (as Cassandra does to make it comparable) of the first and last elements of the window
         // compute_timestamps(data_test, window_pair);

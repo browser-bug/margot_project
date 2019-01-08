@@ -189,8 +189,14 @@ int RemoteApplicationHandler::parse_observation(Observation_data& observation, c
 
   // parse the timestamp and the client_id
   std::stringstream stream(values);
-  stream >> observation.timestamp;
-  agora::debug(log_prefix, "Timestamp: ", observation.timestamp);
+  std::string temp_timestamp;
+  stream >> temp_timestamp;
+  agora::debug(log_prefix, "Timestamp: ", temp_timestamp);
+  // split the timestamp (comma separated) in seconds and nanoseconds
+  auto find_pos_comma = temp_timestamp.find_first_of(",");
+  observation.timestamp.seconds = temp_timestamp.substr(0, find_pos_comma);
+  observation.timestamp.nanoseconds = temp_timestamp.substr(find_pos_comma + 1, std::string::npos);
+
   stream >> observation.client_id;
   agora::debug(log_prefix, "client_id: ", observation.client_id);
 
@@ -200,14 +206,8 @@ int RemoteApplicationHandler::parse_observation(Observation_data& observation, c
   // if this is the first time we encounter this client we need to register it and discard it
   if (search_client == clients_list.end())
   {
-    // split the timestamp (comma separated) in seconds and nanoseconds
-    // and build a temporary timestamp struct with these values
-    timestamp_fields timestamp_separated;
-    auto find_pos_comma = observation.timestamp.find_first_of(",");
-    timestamp_separated.seconds = observation.timestamp.substr(0, find_pos_comma);
-    timestamp_separated.nanoseconds = observation.timestamp.substr(find_pos_comma + 1, std::string::npos);
     // emplace in the hashmap the current client with its timestamp struct
-    clients_list.emplace(observation.client_id, timestamp_separated);
+    clients_list.emplace(observation.client_id, observation.timestamp);
     agora::info(log_prefix, "Not taking into account this first observation from client ", observation.client_id, " as a security measure for the correctness of the estimates.");
     // return and do not take into account this observation
     return 1;
@@ -355,7 +355,7 @@ int RemoteApplicationHandler::fill_buffers(const Observation_data& observation)
     {
       agora::debug(log_prefix, "metric ", observation.metric_fields_vec[index], " already present, filling buffer");
       // metric already present, need to add to the buffer the new residual
-      residual_timestamp_struct temp_struct = {current_residual, observation.timestamp};
+      residual_struct temp_struct = {current_residual, observation.timestamp};
       search->second.emplace_back(temp_struct);
 
       // manage the output to file
@@ -381,8 +381,8 @@ int RemoteApplicationHandler::fill_buffers(const Observation_data& observation)
     {
       agora::debug(log_prefix, "creation of buffer for metric and first insertion: ", observation.metric_fields_vec[index]);
       // need to create the mapping for the current metric. It's the first time you meet this metric
-      residual_timestamp_struct temp_struct = {current_residual, observation.timestamp};
-      std::vector<residual_timestamp_struct> temp_vector;
+      residual_struct temp_struct = {current_residual, observation.timestamp};
+      std::vector<residual_struct> temp_vector;
       temp_vector.emplace_back(temp_struct);
       residuals_map.emplace(observation.metric_fields_vec[index], temp_vector);
 
@@ -519,10 +519,10 @@ void RemoteApplicationHandler::first_level_test( void )
         agora::info(log_prefix, "First level of CDT DETECTED A CHANGE in metric: ", i.first, " Resetting metric buffer, clients blacklist and setting handler to status=COMPUTING!");
         change_metric_name = i.first;
 
-        // compute the Cassandra-format timestamps for the first and last element of the selected change window
-        // to make it comparable with the observations from the trace
-        change_window_timestamps.front = compute_timestamps(i.second.front().residual_timestamp);
-        change_window_timestamps.back = compute_timestamps(i.second.back().residual_timestamp);
+        // save the timestamps of the change window to compare them later on with
+        // the observations gathered from the trace
+        change_window_timestamps.front = i.second.front().residual_timestamp;
+        change_window_timestamps.back = i.second.back().residual_timestamp;
 
         // set the status variable according so that the lock can be released
         status = ApplicationStatus::COMPUTING;
@@ -550,9 +550,7 @@ void RemoteApplicationHandler::parse_and_insert_observations_for_client_from_tra
   // Basically we keep only production phase observations, and of these we only consider metrics (enabled for the beholder)
   // for which the real observed values is available, to be compared with the model value.
   std::string obs_client_id;
-  // std::vector <std::string> obs_timestamp;
-  cass_uint32_t obs_year_month_day;
-  cass_int64_t obs_time_of_day;
+  timestamp_fields timestamp;
   std::vector <std::string> obs_configuration;
   std::vector <std::string> obs_features;
   std::vector <std::string> obs_metrics;
@@ -563,8 +561,8 @@ void RemoteApplicationHandler::parse_and_insert_observations_for_client_from_tra
 
   //std::string current_date;
   //str_observation >> current_date;
-  str_observation >> obs_year_month_day;
-  str_observation >> obs_time_of_day;
+  str_observation >> timestamp.seconds;
+  str_observation >> timestamp.nanoseconds;
 
   //std::string current_time;
 
@@ -936,12 +934,8 @@ void RemoteApplicationHandler::second_level_test( std::unordered_map<std::string
       agora::debug(log_prefix, "Querying DB for client ", i.first, " to get its observations from the trace table.");
       agora::debug(log_prefix, "Query: ", query_select);
 
-      // compute the Cassandra time format of the first observation for this current client under analysis
-      // to filter out this first value and all the previous ones from the trace.
-      cassandra_time filter_from_time = compute_timestamps(i.second);
-
-      observations_list = agora::io::storage.load_client_observations(description.application_name, i.first, query_select, std::to_string(filter_from_time.year_month_day),
-                          std::to_string(filter_from_time.time_of_day));
+      observations_list = agora::io::storage.load_client_observations(description.application_name, i.first, query_select, std::to_string(i.second.seconds),
+                          std::to_string(i.second.nanoseconds));
       //observations_list = agora::io::storage.load_client_observations(description.application_name, "alberto_Surface_Pro_2_6205", query_select);
 
       agora::debug("\n", log_prefix, "Trace query executed successfully for client ", i.first, ", starting the parsing of its observations.");
@@ -1099,6 +1093,7 @@ void RemoteApplicationHandler::second_level_test( std::unordered_map<std::string
     ici_cdt_map.clear();
     clients_list.clear();
     clients_list_snapshot.clear();
+    change_window_timestamps = {};
 
     // deal with the output files (if enabled)
     if (Parameters_beholder::output_files)
@@ -1194,20 +1189,21 @@ void RemoteApplicationHandler::second_level_test( std::unordered_map<std::string
         i.second.current_variance_conf_interval_upper = i.second.reference_variance_conf_interval_upper;
       }
 
-      // if the data structure under analysis belongs to the metric which triggered the change first
-      if (i.second.metric_name == change_metric_name)
-      {
-        // reset the change window timestamp to be sure
-        i.second.front_window_timestamp = "";
-        i.second.back_window_timestamp = "";
-        // i.second.front_year_month_day = 0;
-        // i.second.front_time_of_day = 0;
-        // i.second.back_year_month_day = 0;
-        // i.second.back_time_of_day = 0;
-      }
+      // // if the data structure under analysis belongs to the metric which triggered the change first
+      // if (i.second.metric_name == change_metric_name)
+      // {
+      //   // reset the change window timestamp to be sure
+      //   i.second.front_window_timestamp = "";
+      //   i.second.back_window_timestamp = "";
+      //   // i.second.front_year_month_day = 0;
+      //   // i.second.front_time_of_day = 0;
+      //   // i.second.back_year_month_day = 0;
+      //   // i.second.back_time_of_day = 0;
+      // }
     }
 
     change_metric_name = "";
+    change_window_timestamps = {};
 
     if (Parameters_beholder::output_files)
     {
@@ -1307,54 +1303,4 @@ void RemoteApplicationHandler::second_level_test( std::unordered_map<std::string
       agora::pedantic(log_prefix, "Setting handler back to READY!");
     }
   }
-}
-
-// This function converts the timestamp received in input as a comma-separated string
-// of the format "seconds since epoch,nanosecond" in the Cassandra date and time format.
-// return a "cassandra_time" struct.
-cassandra_time RemoteApplicationHandler::compute_timestamps(const std::string& input_timestamp)
-{
-  cassandra_time result_timestamp;
-
-  // At first the timestamp is a string (as passed from the asrtm) which contains:
-  // "seconds(from epoch),nanoseconds". The two fields are separated by a comma.
-  // We need to separate these two fields, so we look for the comma.
-  const auto front_pos_first_comma = input_timestamp.find_first_of(',', 0);
-  time_t front_secs_since_epoch;
-  int64_t front_nanosecs_since_secs;
-  // substring from the beginning of the string to the comma
-  std::istringstream( input_timestamp.substr(0, front_pos_first_comma) ) >> front_secs_since_epoch;
-  // substring from the comma (comma excluded) to the end of the string
-  std::istringstream( input_timestamp.substr(front_pos_first_comma + 1, std::string::npos) ) >> front_nanosecs_since_secs;
-
-  // now we have to convert them in the funny cassandra format
-  result_timestamp.year_month_day = cass_date_from_epoch(front_secs_since_epoch);
-  result_timestamp.time_of_day = cass_time_from_epoch(front_secs_since_epoch);
-
-  // now we add to the time of a day the missing information
-  result_timestamp.time_of_day += front_nanosecs_since_secs;
-
-  return result_timestamp;
-}
-
-// This function converts the timestamp received in input as a "timestamp_fields" struct
-// in the Cassandra date and time format. Returns a "cassandra_time" struct.
-cassandra_time RemoteApplicationHandler::compute_timestamps(const timestamp_fields& input_timestamp)
-{
-  cassandra_time result_timestamp;
-
-  time_t front_secs_since_epoch;
-  int64_t front_nanosecs_since_secs;
-  // convert the strings in the input struct into the proper time formats
-  std::istringstream( input_timestamp.seconds ) >> front_secs_since_epoch;
-  std::istringstream( input_timestamp.nanoseconds ) >> front_nanosecs_since_secs;
-
-  // now we have to convert them in the funny cassandra format
-  result_timestamp.year_month_day = cass_date_from_epoch(front_secs_since_epoch);
-  result_timestamp.time_of_day = cass_time_from_epoch(front_secs_since_epoch);
-
-  // now we add to the time of a day the missing information
-  result_timestamp.time_of_day += front_nanosecs_since_secs;
-
-  return result_timestamp;
 }

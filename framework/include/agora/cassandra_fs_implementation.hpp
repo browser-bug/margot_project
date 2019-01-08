@@ -32,6 +32,12 @@ extern "C"
 #include "agora/fs_handler.hpp"
 #include "agora/logger.hpp"
 
+struct cassandra_time
+{
+  cass_uint32_t year_month_day;
+  cass_int64_t time_of_day;
+};
+
 namespace agora
 {
 
@@ -113,8 +119,10 @@ namespace agora
       void create_trace_table( const application_description_t& description );
       void insert_trace_entry( const application_description_t& description, const std::string& values );
       application_list_t load_clients( const std::string& application_name );
-      observations_list_t load_client_observations( const std::string& application_name, const std::string& client_name, const std::string& query_select, const std::string& date, const std::string& time );
+      observations_list_t load_client_observations( const std::string& application_name, const std::string& client_name, const std::string& query_select, const std::string& seconds, const std::string& nanoseconds );
       void erase( const std::string& application_name );
+      cassandra_time compute_timestamps(const std::string& seconds, const std::string& nanoseconds);
+
 
 
       std::string get_type( void ) const

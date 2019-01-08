@@ -22,6 +22,7 @@
 #define MARGOT_BEHOLDER_ICI_TEST_DATA
 
 #include "agora/virtual_io.hpp"
+#include "beholder/common_objects_beholder.hpp"
 
 namespace beholder
 {
@@ -72,14 +73,7 @@ namespace beholder
     // data to save the timestamps of the first and last element of the current window
     // in case of positive ici cdt. This will be useful to pinpoint the change window
     // when reading from the trace to perform the 2nd step of the hierarchical cdt.
-    // Every point in time is saved as a string representing "seconds since epoch,nanoseconds"
-    // because this is the measure sent by the asrtm.
-    std::string front_window_timestamp;
-    std::string back_window_timestamp;
-    // cass_uint32_t front_year_month_day;
-    // cass_int64_t front_time_of_day;
-    // cass_uint32_t back_year_month_day;
-    // cass_int64_t back_time_of_day;
+    //window_timestamps change_window_timestamps;
   };
 
 }

@@ -33,11 +33,24 @@ namespace beholder
     std::fstream ici;
   };
 
+  // struct to contain the standard ctime time format wrt epoch with precision of nanoseconds
+  struct timestamp_fields
+  {
+    std::string seconds;
+    std::string nanoseconds;
+  };
+
+  struct window_timestamps
+  {
+    timestamp_fields front;
+    timestamp_fields back;
+  };
+
   // struct to bind a residual with its timestamp
-  struct residual_timestamp_struct
+  struct residual_struct
   {
     float residual_value;
-    std::string residual_timestamp;
+    timestamp_fields residual_timestamp;
   };
 
   // struct to store the observations from trace respectively in the before/after_change
