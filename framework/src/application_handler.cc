@@ -546,11 +546,17 @@ void RemoteApplicationHandler::bye_client( const std::string& client_name )
 void RemoteApplicationHandler::retraining( const std::string& timestamp )
 {
 
-  // if the application has no model, and we received the re-training message, something is not right
+  info("Performing the retraining for application: ", description.application_name);
+
+  // if the application has no model, and we received the re-training message it means that agorà is
+  // probably with ApplicationStatus==CLUELESS following a crash of Agorà itself
+
   if (status != ApplicationStatus::WITH_MODEL)
   {
-    warning("Handler ", description.application_name, ": ignoring the re-training request because there is no model yet!");
-    return;
+    warning("The status for the ApplicationHandler is NOT \"WITH_MODEL\" (it is probably \"CLUELESS\" following a crash of Agorà) then we load the description from storage!");
+    // first of all we need to load the application description, otherwise we cannot
+    // insteract with storage
+    description = io::storage.load_description(description.application_name);
   }
 
   // this is a critical section
@@ -560,6 +566,7 @@ void RemoteApplicationHandler::retraining( const std::string& timestamp )
   io::storage.reset_doe(description, timestamp);
 
   // update doe in RAM
+  info("Handler ", description.application_name, ": reload the just reset original doe into handler's memory.");
   doe = io::storage.load_doe(description.application_name);
 
   info("Handler ", description.application_name, ": the doe has been reset to its original status.");

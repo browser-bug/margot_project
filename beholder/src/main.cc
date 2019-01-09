@@ -19,7 +19,6 @@
 
 #include <cstdlib>
 #include <iostream>
-// #include <getopt.h>
 #include <stdexcept>
 #include <sstream>
 #include <libgen.h>

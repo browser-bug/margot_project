@@ -172,7 +172,7 @@ namespace beholder
 
             // compute the mean
             moments.emplace_back(sum / data_test.training_observations.size());
-            agora::pedantic(log_prefix, "RawMoment[", order, "] = ", moments[order]);
+            agora::debug(log_prefix, "RawMoment[", order, "] = ", moments[order]);
           }
 
           // compute the cumulants of the original distribution
@@ -186,12 +186,12 @@ namespace beholder
           float c6 = -120 * powf(moments[1], 6) + 360 * powf(moments[1], 4) * moments[2] - 270 * powf(moments[1], 2) * powf(moments[2], 2) + 30 * powf(moments[2], 3) - 120 * powf(moments[1],
                      3) * moments[3] + 120 * moments[1] * moments[2] * moments[3];
           c6 = c6 - 10 * powf(moments[3], 2) + 30 * (moments[1], 2) * moments[4] - 15 * moments[2] * moments[4] - 6 * moments[1] * moments[5] + moments[6];
-          agora::pedantic(log_prefix, "Cumulant[1] = ", c1);
-          agora::pedantic(log_prefix, "Cumulant[2] = ", c2);
-          agora::pedantic(log_prefix, "Cumulant[3] = ", c3);
-          agora::pedantic(log_prefix, "Cumulant[4] = ", c4);
-          agora::pedantic(log_prefix, "Cumulant[5] = ", c5);
-          agora::pedantic(log_prefix, "Cumulant[6] = ", c6);
+          agora::debug(log_prefix, "Cumulant[1] = ", c1);
+          agora::debug(log_prefix, "Cumulant[2] = ", c2);
+          agora::debug(log_prefix, "Cumulant[3] = ", c3);
+          agora::debug(log_prefix, "Cumulant[4] = ", c4);
+          agora::debug(log_prefix, "Cumulant[5] = ", c5);
+          agora::debug(log_prefix, "Cumulant[6] = ", c6);
 
           // compute sample variance moments
           float k1 = data_test.training_observations.size() - 1;
@@ -199,9 +199,9 @@ namespace beholder
           float k3 = powf((data_test.training_observations.size() - 1), 3) * (c6 / powf(data_test.training_observations.size(),
                      2) + (12 * c4 * c2) / (data_test.training_observations.size() * (data_test.training_observations.size() - 1)) + (4 * (data_test.training_observations.size() - 2) * powf(c3,
                          2)) / (data_test.training_observations.size() * powf((data_test.training_observations.size() - 1), 2)) + (8 * powf(c2, 3)) / powf((data_test.training_observations.size() - 1), 2)) / powf(c2, 3);
-          agora::pedantic(log_prefix, "VarianceMoment[1] = ", k1);
-          agora::pedantic(log_prefix, "VarianceMoment[2] = ", k2);
-          agora::pedantic(log_prefix, "VarianceMoment[3] = ", k3);
+          agora::debug(log_prefix, "VarianceMoment[1] = ", k1);
+          agora::debug(log_prefix, "VarianceMoment[2] = ", k2);
+          agora::debug(log_prefix, "VarianceMoment[3] = ", k3);
 
           // compute h0
           data_test.h0 = 1 - ((k1 * k3) / (3 * powf(k2,  2)));
@@ -209,11 +209,14 @@ namespace beholder
 
           // compute V(s)=T(S(s)), the power-law transform gaussianization of the sample variance
           // use directly the sample variance w/o gaussianization
+          int index = 1;
+
           for (auto& i : data_test.training_sample_variance)
           {
-            agora::pedantic(log_prefix, "Sample Variance = ", i);
+            agora::debug(log_prefix, "Sample Variance S(s=", index, "): ", i);
             data_test.training_sample_variance_transformed.emplace_back(pow((i / (Parameters_beholder::window_size - 1)), data_test.h0));
-            agora::pedantic(log_prefix, "Sample Variance Transformed = ", pow((i / (Parameters_beholder::window_size - 1)), data_test.h0));
+            agora::pedantic(log_prefix, "Sample Variance Transformed V(s=", index, "): ", pow((i / (Parameters_beholder::window_size - 1)), data_test.h0));
+            index++;
           }
 
           // use the sample variance w/ gaussianization V(s)
@@ -275,7 +278,7 @@ namespace beholder
     else
     {
       // we are in production phase
-      agora::pedantic(log_prefix, "PRODUCTION PHASE, window number: ", data_test.window_number);
+      agora::pedantic(log_prefix, "PRODUCTION PHASE, total window number: ", data_test.window_number, ", production window number: ", data_test.window_number - Parameters_beholder::training_windows);
 
       // save the previous sample-mean mean
       float previous_sample_mean_mean = data_test.current_sample_mean_mean;
@@ -335,7 +338,7 @@ namespace beholder
       if (data_test.current_mean_conf_interval_lower > data_test.current_mean_conf_interval_upper)
       {
         change_detected_mean = true;
-        agora::info(log_prefix, "CHANGE DETECTED in MEAN, window number ", data_test.window_number);
+        agora::info(log_prefix, "CHANGE DETECTED in MEAN, total window number ", data_test.window_number, ", production window number: ", data_test.window_number - Parameters_beholder::training_windows);
         agora::pedantic(log_prefix, "between observation number ", ((data_test.window_number * Parameters_beholder::window_size) - (Parameters_beholder::window_size - 1)), " with value: ",
                         window_pair.front().residual_value);
         agora::pedantic(log_prefix, "and observation number ", (data_test.window_number * Parameters_beholder::window_size), " with value: ", window_pair.back().residual_value);
@@ -416,7 +419,7 @@ namespace beholder
         if (data_test.current_variance_conf_interval_lower > data_test.current_variance_conf_interval_upper)
         {
           change_detected_variance = true;
-          agora::info(log_prefix, "CHANGE DETECTED in VARIANCE, window number ", data_test.window_number);
+          agora::info(log_prefix, "CHANGE DETECTED in VARIANCE, window number ", data_test.window_number, ", production window number: ", data_test.window_number - Parameters_beholder::training_windows);
           agora::pedantic(log_prefix, "between observation number ", ((data_test.window_number * Parameters_beholder::window_size) - (Parameters_beholder::window_size - 1)), " with value: ",
                           window_pair.front().residual_value);
           agora::pedantic(log_prefix, "and observation number ", (data_test.window_number * Parameters_beholder::window_size), " with value: ", window_pair.back().residual_value);
