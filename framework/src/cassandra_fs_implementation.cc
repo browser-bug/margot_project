@@ -1673,8 +1673,8 @@ observations_list_t CassandraClient::load_client_observations( const std::string
             // nanosecond and we get the number of nanoseconds since seconds (since epoch)
             auto nanoseconds = time_of_day % 1000000000;
 
-            debug("Seconds epoch: ", seconds);
-            debug("NanoSeconds: ", nanoseconds);
+            //debug("Seconds epoch: ", seconds);
+            //debug("NanoSeconds: ", nanoseconds);
 
             current_observation.append(std::to_string(seconds) + " " + std::to_string(nanoseconds) + " ");
             got_time = got_date = false;

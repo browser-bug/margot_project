@@ -110,7 +110,26 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
   // according to the handler status: ready/computing/disabled
   if ( status != ApplicationStatus::READY )
   {
-    agora::debug(log_prefix, "Observation DISCARDED since handler is not in status READY!");
+    if ( status == ApplicationStatus::COMPUTING )
+    {
+        agora::debug(log_prefix, "Observation DISCARDED since handler is currently performing the second level test!");
+    }
+    else if ( status == ApplicationStatus::TRAINING)
+    {
+        agora::debug(log_prefix, "Observation DISCARDED since handler is receiving observations from clients which still have the old invalidated model as knowledge.\nAgorà is working to compute the new model...");
+    }
+    else if (ApplicationStatus::RETRAINING)
+    {
+        agora::debug(log_prefix, "Observation DISCARDED since handler is receiving observations from clients which still have the old invalidated model as knowledge.\nAgorà is currently down, we cannot do anything about that...");
+    }
+    else if (ApplicationStatus::DISABLED)
+    {
+        agora::debug(log_prefix, "Observation DISCARDED since Agorà is currently down, we cannot do anything about that...");
+    }
+    else
+    {
+        agora::debug(log_prefix, "Observation DISCARDED since handler is not in status READY!");
+    }
     return;
   }
 
@@ -191,14 +210,14 @@ int RemoteApplicationHandler::parse_observation(Observation_data& observation, c
   std::stringstream stream(values);
   std::string temp_timestamp;
   stream >> temp_timestamp;
-  agora::debug(log_prefix, "Timestamp: ", temp_timestamp);
+  //agora::debug(log_prefix, "Timestamp: ", temp_timestamp);
   // split the timestamp (comma separated) in seconds and nanoseconds
   auto find_pos_comma = temp_timestamp.find_first_of(",");
   observation.timestamp.seconds = temp_timestamp.substr(0, find_pos_comma);
   observation.timestamp.nanoseconds = temp_timestamp.substr(find_pos_comma + 1, std::string::npos);
 
   stream >> observation.client_id;
-  agora::debug(log_prefix, "client_id: ", observation.client_id);
+  //agora::debug(log_prefix, "client_id: ", observation.client_id);
 
   // Let's check whether this is the first observation coming from this client
   auto search_client = clients_list.find(observation.client_id);
@@ -230,11 +249,11 @@ int RemoteApplicationHandler::parse_observation(Observation_data& observation, c
 
   // get the observed values
   stream >> metrics;
-  agora::debug(log_prefix, "metrics: ", metrics);
+  //agora::debug(log_prefix, "metrics: ", metrics);
 
   // gets the model values
   stream >> estimates;
-  agora::debug(log_prefix, "estimates: ", estimates );
+  //agora::debug(log_prefix, "estimates: ", estimates );
 
   // gets the name of the fields of the metric to be filled in
   // NB: note that the beholder observation message always contains the metric names, also when all the metrics are enabled.
@@ -246,7 +265,7 @@ int RemoteApplicationHandler::parse_observation(Observation_data& observation, c
   // While gathering the metric names from the DB would have meant to lose the information of which metric
   // should be actually monitored out of all those available.
   stream >> metric_fields;
-  agora::debug(log_prefix, "metric_fields: ", metric_fields);
+  //agora::debug(log_prefix, "metric_fields: ", metric_fields);
 
   // if this is the first message then parse also the last part of the message where the heel enqueues the whole list of user-enabled-beholder-metrics
   // if this list is not present than there is the assumption that all the metrics should be analized, even though the user did not explicitely stated that
@@ -290,10 +309,10 @@ int RemoteApplicationHandler::parse_observation(Observation_data& observation, c
     observation.metric_fields_vec.push_back( substr );
   }
 
-  for (auto& i : observation.metric_fields_vec)
-  {
-    agora::debug(log_prefix, "metric_fields separated: ", i);
-  }
+  // for (auto& i : observation.metric_fields_vec)
+  // {
+  //   agora::debug(log_prefix, "metric_fields separated: ", i);
+  // }
 
   // build the vector of observed metrics provided in the observation
   std::stringstream ssm(metrics);
@@ -305,10 +324,10 @@ int RemoteApplicationHandler::parse_observation(Observation_data& observation, c
     observation.metrics_vec.push_back( std::stof(substr) );
   }
 
-  for (auto& i : observation.metrics_vec)
-  {
-    agora::debug(log_prefix, "metrics separated: ", i);
-  }
+  // for (auto& i : observation.metrics_vec)
+  // {
+  //   agora::debug(log_prefix, "metrics separated: ", i);
+  // }
 
   // build the vector of observed metrics provided in the observation
   std::stringstream ssme(estimates);
@@ -320,10 +339,10 @@ int RemoteApplicationHandler::parse_observation(Observation_data& observation, c
     observation.estimates_vec.push_back( std::stof(substr) );
   }
 
-  for (auto& i : observation.estimates_vec)
-  {
-    agora::debug(log_prefix, "estimates separated: ", i);
-  }
+  // for (auto& i : observation.estimates_vec)
+  // {
+  //   agora::debug(log_prefix, "estimates separated: ", i);
+  // }
 
 
   // Check if we have consistency in the quantity of measures received,
@@ -573,7 +592,7 @@ void RemoteApplicationHandler::parse_and_insert_observations_for_client_from_tra
   // agora::debug(log_prefix, "Time parsed: ", obs_timestamp[1]);
 
   str_observation >> obs_client_id;
-  agora::debug(log_prefix, "Client_id parsed: ", obs_client_id);
+  //agora::debug(log_prefix, "Client_id parsed: ", obs_client_id);
 
   int num_knobs = description.knobs.size();
 
@@ -582,7 +601,7 @@ void RemoteApplicationHandler::parse_and_insert_observations_for_client_from_tra
     std::string current_knob;
     str_observation >> current_knob;
     obs_configuration.emplace_back(current_knob);
-    agora::debug(log_prefix, "Knob parsed: ", current_knob);
+    //agora::debug(log_prefix, "Knob parsed: ", current_knob);
     num_knobs--;
   }
 
@@ -593,7 +612,7 @@ void RemoteApplicationHandler::parse_and_insert_observations_for_client_from_tra
     std::string current_feature;
     str_observation >> current_feature;
     obs_features.emplace_back(current_feature);
-    agora::debug(log_prefix, "Feature parsed: ", current_feature);
+    //agora::debug(log_prefix, "Feature parsed: ", current_feature);
     num_features--;
   }
 
@@ -604,7 +623,7 @@ void RemoteApplicationHandler::parse_and_insert_observations_for_client_from_tra
     std::string current_metric;
     str_observation >> current_metric;
     obs_metrics.emplace_back(current_metric);
-    agora::debug(log_prefix, "Metrics parsed: ", current_metric);
+    //agora::debug(log_prefix, "Metrics parsed: ", current_metric);
     num_metrics--;
   }
 
@@ -629,7 +648,7 @@ void RemoteApplicationHandler::parse_and_insert_observations_for_client_from_tra
     }
 
     obs_estimates.emplace_back(current_estimate);
-    agora::debug(log_prefix, "Estimate parsed: ", current_estimate);
+    //agora::debug(log_prefix, "Estimate parsed: ", current_estimate);
     num_metrics--;
   }
 
@@ -795,16 +814,6 @@ void RemoteApplicationHandler::parse_and_insert_observations_for_client_from_tra
       // bool to control if the first observation is actually before the change window
       bool valid_metric = false;
 
-      agora::debug(log_prefix, "i'm hereeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee");
-      agora::debug(log_prefix, "timestamp.seconds: ", timestamp.seconds);
-      agora::debug(log_prefix, "std::stol(timestamp.seconds): ", std::stol(timestamp.seconds));
-      agora::debug(log_prefix, "change_window_timestamps.front.seconds: ", change_window_timestamps.front.seconds);
-      agora::debug(log_prefix, "std::stol(change_window_timestamps.front.seconds): ", std::stol(change_window_timestamps.front.seconds));
-      agora::debug(log_prefix, "timestamp.nanoseconds: ", timestamp.nanoseconds);
-      agora::debug(log_prefix, "std::stol(timestamp.nanoseconds): ", std::stol(timestamp.nanoseconds));
-      agora::debug(log_prefix, "change_window_timestamps.front.nanoseconds: ", change_window_timestamps.front.nanoseconds);
-      agora::debug(log_prefix, "std::stol(change_window_timestamps.front.nanoseconds): ", std::stol(change_window_timestamps.front.nanoseconds));
-
       if (std::stol(timestamp.seconds) < std::stol(change_window_timestamps.front.seconds))
       {
         // if the current date is older than the one from the first element of the
@@ -966,10 +975,10 @@ void RemoteApplicationHandler::second_level_test( std::unordered_map<std::string
       agora::debug("\n", log_prefix, "Collected ", observations_list.size(), " observations from the trace for client: ", i.first, ".");
 
       // cycle over each row j of the trace for each client i (for the current application)
-      for (auto& j : observations_list)
-      {
-        agora::debug(log_prefix, "Observation: ", j);
-      }
+      // for (auto& j : observations_list)
+      // {
+      //   agora::debug(log_prefix, "Observation: ", j);
+      // }
 
       // cycle over each row j of the trace for each client i (for the current application)
       for (auto& j : observations_list)
@@ -986,12 +995,14 @@ void RemoteApplicationHandler::second_level_test( std::unordered_map<std::string
       {
         if (it->second.before_change.size() < Parameters_beholder::min_observations || it->second.after_change.size() < Parameters_beholder::min_observations)
         {
-          agora::debug(log_prefix, "Insufficient data [user_requirement: ", Parameters_beholder::min_observations, "] to perform 2nd level hypothesys test on metric ", it->first,
+          agora::debug(log_prefix, "Client: ", i.first, ": Insufficient data [user_requirement: ", Parameters_beholder::min_observations, "] to perform 2nd level hypothesys test on metric ", it->first,
                        ". # observations before the change: ", it->second.before_change.size(), ". # observations after the change: ", it->second.after_change.size());
           it = client_residuals_map.erase(it);
         }
         else
         {
+          agora::debug(log_prefix, "Client: ", i.first, ": 2nd level hypothesys test on metric ", it->first,
+                         " feasible: # observations before the change: ", it->second.before_change.size(), ". # observations after the change: ", it->second.after_change.size());
           ++it;
         }
       }
