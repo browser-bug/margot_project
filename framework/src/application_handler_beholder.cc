@@ -112,24 +112,27 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
   {
     if ( status == ApplicationStatus::COMPUTING )
     {
-        agora::debug(log_prefix, "Observation DISCARDED since handler is currently performing the second level test!");
+      agora::debug(log_prefix, "Observation DISCARDED since handler is currently performing the second level test!");
     }
     else if ( status == ApplicationStatus::TRAINING)
     {
-        agora::debug(log_prefix, "Observation DISCARDED since handler is receiving observations from clients which still have the old invalidated model as knowledge.\nAgorà is working to compute the new model...");
+      agora::debug(log_prefix,
+                   "Observation DISCARDED since handler is receiving observations from clients which still have the old invalidated model as knowledge.\nAgorà is working to compute the new model...");
     }
-    else if (ApplicationStatus::RETRAINING)
+    else if (status == ApplicationStatus::RETRAINING)
     {
-        agora::debug(log_prefix, "Observation DISCARDED since handler is receiving observations from clients which still have the old invalidated model as knowledge.\nAgorà is currently down, we cannot do anything about that...");
+      agora::debug(log_prefix,
+                   "Observation DISCARDED since handler is receiving observations from clients which still have the old invalidated model as knowledge.\nAgorà is currently down, we cannot do anything about that...");
     }
-    else if (ApplicationStatus::DISABLED)
+    else if (status == ApplicationStatus::DISABLED)
     {
-        agora::debug(log_prefix, "Observation DISCARDED since Agorà is currently down, we cannot do anything about that...");
+      agora::debug(log_prefix, "Observation DISCARDED since Agorà is currently down, we cannot do anything about that...");
     }
     else
     {
-        agora::debug(log_prefix, "Observation DISCARDED since handler is not in status READY!");
+      agora::debug(log_prefix, "Observation DISCARDED since handler is not in status READY!");
     }
+
     return;
   }
 
@@ -750,8 +753,9 @@ void RemoteApplicationHandler::parse_and_insert_observations_for_client_from_tra
           search->second.after_change.emplace_back(current_residual);
           agora::debug(log_prefix, "AFTER CHANGE!!!!!");
         }
-        else {
-            agora::debug(log_prefix, "JUMPING BECAUSE INSIDE CHANGE WINDOW!!!!!");
+        else
+        {
+          agora::debug(log_prefix, "SKIPPING BECAUSE INSIDE CHANGE WINDOW!!!!!");
         }
       }
       // if the change window is not contained in the same seconds (seconds of front and back are not the same)
@@ -765,8 +769,9 @@ void RemoteApplicationHandler::parse_and_insert_observations_for_client_from_tra
           search->second.before_change.emplace_back(current_residual);
           agora::debug(log_prefix, "BEFORE CHANGE!!!!!");
         }
-        else {
-            agora::debug(log_prefix, "JUMPING BECAUSE INSIDE CHANGE WINDOW!!!!!");
+        else
+        {
+          agora::debug(log_prefix, "SKIPPING BECAUSE INSIDE CHANGE WINDOW!!!!!");
         }
 
         // if after the change insert in the 2nd vector of the struct
@@ -788,12 +793,14 @@ void RemoteApplicationHandler::parse_and_insert_observations_for_client_from_tra
           search->second.after_change.emplace_back(current_residual);
           agora::debug(log_prefix, "AFTER CHANGE!!!!!");
         }
-        else {
-            agora::debug(log_prefix, "JUMPING BECAUSE INSIDE CHANGE WINDOW!!!!!");
+        else
+        {
+          agora::debug(log_prefix, "SKIPPING BECAUSE INSIDE CHANGE WINDOW!!!!!");
         }
       }
-      else {
-          agora::debug(log_prefix, "JUMPING BECAUSE INSIDE CHANGE WINDOW!!!!!");
+      else
+      {
+        agora::debug(log_prefix, "SKIPPING BECAUSE INSIDE CHANGE WINDOW!!!!!");
       }
 
     }
@@ -1002,7 +1009,7 @@ void RemoteApplicationHandler::second_level_test( std::unordered_map<std::string
         else
         {
           agora::debug(log_prefix, "Client: ", i.first, ": 2nd level hypothesys test on metric ", it->first,
-                         " feasible: # observations before the change: ", it->second.before_change.size(), ". # observations after the change: ", it->second.after_change.size());
+                       " feasible: # observations before the change: ", it->second.before_change.size(), ". # observations after the change: ", it->second.after_change.size());
           ++it;
         }
       }
