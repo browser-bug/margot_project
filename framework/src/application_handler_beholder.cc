@@ -1148,7 +1148,6 @@ void RemoteApplicationHandler::second_level_test( std::unordered_map<std::string
     ici_cdt_map.clear();
     clients_list.clear();
     clients_list_snapshot.clear();
-    change_window_timestamps = {};
 
     // deal with the output files (if enabled)
     if (Parameters_beholder::output_files)

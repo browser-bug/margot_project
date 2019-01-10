@@ -194,7 +194,7 @@ namespace beholder
           // delete the whole trace
           send_agora_command("retraining");
         }
-
+        change_window_timestamps = {};
         retraining_counter++;
         status = ApplicationStatus::TRAINING;
       }

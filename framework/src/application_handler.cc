@@ -566,7 +566,7 @@ void RemoteApplicationHandler::retraining( const std::string& timestamp )
   io::storage.reset_doe(description, timestamp);
 
   // update doe in RAM
-  info("Handler ", description.application_name, ": reload the just reset original doe into handler's memory.");
+  info("Handler ", description.application_name, ": reload the original doe in the handler's memory.");
   doe = io::storage.load_doe(description.application_name);
 
   info("Handler ", description.application_name, ": the doe has been reset to its original status.");

@@ -1370,7 +1370,7 @@ void CassandraClient::reset_doe( const application_description_t& description, c
 
   for ( const auto i : primary_keys )
   {
-    debug("PRIMARY KEYS: ", i);
+    //debug("PRIMARY KEYS: ", i);
     // execute the query
     execute_query_synch( "INSERT INTO " + table_name + " (" + fields + ",counter) VALUES (" + i + "," + std::to_string(
                            num_observations) + " );" );
@@ -1393,20 +1393,182 @@ void CassandraClient::reset_doe( const application_description_t& description, c
   else
   {
     // delete just from the top of the trace to the element passed as timestamp
+
+    std::vector<cassandra_time> dates_times;
+
+    // how the result of the query will be processed
+    const auto result_handler = [&dates_times] ( const CassResult * query_result )
+    {
+
+      // loop over the results
+      if (query_result != nullptr)
+      {
+
+        // this array it is used to store all the types of the columns of the query
+        std::vector<CassValueType> column_types;
+
+        // get information on the fields
+        const size_t number_of_columns = cass_result_column_count(query_result);
+
+        for ( size_t i = 0; i < number_of_columns; ++i )
+        {
+          // get the type of the column
+          const auto field_type = cass_result_column_type(query_result, i);
+          column_types.emplace_back(field_type);
+        }
+
+        // STEP 2: Get the actual content of table
+        CassIterator* row_iterator = cass_iterator_from_result(query_result);
+
+        // cycle over all the rows of the result
+        while (cass_iterator_next(row_iterator))
+        {
+
+          // string to store the current row, with the fields separated by comma
+          cassandra_time current_observation;
+
+          // get the reference from the row
+          const CassRow* row = cass_iterator_get_row(row_iterator);
+
+          // iterate over the columns
+          CassIterator* column_iterator = cass_iterator_from_row(row);
+          auto type_iterator = column_types.cbegin();
+
+          while (cass_iterator_next(column_iterator))
+          {
+            //debug("Column: ", i);
+            // retrieve the field value
+            const CassValue* field_value = cass_iterator_get_column(column_iterator);
+            cass_uint32_t year_month_day;
+            cass_int64_t time_of_day;
+
+            // store it as a string
+            switch (*type_iterator)
+            {
+
+              case CASS_VALUE_TYPE_DATE:
+              {
+
+                CassError rc = cass_value_get_uint32(field_value, &year_month_day);
+
+                if (rc == CASS_OK)
+                {
+                  current_observation.year_month_day = year_month_day;
+                  //debug("Entered date");
+                }
+                else
+                {
+                  warning("Error in date handling");
+                }
+              }
+              break;
+
+              // case CASS_VALUE_TYPE_TIME:
+              // {
+              //   CassError rc = cass_value_get_int64(field_value, &time_of_day);
+              //
+              //   if (rc == CASS_OK)
+              //   {
+              //     current_observation.time_of_day = time_of_day;
+              //     //debug("Entered time");
+              //   }
+              //   else
+              //   {
+              //     warning("Error in time handling");
+              //   }
+              // }
+              // break;
+
+              default:
+                // declare the object used to retrieve data from Cassandra
+                const char* field_value_s;
+                size_t lenght_output_string;
+                CassError rc;
+                rc = cass_value_get_string(field_value, &field_value_s, &lenght_output_string);
+
+                if (rc != CASS_OK)
+                {
+                  warning("Cassandra client: unable to convert a field to string");
+                }
+
+                //debug("Entered string");
+                const std::string current_string_field(field_value_s, lenght_output_string);
+            }
+
+              // get the seconds since epoch
+              time_t seconds = (time_t)cass_date_time_to_epoch(year_month_day, time_of_day);
+              debug("Date and time: ", asctime(localtime(&seconds)));
+
+
+              // in order to get the nanoseconds since seconds:
+              // 1 nanosecond = 1e^(-9)
+              // see: https://docs.datastax.com/en/developer/cpp-driver/2.6/topics/basics/date_and_time/
+              // compute the modulus of nanoseconds since midnight (time_of_day) divided by one
+              // nanosecond and we get the number of nanoseconds since seconds (since epoch)
+              //auto nanoseconds = time_of_day % 1000000000;
+
+              //debug("Seconds epoch: ", seconds);
+              //debug("NanoSeconds: ", nanoseconds);
+
+
+            // increment the type counter
+            ++type_iterator;
+          }
+
+          // emplace back the new information
+          dates_times.emplace_back(current_observation);
+
+          // free the column iterator
+          cass_iterator_free(column_iterator);
+        }
+
+        // free the iterator through the rows
+        cass_iterator_free(row_iterator);
+
+        // free the result
+        cass_result_free(query_result);
+      }
+    };
+
     // we need to separate the timestamp which is "year_month_day,time_of_day"
     // look for the comma
     const auto pos_first_comma = timestamp.find_first_of(',', 0);
     std::string seconds = timestamp.substr(0, pos_first_comma);
     std::string nanoseconds = timestamp.substr(pos_first_comma + 1, std::string::npos);
 
+    debug("Seconds for retraining: ", seconds);
+    debug("Nanoseconds for retraining: ", nanoseconds);
+
+
     cassandra_time date_time = compute_cassandra_timestamps(seconds, nanoseconds);
 
-    // TODO: check if the two parameters above are correct, if they are string or cass-unit-int32-64....
+    // perform the query
+    // first get all the observations from the previous days
     // we need to execute two queries:
-    // the 1st query deleted all the rows with date < date_of_the_change
-    execute_query_synch("DELETE FROM " + table_name + "_trace WHERE day < '" + std::to_string(date_time.year_month_day) + "';");
-    // the 2nd query deletes all the rows with date = date_of_the_change but with time <= time_of_the_change
+
+    const std::string query = "SELECT day FROM " + table_name + "_trace WHERE day < '" + std::to_string(date_time.year_month_day) + "' ALLOW FILTERING;";
+    execute_query_synch(query, result_handler);
+
+    for (auto& i : dates_times){
+        // the 1st query deleted all the rows with date < date_of_the_change
+        debug("Result: ", i.year_month_day);
+        execute_query_synch("DELETE FROM " + table_name + "_trace WHERE day = '" + std::to_string(i.year_month_day) + "';");
+    }
+
+    // dates_times.clear();
+
+    // then get all the observations from the same day but previous time
+    // const std::string query2 = "SELECT day, time FROM " + table_name + "_trace WHERE day = '" + std::to_string(date_time.year_month_day) + "' AND time <= '" + std::to_string(date_time.time_of_day) + "' ALLOW FILTERING;";
+    // execute_query_synch(query2, result_handler);
+    //
+    // for (auto& i : dates_times){
+    //     // the 2nd query deletes all the rows with date = date_of_the_change but with time <= time_of_the_change
+    //     debug("Result: ", i.year_month_day, " ", i.time_of_day);
+    //     execute_query_synch("DELETE FROM " + table_name + "_trace WHERE day = '" + std::to_string(i.year_month_day) + "' AND time = '" + std::to_string(i.time_of_day) + "';");
+    // }
     execute_query_synch("DELETE FROM " + table_name + "_trace WHERE day = '" + std::to_string(date_time.year_month_day) + "' AND time <= '" + std::to_string(date_time.time_of_day) + "';");
+
+
   }
 }
 
