@@ -1394,10 +1394,10 @@ void CassandraClient::reset_doe( const application_description_t& description, c
   {
     // delete just from the top of the trace to the element passed as timestamp
 
-    std::vector<cassandra_time> dates_times;
+    std::vector<cass_uint32_t> dates;
 
     // how the result of the query will be processed
-    const auto result_handler = [&dates_times] ( const CassResult * query_result )
+    const auto result_handler = [&dates] ( const CassResult * query_result )
     {
 
       // loop over the results
@@ -1424,8 +1424,8 @@ void CassandraClient::reset_doe( const application_description_t& description, c
         while (cass_iterator_next(row_iterator))
         {
 
-          // string to store the current row, with the fields separated by comma
-          cassandra_time current_observation;
+          // string to store the current row date
+          cass_uint32_t current_date;
 
           // get the reference from the row
           const CassRow* row = cass_iterator_get_row(row_iterator);
@@ -1436,11 +1436,10 @@ void CassandraClient::reset_doe( const application_description_t& description, c
 
           while (cass_iterator_next(column_iterator))
           {
-            //debug("Column: ", i);
             // retrieve the field value
             const CassValue* field_value = cass_iterator_get_column(column_iterator);
             cass_uint32_t year_month_day;
-            cass_int64_t time_of_day;
+
 
             // store it as a string
             switch (*type_iterator)
@@ -1453,7 +1452,7 @@ void CassandraClient::reset_doe( const application_description_t& description, c
 
                 if (rc == CASS_OK)
                 {
-                  current_observation.year_month_day = year_month_day;
+                  current_date = year_month_day;
                   //debug("Entered date");
                 }
                 else
@@ -1462,22 +1461,6 @@ void CassandraClient::reset_doe( const application_description_t& description, c
                 }
               }
               break;
-
-              // case CASS_VALUE_TYPE_TIME:
-              // {
-              //   CassError rc = cass_value_get_int64(field_value, &time_of_day);
-              //
-              //   if (rc == CASS_OK)
-              //   {
-              //     current_observation.time_of_day = time_of_day;
-              //     //debug("Entered time");
-              //   }
-              //   else
-              //   {
-              //     warning("Error in time handling");
-              //   }
-              // }
-              // break;
 
               default:
                 // declare the object used to retrieve data from Cassandra
@@ -1495,28 +1478,12 @@ void CassandraClient::reset_doe( const application_description_t& description, c
                 const std::string current_string_field(field_value_s, lenght_output_string);
             }
 
-              // get the seconds since epoch
-              time_t seconds = (time_t)cass_date_time_to_epoch(year_month_day, time_of_day);
-              debug("Date and time: ", asctime(localtime(&seconds)));
-
-
-              // in order to get the nanoseconds since seconds:
-              // 1 nanosecond = 1e^(-9)
-              // see: https://docs.datastax.com/en/developer/cpp-driver/2.6/topics/basics/date_and_time/
-              // compute the modulus of nanoseconds since midnight (time_of_day) divided by one
-              // nanosecond and we get the number of nanoseconds since seconds (since epoch)
-              //auto nanoseconds = time_of_day % 1000000000;
-
-              //debug("Seconds epoch: ", seconds);
-              //debug("NanoSeconds: ", nanoseconds);
-
-
             // increment the type counter
             ++type_iterator;
           }
 
           // emplace back the new information
-          dates_times.emplace_back(current_observation);
+          dates.emplace_back(current_date);
 
           // free the column iterator
           cass_iterator_free(column_iterator);
@@ -1536,39 +1503,21 @@ void CassandraClient::reset_doe( const application_description_t& description, c
     std::string seconds = timestamp.substr(0, pos_first_comma);
     std::string nanoseconds = timestamp.substr(pos_first_comma + 1, std::string::npos);
 
-    debug("Seconds for retraining: ", seconds);
-    debug("Nanoseconds for retraining: ", nanoseconds);
-
-
     cassandra_time date_time = compute_cassandra_timestamps(seconds, nanoseconds);
 
     // perform the query
     // first get all the observations from the previous days
-    // we need to execute two queries:
-
     const std::string query = "SELECT day FROM " + table_name + "_trace WHERE day < '" + std::to_string(date_time.year_month_day) + "' ALLOW FILTERING;";
     execute_query_synch(query, result_handler);
 
-    for (auto& i : dates_times){
+    for (auto& i : dates){
         // the 1st query deleted all the rows with date < date_of_the_change
-        debug("Result: ", i.year_month_day);
-        execute_query_synch("DELETE FROM " + table_name + "_trace WHERE day = '" + std::to_string(i.year_month_day) + "';");
+        //debug("Result: ", i);
+        execute_query_synch("DELETE FROM " + table_name + "_trace WHERE day = '" + std::to_string(i) + "';");
     }
 
-    // dates_times.clear();
-
-    // then get all the observations from the same day but previous time
-    // const std::string query2 = "SELECT day, time FROM " + table_name + "_trace WHERE day = '" + std::to_string(date_time.year_month_day) + "' AND time <= '" + std::to_string(date_time.time_of_day) + "' ALLOW FILTERING;";
-    // execute_query_synch(query2, result_handler);
-    //
-    // for (auto& i : dates_times){
-    //     // the 2nd query deletes all the rows with date = date_of_the_change but with time <= time_of_the_change
-    //     debug("Result: ", i.year_month_day, " ", i.time_of_day);
-    //     execute_query_synch("DELETE FROM " + table_name + "_trace WHERE day = '" + std::to_string(i.year_month_day) + "' AND time = '" + std::to_string(i.time_of_day) + "';");
-    // }
+    // then deletes all the rows with date = date_of_the_change but with time <= time_of_the_change
     execute_query_synch("DELETE FROM " + table_name + "_trace WHERE day = '" + std::to_string(date_time.year_month_day) + "' AND time <= '" + std::to_string(date_time.time_of_day) + "';");
-
-
   }
 }
 
