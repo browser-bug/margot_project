@@ -46,9 +46,6 @@ RemoteApplicationHandler::RemoteApplicationHandler( const std::string& applicati
 
   // load the application description, even though we are just interested in the metrics
   description = agora::io::storage.load_description(application_name);
-  //agora::debug(log_prefix, "Number of total metrics: ", description.metrics.size());
-  //agora::debug(log_prefix, "Window size: ", Parameters_beholder::window_size);
-  //agora::debug(log_prefix, "Number of windows used for training: ", Parameters_beholder::training_windows);
   current_test_observations_counter = 0;
   observations_counter = 0;
   retraining_counter = 0;
@@ -97,7 +94,6 @@ RemoteApplicationHandler::RemoteApplicationHandler( const std::string& applicati
     outfileConf << Parameters_beholder::training_windows << " ";
     outfileConf.close();
   }
-
 }
 
 void RemoteApplicationHandler::new_observation( const std::string& values )
@@ -163,7 +159,6 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
   // If the change is not detected then the 2nd step is not performed and the method returns
   // and will keep performing the 1st level cdt with the future new observations.
 
-
   // STEP 2 of CDT: analysis with granularity on the single client
 
   // if need to start the step 2 of CDT:
@@ -186,14 +181,8 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
     second_level_test(clients_list_snapshot);
   }
 
-  // The following command will (probably) be never used.
-  // if (false /*need to enable metrics*/)
-  // {
-  //   send_margot_command("metrics_on");
-  // }
   return;
 }
-
 
 // method to parse the received observation from mqtt messages
 int RemoteApplicationHandler::parse_observation(Observation_data& observation, const std::string& values)
@@ -209,6 +198,7 @@ int RemoteApplicationHandler::parse_observation(Observation_data& observation, c
   std::string temp_timestamp;
   stream >> temp_timestamp;
   //agora::debug(log_prefix, "Timestamp: ", temp_timestamp);
+
   // split the timestamp (comma separated) in seconds and nanoseconds
   auto find_pos_comma = temp_timestamp.find_first_of(",");
   observation.timestamp.seconds = temp_timestamp.substr(0, find_pos_comma);
@@ -240,7 +230,7 @@ int RemoteApplicationHandler::parse_observation(Observation_data& observation, c
     return 1;
   }
 
-  // if we arrive here the observation is not blacklisted
+  // if we arrive here the observation is not blacklisted and is taken into account
   current_test_observations_counter++;
   observations_counter++;
 
@@ -248,7 +238,6 @@ int RemoteApplicationHandler::parse_observation(Observation_data& observation, c
   agora::pedantic(log_prefix, "Observation received from the creation of this handler and used in all the present and past ICI tests: ", observations_counter);
   agora::pedantic(log_prefix, "Total number of times the retraining has been issued by this handler: ", retraining_counter);
   agora::pedantic(log_prefix, "Total number of times the ici test has been reset by this handler: ", ici_reset_counter);
-
 
   // get the observed values
   stream >> metrics;
@@ -276,7 +265,9 @@ int RemoteApplicationHandler::parse_observation(Observation_data& observation, c
   {
     stream >> user_enabled_metrics;
 
-    //if there is no list than get the reference metrics from the application description, it is assumed that all of them are enabled
+    // if there is no list than get the reference metrics from the application description, it is assumed that all of them are enabled
+    // This branch should be theoretically never be taken because the heel always sends the name of the beholder-enabled-metrics
+    // even if they are all enabled (at least as of now)
     if (user_enabled_metrics == "")
     {
       for (auto& i : description.metrics)
@@ -298,7 +289,6 @@ int RemoteApplicationHandler::parse_observation(Observation_data& observation, c
       }
     }
   }
-
 
   // Separate the parsed information (basically CSV, i.e. strings with comma separated values)
   // into the respective vectors.
@@ -347,7 +337,6 @@ int RemoteApplicationHandler::parse_observation(Observation_data& observation, c
   //   agora::debug(log_prefix, "estimates separated: ", i);
   // }
 
-
   // Check if we have consistency in the quantity of measures received,
   // i.e. if the vector of metric names is as big as the one of the observed metrics and the one of the estimates
   if ((observation.metric_fields_vec.size() != observation.metrics_vec.size()) || (observation.metrics_vec.size() != observation.estimates_vec.size()))
@@ -375,7 +364,7 @@ int RemoteApplicationHandler::fill_buffers(const Observation_data& observation)
 
     if (search != residuals_map.end())
     {
-      agora::debug(log_prefix, "metric ", observation.metric_fields_vec[index], " already present, filling buffer");
+      agora::debug(log_prefix, "Metric ", observation.metric_fields_vec[index], " already present, filling buffer");
       // metric already present, need to add to the buffer the new residual
       residual_struct temp_struct = {current_residual, observation.timestamp};
       search->second.emplace_back(temp_struct);
@@ -393,7 +382,7 @@ int RemoteApplicationHandler::fill_buffers(const Observation_data& observation)
           return 1;
         }
 
-        // if we arrive here (as it is supposed to be) we need to append the current observation
+        // if we arrive here (as it is supposed to happen) we need to append the current observation
         // to an already created output-file mapping for the current metric
         search_file->second.observations << current_residual << std::endl;
         search_file->second.observations.flush();
@@ -401,7 +390,7 @@ int RemoteApplicationHandler::fill_buffers(const Observation_data& observation)
     }
     else
     {
-      agora::debug(log_prefix, "creation of buffer for metric and first insertion: ", observation.metric_fields_vec[index]);
+      agora::debug(log_prefix, "Creation of buffer for metric and first insertion: ", observation.metric_fields_vec[index]);
       // need to create the mapping for the current metric. It's the first time you meet this metric
       residual_struct temp_struct = {current_residual, observation.timestamp};
       std::vector<residual_struct> temp_vector;
@@ -439,12 +428,10 @@ int RemoteApplicationHandler::fill_buffers(const Observation_data& observation)
           throw std::runtime_error("Unable to create the folder \"" + metric_folder_path + "\" with errno=" + std::to_string(errno) );
         }
 
-        // if we arrive here (as it is supposed to be) we need to create a new output-file mapping for the current metric
+        // if we arrive here (as it is supposed to happen) we need to create a new output-file mapping for the current metric
         // current output file
         std::fstream current_metric_observations_file;
         std::fstream current_metric_ici_file;
-        //std::vector<std::ofstream> test;
-        //test.emplace_back("bobo", std::ofstream::out);
         std::string file_path_obs = metric_folder_path + "observations_" + observation.metric_fields_vec[index] + "_" + std::to_string(suffix_plot) + ".txt";
         std::string file_path_ici = metric_folder_path + "ici_" + observation.metric_fields_vec[index] + "_" + std::to_string(suffix_plot) + ".txt";
         current_metric_observations_file.open(file_path_obs, std::fstream::out);
@@ -453,11 +440,13 @@ int RemoteApplicationHandler::fill_buffers(const Observation_data& observation)
         if (!current_metric_observations_file.is_open())
         {
           agora::warning(log_prefix, "Error: the output observation file has not been created!");
+          throw std::runtime_error("Error: the output observation file cannot be created!");
         }
 
         if (!current_metric_ici_file.is_open())
         {
           agora::warning(log_prefix, "Error: the output ici file has not been created!");
+          throw std::runtime_error("Error: the output ici file cannot be created!");
         }
 
         current_metric_observations_file << current_residual << std::endl;
@@ -488,7 +477,7 @@ void RemoteApplicationHandler::first_level_test( void )
     {
       agora::debug(log_prefix, "Resetting buffer for metric ", i.first, " after change detected in metric: ", change_metric_name);
       i.second.clear();
-      // go to the next metric (next iteration of the for cycle), if available, until the cycle has finished
+      // go to the next metric (next iteration of the for cycle), if available, until the cycle ends
       continue;
     }
 
@@ -667,22 +656,21 @@ void RemoteApplicationHandler::parse_and_insert_observations_for_client_from_tra
   agora::debug(log_prefix, "Client: ", obs_client_id, ": Done with the parsing of the current row from trace, starting the validation and insertion of the metrics into the residual buffers.");
 
 
-  // Insert the residuals in the right residual maps structure
-  // In this phase I have not the information about the names of the metrics from the trace
-  // But I parsed them all (the beholder-enabled ones), and I know they are inserted in the trace in alphabetical order
-  // according to "description.metrics". So basically I know which metric is the first one
-  // (and which estimate is the first one), which is the second one...
-  // I kept the same map structure of the residuals computation for the 1st step of CDT.
-  // As of now I chose to maintain the mapping to have the metric name built in the structure.
+  // Validate the observation and Insert the residuals in the right residual maps structure
   auto name_ref = metric_to_be_analyzed.begin();
 
   bool skip_change_window = false;
   bool before_change_window = false;
   bool after_change_window = false;
 
+  // for every metric in the row:
   for (auto index = 0; index < metric_to_be_analyzed.size(); index++, std::advance(name_ref, 1))
   {
     // Check whether the metric in analysis was available and valid or if it was a disabled one-->"null" in trace-->parsed as "N/A"
+    // The idea is that if the current metric in analysis is disabled of course we do not insert this metric (for this row)
+    // in the buffers. But in order to be disabled there has to be (by design) a "N/A" in both the observation and the estimate for
+    // that metric. If that is not the case and just one of the two is "N/A" then there is an error somewhere, because it is
+    // theoretically impossible
     if (obs_estimates[index] == "N/A")
     {
       // for the current version, if a metric is disabled its corresponding prediction must be disable too
@@ -717,7 +705,6 @@ void RemoteApplicationHandler::parse_and_insert_observations_for_client_from_tra
     // NB: the timestamps of the hypothetical change window used here are referred obviously
     // to the metric which first detected the change. It may be the same under analysis here
     // or not.
-
     if (search != client_residuals_map.end())
     {
       agora::debug(log_prefix, "Client: ", obs_client_id, ": metric ", *name_ref, " already present, filling buffer");
@@ -801,12 +788,13 @@ void RemoteApplicationHandler::parse_and_insert_observations_for_client_from_tra
       }
 
     }
+
     // if we did not find any key with the current metric's name under analysis in the struct
     // then theoretically we should initialize the corresponding struct for the metric
     else
     {
-      // check that this first value inserted is actually before the change window
-      // insert the current observation in the vector of the residuals before the change
+      // check that this first value is actually before the change window. If that is the case then
+      // insert the current observation in the vector of the residuals before the change.
       // Theoretically one would expect that the first observation for a certain metric coming
       // from a client would always be before the change window. But actually this is not necessarily
       // true. A client could have started the computation after the change window,
@@ -815,6 +803,7 @@ void RemoteApplicationHandler::parse_and_insert_observations_for_client_from_tra
       // Of course we are interested in comparing the behavior of the distribution of the
       // observations before and after the change. So in a situation in which we just have
       // "after" the change observations we immediately skip the analysis for the current metric for this client.
+
       // bool to control if the first observation is actually before the change window
       bool valid_metric = false;
 
@@ -881,9 +870,6 @@ void RemoteApplicationHandler::second_level_test( std::unordered_map<std::string
   // to store the observations belonging to a pair application-client_name_t
   observations_list_t observations_list;
 
-  // store the list of clients working on the application_name
-  //application_list_t clients_list;
-
   // store the list of good-enough clients
   application_list_t good_clients_list;
 
@@ -892,26 +878,6 @@ void RemoteApplicationHandler::second_level_test( std::unordered_map<std::string
 
   // clients which did not answer in time because of the timeout
   application_list_t timeout_clients_list;
-
-  // query to retrieve all the distinct clients which are running a specif application
-  // to be performed in case of positive CDT, for the second level hypothesis test.
-  // It is better to always re-run this query and avoid saving the client list for re-use
-  // because there could be some new clients.
-  //clients_list = agora::io::storage.load_clients(description.application_name);
-
-  // Check that the list of clients is not is not empty
-  // if (clients_list.size() == 0)
-  // {
-  //   agora::info(log_prefix, "Something is wrong, the list of clients received from the DB is empty!");
-  //   return;
-  // }
-  //
-  // agora::debug(log_prefix, "Client list without duplicates:");
-  //
-  // for (auto& i : clients_list)
-  // {
-  //   agora::debug(log_prefix, i);
-  // }
 
   // initialize timeout shared (consumed) among all the clients
   int timeout = Parameters_beholder::timeout;
@@ -989,7 +955,6 @@ void RemoteApplicationHandler::second_level_test( std::unordered_map<std::string
 
       observations_list = agora::io::storage.load_client_observations(description.application_name, i.first, query_select, i.second.seconds,
                           i.second.nanoseconds);
-      //observations_list = agora::io::storage.load_client_observations(description.application_name, "alberto_Surface_Pro_2_6205", query_select);
 
       agora::debug("\n", log_prefix, "Client: ", i.first, ": Trace query executed successfully, starting the parsing of its observations.");
       agora::debug("\n", log_prefix, "Client: ", i.first, ": Collected ", observations_list.size(), " observations from the trace.");
@@ -1001,6 +966,7 @@ void RemoteApplicationHandler::second_level_test( std::unordered_map<std::string
       // }
 
       // cycle over each row j of the trace for each client i (for the current application)
+      // and insert the observations in the respective buffers
       for (auto& j : observations_list)
       {
         parse_and_insert_observations_for_client_from_trace(client_residuals_map, j, metric_to_be_analyzed);
@@ -1009,7 +975,7 @@ void RemoteApplicationHandler::second_level_test( std::unordered_map<std::string
       agora::debug(log_prefix, "Client: ", i.first, ": Finished parsing and putting in the respective buffers the result of the trace query.");
       agora::debug(log_prefix, "Client: ", i.first, ": Computing which metrics have enough observations to actually perform the hypothesis test.");
 
-      // let's analyze if any of the metrics has enough observations to perform the test
+      // let's analyze if any of the metrics has enough observations to perform the test and
       // remove the metrics which cannot be analyzed from the client_residuals_map
       for (auto it = client_residuals_map.begin(); it != client_residuals_map.end();)
       {
@@ -1081,7 +1047,7 @@ void RemoteApplicationHandler::second_level_test( std::unordered_map<std::string
           else
           {
             // we can wait for some more observations to come
-            // I chose to wait even if the current timeout-waitperiod is theoretically out_of_time already
+            // I do not check (on purpose) if the current total wait time as of now plus the next wait period will be out of time.
             agora::debug(log_prefix, "Client: ", i.first, ": Waiting ", Parameters_beholder::frequency_check, " seconds for some more observations to come hopefully. Current timeout in seconds: ", timeout);
             std::this_thread::sleep_for(std::chrono::seconds(Parameters_beholder::frequency_check));
             timeout -= Parameters_beholder::frequency_check;
@@ -1118,7 +1084,6 @@ void RemoteApplicationHandler::second_level_test( std::unordered_map<std::string
 
   agora::pedantic(log_prefix, "Finished cycling over all the clients for the 2nd step of hierarchical CDT. Computing the fate of the application...");
 
-
   // compute the percentage of bad clients and compare it wrt the predefined threshold
   float bad_clients_percentage = (((bad_clients_list.size() + timeout_clients_list.size()) / clients_list_snapshot.size()) * 100);
 
@@ -1132,7 +1097,6 @@ void RemoteApplicationHandler::second_level_test( std::unordered_map<std::string
     agora::info(log_prefix, "WARNING: all the clients run out of time for the hypothesis test. The re-training will be triggered since 100% of the clients are behaving awkwardly.");
   }
 
-
   // if the number % of bad clients is over the user-set threshold then trigger the re-training
   // This also covers the case in which all the clients behave badly (100%)
   if (bad_clients_percentage > Parameters_beholder::bad_clients_threshold)
@@ -1140,7 +1104,7 @@ void RemoteApplicationHandler::second_level_test( std::unordered_map<std::string
     agora::info(log_prefix, "TRIGGERING RE-TRAINING since the percentage of bad clients [", bad_clients_percentage, "] is greater than the user-selected acceptable one [",
                 Parameters_beholder::bad_clients_threshold, "].");
 
-    // Basically in this case the change detected by the 1st level cdt was confirmed by the hypothesys test
+    // In this case the change detected by the 1st level cdt was confirmed by the hypothesys test
 
     // reset the whole application handler
     clients_blacklist.clear();
@@ -1202,7 +1166,6 @@ void RemoteApplicationHandler::second_level_test( std::unordered_map<std::string
     // this is the case in which either there are some bad clients but they are below threshold,
     // or there are no bad clients at all. The behavior is the same.
     // The change is discarded (but so are also the values coming from these bad_clients, if any).
-
     agora::info(log_prefix, "The hypothesis test REJECTED the change. We keep the current model since the percentage of bad clients [", bad_clients_percentage,
                 "] is lower than the user-selected acceptable one [", Parameters_beholder::bad_clients_threshold, "].");
 
@@ -1242,18 +1205,6 @@ void RemoteApplicationHandler::second_level_test( std::unordered_map<std::string
         i.second.current_variance_conf_interval_lower = i.second.reference_variance_conf_interval_lower;
         i.second.current_variance_conf_interval_upper = i.second.reference_variance_conf_interval_upper;
       }
-
-      // // if the data structure under analysis belongs to the metric which triggered the change first
-      // if (i.second.metric_name == change_metric_name)
-      // {
-      //   // reset the change window timestamp to be sure
-      //   i.second.front_window_timestamp = "";
-      //   i.second.back_window_timestamp = "";
-      //   // i.second.front_year_month_day = 0;
-      //   // i.second.front_time_of_day = 0;
-      //   // i.second.back_year_month_day = 0;
-      //   // i.second.back_time_of_day = 0;
-      // }
     }
 
     change_metric_name = "";
@@ -1299,11 +1250,13 @@ void RemoteApplicationHandler::second_level_test( std::unordered_map<std::string
             if (!current_metric_observations_file.is_open())
             {
               agora::warning(log_prefix, "Error: the (future) output observation file has not been created!");
+              throw std::runtime_error("Error: the (future) output observation file cannot be created!");
             }
 
             if (!current_metric_ici_file.is_open())
             {
               agora::warning(log_prefix, "Error: the (future) output ici file has not been created!");
+              throw std::runtime_error("Error: the (future) output ici file cannot be created!");
             }
 
             std::string temp_line;

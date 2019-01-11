@@ -46,8 +46,6 @@ namespace beholder
   using observation_t = std::string;
   using observations_list_t = agora::observations_list_t;
 
-  // for the beholder we are just interested in knowing whether the application has the model or not
-  // the beholder will start only when the application applies the model received from agorà
   enum class ApplicationStatus : uint_fast8_t
   {
     READY,
@@ -150,7 +148,6 @@ namespace beholder
       std::string change_metric_name;
 
       // these are the function used to communicate using MQTT topics
-
       // send a command to all the clients running the application
       inline void send_margot_command( const std::string& command )
       {
@@ -194,12 +191,11 @@ namespace beholder
           // delete the whole trace
           send_agora_command("retraining");
         }
+
         change_window_timestamps = {};
         retraining_counter++;
         status = ApplicationStatus::TRAINING;
       }
-
-
 
     public:
 
@@ -247,12 +243,10 @@ namespace beholder
           if (status == ApplicationStatus::RETRAINING)
           {
             agora::info(log_prefix, "Resetting the whole application handler after having triggered the re-training following handler un-pause!");
-            // handle the retraining
             retraining();
           }
         }
       }
-
 
       // removes the current client from the list of active clients encountered by the beholder
       inline void bye_client( const std::string& client_id )
@@ -272,7 +266,6 @@ namespace beholder
       void new_observation( const std::string& values );
 
   };
-
 }
 
 #endif // MARGOT_BEHOLDER_APPLICATION_HANDLER_HDR

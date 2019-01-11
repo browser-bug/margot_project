@@ -21,7 +21,7 @@
 #include <boost/math/distributions/students_t.hpp>
 using boost::math::students_t;
 
-#include "beholder/hypothesis_test.hpp" //TODO: do we really need this??
+#include "beholder/hypothesis_test.hpp"
 #include "beholder/parameters_beholder.hpp"
 #include "agora/logger.hpp"
 
@@ -58,6 +58,7 @@ namespace beholder
       }
 
       x1 = x1 / n1;
+
       // second population sample mean
       float x2 = 0;
 
@@ -77,6 +78,7 @@ namespace beholder
       }
 
       s1_2 = s1_2 / (n1 - 1);
+
       // second population sample variance
       float s2_2 = 0;
 
@@ -93,7 +95,6 @@ namespace beholder
       t_statistic = (x1 - x2) / (sqrtf(temp));
       agora::debug(log_prefix, "T statistic: ", t_statistic);
 
-
       // degree of freedom associated with the variance estimates
       float v1 = n1 - 1;
       float v2 = n2 - 1;
@@ -102,7 +103,6 @@ namespace beholder
       v_degree_freedom = powf(temp, 2) / ((powf(s1_2, 2) / (powf(n1, 2) * v1)) + (powf(s2_2, 2) / (powf(n2, 2) * v2)));
       agora::debug(log_prefix, "Degree of freedom: ", v_degree_freedom);
       agora::debug(log_prefix, "User-selected alpha: ", Parameters_beholder::alpha);
-
 
       //
       // Define our distribution, and get the probability:
@@ -115,13 +115,12 @@ namespace beholder
       // the one usually found on the table, with the difference that here we can avoid rounding
       // the v (degree of freedom) to the nearest integer.
       float q = cdf(complement(dist, fabs(t_statistic)));
-      // Here we've used the absolute value of the t-statistic, because we initially want to know
+      // Here we have used the absolute value of the t-statistic, because we initially want to know
       // simply whether there is a difference or not (a two-sided test).
       // The Null-hypothesis: there is no difference in means. Reject if complement of CDF for |t| < significance level / 2:
       // The Alternative-hypothesis: there is a difference in means. Reject if complement of CDF for |t| > significance level / 2:
       // In our situation the change is confirmed when the null hypothesis (no change) is rejected,
       // and then the alternative hypothesis is not rejected.
-
 
       if (q < Parameters_beholder::alpha / 2)
       {

@@ -58,7 +58,6 @@ namespace beholder
     if (data_test.window_number <= Parameters_beholder::training_windows)
     {
       // we are in training
-
       agora::pedantic(log_prefix, "Training window number ", data_test.window_number, " out of ", Parameters_beholder::training_windows);
 
       // enqueue the current observation in the training set
@@ -77,7 +76,6 @@ namespace beholder
       }
 
       float mean = sum / Parameters_beholder::window_size;
-
       agora::pedantic(log_prefix, "Window mean M(s=",  data_test.window_number, "): ", mean);
 
       // enqueue in the vector the sample mean M(s)
@@ -97,7 +95,6 @@ namespace beholder
         agora::pedantic(log_prefix, "Window variance S(s=",  data_test.window_number, "): ", sum);
       }
 
-
       if (data_test.window_number == Parameters_beholder::training_windows)
       {
         // this is the last training window
@@ -115,7 +112,6 @@ namespace beholder
         // needed to have sample_mean_mean(s-1) for the else case (production phase)
         // case in which mu(S0) is also mu(s-1) for the next case
         data_test.current_sample_mean_mean = data_test.reference_sample_mean_mean;
-
         agora::pedantic(log_prefix, "Reference_sample_mean_mean: ", data_test.reference_sample_mean_mean);
 
         // reference sample-mean variance
@@ -208,7 +204,6 @@ namespace beholder
           agora::pedantic(log_prefix, "h0 = ", data_test.h0);
 
           // compute V(s)=T(S(s)), the power-law transform gaussianization of the sample variance
-          // use directly the sample variance w/o gaussianization
           int index = 1;
 
           for (auto& i : data_test.training_sample_variance)
@@ -251,7 +246,6 @@ namespace beholder
           data_test.current_variance_conf_interval_lower = data_test.reference_variance_conf_interval_lower;
           data_test.current_variance_conf_interval_upper = data_test.reference_variance_conf_interval_upper;
 
-
           agora::pedantic(log_prefix, "Training phase confidence interval for variance: [", data_test.current_variance_conf_interval_lower, ",", data_test.current_variance_conf_interval_upper, "]");
 
           if (Parameters_beholder::output_files)
@@ -265,8 +259,6 @@ namespace beholder
             data_test.valid_variance = false;
             agora::warning(log_prefix, "WARNING: the training CI for feature VARIANCE is NaN. From now on the variance will not be taken into account for this metric.");
           }
-
-
         }
 
         if (Parameters_beholder::output_files)
@@ -311,7 +303,6 @@ namespace beholder
       agora::pedantic(log_prefix, "Current window confidence interval for mean: [", data_test.current_mean_conf_interval_lower, ",", data_test.current_mean_conf_interval_upper, "]");
 
       int lower_cdt_window = ((data_test.window_number * Parameters_beholder::window_size) - (Parameters_beholder::window_size - 1));
-      //int upper_cdt_window = (window_number * window_size);
 
       // compute the intersection between the current confidence interval and the previous one
       // for the lower bound choose the greater of the two
@@ -342,13 +333,6 @@ namespace beholder
         agora::pedantic(log_prefix, "between observation number ", ((data_test.window_number * Parameters_beholder::window_size) - (Parameters_beholder::window_size - 1)), " with value: ",
                         window_pair.front().residual_value);
         agora::pedantic(log_prefix, "and observation number ", (data_test.window_number * Parameters_beholder::window_size), " with value: ", window_pair.back().residual_value);
-
-        // save the timestamp of the first and last element of the window:
-        //data_test.change_window_timestamps.front = window_pair.front().residual_timestamp;
-        //data_test.change_window_timestamps.back = window_pair.back().residual_timestamp;
-
-        // convert and save the change window timestamp (as Cassandra does to make it comparable) of the first and last elements of the window
-        // compute_timestamps(data_test, window_pair);
 
         // flush the output file to write the ICI info of the current window
         if (Parameters_beholder::output_files)
@@ -393,7 +377,6 @@ namespace beholder
         data_test.current_variance_conf_interval_upper = data_test.current_sample_variance_mean + (Parameters_beholder::gamma_variance * data_test.current_sample_variance_variance);
         agora::pedantic(log_prefix, "Current window confidence interval for variance: [", data_test.current_variance_conf_interval_lower, ",", data_test.current_variance_conf_interval_upper, "]");
 
-
         // compute the intersection between the current confidence interval and the previous one
         // for the lower bound choose the greater of the two
         if (data_test.current_variance_conf_interval_lower < previous_variance_conf_interval_lower)
@@ -423,13 +406,6 @@ namespace beholder
           agora::pedantic(log_prefix, "between observation number ", ((data_test.window_number * Parameters_beholder::window_size) - (Parameters_beholder::window_size - 1)), " with value: ",
                           window_pair.front().residual_value);
           agora::pedantic(log_prefix, "and observation number ", (data_test.window_number * Parameters_beholder::window_size), " with value: ", window_pair.back().residual_value);
-
-          // save the timestamp of the first and last element of the window:
-          // data_test.front_window_timestamp = window_pair.front().residual_timestamp;
-          // data_test.back_window_timestamp = window_pair.back().residual_timestamp;
-
-          // convert and save the change window timestamp (as Cassandra does to make it comparable) of the first and last elements of the window
-          // compute_timestamps(data_test, window_pair);
 
           // flush the output file to write the ICI info of the current window
           if (Parameters_beholder::output_files)

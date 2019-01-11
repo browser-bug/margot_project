@@ -31,8 +31,6 @@ namespace beholder
 {
   class HypTest
   {
-
-
     private:
 
     public:
@@ -41,8 +39,6 @@ namespace beholder
                                           const std::string& client_name);
 
   };
-
-
 }
 
 #endif // MARGOT_BEHOLDER_HYP_TEST

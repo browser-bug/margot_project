@@ -67,7 +67,6 @@ namespace beholder
         }
       }
 
-      // TODO: check if this method can be deleted
       static inline void remove_all_handlers()
       {
         std::lock_guard<std::mutex> lock(global_structure);

@@ -89,11 +89,6 @@ namespace agora
         // log the event
         info("Thread ", get_tid(), ": Received beholder welcome message.\nSending messages to beholder of the applications for which agorà has a model...");
 
-        // io::remote.send_message({"beholder/status", ""});
-
-        // log the event
-        // pedantic("Thread ", get_tid(), ": status message sent to beholder to prove agorà's vitality.\nSending messages to beholder of the applications for which agorà has a model...");
-
         // get the list of applications which currently have the model and whose clients' list is not empty
         const auto app_list = GlobalView::get_handlers_with_model();
 
@@ -201,7 +196,7 @@ namespace agora
       // look for a space in the payload
       // we need to differentiate the case in which we are given the timestamp of the last observation
       // to just delete the trace from its top to this element or if we are not given anything
-      // and we will delete the whole trace.
+      // and we will just delete the whole trace.
       const auto pos_first_space = observation.find_first_of(' ', 0);
 
       // just a check that the unique command (as of now) is the correct word "retraining"
@@ -225,7 +220,6 @@ namespace agora
           application_handler->retraining("null");
         }
       }
-
     }
   }
 }

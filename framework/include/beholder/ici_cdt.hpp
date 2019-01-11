@@ -27,15 +27,11 @@
 
 
 #include "beholder/ici_test_data.hpp"
-//#include "beholder/common_objects_beholder.hpp"
-
 
 namespace beholder
 {
   class IciCdt
   {
-
-
     private:
 
       inline bool create_folder( const std::string& path )
@@ -44,15 +40,12 @@ namespace beholder
         return rc == 0 || errno == EEXIST;
       }
 
-
     public:
 
       static bool perform_ici_cdt(Data_ici_test& data_test, const std::vector<residual_struct>& window_pair,
                                   std::unordered_map<std::string, output_files>& output_files_map);
 
   };
-
-
 }
 
 #endif // MARGOT_BEHOLDER_ICI_CDT

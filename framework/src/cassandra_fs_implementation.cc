@@ -1131,7 +1131,6 @@ void CassandraClient::reset_doe( const application_description_t& description, c
       // to store the type of the column of the query
       CassValueType column_type = cass_result_column_type(query_result, 0);
 
-
       // Get the first row
       const CassRow* row = cass_result_first_row(query_result);
 
@@ -1201,8 +1200,7 @@ void CassandraClient::reset_doe( const application_description_t& description, c
   const std::string query = "SELECT original_counter FROM " + table_name + " limit 1;";
   execute_query_synch(query, result_handler);
 
-  debug("RESTORING DOE NUM OBSERVATION TO: ", num_observations);
-
+  debug("Restoring DOE num of observations to: ", num_observations);
 
   // Get all the primary keys for the final query
   std::vector<std::string> primary_keys;
@@ -1327,7 +1325,6 @@ void CassandraClient::reset_doe( const application_description_t& description, c
           ++type_iterator;
         }
 
-
         // pop the last comma from the string
         current_row_keys.pop_back();
 
@@ -1343,10 +1340,8 @@ void CassandraClient::reset_doe( const application_description_t& description, c
 
       // free the result
       cass_result_free(query_result);
-
     }
   };
-
 
   // compose the table primary keys
   std::string fields = "";
@@ -1367,14 +1362,12 @@ void CassandraClient::reset_doe( const application_description_t& description, c
   const std::string query_combinations = "SELECT " + fields + " FROM " + table_name + ";";
   execute_query_synch(query_combinations, result_handler_combinations);
 
-
   for ( const auto i : primary_keys )
   {
-    //debug("PRIMARY KEYS: ", i);
+    //debug("Primary Keys: ", i);
     // execute the query
     execute_query_synch( "INSERT INTO " + table_name + " (" + fields + ",counter) VALUES (" + i + "," + std::to_string(
                            num_observations) + " );" );
-
   }
 
   // erase the model before computing the new one
@@ -1510,10 +1503,11 @@ void CassandraClient::reset_doe( const application_description_t& description, c
     const std::string query = "SELECT day FROM " + table_name + "_trace WHERE day < '" + std::to_string(date_time.year_month_day) + "' ALLOW FILTERING;";
     execute_query_synch(query, result_handler);
 
-    for (auto& i : dates){
-        // the 1st query deleted all the rows with date < date_of_the_change
-        //debug("Result: ", i);
-        execute_query_synch("DELETE FROM " + table_name + "_trace WHERE day = '" + std::to_string(i) + "';");
+    for (auto& i : dates)
+    {
+      // the 1st query deleted all the rows with date < date_of_the_change
+      //debug("Result: ", i);
+      execute_query_synch("DELETE FROM " + table_name + "_trace WHERE day = '" + std::to_string(i) + "';");
     }
 
     // then deletes all the rows with date = date_of_the_change but with time <= time_of_the_change
@@ -1579,7 +1573,6 @@ application_list_t CassandraClient::load_clients( const std::string& application
   // perform the query
   const std::string query = "SELECT client_id FROM " + table_name + ";";
   execute_query_synch(query, result_handler);
-
 
   return clients_list;
 }
@@ -1723,7 +1716,6 @@ observations_list_t CassandraClient::load_client_observations( const std::string
 
               if (rc == CASS_OK)
               {
-                //current_observation.append(std::to_string(out_value_date) + ",");
                 //debug("Entered date");
                 got_date = true;
               }
@@ -1741,7 +1733,6 @@ observations_list_t CassandraClient::load_client_observations( const std::string
 
               if (rc == CASS_OK)
               {
-                //current_observation.append(std::to_string(time_of_day) + ",");
                 //debug("Entered time");
                 got_time = true;
               }
@@ -1790,29 +1781,14 @@ observations_list_t CassandraClient::load_client_observations( const std::string
             current_observation.append(std::to_string(seconds) + " " + std::to_string(nanoseconds) + " ");
             got_time = got_date = false;
           }
-          else if (got_time == true)
-          {
-            //debug("NO date");
-          }
-          else if (got_date == true)
-          {
-            //debug("NO time");
-          }
-          else
-          {
-            //debug("NO date and time");
-          }
-
 
           // increment the type counter
           ++type_iterator;
           i++;
-
         }
 
         // pop the last coma from the string
         current_observation.pop_back();
-
 
         // emplace back the new information
         observations_list.emplace_back(current_observation);

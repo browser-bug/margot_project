@@ -28,7 +28,6 @@ extern "C"
 #include <cassandra.h>
 }
 
-
 #include "agora/fs_handler.hpp"
 #include "agora/logger.hpp"
 
@@ -124,8 +123,6 @@ namespace agora
       void erase( const std::string& application_name );
       cassandra_time compute_cassandra_timestamps(const std::string& seconds, const std::string& nanoseconds);
 
-
-
       std::string get_type( void ) const
       {
         return "CASSANDRA";
@@ -168,8 +165,6 @@ namespace agora
         return database_name + "." + table_name + "_features";
       }
   };
-
-
 }
 
 #endif // MARGOT_CASSANDRA_DATASTAX_FS_IMPLEMENTATION_HDR

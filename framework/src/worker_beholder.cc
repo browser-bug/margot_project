@@ -82,59 +82,9 @@ namespace beholder
     const auto start_type_pos = new_message.topic.find_last_of('/');
     const std::string message_type = new_message.topic.substr(start_type_pos);
 
-    // // ---------------------------------------------------------------------------------- handle the status message from agorà
-    // if (message_type.compare("/status") == 0)
-    // {
-    //   // enable the beholder
-    //   GlobalView::set_with_agora_true();
-    //
-    //   // log the event
-    //   agora::pedantic("Thread ", get_tid(), ": agorà is alive and kicking! Beholder ENABLED.\nStarting sync with agorà of the applications for which there is a model...");
-    //
-    //   // // get the list of applications
-    //   // const auto observation = new_message.payload;
-    //   //
-    //   // // if no application_handler of agorà has the model and active clients
-    //   // if (observation.length() == 0)
-    //   // {
-    //   //   // log the event
-    //   //   agora::pedantic("Thread ", get_tid(), ": received status summary. Currently no application is managed by the beholder.");
-    //   //
-    //   //   return;
-    //   // }
-    //   //
-    //   // // log the event
-    //   // agora::pedantic("Thread ", get_tid(), ": received current status summary from agorà.");
-    //   //
-    //   // // vector to store the applications' names
-    //   // std::vector<std::string> temp_list;
-    //   //
-    //   // // to parsee the payload
-    //   // std::stringstream ss(observation);
-    //   //
-    //   // // parse the incoming message and split it while filling the vector of applications' names
-    //   // while (ss.good())
-    //   // {
-    //   //   std::string substr;
-    //   //   getline( ss, substr, '@' );
-    //   //   temp_list.push_back(substr);
-    //   // }
-    //   //
-    //   // for (auto& i : temp_list)
-    //   // {
-    //   //   // get the application handler
-    //   //   const auto application_handler = GlobalView::get_handler(i);
-    //   //
-    //   //   // log the event
-    //   //   agora::pedantic("Thread ", get_tid(), ": new beholder handler created from status for application \"", i);
-    //   // }
-    // }
-
     // ---------------------------------------------------------------------------------- handle the creation of new handlers at runtime (not from status summary)
     if (message_type.compare("/model") == 0)
     {
-
-
       // bool to understand whether we are receiving a model from a broadcast message
       // or a messagge specifically addressed to the beholder
       bool broadcast_model;
@@ -332,10 +282,6 @@ namespace beholder
         // log the event
         agora::info("Thread ", get_tid(), ": all the beholder's handlers have been restarted following agora's resurrection.");
       }
-
-
-
     }
-
   }
 }
