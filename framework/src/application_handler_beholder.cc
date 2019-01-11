@@ -434,8 +434,8 @@ int RemoteApplicationHandler::fill_buffers(const Observation_data& observation)
         std::fstream current_metric_ici_file;
         std::string file_path_obs = metric_folder_path + "observations_" + observation.metric_fields_vec[index] + "_" + std::to_string(suffix_plot) + ".txt";
         std::string file_path_ici = metric_folder_path + "ici_" + observation.metric_fields_vec[index] + "_" + std::to_string(suffix_plot) + ".txt";
-        current_metric_observations_file.open(file_path_obs, std::fstream::out);
-        current_metric_ici_file.open(file_path_ici, std::fstream::out);
+        current_metric_observations_file.open(file_path_obs, std::fstream::in | std::fstream::out | std::fstream::trunc);
+        current_metric_ici_file.open(file_path_ici, std::fstream::in | std::fstream::out | std::fstream::trunc);
 
         if (!current_metric_observations_file.is_open())
         {
@@ -1085,7 +1085,16 @@ void RemoteApplicationHandler::second_level_test( std::unordered_map<std::string
   agora::pedantic(log_prefix, "Finished cycling over all the clients for the 2nd step of hierarchical CDT. Computing the fate of the application...");
 
   // compute the percentage of bad clients and compare it wrt the predefined threshold
-  float bad_clients_percentage = (((bad_clients_list.size() + timeout_clients_list.size()) / clients_list_snapshot.size()) * 100);
+  float bad_clients_percentage = (/*(float)*/((bad_clients_list.size() + timeout_clients_list.size()) / clients_list_snapshot.size()) * 100);
+  agora::debug("BAD_CLIENTS_LIST SIZE: ", bad_clients_list.size());
+  agora::debug("timeout_clients_list.size(): ", timeout_clients_list.size());
+  agora::debug("(bad_clients_list.size() + timeout_clients_list.size()): ", bad_clients_list.size() + timeout_clients_list.size());
+  agora::debug("clients_list_snapshot.size(): ", clients_list_snapshot.size());
+  agora::debug("(bad_clients_list.size() + timeout_clients_list.size()) / clients_list_snapshot.size()) ", ((bad_clients_list.size() + timeout_clients_list.size()) / clients_list_snapshot.size()));
+  agora::debug("(bad_clients_list.size() + timeout_clients_list.size()) / clients_list_snapshot.size()) ", (((float)bad_clients_list.size() + (float)timeout_clients_list.size()) / (float)clients_list_snapshot.size()));
+  agora::debug("(float)((bad_clients_list.size() + timeout_clients_list.size()) / clients_list_snapshot.size()) ", ((float)((float)bad_clients_list.size() + (float)timeout_clients_list.size()) / (float)clients_list_snapshot.size()));
+  agora::debug("bad_clients_percentage: ", bad_clients_percentage);
+
 
   // Once I know what the outcome of the hypothesis TEST is, re-acquire the lock
   // lock the mutex to ensure a consistent global state
@@ -1216,20 +1225,28 @@ void RemoteApplicationHandler::second_level_test( std::unordered_map<std::string
       for (auto& i : reference_metric_names)
       {
         auto search = output_files_map.find(i);
+        agora::debug("Search ", i);
 
         // if there is the file structure related to that metric
         if (search != output_files_map.end())
         {
+            agora::debug("search ok not end");
+
           // if the file is open
           if (search->second.observations.is_open())
           {
+              agora::debug("enter the open");
             // the metric subdirectory should have already been created (because we reach this point only if the
             // structure of the metric in analysis has been created), but there should be theoretically
             // no harm in making sure about that.
             std::string metric_folder_path = application_workspace + search->first + "/";
+            agora::debug("metric_folder_path", metric_folder_path);
+
 
             // creation of output file folders (the suffix subdirectory)
             metric_folder_path = metric_folder_path + std::to_string(suffix_plot + 1) + "/";
+            agora::debug("metric_folder_path", metric_folder_path);
+
             bool is_created = create_folder(metric_folder_path);
 
             if (!is_created)
@@ -1237,6 +1254,7 @@ void RemoteApplicationHandler::second_level_test( std::unordered_map<std::string
               agora::warning("Unable to create the folder \"", metric_folder_path, "\" with errno=", errno);
               throw std::runtime_error("Unable to create the folder \"" + metric_folder_path + "\" with errno=" + std::to_string(errno) );
             }
+            agora::debug("created folder");
 
             // copy the training lines in the output files for the next iteration, with naming siffix++
             // prepare the next files:
@@ -1244,8 +1262,11 @@ void RemoteApplicationHandler::second_level_test( std::unordered_map<std::string
             std::fstream current_metric_ici_file;
             std::string file_path_obs = metric_folder_path + "observations_" + search->first + "_" + std::to_string(suffix_plot + 1) + ".txt";
             std::string file_path_ici = metric_folder_path + "ici_" + search->first + "_" + std::to_string(suffix_plot + 1) + ".txt";
-            current_metric_observations_file.open(file_path_obs, std::fstream::out);
-            current_metric_ici_file.open(file_path_ici, std::fstream::out);
+            current_metric_observations_file.open(file_path_obs, std::fstream::in | std::fstream::out | std::fstream::trunc);
+            current_metric_ici_file.open(file_path_ici, std::fstream::in | std::fstream::out | std::fstream::trunc);
+            agora::debug("file_path_obs", file_path_obs);
+            agora::debug("file_path_ici", file_path_ici);
+
 
             if (!current_metric_observations_file.is_open())
             {
@@ -1259,6 +1280,12 @@ void RemoteApplicationHandler::second_level_test( std::unordered_map<std::string
               throw std::runtime_error("Error: the (future) output ici file cannot be created!");
             }
 
+            agora::debug("files opened");
+
+            // rewind the two output files to their beginning
+            search->second.observations.seekg(0);
+            search->second.ici.seekg(0);
+
             std::string temp_line;
 
             // copy into the new file the observations related to the training phase
@@ -1266,15 +1293,18 @@ void RemoteApplicationHandler::second_level_test( std::unordered_map<std::string
             {
               std::getline(search->second.observations, temp_line);    // Check whether this method automatically rewinds the file and keeps the position across cycles. It should.
               current_metric_observations_file << temp_line << std::endl; // TODO: check whether this result in a double endline
+              agora::debug("temp_line ", temp_line);
             }
+            agora::debug("end copy lines for");
 
             current_metric_observations_file.flush();
             // copy just the first line (training CI info) from the old ici output file to the new one
             std::getline(search->second.ici, temp_line);    // Check whether this method automatically rewinds the file and keeps the position across cycles. It should.
             current_metric_ici_file << temp_line << std::endl; // TODO: check whether this result in a double endline
             current_metric_observations_file.flush();
-            // close the old file
+            // close the old files
             search->second.observations.close();
+            search->second.ici.close();
             // remove from the map the old file
             // Or even better replace the old with the new ones, so that you do not need to delete a mapping and
             // re-create it.
@@ -1287,7 +1317,7 @@ void RemoteApplicationHandler::second_level_test( std::unordered_map<std::string
       }
 
       // destroy the current mapping to output files since the next run will have different naming suffixes
-      output_files_map.clear();
+      //output_files_map.clear();
       // increase the naming suffix counter
       suffix_plot++;
     }
