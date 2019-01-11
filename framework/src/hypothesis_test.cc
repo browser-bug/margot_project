@@ -89,11 +89,33 @@ namespace beholder
 
       s2_2 = s2_2 / (n2 - 1);
 
+      if (x1 == 0){
+          agora::warning(log_prefix, "The first population (before the change) sample mean is 0!");
+      }
+      if (x2 == 0){
+          agora::warning(log_prefix, "The second population (after the change) sample mean is 0!");
+      }
+      if (s1_2 == 0){
+          agora::warning(log_prefix, "The first population (before the change) sample variance is 0!");
+      }
+      if (s2_2 == 0){
+          agora::warning(log_prefix, "The second population (after the change) sample variance is 0!");
+      }
+
       float temp = (s1_2 / n1) + (s2_2 / n2);
 
       // t statistic computation
       t_statistic = (x1 - x2) / (sqrtf(temp));
       agora::debug(log_prefix, "T statistic: ", t_statistic);
+
+      if (isinf(t_statistic)){
+          agora::warning(log_prefix, "The t_statistic is infinite. We consider the test positive because the change is deterministic!");
+          return true;
+      }
+      if (isnan(t_statistic)){
+          agora::warning(log_prefix, "The t_statistic is NaN. We consider the test positive because the change is deterministic!");
+          return true;
+      }
 
       // degree of freedom associated with the variance estimates
       float v1 = n1 - 1;
@@ -102,6 +124,15 @@ namespace beholder
       // v degree of freedom computation with the Welch–Satterthwaite equation
       v_degree_freedom = powf(temp, 2) / ((powf(s1_2, 2) / (powf(n1, 2) * v1)) + (powf(s2_2, 2) / (powf(n2, 2) * v2)));
       agora::debug(log_prefix, "Degree of freedom: ", v_degree_freedom);
+      if (isinf(v_degree_freedom)){
+          agora::warning(log_prefix, "The v_degree_freedom is infinite. We consider the test positive because the change is deterministic!");
+          return true;
+      }
+      if (isnan(v_degree_freedom)){
+          agora::warning(log_prefix, "The v_degree_freedom is NaN. We consider the test positive because the change is deterministic!");
+          return true;
+      }
+
       agora::debug(log_prefix, "User-selected alpha: ", Parameters_beholder::alpha);
 
       //
