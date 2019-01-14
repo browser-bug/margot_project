@@ -960,10 +960,11 @@ void RemoteApplicationHandler::second_level_test( std::unordered_map<std::string
       agora::debug("\n", log_prefix, "Client: ", i.first, ": Collected ", observations_list.size(), " observations from the trace.");
 
       // cycle over each row j of the trace for each client i (for the current application)
-      for (auto& j : observations_list)
-      {
-        agora::debug(log_prefix, "Client: ", i.first, ": Observation: ", j);
-      }
+      // and print a dump of the trace for the current client, if needed
+      // for (auto& j : observations_list)
+      // {
+      //   agora::debug(log_prefix, "Client: ", i.first, ": Observation: ", j);
+      // }
 
       // cycle over each row j of the trace for each client i (for the current application)
       // and insert the observations in the respective buffers
