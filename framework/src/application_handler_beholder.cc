@@ -960,10 +960,10 @@ void RemoteApplicationHandler::second_level_test( std::unordered_map<std::string
       agora::debug("\n", log_prefix, "Client: ", i.first, ": Collected ", observations_list.size(), " observations from the trace.");
 
       // cycle over each row j of the trace for each client i (for the current application)
-      // for (auto& j : observations_list)
-      // {
-      //   agora::debug(log_prefix, "Client: ", i.first, ": Observation: ", j);
-      // }
+      for (auto& j : observations_list)
+      {
+        agora::debug(log_prefix, "Client: ", i.first, ": Observation: ", j);
+      }
 
       // cycle over each row j of the trace for each client i (for the current application)
       // and insert the observations in the respective buffers
@@ -981,13 +981,13 @@ void RemoteApplicationHandler::second_level_test( std::unordered_map<std::string
       {
         if (it->second.before_change.size() < Parameters_beholder::min_observations || it->second.after_change.size() < Parameters_beholder::min_observations)
         {
-          agora::debug(log_prefix, "Client: ", i.first, ": Insufficient data [user_requirement: ", Parameters_beholder::min_observations, "] to perform 2nd level hypothesys test on metric ", it->first,
+          agora::debug(log_prefix, "Client: ", i.first, ": Insufficient data [user_requirement: ", Parameters_beholder::min_observations, "] to perform 2nd level hypothesis test on metric ", it->first,
                        ". # observations before the change: ", it->second.before_change.size(), ". # observations after the change: ", it->second.after_change.size());
           it = client_residuals_map.erase(it);
         }
         else
         {
-          agora::debug(log_prefix, "Client: ", i.first, ": 2nd level hypothesys test on metric ", it->first,
+          agora::debug(log_prefix, "Client: ", i.first, ": 2nd level hypothesis test on metric ", it->first,
                        " feasible: # observations before the change: ", it->second.before_change.size(), ". # observations after the change: ", it->second.after_change.size());
           ++it;
         }
@@ -1005,6 +1005,66 @@ void RemoteApplicationHandler::second_level_test( std::unordered_map<std::string
       // if there is at least a metric on which we can perform the hypothesis test
       if (client_residuals_map.size() > 0)
       {
+        if (Parameters_beholder::output_files)
+        {
+          for (auto& j : client_residuals_map)
+          {
+            agora::debug(log_prefix, "Client: ", i.first, ": Preparing files to export the residuals.");
+
+            // the metric subdirectory should have already been created (because we reach this point only if the
+            // structure of the metric in analysis has been created), but there should be theoretically
+            // no harm in making sure about that.
+            std::string metric_folder_path = application_workspace + j.first + "/";
+
+            // creation of output file folders (the suffix subdirectory)
+            metric_folder_path = metric_folder_path + std::to_string(suffix_plot) + "/";
+
+            bool is_created = create_folder(metric_folder_path);
+
+            if (!is_created)
+            {
+              agora::warning("Unable to create the folder \"", metric_folder_path, "\" with errno=", errno);
+              throw std::runtime_error("Unable to create the folder \"" + metric_folder_path + "\" with errno=" + std::to_string(errno) );
+            }
+
+            // copy the training lines in the output files for the next iteration, with naming siffix++
+            // prepare the next files:
+            std::fstream current_metric_before_file;
+            std::fstream current_metric_after_file;
+            std::string file_path_before = metric_folder_path + "before_change_residuals_" + i.first + "_" + std::to_string(suffix_plot) + ".txt";
+            std::string file_path_after = metric_folder_path + "after_change_residuals_" + i.first + "_" + std::to_string(suffix_plot) + ".txt";
+            current_metric_before_file.open(file_path_before, std::fstream::out);
+            current_metric_after_file.open(file_path_after, std::fstream::out);
+
+            if (!current_metric_before_file.is_open())
+            {
+              agora::warning(log_prefix, "Error: the residuals before the change file has not been created!");
+              throw std::runtime_error("Error: the residuals before the change file has not been created!");
+            }
+
+            if (!current_metric_after_file.is_open())
+            {
+              agora::warning(log_prefix, "Error: the residuals after the change file has not been created!");
+              throw std::runtime_error("Error: the residuals after the change file has not been created!");
+            }
+
+            for (auto& k : j.second.before_change)
+            {
+              current_metric_before_file << k << std::endl;
+            }
+
+            for (auto& k : j.second.after_change)
+            {
+              current_metric_after_file << k << std::endl;
+            }
+
+            current_metric_before_file.flush();
+            current_metric_before_file.close();
+            current_metric_after_file.flush();
+            current_metric_after_file.close();
+          }
+        }
+
         // Execute on the specific client the 2nd step of CDT: hypothesis TEST
         confirmed_change = HypTest::perform_hypothesis_test(client_residuals_map, description.application_name, i.first);
         agora::debug(log_prefix, "Client: ", i.first, ": Outcome of hypothesis test: ", confirmed_change);
@@ -1104,7 +1164,7 @@ void RemoteApplicationHandler::second_level_test( std::unordered_map<std::string
     agora::info(log_prefix, "TRIGGERING RE-TRAINING since the percentage of bad clients [", bad_clients_percentage, "] is greater than the user-selected acceptable one [",
                 Parameters_beholder::bad_clients_threshold, "].");
 
-    // In this case the change detected by the 1st level cdt was confirmed by the hypothesys test
+    // In this case the change detected by the 1st level cdt was confirmed by the hypothesis test
 
     // reset the whole application handler
     clients_blacklist.clear();
@@ -1270,14 +1330,14 @@ void RemoteApplicationHandler::second_level_test( std::unordered_map<std::string
             // copy into the new file the observations related to the training phase
             for (int index = 0; index < Parameters_beholder::window_size * Parameters_beholder::training_windows; index++)
             {
-              std::getline(search->second.observations, temp_line);    // Check whether this method automatically rewinds the file and keeps the position across cycles. It should.
-              current_metric_observations_file << temp_line << std::endl; // TODO: check whether this result in a double endline
+              std::getline(search->second.observations, temp_line);
+              current_metric_observations_file << temp_line << std::endl;
             }
 
             current_metric_observations_file.flush();
             // copy just the first line (training CI info) from the old ici output file to the new one
-            std::getline(search->second.ici, temp_line);    // Check whether this method automatically rewinds the file and keeps the position across cycles. It should.
-            current_metric_ici_file << temp_line << std::endl; // TODO: check whether this result in a double endline
+            std::getline(search->second.ici, temp_line);
+            current_metric_ici_file << temp_line << std::endl;
             current_metric_observations_file.flush();
             // close the old files
             search->second.observations.close();

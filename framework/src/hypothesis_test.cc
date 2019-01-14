@@ -47,7 +47,10 @@ namespace beholder
 
       // populations size
       int n1 = i.second.before_change.size();
+      agora::debug(log_prefix, "First population sample size: ", n1);
+
       int n2 = i.second.after_change.size();
+      agora::debug(log_prefix, "Second population sample size: ", n2);
 
       // first population sample mean
       float x1 = 0;
@@ -58,6 +61,8 @@ namespace beholder
       }
 
       x1 = x1 / n1;
+      agora::debug(log_prefix, "First population sample mean: ", x1);
+
 
       // second population sample mean
       float x2 = 0;
@@ -68,6 +73,7 @@ namespace beholder
       }
 
       x2 = x2 / n2;
+      agora::debug(log_prefix, "Second population sample mean: ", x2);
 
       // first population sample variance
       float s1_2 = 0;
@@ -78,6 +84,7 @@ namespace beholder
       }
 
       s1_2 = s1_2 / (n1 - 1);
+      agora::debug(log_prefix, "First population sample variance: ", s1_2);
 
       // second population sample variance
       float s2_2 = 0;
@@ -88,6 +95,7 @@ namespace beholder
       }
 
       s2_2 = s2_2 / (n2 - 1);
+      agora::debug(log_prefix, "Second population sample variance: ", s2_2);
 
       if (x1 == 0)
       {
@@ -171,11 +179,13 @@ namespace beholder
       {
         confirmed_change = true;
         agora::pedantic(log_prefix, "Critical value [", q, "] is lower than alpha/2 [", Parameters_beholder::alpha / 2, "].");
+        agora::debug(log_prefix, "Null hypothesis: Sample 1 Mean == Sample 2 Mean REJECTED.\n(Alternative hypothesis: Sample 1 Mean != Sample 2 Mean ACCEPTED.)");
         agora::info(log_prefix, "HYPOTHESIS TEST, change confirmed!");
       }
       else
       {
         agora::pedantic(log_prefix, "Critical value [", q, "] is greater than alpha/2 [", Parameters_beholder::alpha / 2, "].");
+        agora::debug(log_prefix, "Null hypothesis: Sample 1 Mean == Sample 2 Mean ACCEPTED.\n(Alternative hypothesis: Sample 1 Mean != Sample 2 Mean REJECTED.)");
         agora::info(log_prefix, "HYPOTHESIS TEST, change rejected!");
       }
 
