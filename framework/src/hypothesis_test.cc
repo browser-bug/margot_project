@@ -180,13 +180,13 @@ namespace beholder
         confirmed_change = true;
         agora::pedantic(log_prefix, "Critical value [", q, "] is lower than alpha/2 [", Parameters_beholder::alpha / 2, "].");
         agora::debug(log_prefix, "Null hypothesis: Sample 1 Mean == Sample 2 Mean REJECTED.\n(Alternative hypothesis: Sample 1 Mean != Sample 2 Mean ACCEPTED.)");
-        agora::info(log_prefix, "HYPOTHESIS TEST, change confirmed!");
+        agora::info(log_prefix, "HYPOTHESIS TEST, change confirmed on metric: ", i.first, "!");
       }
       else
       {
         agora::pedantic(log_prefix, "Critical value [", q, "] is greater than alpha/2 [", Parameters_beholder::alpha / 2, "].");
         agora::debug(log_prefix, "Null hypothesis: Sample 1 Mean == Sample 2 Mean ACCEPTED.\n(Alternative hypothesis: Sample 1 Mean != Sample 2 Mean REJECTED.)");
-        agora::info(log_prefix, "HYPOTHESIS TEST, change rejected!");
+        agora::info(log_prefix, "HYPOTHESIS TEST, change rejected on metric: ", i.first, "!");
       }
 
       // at the first metric which confirms the change return to the caller

@@ -1005,12 +1005,11 @@ void RemoteApplicationHandler::second_level_test( std::unordered_map<std::string
       // if there is at least a metric on which we can perform the hypothesis test
       if (client_residuals_map.size() > 0)
       {
+        // export the residuals to file in order to be able to run the hypothesis test manually with the python script provided
         if (Parameters_beholder::output_files)
         {
           for (auto& j : client_residuals_map)
           {
-            agora::debug(log_prefix, "Client: ", i.first, ": Preparing files to export the residuals.");
-
             // the metric subdirectory should have already been created (because we reach this point only if the
             // structure of the metric in analysis has been created), but there should be theoretically
             // no harm in making sure about that.
@@ -1031,8 +1030,8 @@ void RemoteApplicationHandler::second_level_test( std::unordered_map<std::string
             // prepare the next files:
             std::fstream current_metric_before_file;
             std::fstream current_metric_after_file;
-            std::string file_path_before = metric_folder_path + "before_change_residuals_" + i.first + "_" + std::to_string(suffix_plot) + ".txt";
-            std::string file_path_after = metric_folder_path + "after_change_residuals_" + i.first + "_" + std::to_string(suffix_plot) + ".txt";
+            std::string file_path_before = metric_folder_path + "before_change_residuals_" + i.first + ".txt";
+            std::string file_path_after = metric_folder_path + "after_change_residuals_" + i.first + ".txt";
             current_metric_before_file.open(file_path_before, std::fstream::out);
             current_metric_after_file.open(file_path_after, std::fstream::out);
 
