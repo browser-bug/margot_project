@@ -5,10 +5,12 @@ import os
 import numpy as np
 from scipy import stats
 
-
 # print message after packages imported successfully
 print("Import of packages successful")
 
+########################################################
+########## EDIT THESE PATHS TO REFLECT YOURS ###########
+########################################################
 workspace = "/home/alberto/Desktop/Thesis/mARGOt/Core/myCore/core/build/workspace_beholder/tutorial/v3_online/foo/exec_time/1"
 before_change_name = "before_change_residuals_alberto_Surface_Pro_2_17634"
 after_change_name = "after_change_residuals_alberto_Surface_Pro_2_17634"
@@ -50,6 +52,14 @@ print ("Sample variance of residuals after the change: " + str(var_2))
 #t_score = stats.ttest_ind_from_stats(mean_1, std_dev_1, n1, mean_2, std_dev_2, n2, equal_var=False)
 #print(t_score)
 
+# compute Welch's test
+# NB: the p-value returned here is the one to be compared directly with significance level α
+# for the 2 sided (two-tailed) test.
+# In other situations the p_value is computed for the 1 sided test. In that case it is required to compare it with alpha/2.
 test = stats.ttest_ind(before_change_array,after_change_array, equal_var = False)
 
 print (test)
+
+# If the p-value is less than the significance level α, then we can conclude that our data
+# is statistically significant and the null hypothesis will be rejected.
+# Many statisticians typically use α = 0.05.
