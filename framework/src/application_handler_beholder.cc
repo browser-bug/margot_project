@@ -37,6 +37,14 @@
 
 using namespace beholder;
 
+/**
+ * @details
+ * Default ApplicationHandler constructor.
+ * It sets the status of the handler to READY and it initializes the counters and the workspace folder.
+ * It also writes a file containing the configuration with the current user-set parameters
+ * used by the beholder to allow the user to manually plot the ICI curves (with the provided gnuplot script)
+ * with the same configuration used inside the framework.
+ */
 RemoteApplicationHandler::RemoteApplicationHandler( const std::string& application_name )
   : status(ApplicationStatus::READY), suffix_plot(1)
 {
@@ -46,11 +54,14 @@ RemoteApplicationHandler::RemoteApplicationHandler( const std::string& applicati
 
   // load the application description, even though we are just interested in the metrics
   description = agora::io::storage.load_description(application_name);
+
+  // initialize the counters
   current_test_observations_counter = 0;
   observations_counter = 0;
   retraining_counter = 0;
   ici_reset_counter = 0;
 
+  // if the user enabled the exportation of files
   if (Parameters_beholder::output_files)
   {
     // create the workspace root folder
@@ -96,6 +107,23 @@ RemoteApplicationHandler::RemoteApplicationHandler( const std::string& applicati
   }
 }
 
+
+/**
+ * @details
+ * This method is the only real "entrance" method of this entire unit.
+ * The others are a mere separation of private subfunctions to improve readability all used by this function.
+ * It is the core method, the orchestrator of all the logic and the decisions
+ * for the target application from the viewpoint of the beholder's tasks.
+ * This method is responsible for receiving the observations coming from the client applications
+ * and for taking care of their parsing and their insertion in the memory buffers.
+ * If the buffers are filled-in then the first level (ici) test is carried out.
+ * According to the outcome of the first level test the it could perform
+ * the 2nd level test (hypothesis test).
+ * Depending on the outcome of the 2nd level test it can trigger the retraining,
+ * which is the most important (and impactful) decision the beholder can possibly take.
+ * The retraining itself is the real purpose of the beholder, and has to be triggered
+ * only under some circumstances.
+ */
 void RemoteApplicationHandler::new_observation( const std::string& values )
 {
 
@@ -103,7 +131,7 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
   std::unique_lock<std::mutex> guard(mutex);
 
   // check whether we can analyze the incoming payload or if we need to discard it
-  // according to the handler status: ready/computing/disabled
+  // according to the handler status: ready/computing/disabled/training/retraining
   if ( status != ApplicationStatus::READY )
   {
     if ( status == ApplicationStatus::COMPUTING )
@@ -138,6 +166,7 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
   // parse the received observation
   int parse_outcome = parse_observation(observation, values);
 
+  // if for any reason there is an error in the parsed observation we discard this observation
   if (parse_outcome == 1)
   {
     return;
@@ -146,6 +175,8 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
   // fill in the buffers with the current observations
   int filling_outcome = fill_buffers(observation);
 
+  // if for any reason there is an error in the process of filling the buffers with the residuals
+  //from the parsed observation we discard this observation
   if (filling_outcome == 1)
   {
     return;
@@ -153,20 +184,22 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
 
   agora::pedantic(log_prefix, "Observation successfully parsed and residuals inserted into buffers.");
 
+  // launch the 1st level test.
+  // This will only act on the filled-in buffers.
   first_level_test();
 
-  // We only perform the 2nd step of the CDT only when the 1st level detects a change.
+  // We only perform the 2nd step of the CDT when the 1st level detects a change.
   // If the change is not detected then the 2nd step is not performed and the method returns
   // and will keep performing the 1st level cdt with the future new observations.
 
-  // STEP 2 of CDT: analysis with granularity on the single client
+  // STEP 2 of CDT (hypothesis test): analysis with granularity on the single client
 
   // if need to start the step 2 of CDT:
   if (status == ApplicationStatus::COMPUTING)
   {
-    // Local copy of the list of active clients right now (snapshot of the current situation).
-    // So that we have consistency on the clients and the subsequent query to db and statistics
-    // in a situation in which the lock is released, still allowing the real list ot be (possibly) updated
+    // Local copy of the list of active clients at this moment in time (snapshot of the current situation).
+    // So that we have consistency on the clients and their statistics in a situation in which
+    // the lock is released, still allowing the real list to be (possibly) updated
     // if some clients send their "kia".
     std::unordered_map<std::string, timestamp_fields> clients_list_snapshot;
 
@@ -176,15 +209,22 @@ void RemoteApplicationHandler::new_observation( const std::string& values )
       clients_list_snapshot.emplace(i);
     }
 
+    // release the lock to interact with the storage
     guard.unlock();
 
+    // perform the 2nd level test (hypothesis test)
     second_level_test(clients_list_snapshot);
   }
 
   return;
 }
 
-// method to parse the received observation from mqtt messages
+
+/**
+ * @details
+ * Method to parse the observation received as a mqtt message payload.
+ * Observations coming from blacklisted clients are discarded.
+ */
 int RemoteApplicationHandler::parse_observation(Observation_data& observation, const std::string& values)
 {
   // declare the temporary variables to store the fields of the incoming message
@@ -210,7 +250,10 @@ int RemoteApplicationHandler::parse_observation(Observation_data& observation, c
   // Let's check whether this is the first observation coming from this client
   auto search_client = clients_list.find(observation.client_id);
 
-  // if this is the first time we encounter this client we need to register it and discard it
+  // if this is the first time we encounter this client we need to register it and discard it.
+  // This is because we want to avoid the "9999" estimates, that is to say those observations
+  // belonging to clients which received the model while a cycle of their computation was
+  // already running.
   if (search_client == clients_list.end())
   {
     // emplace in the hashmap the current client with its timestamp struct
@@ -221,7 +264,7 @@ int RemoteApplicationHandler::parse_observation(Observation_data& observation, c
   }
 
   // check whether the client which sent the current observation is in the blacklist.
-  // if that's the case then discard the observation, otherwise keep parameter_string
+  // if that's the case then discard the observation, otherwise keep going
   auto search = clients_blacklist.find(observation.client_id);
 
   if (search != clients_blacklist.end())    // if client name found in the blacklist than return
@@ -247,7 +290,7 @@ int RemoteApplicationHandler::parse_observation(Observation_data& observation, c
   stream >> estimates;
   //agora::debug(log_prefix, "estimates: ", estimates );
 
-  // gets the name of the fields of the metric to be filled in
+  // gets the name of the fields of the metric to be filled in.
   // NB: note that the beholder observation message always contains the metric names, also when all the metrics are enabled.
   // This is because in this way we know which metrics must be observed by the beholder
   // according to the user's settings in the XML configuration file.
@@ -259,15 +302,18 @@ int RemoteApplicationHandler::parse_observation(Observation_data& observation, c
   stream >> metric_fields;
   //agora::debug(log_prefix, "metric_fields: ", metric_fields);
 
-  // if this is the first message then parse also the last part of the message where the heel enqueues the whole list of user-enabled-beholder-metrics
-  // if this list is not present than there is the assumption that all the metrics should be analized, even though the user did not explicitely stated that
+  // if this is the first message then parse also the last part of the message where the heel
+  // enqueues the whole list of user-enabled-beholder-metrics.
+  // If this list is not present than there is the assumption that all the metrics
+  // should be analized, even though the user did not explicitely stated that.
   if (reference_metric_names.size() == 0)
   {
     stream >> user_enabled_metrics;
 
-    // if there is no list than get the reference metrics from the application description, it is assumed that all of them are enabled
-    // This branch should be theoretically never be taken because the heel always sends the name of the beholder-enabled-metrics
-    // even if they are all enabled (at least as of now)
+    // if there is no list than get the reference metrics from the application description,
+    // it is assumed that all of them are enabled.
+    // This branch should theoretically never be taken because the heel always sends
+    // the name of the beholder-enabled-metrics even if they are all enabled (at least as of now).
     if (user_enabled_metrics == "")
     {
       for (auto& i : description.metrics)
@@ -278,7 +324,7 @@ int RemoteApplicationHandler::parse_observation(Observation_data& observation, c
     else
     {
       // Separate the parsed information (basically CSV, i.e. strings with comma separated values)
-      // and put them into the reference set for the user enabled beholder metrics
+      // and put them into the reference set for the user enabled beholder metrics.
       std::stringstream ssm(user_enabled_metrics);
 
       while ( ssm.good() )
@@ -292,7 +338,7 @@ int RemoteApplicationHandler::parse_observation(Observation_data& observation, c
 
   // Separate the parsed information (basically CSV, i.e. strings with comma separated values)
   // into the respective vectors.
-  // build the vector of metric names provided in the observation
+  // Build the vector of metric names provided in the observation.
   std::stringstream ssmf(metric_fields);
 
   while ( ssmf.good() )
@@ -338,7 +384,7 @@ int RemoteApplicationHandler::parse_observation(Observation_data& observation, c
   // }
 
   // Check if we have consistency in the quantity of measures received,
-  // i.e. if the vector of metric names is as big as the one of the observed metrics and the one of the estimates
+  // i.e. if the vector of metric names is as big as the one of the observed metrics and the one of the estimates.
   if ((observation.metric_fields_vec.size() != observation.metrics_vec.size()) || (observation.metrics_vec.size() != observation.estimates_vec.size()))
   {
     agora::warning(log_prefix, "Error in the observation received, mismatch in the number of fields.");
@@ -348,7 +394,13 @@ int RemoteApplicationHandler::parse_observation(Observation_data& observation, c
   return 0;
 }
 
-// method which adds the parsed values to the current observation to the respective buffers
+
+/**
+ * @details
+ * Method which adds the residuals from the current observation to the respective buffers.
+ * Every metric has its own buffer.
+ * It also writes the residuals to an output file, if the user enabled the file exportation.
+ */
 int RemoteApplicationHandler::fill_buffers(const Observation_data& observation)
 {
   // Insert the residuals in the right buffers according to the metric name
@@ -460,6 +512,15 @@ int RemoteApplicationHandler::fill_buffers(const Observation_data& observation)
   return 0;
 }
 
+
+/**
+ * @details
+ * Method which carries out the first level ici test.
+ * It cycles over all the metrics, and for everyone of these, if the corresponding buffer is
+ * filled-in, it performs the test.
+ * As soon as the result of the test is positive it breaks out of the cycle and
+ * sets the handler status to COMPUTING, thus allowing to go on with the 2nd level test.
+ */
 void RemoteApplicationHandler::first_level_test( void )
 {
   // just universal variables to control the change detection and thus the flow of the CDT itself
@@ -488,7 +549,7 @@ void RemoteApplicationHandler::first_level_test( void )
     {
       agora::debug(log_prefix, "Buffer for metric ", i.first, " filled in, starting CDT on the current window.");
 
-      // Check if we already have a ici_cdt_map for the current metric, if not create it
+      // Check if we already have a ici_cdt_map (hashmap data structure) for the current metric, if not create it
       auto search_ici_map = ici_cdt_map.find(i.first);
 
       // If it finds the ici_cdt_map for the current metric then use it
@@ -515,7 +576,6 @@ void RemoteApplicationHandler::first_level_test( void )
         change_detected = IciCdt::perform_ici_cdt(new_ici_struct, i.second, output_files_map);
         ici_cdt_map.emplace(i.first, new_ici_struct);
         // It cannot detect a change if this is the first full window for that metric, we are in training of cdt
-        // so basically avoid the if to check for the boolean "change_detected"
       }
 
       // if the change has been detected save the name of the (first) metric for which the change has been detected
@@ -550,317 +610,18 @@ void RemoteApplicationHandler::first_level_test( void )
   }
 }
 
-// method which receives as parameters a row from the list of observations from a specific client from the trace
-// and parses that and inserts its residuals in the corresponding map structure
-void RemoteApplicationHandler::parse_and_insert_observations_for_client_from_trace(std::unordered_map<std::string, residuals_from_trace>& client_residuals_map,
-    const observation_t j, const std::set<std::string>& metric_to_be_analyzed)
-{
-  agora::debug("\n", log_prefix, "String from trace to be parsed: ", j);
-  // parse the string. Taking into account the number of enabled metrics in the current observation.
-  // we need to know which metric(s) we have to retrieve and compare with the model estimation.
-  // Basically we keep only production phase observations, and of these we only consider metrics (enabled for the beholder)
-  // for which the real observed values is available, to be compared with the model value.
-  std::string obs_client_id;
-  timestamp_fields timestamp;
-  std::vector <std::string> obs_configuration;
-  std::vector <std::string> obs_features;
-  std::vector <std::string> obs_metrics;
-  std::vector <std::string> obs_estimates;
 
-  std::vector<std::string> metric_fields_vec;
-  std::stringstream str_observation(j);
-
-  str_observation >> timestamp.seconds;
-  str_observation >> timestamp.nanoseconds;
-
-  str_observation >> obs_client_id;
-  //agora::debug(log_prefix, "Client_id parsed: ", obs_client_id);
-
-  int num_knobs = description.knobs.size();
-
-  while ( num_knobs > 0 )
-  {
-    std::string current_knob;
-    str_observation >> current_knob;
-    obs_configuration.emplace_back(current_knob);
-    //agora::debug(log_prefix, "Client: ", obs_client_id, ": Knob parsed: ", current_knob);
-    num_knobs--;
-  }
-
-  int num_features = description.features.size();
-
-  while ( num_features > 0 )
-  {
-    std::string current_feature;
-    str_observation >> current_feature;
-    obs_features.emplace_back(current_feature);
-    //agora::debug(log_prefix, "Client: ", obs_client_id, ": Feature parsed: ", current_feature);
-    num_features--;
-  }
-
-  int num_metrics = metric_to_be_analyzed.size();
-
-  while ( num_metrics > 0 )
-  {
-    std::string current_metric;
-    str_observation >> current_metric;
-    obs_metrics.emplace_back(current_metric);
-    //agora::debug(log_prefix, "Client: ", obs_client_id, ": Metrics parsed: ", current_metric);
-    num_metrics--;
-  }
-
-  num_metrics = metric_to_be_analyzed.size();
-
-  // variable to understand if the current row from trace was from a training phase
-  // It would have ALL the estimates to "N/A"
-  // In that case the current row in analysis can be discarded because there is no way
-  // of computing the residuals. In the beholder we validate the model, thus the estimates...
-  // Theoretically by design we should just not receive the training lines from the trace at all,
-  // (because we filter the trace from the time the beholder has first seen the client),
-  // this is just and additional check.
-  bool is_training_row = true;
-
-  while ( num_metrics > 0 )
-  {
-    std::string current_estimate;
-    str_observation >> current_estimate;
-
-    // if there is at least an estimate different from "N/A" then the current row is not from
-    // training and can be used in the CDT analysis for the residuals.
-    if ((current_estimate != "N/A") || (!is_training_row))
-    {
-      is_training_row = false;
-    }
-
-    obs_estimates.emplace_back(current_estimate);
-    //agora::debug(log_prefix, "Client: ", obs_client_id, ": Estimate parsed: ", current_estimate);
-    num_metrics--;
-  }
-
-  // Check if we have consistency in the quantity of measures parsed,
-  // i.e. if the vector of metric names is as big as the one of the observed metrics
-  // and is the same size as the number of metrics enabled for the beholder for the current application
-  if ((obs_metrics.size() != obs_estimates.size()) || (obs_metrics.size() != metric_to_be_analyzed.size()))
-  {
-    agora::warning(log_prefix, "Client: ", obs_client_id, ": Error in the parsed observation, mismatch in the number of fields.");
-    return;
-  }
-
-  // if the current row from trace is from a training phase discard this row and go to the next;
-  if (is_training_row)
-  {
-    agora::debug(log_prefix, "Client: ", obs_client_id, ": Discarding current row because it was from a training phase");
-    return;
-  }
-
-  agora::debug(log_prefix, "Client: ", obs_client_id, ": Done with the parsing of the current row from trace, starting the validation and insertion of the metrics into the residual buffers.");
-
-
-  // Validate the observation and Insert the residuals in the right residual maps structure
-  auto name_ref = metric_to_be_analyzed.begin();
-
-  bool skip_change_window = false;
-  bool before_change_window = false;
-  bool after_change_window = false;
-
-  // for every metric in the row:
-  for (auto index = 0; index < metric_to_be_analyzed.size(); index++, std::advance(name_ref, 1))
-  {
-    // Check whether the metric in analysis was available and valid or if it was a disabled one-->"null" in trace-->parsed as "N/A"
-    // The idea is that if the current metric in analysis is disabled of course we do not insert this metric (for this row)
-    // in the buffers. But in order to be disabled there has to be (by design) a "N/A" in both the observation and the estimate for
-    // that metric. If that is not the case and just one of the two is "N/A" then there is an error somewhere, because it is
-    // theoretically impossible
-    if (obs_estimates[index] == "N/A")
-    {
-      // for the current version, if a metric is disabled its corresponding prediction must be disable too
-      if (obs_metrics[index] == "N/A")
-      {
-        // skip the comparison on this metric between it was not enabled
-        return;
-      }
-      else
-      {
-        agora::warning(log_prefix, "Client: ", obs_client_id, ": Error in the parsed observation, mismatch between the observed (!N/A) and predicted (N/A) metric.");
-        return;
-      }
-    }
-    // to catch the case in which the metric was null but the estimate was present (not null). Theoretically impossible by design.
-    else if (obs_metrics[index] == "N/A")
-    {
-      agora::warning(log_prefix, "Client: ", obs_client_id, ": Error in the parsed observation, mismatch between the observed (N/A) and predicted (!N/A) metric.");
-      return;
-    }
-
-    // if we arrive here then the parsed metric should be valid (one of the enabled ones at least)
-
-    // NB: note that the residual is computed with abs()!!
-    float current_residual = fabs(std::stof(obs_estimates[index]) - std::stof(obs_metrics[index]));
-    agora::debug(log_prefix, "Client: ", obs_client_id, ": Current residual for metric ", *name_ref, " is: ", current_residual);
-
-    auto search = client_residuals_map.find(*name_ref);
-
-    // Here we need to save the element before the change window in a vector (1st in struct: "before_change"),
-    // and the elements after that window in another corresponding vector (2nd in struct: "after_change").
-    // NB: the timestamps of the hypothetical change window used here are referred obviously
-    // to the metric which first detected the change. It may be the same under analysis here
-    // or not.
-    if (search != client_residuals_map.end())
-    {
-      agora::debug(log_prefix, "Client: ", obs_client_id, ": metric ", *name_ref, " already present, filling buffer");
-
-      // metric already present, need to add to the buffer the new residual
-      // compare timestamp: if before the change insert in the 1st vector of the struct
-      if (std::stol(timestamp.seconds) < std::stol(change_window_timestamps.front.seconds))
-      {
-        // if the current seconds_from_epoch is older than the one from the first element of the
-        // change window then add it to the "before" change window vector.
-        search->second.before_change.emplace_back(current_residual);
-        before_change_window = true;
-      }
-      // if the change window is contained in the same seconds_from_epoch (seconds of front and back are the same)
-      else if ((std::stol(change_window_timestamps.front.seconds) == std::stol(change_window_timestamps.back.seconds)) && (std::stol(timestamp.seconds) == std::stol(change_window_timestamps.front.seconds)))
-      {
-        // if the current observation seconds is the same as the seconds of the 1st element of the
-        // change window then compare the nanoseconds. If the current observation's timestamp
-        // comes first in the day then add it to the "before" change window vector
-        if (std::stol(timestamp.nanoseconds) < std::stol(change_window_timestamps.front.nanoseconds))
-        {
-          search->second.before_change.emplace_back(current_residual);
-          before_change_window = true;
-        }
-        // if the current observation seconds is the same as the seconds of the last element of the
-        // change window then compare the time. If the current observation's timestamp
-        // comes later in the day then add it to the "after" change window vector
-        else if (std::stol(timestamp.nanoseconds) > std::stol(change_window_timestamps.back.nanoseconds))
-        {
-          search->second.after_change.emplace_back(current_residual);
-          after_change_window = true;
-        }
-        else
-        {
-          skip_change_window = true;
-        }
-      }
-      // if the change window is not contained in the same seconds (seconds of front and back are not the same)
-      else if (std::stol(timestamp.seconds) == std::stol(change_window_timestamps.front.seconds))
-      {
-        // if the current observation seconds is the same as the seconds of the 1st element of the
-        // change window then compare the time. If the current observation's timestamp
-        // comes first in the day then add it to the "before" change window vector
-        if (std::stol(timestamp.nanoseconds) < std::stol(change_window_timestamps.front.nanoseconds))
-        {
-          search->second.before_change.emplace_back(current_residual);
-          before_change_window = true;
-        }
-        else
-        {
-          skip_change_window = true;
-        }
-
-        // if after the change insert in the 2nd vector of the struct
-      }
-      else if (std::stol(timestamp.seconds) > std::stol(change_window_timestamps.back.seconds))
-      {
-        // if the current seconds is newer than the one from the last element of the
-        // change window then add it to the "after" change window vector.
-        search->second.after_change.emplace_back(current_residual);
-        after_change_window = true;
-      }
-      else if (std::stol(timestamp.seconds) == std::stol(change_window_timestamps.back.seconds))
-      {
-        // if the current observation seconds is the same as the seconds of the last element of the
-        // change window then compare the time. If the current observation's timestamp
-        // comes later in the day then add it to the "after" change window vector
-        if (std::stol(timestamp.nanoseconds) > std::stol(change_window_timestamps.back.nanoseconds))
-        {
-          search->second.after_change.emplace_back(current_residual);
-          after_change_window = true;
-        }
-        else
-        {
-          skip_change_window = true;
-        }
-      }
-      else
-      {
-        skip_change_window = true;
-      }
-
-    }
-
-    // if we did not find any key with the current metric's name under analysis in the struct
-    // then theoretically we should initialize the corresponding struct for the metric
-    else
-    {
-      // check that this first value is actually before the change window. If that is the case then
-      // insert the current observation in the vector of the residuals before the change.
-      // Theoretically one would expect that the first observation for a certain metric coming
-      // from a client would always be before the change window. But actually this is not necessarily
-      // true. A client could have started the computation after the change window,
-      // and we would have detected the change thanks to observations coming from other
-      // clients that were already working before the one under analysis, obviously.
-      // Of course we are interested in comparing the behavior of the distribution of the
-      // observations before and after the change. So in a situation in which we just have
-      // "after" the change observations we immediately skip the analysis for the current metric for this client.
-
-      // bool to control if the first observation is actually before the change window
-      bool valid_metric = false;
-
-      if (std::stol(timestamp.seconds) < std::stol(change_window_timestamps.front.seconds))
-      {
-        // if the current date is older than the one from the first element of the
-        // change window then add it to the "before" change window vector.
-        valid_metric = true;
-      }
-      else if (std::stol(timestamp.seconds) == std::stol(change_window_timestamps.front.seconds))
-      {
-        // if the current observation date is the same as the date of the 1st element of the
-        // change window then compare the time. If the current observation's timestamp
-        // comes first in the day then add it to the "before" change window vector
-        if (std::stol(timestamp.nanoseconds) < std::stol(change_window_timestamps.front.nanoseconds))
-        {
-          valid_metric = true;
-        }
-      }
-
-      // if the first observation is before the change window then initialize its struct
-      if (valid_metric)
-      {
-        before_change_window = true;
-        agora::debug(log_prefix, "Client: ", obs_client_id, ": creation of buffer for metric and first insertion: ", *name_ref);
-        // need to create the mapping for the current metric. It's the first time you meet this metric
-        std::vector<float> temp_vector_before;
-        std::vector<float> temp_vector_after;
-        temp_vector_before.emplace_back(current_residual);
-        residuals_from_trace temp_struct = {temp_vector_before, temp_vector_after};
-        client_residuals_map.emplace(*name_ref, temp_struct);
-      }
-      else
-      {
-        agora::debug(log_prefix, "Client: ", obs_client_id, ": Skipping the creation of buffer for metric ", *name_ref, " because we do not have observations before the hypothetical change window");
-      }
-    }
-  }
-
-  if (before_change_window)
-  {
-    agora::pedantic(log_prefix, "Client: ", obs_client_id, ": successfully parsed and inserted into the before-change-window buffer the observation: ", j);
-  }
-  else if (after_change_window)
-  {
-    agora::pedantic(log_prefix, "Client: ", obs_client_id, ": successfully parsed and inserted into the after-change-window buffer the observation: ", j);
-  }
-  else if (skip_change_window)
-  {
-    agora::pedantic(log_prefix, "Client: ", obs_client_id, ": successfully parsed but not inserted into buffers (because belonging to the selected change window) the observation: ", j);
-  }
-  else
-  {
-    agora::pedantic(log_prefix, "Client: ", obs_client_id, ": successfully parsed the observation: ", j);
-  }
-}
-
+/**
+ * @details
+ * Performs the 2nd level test, the hypothesis test.
+ * First of all it interacts with the storage to gather the information from the trace.
+ * It parses the observations from the trace, fills in the buffers and eventually performs the
+ * hypothesis test.
+ * At the end of the hypothesis test this method determines the fate of the model,
+ * meaning that according to the outcome of the test it can invalidate the model and require
+ * a retraining or it can reset the ici test (first level test) and keep the current model.
+ * It manages the insertion of clients in the blacklist.
+ */
 void RemoteApplicationHandler::second_level_test( std::unordered_map<std::string, timestamp_fields>& clients_list_snapshot )
 {
 
@@ -912,8 +673,8 @@ void RemoteApplicationHandler::second_level_test( std::unordered_map<std::string
     {
       agora::debug(log_prefix, "Client: ", i.first, ": Entering while cycle for the ", while_counter, " time with still ", metric_to_be_analyzed.size(), " metrics to be analyzed out of a total of ",
                    reference_metric_names.size(), " beholder-enabled metrics.");
-      // data structure to save the residuals for the specific application-client struct before the change
-      // the structure is organized as a map which maps the name of the metric to a struct
+      // hashmap to save the residuals for the specific application-client:
+      // the key is the name of the metric. The corresponding mapped value is a struct:
       // The first element of the struct is a vector containing the residuals for that metric before the change windows
       // The second element of the struct is a vector containing the residuals for that metric after the change windows
       std::unordered_map<std::string, residuals_from_trace> client_residuals_map;
@@ -953,6 +714,9 @@ void RemoteApplicationHandler::second_level_test( std::unordered_map<std::string
       agora::debug(log_prefix, "Client: ", i.first, ": Querying DB to get its observations from the trace table.");
       //agora::debug(log_prefix, "Query: ", query_select);
 
+      // Gather the rows we are interested in from the trace. We pass the first part of the query (the "select")
+      // and a timestamp (in seconds and nanoseconds) from wich to read the trace. We are not interested
+      // in the part of the trace with timestamps older than those passed here.
       observations_list = agora::io::storage.load_client_observations(description.application_name, i.first, query_select, i.second.seconds,
                           i.second.nanoseconds);
 
@@ -977,7 +741,9 @@ void RemoteApplicationHandler::second_level_test( std::unordered_map<std::string
       agora::debug(log_prefix, "Client: ", i.first, ": Computing which metrics have enough observations to actually perform the hypothesis test.");
 
       // let's analyze if any of the metrics has enough observations to perform the test and
-      // remove the metrics which cannot be analyzed from the client_residuals_map
+      // remove the metrics which cannot be analyzed from the client_residuals_map.
+      // The user can specify as a beholder cli option which is this minimum number of observations
+      // for the two populations (before and after the change) to perform the test.
       for (auto it = client_residuals_map.begin(); it != client_residuals_map.end();)
       {
         if (it->second.before_change.size() < Parameters_beholder::min_observations || it->second.after_change.size() < Parameters_beholder::min_observations)
@@ -1147,10 +913,10 @@ void RemoteApplicationHandler::second_level_test( std::unordered_map<std::string
   // compute the percentage of bad clients and compare it wrt the predefined threshold
   float bad_clients_percentage = ((((float)bad_clients_list.size() + (float)timeout_clients_list.size()) / (float)clients_list_snapshot.size()) * 100);
 
-  // Once I know what the outcome of the hypothesis TEST is, re-acquire the lock
-  // lock the mutex to ensure a consistent global state
+  // Once I know what the outcome of the hypothesis test is, re-acquire the lock to ensure a consistent global state
   std::unique_lock<std::mutex> guard(mutex);
 
+  // If the 2nd level analysis was not possible at all for lack of data (despite the wait period)
   if (timeout_clients_list.size() == clients_list_snapshot.size())
   {
     // TODO: do Something else??
@@ -1270,6 +1036,7 @@ void RemoteApplicationHandler::second_level_test( std::unordered_map<std::string
     change_metric_name = "";
     change_window_timestamps = {};
 
+    // deal with the output files
     if (Parameters_beholder::output_files)
     {
       // for every possible metric available (beholder-enabled metric)
@@ -1280,7 +1047,6 @@ void RemoteApplicationHandler::second_level_test( std::unordered_map<std::string
         // if there is the file structure related to that metric
         if (search != output_files_map.end())
         {
-
           // if the file is open
           if (search->second.observations.is_open())
           {
@@ -1342,25 +1108,20 @@ void RemoteApplicationHandler::second_level_test( std::unordered_map<std::string
             // close the old files
             search->second.observations.close();
             search->second.ici.close();
-            // remove from the map the old file
-            // Or even better replace the old with the new ones, so that you do not need to delete a mapping and
-            // re-create it.
-            // Basically I need to replace the struct here.
-            // I need to use the move operator to assign because the fstreams are not coyable...
+            // Replace in the map the struct related to the old files with the one related to the new files.
+            // I need to use the move operator to assign because the fstreams are not copyable.
             output_files temp_struct_files = {std::move(current_metric_observations_file), std::move(current_metric_ici_file)};
             search->second = std::move(temp_struct_files);
           }
         }
       }
 
-      // destroy the current mapping to output files since the next run will have different naming suffixes
-      //output_files_map.clear();
       // increase the naming suffix counter
       suffix_plot++;
     }
 
     ici_reset_counter++;
-    // resetting the counter of the observations received for the current ici test. Reset to just training phase observations
+    // resetting the counter of the observations received for the current ici test to just training phase observations
     current_test_observations_counter = Parameters_beholder::window_size * Parameters_beholder::training_windows;
 
     // check the actual status of the handler
@@ -1376,5 +1137,321 @@ void RemoteApplicationHandler::second_level_test( std::unordered_map<std::string
       status = ApplicationStatus::READY;
       agora::pedantic(log_prefix, "Setting handler back to READY!");
     }
+  }
+}
+
+
+/**
+ * @details
+ * Method which receives as parameters a row from the list of observations from a specific client from the trace
+ * and parses that and inserts its residuals in the corresponding hashmap.
+ * It also deals with the separation of residuals belonging to the before-the-change period
+ * wrt those belonging to the after-the-change period.
+ */
+void RemoteApplicationHandler::parse_and_insert_observations_for_client_from_trace(std::unordered_map<std::string, residuals_from_trace>& client_residuals_map,
+    const observation_t j, const std::set<std::string>& metric_to_be_analyzed)
+{
+  agora::debug("\n", log_prefix, "String from trace to be parsed: ", j);
+  // parse the string. Taking into account the number of enabled metrics in the current observation.
+  // We need to know which observed metrics we have to retrieve and compare them with the model estimation.
+  // We only keep production phase observations, and of these we only consider metrics (enabled for the beholder)
+  // for which the real observed values is available, to be compared with the model value.
+  std::string obs_client_id;
+  timestamp_fields timestamp;
+  std::vector <std::string> obs_configuration;
+  std::vector <std::string> obs_features;
+  std::vector <std::string> obs_metrics;
+  std::vector <std::string> obs_estimates;
+
+  std::vector<std::string> metric_fields_vec;
+  std::stringstream str_observation(j);
+
+  str_observation >> timestamp.seconds;
+  str_observation >> timestamp.nanoseconds;
+
+  str_observation >> obs_client_id;
+  //agora::debug(log_prefix, "Client_id parsed: ", obs_client_id);
+
+  int num_knobs = description.knobs.size();
+
+  while ( num_knobs > 0 )
+  {
+    std::string current_knob;
+    str_observation >> current_knob;
+    obs_configuration.emplace_back(current_knob);
+    //agora::debug(log_prefix, "Client: ", obs_client_id, ": Knob parsed: ", current_knob);
+    num_knobs--;
+  }
+
+  int num_features = description.features.size();
+
+  while ( num_features > 0 )
+  {
+    std::string current_feature;
+    str_observation >> current_feature;
+    obs_features.emplace_back(current_feature);
+    //agora::debug(log_prefix, "Client: ", obs_client_id, ": Feature parsed: ", current_feature);
+    num_features--;
+  }
+
+  int num_metrics = metric_to_be_analyzed.size();
+
+  while ( num_metrics > 0 )
+  {
+    std::string current_metric;
+    str_observation >> current_metric;
+    obs_metrics.emplace_back(current_metric);
+    //agora::debug(log_prefix, "Client: ", obs_client_id, ": Metrics parsed: ", current_metric);
+    num_metrics--;
+  }
+
+  num_metrics = metric_to_be_analyzed.size();
+
+  // variable to understand if the current row from trace was from a training phase
+  // It would have ALL the estimates to "N/A".
+  // In that case the current row in analysis can be discarded because there is no way
+  // of computing the residuals.
+  // Theoretically by design we should just not receive the training lines from the trace at all,
+  // (because we filter the trace from the time the beholder has first seen the client),
+  // this is just and additional check.
+  bool is_training_row = true;
+
+  while ( num_metrics > 0 )
+  {
+    std::string current_estimate;
+    str_observation >> current_estimate;
+
+    // if there is at least an estimate different from "N/A" then the current row is not from
+    // training and can be used in the CDT analysis for the residuals.
+    if ((current_estimate != "N/A") || (!is_training_row))
+    {
+      is_training_row = false;
+    }
+
+    obs_estimates.emplace_back(current_estimate);
+    //agora::debug(log_prefix, "Client: ", obs_client_id, ": Estimate parsed: ", current_estimate);
+    num_metrics--;
+  }
+
+  // Check if we have consistency in the quantity of measures parsed,
+  // i.e. if the vector of metric names is as big as the one of the observed metrics
+  // and is the same size as the number of metrics enabled for the beholder for the current application
+  if ((obs_metrics.size() != obs_estimates.size()) || (obs_metrics.size() != metric_to_be_analyzed.size()))
+  {
+    agora::warning(log_prefix, "Client: ", obs_client_id, ": Error in the parsed observation, mismatch in the number of fields.");
+    return;
+  }
+
+  // if the current row from trace is from a training phase discard this row and go to the next;
+  if (is_training_row)
+  {
+    agora::debug(log_prefix, "Client: ", obs_client_id, ": Discarding current row because it was from a training phase");
+    return;
+  }
+
+  agora::debug(log_prefix, "Client: ", obs_client_id, ": Done with the parsing of the current row from trace, starting the validation and insertion of the metrics into the residual buffers.");
+
+
+  // Validate the observation and Insert the residuals in the right residual maps structure
+  auto name_ref = metric_to_be_analyzed.begin();
+
+  bool skip_change_window = false;
+  bool before_change_window = false;
+  bool after_change_window = false;
+
+  // for every metric in the row:
+  for (auto index = 0; index < metric_to_be_analyzed.size(); index++, std::advance(name_ref, 1))
+  {
+    // Check whether the metric in analysis was available and valid or if it was a disabled one-->"null" in trace-->parsed as "N/A"
+    // The idea is that if the current metric in analysis is disabled of course we do not insert this metric (for this row)
+    // in the buffers. But in order to be disabled there has to be (by design) a "N/A" in both the observation and the estimate for
+    // that metric. If that is not the case and just one of the two is "N/A" then there is an error somewhere, because it is
+    // theoretically impossible.
+    if (obs_estimates[index] == "N/A")
+    {
+      // for the current version, if a metric is disabled its corresponding prediction must be disable too
+      if (obs_metrics[index] == "N/A")
+      {
+        // skip the comparison on this metric between it was not enabled
+        return;
+      }
+      else
+      {
+        agora::warning(log_prefix, "Client: ", obs_client_id, ": Error in the parsed observation, mismatch between the observed (!N/A) and predicted (N/A) metric.");
+        return;
+      }
+    }
+    // to catch the case in which the metric was null but the estimate was present (not null). Theoretically impossible by design.
+    else if (obs_metrics[index] == "N/A")
+    {
+      agora::warning(log_prefix, "Client: ", obs_client_id, ": Error in the parsed observation, mismatch between the observed (N/A) and predicted (!N/A) metric.");
+      return;
+    }
+
+    // if we arrive here then the parsed metric should be valid (one of the enabled ones at least)
+
+    // NB: note that the residual is computed with abs()!!
+    float current_residual = fabs(std::stof(obs_estimates[index]) - std::stof(obs_metrics[index]));
+    agora::debug(log_prefix, "Client: ", obs_client_id, ": Current residual for metric ", *name_ref, " is: ", current_residual);
+
+    auto search = client_residuals_map.find(*name_ref);
+
+    // Here we need to save the element before the change window in a vector (1st in struct: "before_change"),
+    // and the elements after that window in another corresponding vector (2nd in struct: "after_change").
+    // NB: the timestamps of the hypothetical change window used here are referred obviously
+    // to the metric which first detected the change. It may be the same metric under analysis here
+    // or not.
+    if (search != client_residuals_map.end())
+    {
+      agora::debug(log_prefix, "Client: ", obs_client_id, ": metric ", *name_ref, " already present, filling buffer");
+
+      // metric already present, need to add to the buffer the new residual
+      // compare timestamp: if before the change insert in the 1st vector of the struct
+      if (std::stol(timestamp.seconds) < std::stol(change_window_timestamps.front.seconds))
+      {
+        // if the current seconds_from_epoch is older than the one from the first element of the
+        // change window then add it to the "before" change window vector.
+        search->second.before_change.emplace_back(current_residual);
+        before_change_window = true;
+      }
+      // if the change window is contained in the same seconds_from_epoch (seconds of front and back are the same)
+      else if ((std::stol(change_window_timestamps.front.seconds) == std::stol(change_window_timestamps.back.seconds)) && (std::stol(timestamp.seconds) == std::stol(change_window_timestamps.front.seconds)))
+      {
+        // if the current observation seconds is the same as the seconds of the 1st element of the
+        // change window then compare the nanoseconds. If the current observation's timestamp
+        // comes first in the day then add it to the "before" change window vector
+        if (std::stol(timestamp.nanoseconds) < std::stol(change_window_timestamps.front.nanoseconds))
+        {
+          search->second.before_change.emplace_back(current_residual);
+          before_change_window = true;
+        }
+        // if the current observation seconds is the same as the seconds of the last element of the
+        // change window then compare the time. If the current observation's timestamp
+        // comes later in the day then add it to the "after" change window vector
+        else if (std::stol(timestamp.nanoseconds) > std::stol(change_window_timestamps.back.nanoseconds))
+        {
+          search->second.after_change.emplace_back(current_residual);
+          after_change_window = true;
+        }
+        else
+        {
+          skip_change_window = true;
+        }
+      }
+      // if the change window is not contained in the same seconds (seconds of front and back are not the same)
+      else if (std::stol(timestamp.seconds) == std::stol(change_window_timestamps.front.seconds))
+      {
+        // if the current observation seconds is the same as the seconds of the 1st element of the
+        // change window then compare the time. If the current observation's timestamp
+        // comes first in the day then add it to the "before" change window vector
+        if (std::stol(timestamp.nanoseconds) < std::stol(change_window_timestamps.front.nanoseconds))
+        {
+          search->second.before_change.emplace_back(current_residual);
+          before_change_window = true;
+        }
+        else
+        {
+          skip_change_window = true;
+        }
+
+        // if after the change insert in the 2nd vector of the struct
+      }
+      else if (std::stol(timestamp.seconds) > std::stol(change_window_timestamps.back.seconds))
+      {
+        // if the current seconds is newer than the one from the last element of the
+        // change window then add it to the "after" change window vector.
+        search->second.after_change.emplace_back(current_residual);
+        after_change_window = true;
+      }
+      else if (std::stol(timestamp.seconds) == std::stol(change_window_timestamps.back.seconds))
+      {
+        // if the current observation seconds is the same as the seconds of the last element of the
+        // change window then compare the time. If the current observation's timestamp
+        // comes later in the day then add it to the "after" change window vector
+        if (std::stol(timestamp.nanoseconds) > std::stol(change_window_timestamps.back.nanoseconds))
+        {
+          search->second.after_change.emplace_back(current_residual);
+          after_change_window = true;
+        }
+        else
+        {
+          skip_change_window = true;
+        }
+      }
+      else
+      {
+        skip_change_window = true;
+      }
+
+    }
+    else
+    {
+      // if we did not find any key with the current metric's name under analysis in the struct
+      // then theoretically we should initialize the corresponding struct for the metric.
+      // Check that this first value is actually before the change window. If that is the case then
+      // insert the current observation in the vector of the residuals before the change.
+      // Theoretically one would expect that the first observation for a certain metric coming
+      // from a client would always be before the change window. But actually this is not necessarily
+      // true. A client could have started the computation after the change window,
+      // and we would have detected the change thanks to observations coming from other
+      // clients that were already working before the one under analysis, obviously.
+      // Of course we are interested in comparing the behavior of the distribution of the
+      // observations before and after the change. So in a situation in which we just have
+      // "after" the change observations we immediately skip the analysis for the current metric for this client.
+
+      // bool to control if the first observation is actually before the change window
+      bool valid_metric = false;
+
+      if (std::stol(timestamp.seconds) < std::stol(change_window_timestamps.front.seconds))
+      {
+        // if the current date is older than the one from the first element of the
+        // change window then add it to the "before" change window vector.
+        valid_metric = true;
+      }
+      else if (std::stol(timestamp.seconds) == std::stol(change_window_timestamps.front.seconds))
+      {
+        // if the current observation date is the same as the date of the 1st element of the
+        // change window then compare the time. If the current observation's timestamp
+        // comes first in the day then add it to the "before" change window vector
+        if (std::stol(timestamp.nanoseconds) < std::stol(change_window_timestamps.front.nanoseconds))
+        {
+          valid_metric = true;
+        }
+      }
+
+      // if the first observation is before the change window then initialize its struct
+      if (valid_metric)
+      {
+        before_change_window = true;
+        agora::debug(log_prefix, "Client: ", obs_client_id, ": creation of buffer for metric and first insertion: ", *name_ref);
+        // need to create the mapping for the current metric. It's the first time you meet this metric
+        std::vector<float> temp_vector_before;
+        std::vector<float> temp_vector_after;
+        temp_vector_before.emplace_back(current_residual);
+        residuals_from_trace temp_struct = {temp_vector_before, temp_vector_after};
+        client_residuals_map.emplace(*name_ref, temp_struct);
+      }
+      else
+      {
+        agora::debug(log_prefix, "Client: ", obs_client_id, ": Skipping the creation of buffer for metric ", *name_ref, " because we do not have observations before the hypothetical change window");
+      }
+    }
+  }
+
+  if (before_change_window)
+  {
+    agora::pedantic(log_prefix, "Client: ", obs_client_id, ": successfully parsed and inserted into the before-change-window buffer the observation: ", j);
+  }
+  else if (after_change_window)
+  {
+    agora::pedantic(log_prefix, "Client: ", obs_client_id, ": successfully parsed and inserted into the after-change-window buffer the observation: ", j);
+  }
+  else if (skip_change_window)
+  {
+    agora::pedantic(log_prefix, "Client: ", obs_client_id, ": successfully parsed but not inserted into buffers (because belonging to the selected change window) the observation: ", j);
+  }
+  else
+  {
+    agora::pedantic(log_prefix, "Client: ", obs_client_id, ": successfully parsed the observation: ", j);
   }
 }

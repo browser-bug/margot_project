@@ -285,9 +285,9 @@ namespace beholder
       int parse_observation(Observation_data& observation, const std::string& values);
       int fill_buffers(const Observation_data& observation);
       void first_level_test( void );
+      void second_level_test( std::unordered_map<std::string, timestamp_fields>& clients_list_snapshot );
       void parse_and_insert_observations_for_client_from_trace(std::unordered_map<std::string, residuals_from_trace>& client_residuals_map, const observation_t j,
           const std::set<std::string>& metric_to_be_analyzed);
-      void second_level_test( std::unordered_map<std::string, timestamp_fields>& clients_list_snapshot );
 
       /**
        * @details
