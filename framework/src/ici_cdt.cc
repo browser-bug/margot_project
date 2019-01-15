@@ -25,6 +25,7 @@
 
 namespace beholder
 {
+
   bool IciCdt::perform_ici_cdt(Data_ici_test& data_test, const std::vector<residual_struct>& window_pair,
                                std::unordered_map<std::string, output_files>& output_files_map)
   {

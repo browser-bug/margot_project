@@ -42,6 +42,11 @@ namespace beholder
 
     public:
 
+      /**
+       * @details
+       * This method performs the ICI (Intersection of Confidence Intervals) change detection test.
+       * It returns a boolean: true if a change is detected, false otherwise.
+       */
       static bool perform_ici_cdt(Data_ici_test& data_test, const std::vector<residual_struct>& window_pair,
                                   std::unordered_map<std::string, output_files>& output_files_map);
 

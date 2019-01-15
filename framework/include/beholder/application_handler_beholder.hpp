@@ -405,8 +405,30 @@ namespace beholder
         }
       }
 
+      /**
+       * @details
+       * Default ApplicationHandler constructor.
+       * It sets the status of the handler to READY and it initializes the counters and the workspace folder.
+       * It also writes a file containing the configuration with the current user-set parameters
+       * used by the beholder to allow the user to manually plot the ICI curves (with the provided gnuplot script)
+       * with the same configuration used inside the framework.
+       */
       RemoteApplicationHandler( const std::string& application_name );
 
+      /**
+       * @details
+       * This is the core method, the orchestrator of all the logic and the decisions
+       * for the target application from the viewpoint of the beholder's tasks.
+       * This method is responsible for receiving the observations coming from the client applications
+       * and for taking care of their parsing and their insertion in the memory buffers.
+       * If the buffers are filled-in then the first level (ici) test is carried out.
+       * According to the outcome of the first level test the it could perform
+       * the 2nd level test (hypothesis test).
+       * Depending on the outcome of the 2nd level test it can trigger the retraining,
+       * which is the most important (and impactful) decision the beholder can possibly take.
+       * The retraining itself is the real purpose of the beholder, and has to be triggered
+       * only under some circumstances.
+       */
       void new_observation( const std::string& values );
 
   };

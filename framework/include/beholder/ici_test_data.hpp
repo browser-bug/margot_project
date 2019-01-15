@@ -52,7 +52,9 @@ namespace beholder
     std::vector<float> training_sample_variance_transformed; // V(s)
     float h0;
 
-    // data structure for the CDT:
+    // data for the CDT:
+    // in particular the training data is never replaced to allow the reset of the test to
+    // its training phase. The training data are all the fields with the "reference" word in them.
     float reference_sample_mean_mean;
     float reference_sample_mean_variance;
     float reference_sample_variance_mean;
@@ -69,11 +71,6 @@ namespace beholder
     float current_mean_conf_interval_lower;
     float current_variance_conf_interval_upper;
     float current_variance_conf_interval_lower;
-
-    // data to save the timestamps of the first and last element of the current window
-    // in case of positive ici cdt. This will be useful to pinpoint the change window
-    // when reading from the trace to perform the 2nd step of the hierarchical cdt.
-    //window_timestamps change_window_timestamps;
   };
 
 }

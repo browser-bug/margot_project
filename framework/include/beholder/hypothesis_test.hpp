@@ -35,6 +35,11 @@ namespace beholder
 
     public:
 
+      /**
+       * @details
+       * This method performs the hypothesis test (Welch's test) for the given client.
+       * It returns a boolean: true if the outcome of the test is positive, false otherwise.
+       */
       static bool perform_hypothesis_test(const std::unordered_map<std::string, residuals_from_trace>& client_residuals_map, const std::string& application_name,
                                           const std::string& client_name);
 

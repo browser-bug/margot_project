@@ -1099,7 +1099,14 @@ void CassandraClient::update_doe( const application_description_t& description, 
   execute_query_synch("INSERT INTO " + table_name + " (" + fields + ") VALUES (" + values + ");");
 }
 
-// reset the doe to its initial status and drop the model
+/**
+ * @details
+ * Reset the doe to its initial status, drop the model and truncate the trace.
+ * This method is used by agorà to perform the retraining.
+ * According to the timestamp passad as argument the trace can be either truncated totally
+ * or it can be partially delete. In the latter case it would be deleted for just all the
+ * observations with timestamp older than the provided one.
+ */
 void CassandraClient::reset_doe( const application_description_t& description, const std::string& timestamp)
 {
 
@@ -1362,6 +1369,7 @@ void CassandraClient::reset_doe( const application_description_t& description, c
   const std::string query_combinations = "SELECT " + fields + " FROM " + table_name + ";";
   execute_query_synch(query_combinations, result_handler_combinations);
 
+  // Restore the original counter collected before
   for ( const auto i : primary_keys )
   {
     //debug("Primary Keys: ", i);
@@ -1515,7 +1523,7 @@ void CassandraClient::reset_doe( const application_description_t& description, c
   }
 }
 
-
+// Return the list of clients (without duplicates) running a specific application
 application_list_t CassandraClient::load_clients( const std::string& application_name )
 {
 
@@ -1578,6 +1586,10 @@ application_list_t CassandraClient::load_clients( const std::string& application
 }
 
 
+/**
+ * @details
+ * Return a vector of strings containing all the rows of the trace with timestamp newer than the one passed as argument.
+ */
 observations_list_t CassandraClient::load_client_observations( const std::string& application_name, const std::string& client_name, const std::string& query_select, const std::string& seconds,
     const std::string& nanoseconds )
 {

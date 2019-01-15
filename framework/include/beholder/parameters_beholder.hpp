@@ -26,6 +26,10 @@
 namespace beholder
 {
 
+  /**
+   * @default
+   * Struct storing all the beholder options that the user can set through cli arguments.
+   */
   struct Parameters_beholder
   {
     static std::string workspace_folder;

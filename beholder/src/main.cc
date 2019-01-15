@@ -71,7 +71,6 @@ void ParseCommandLine(int argc, char* argv[])
 int main( int argc, char* argv[] )
 {
   // variables to control the application behavior
-  // int opt = -1;
   std::string storage_implementation = "cassandra";
   std::string storage_address = "127.0.0.1";
   std::string storage_username = "";

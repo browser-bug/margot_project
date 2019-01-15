@@ -27,6 +27,7 @@ using boost::math::students_t;
 
 namespace beholder
 {
+
   bool HypTest::perform_hypothesis_test(const std::unordered_map<std::string, residuals_from_trace>& client_residuals_map, const std::string& application_name,
                                         const std::string& client_name)
   {
@@ -34,7 +35,7 @@ namespace beholder
     bool confirmed_change = false;
 
     // I'll have to go through each metric present in the structure, but as soon as i find a metric
-    // which confirms the test i'll return true without analyzing the others
+    // which confirms the test I'll return true without analyzing the others
 
     // cycle over the metrics available
     for (auto& i : client_residuals_map)
