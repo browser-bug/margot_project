@@ -29,7 +29,6 @@ namespace beholder
 {
 
   void beholder_worker_function( void );
-  void initialize_with_agora( void );
 
 }
 

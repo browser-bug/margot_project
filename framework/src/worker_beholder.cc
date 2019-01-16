@@ -101,7 +101,7 @@ namespace beholder
       // or
       // "beholder/+/+/+/model" = message sent by agora specifically for the beholder to
       // inform the beholder of the applications for which currently agorà already has a model
-      // and for which the beholder has to prepare the handler and accept observations
+      // and for which the beholder has to prepare the handler and accept observations.
       // if "margot/..."
       if (num_chars == 6)
       {
@@ -133,7 +133,7 @@ namespace beholder
       // in this way we only re-enable the handler if:
       // 1) it was already present
       // (otherwise it is useless if it is a new one the constructor sets the status to READY already)
-      // 2) if it is a model broadcast message, so after model recomputation,
+      // 2) if it is a model broadcast message, so after model recomputation;
       // we do not re-enable the handler if it is just a client model message.
       // If the following method is called in other situations it is theoretically painless
       // because it only sets the handler to READY executed when we receive a broadcast model
@@ -254,9 +254,9 @@ namespace beholder
       GlobalView::set_with_agora_true();
 
       // we need to differentiate whether this is a welcome message from agorà in response to a welcome from
-      // the beholder itself (in this case we can avoid asking for applications) because agorà automatically sends them),
+      // the beholder itself (in this case we can avoid asking for applications because agorà automatically sends them),
       // or if this is a generic agorà "broadcast" welcome message. In the latter case we could need to ask for a status update.
-      // if there are three slashes in the topic we are receiving the welcome in response from a beholder explicit welcome
+      // If there are three slashes in the topic we are receiving the welcome in response from a beholder explicit welcome
       // and we can return because agorà will send the status update automatically.
       // It means the beholder was started after agorà.
       if (std::count(new_message.topic.begin(), new_message.topic.end(), '/') == 3)
@@ -264,10 +264,10 @@ namespace beholder
         return;
       }
 
-      // if we reaqch this point it means the welcome message was a generic agorà welcome message
-      // it means agorà was started after the beholder (or died and was relaunched while the beholder was on)
-      // if the beholder has no handlers then it sends the welcome message to agorà
-      // this is supposed to be used if the user starts the beholder right before agorà
+      // if we reach this point it means the welcome message was a generic agorà welcome message.
+      // It means agorà was started after the beholder (or died and was relaunched while the beholder was on).
+      // If the beholder has no handlers then it sends the welcome message to agorà.
+      // This is supposed to be used if the user starts the beholder right before agorà
       // for the initial sharing of the already present models in agorà.
       if (GlobalView::get_handlers_number() == 0)
       {

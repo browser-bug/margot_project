@@ -543,6 +543,7 @@ void RemoteApplicationHandler::bye_client( const std::string& client_name )
   }
 }
 
+
 void RemoteApplicationHandler::retraining( const std::string& timestamp )
 {
 

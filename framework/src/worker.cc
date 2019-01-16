@@ -92,11 +92,13 @@ namespace agora
         // get the list of applications which currently have the model and whose clients' list is not empty
         const auto app_list = GlobalView::get_handlers_with_model();
 
+        // send a message to the beholder to inform that agorà is alive
         io::remote.send_message({"margot/agora/beholder/welcome", ""});
         pedantic("Thread ", get_tid(), ": agorà has no applications with model currently. Sending welcome message to beholder to aknowledge agorà's vitality.'");
 
         if (app_list.size() != 0)
         {
+          // send a message to the beholder for every application for which there is a model
           for (auto& i : app_list)
           {
             io::remote.send_message({"beholder/" + i + "/model", ""});
@@ -193,10 +195,10 @@ namespace agora
       // get the client id
       const auto observation = new_message.payload;
 
-      // look for a space in the payload
       // we need to differentiate the case in which we are given the timestamp of the last observation
-      // to just delete the trace from its top to this element or if we are not given anything
+      // to delete the trace just from its top to this element or if we are not given anything
       // and we will just delete the whole trace.
+      // Look for a space in the payload.
       const auto pos_first_space = observation.find_first_of(' ', 0);
 
       // just a check that the unique command (as of now) is the correct word "retraining"
@@ -211,7 +213,7 @@ namespace agora
         // handle the message
         if (pos_first_space != std::string::npos)
         {
-          // if actually there is the space then pass the whole rest of the payload containing the timestamps
+          // if there is the space then pass the whole rest of the payload containing the timestamps
           application_handler->retraining(observation.substr(pos_first_space + 1, std::string::npos));
         }
         else

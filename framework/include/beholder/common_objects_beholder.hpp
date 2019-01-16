@@ -40,13 +40,14 @@ namespace beholder
     std::string nanoseconds;
   };
 
+  // struct to represent the two timestamps of the first and last element of a time window
   struct window_timestamps
   {
     timestamp_fields front;
     timestamp_fields back;
   };
 
-  // struct to bind a residual with its timestamp
+  // struct to bind a residual (difference between observed and expected value) with its timestamp
   struct residual_struct
   {
     float residual_value;
