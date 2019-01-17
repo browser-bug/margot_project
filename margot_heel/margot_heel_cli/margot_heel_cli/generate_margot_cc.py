@@ -1118,12 +1118,17 @@ def generate_margot_cc( block_models, op_lists, output_folder ):
     cc.write('#include "margot_logger.hpp"\n')
     cc.write('#endif // MARGOT_LOG_FILE\n')
 
-    # if we have the "pause" element in agora we need to add these includes
+    # if we have the "pause" element in agora (and we have agora) we need to add these includes
+    # loop over the blocks
     for block_name in block_models:
-      if not block_models[block_name].agora_model.pause_polling == "":
-          cc.write('#include <chrono>\n')
-          cc.write('#include <thread>\n')
-          break
+      # get the reference to the block
+      block_model = block_models[block_name]
+      if not block_model.agora_model is None:
+        for block_name in block_models:
+          if not block_models[block_name].agora_model.pause_polling == "":
+              cc.write('#include <chrono>\n')
+              cc.write('#include <thread>\n')
+              break
 
     # if we have the wrapper we need to add these includes
     for block_name in block_models:
