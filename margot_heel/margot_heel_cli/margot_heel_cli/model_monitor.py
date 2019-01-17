@@ -128,7 +128,7 @@ know_monitor_spec = [
   'ERROR'
 ]
 
-available_frequencies = ['never', 'always', 'periodic', 'auto']
+available_frequencies = ['training', 'always', 'periodic']
 
 
 def get_monitor_spec( monitor_type ):

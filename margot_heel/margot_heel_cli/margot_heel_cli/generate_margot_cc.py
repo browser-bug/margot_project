@@ -70,8 +70,8 @@ def generate_block_body( block_model, op_lists, cc ):
           errorPeriod = error_monitor[error_monitor.keys()[0]] # save the frequency
         else:
           errorType = error_monitor[error_monitor.keys()[0]]
-      # if all the error monitors are "never" then treat it as just a single "never" monitor
-      elif (len(error_monitor) == list(error_monitor.values()).count("never")):
+      # if all the error monitors are "training" then treat it as just a single "training" monitor
+      elif (len(error_monitor) == list(error_monitor.values()).count("training")):
         errorType = error_monitor[error_monitor.keys()[0]]
         uniqueErrorMonitor = True
       # if there exists even only just one error monitor which is "always" then treat it as a single "always" monitor
@@ -79,8 +79,8 @@ def generate_block_body( block_model, op_lists, cc ):
         errorType = "always"
         uniqueErrorMonitor = True
       else:
-        # remove all the "never" error monitors and just keep the periodic ones (those are the only one which can still remain after these checks)
-        errorPeriodicDictionary = {k:v for k,v in error_monitor.items() if v != 'never'}
+        # remove all the "training" error monitors and just keep the periodic ones (those are the only one which can still remain after these checks)
+        errorPeriodicDictionary = {k:v for k,v in error_monitor.items() if v != 'training'}
         # now we only have "periodic" monitors
         tempPeriod = errorPeriodicDictionary[errorPeriodicDictionary.keys()[0]]
         uniqueErrorMonitor = True
@@ -807,7 +807,7 @@ def generate_block_body( block_model, op_lists, cc ):
     if errorType == "always":
       cc.write("\n\t\t\texpectingErrorReturn = true;")
       cc.write("\n\t\t\treturn true;")
-    if errorType == "never":
+    if errorType == "training":
       cc.write("\n\t\t\texpectingErrorReturn = (!(manager.has_model()) || (manager.are_metrics_on()));")
       cc.write("\n\t\t\treturn !(manager.has_model());")
     if errorType == "periodic":
