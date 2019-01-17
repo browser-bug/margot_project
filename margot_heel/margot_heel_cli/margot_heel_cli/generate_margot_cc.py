@@ -410,6 +410,10 @@ def generate_block_body( block_model, op_lists, cc ):
         # if there is at least one element in the list of metrics then the user specified the metrics for the beholder explicitly
         if len(beholder_metrics) > 0:
           beholderMetricsExplicit = True
+          # check the consistency of the beholder-metrics. Check if these are a subset of the metrics
+          if not all(a in metrics for a in beholder_metrics):
+              raise Exception("The metrics specified for the beholder are not correct. Check the names!")
+
 
         # start to compose the list of terms to send to
         knob_terms = []
@@ -512,7 +516,7 @@ def generate_block_body( block_model, op_lists, cc ):
             send_string = ' + " " + '.join([knob_string, feature_string, metric_string, metric_predictions, metric_names])
         else:
             send_string = ' + " " + '.join([knob_string, metric_string, metric_predictions, metric_names])
-        cc.write('\t\t\t\t\tmanager.send_observation({0},{1});\n'.format(send_string,send_beholder_string))
+        cc.write('\t\t\t\t\tmanager.send_observation({0}, {1});\n'.format(send_string,send_beholder_string))
 
         # else send the observation to just the agora remote application handler
         # send a "null" in place of the predictions so that the trace estimates are left empty
@@ -640,7 +644,7 @@ def generate_block_body( block_model, op_lists, cc ):
             send_string = ' + " " + '.join([knob_string, feature_string, metric_string, metric_predictions])
         else:
             send_string = ' + " " + '.join([knob_string, metric_string, metric_predictions])
-        cc.write('\t\t\t\t\tmanager.send_observation({0},{1});\n'.format(send_string,send_beholder_string))
+        cc.write('\t\t\t\t\tmanager.send_observation({0}, {1});\n'.format(send_string,send_beholder_string))
 
         # else send the observation to just the agora remote application handler
         # send a "null" in place of the predictions so that the trace estimates are left empty
@@ -769,7 +773,7 @@ def generate_block_body( block_model, op_lists, cc ):
             send_string = ' + " " + '.join([knob_string, feature_string, metric_string, metric_predictions])
         else:
             send_string = ' + " " + '.join([knob_string, metric_string, metric_predictions])
-        cc.write('\t\t\t\tmanager.send_observation({0},{1});\n'.format(send_string,send_beholder_string))
+        cc.write('\t\t\t\tmanager.send_observation({0}, {1});\n'.format(send_string,send_beholder_string))
 
         # else send the observation to just the agora remote application handler
         # send a "null" in place of the predictions so that the trace estimates are left empty
