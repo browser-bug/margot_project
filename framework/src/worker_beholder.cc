@@ -229,11 +229,11 @@ namespace beholder
           // get the application handler
           const auto application_handler = GlobalView::get_handler(application_name);
 
+          // log the event
+          agora::pedantic("Thread ", get_tid(), ": received kia message from client: ", client_id, " for application: ", application_name, ".");
+
           // handle the message
           application_handler->bye_client(client_id);
-
-          // log the event
-          agora::pedantic("Thread ", get_tid(), ": received kia message from client: ", client_id, " for application: ", application_name, ". Removing client from the list of managed clients.");
         }
         else
         {

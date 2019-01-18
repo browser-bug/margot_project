@@ -932,6 +932,16 @@ def generate_block_body( block_model, op_lists, cc ):
       what_we_are_printing.append('{0}'.format(monitor_model.exposed_metrics[exposed_var_what]))
       monitor_printers.append('{0}::{1}'.format(block_model.block_name, monitor_model.exposed_metrics[exposed_var_what]))
 
+  # compute the getters for the monitors taking into account the error monitors which could be disabled
+  if thereIsErrorMonitor:
+    monitor_printers_error = []
+    for monitor_model in block_model.monitor_models:
+      if not monitor_model.type.upper() == "ERROR":
+        for exposed_var_what in monitor_model.exposed_metrics:
+          monitor_printers_error.append('{0}::{1}'.format(block_model.block_name, monitor_model.exposed_metrics[exposed_var_what]))
+      else:
+        for exposed_var_what in monitor_model.exposed_metrics:
+          monitor_printers_error.append('"N/A"')
 
   # compute the getters for the observed data features
   data_feature_printer = []
@@ -1001,90 +1011,292 @@ def generate_block_body( block_model, op_lists, cc ):
   cc.write('\n\t\t\t#ifdef MARGOT_LOG_STDOUT\n')
 
   if (block_model.metrics and block_model.software_knobs ):
-      cc.write('\t\t\tif (!(manager.is_application_knowledge_empty() || manager.in_design_space_exploration()))\n')
-      cc.write('\t\t\t{\n')
+      # if there are no error monitors leave the usual staightforward version
+      if not thereIsErrorMonitor:
 
-      # then print the stuff
-      things_to_print = list(cluster_feature_printer)
-      things_to_print.extend(software_knobs_printers)
-      things_to_print.extend(metrics_printers)
-      things_to_print.extend(goal_printers)
-      things_to_print.extend(monitor_printers)
-      things_to_print.extend(data_feature_printer)
+          cc.write('\t\t\tif (!(manager.is_application_knowledge_empty() || manager.in_design_space_exploration()))\n')
+          cc.write('\t\t\t{\n')
 
-      # set the endl from arguments
-      endl_indexes = [len(cluster_feature_printer)]
-      endl_indexes.append( endl_indexes[-1] + len(software_knobs_printers))
-      endl_indexes.append( endl_indexes[-1] + len(metrics_printers))
-      endl_indexes.append( endl_indexes[-1] + len(goal_printers))
-      endl_indexes.append( endl_indexes[-1] + len(monitor_printers))
-      endl_indexes.append( endl_indexes[-1] + len(data_feature_printer))
+          # then print the stuff
+          things_to_print = list(cluster_feature_printer)
+          things_to_print.extend(software_knobs_printers)
+          things_to_print.extend(metrics_printers)
+          things_to_print.extend(goal_printers)
+          things_to_print.extend(monitor_printers)
+          things_to_print.extend(data_feature_printer)
 
-      # write the print statement
-      composed_elements = []
-      for index, content in enumerate(things_to_print):
-        if index in endl_indexes:
-          composed_elements.append('std::endl')
-        string = '"[ {0} = " << {1} << "] "'.format(what_we_are_printing[index], content)
-        composed_elements.append(string)
-      string_to_print = '\n\t\t\t\t\t<< '.join(composed_elements)
-      cc.write('\t\t\t\tstd::cout <<')
-      cc.write('{0} << std::endl;\n'.format(string_to_print))
+          # set the endl from arguments
+          endl_indexes = [len(cluster_feature_printer)]
+          endl_indexes.append( endl_indexes[-1] + len(software_knobs_printers))
+          endl_indexes.append( endl_indexes[-1] + len(metrics_printers))
+          endl_indexes.append( endl_indexes[-1] + len(goal_printers))
+          endl_indexes.append( endl_indexes[-1] + len(monitor_printers))
+          endl_indexes.append( endl_indexes[-1] + len(data_feature_printer))
+
+          # write the print statement
+          composed_elements = []
+          for index, content in enumerate(things_to_print):
+            if index in endl_indexes:
+              composed_elements.append('std::endl')
+            string = '"[ {0} = " << {1} << "] "'.format(what_we_are_printing[index], content)
+            composed_elements.append(string)
+          string_to_print = '\n\t\t\t\t\t<< '.join(composed_elements)
+          cc.write('\t\t\t\tstd::cout <<')
+          cc.write('{0} << std::endl;\n'.format(string_to_print))
+
+          cc.write('\t\t\t}\n')
+          cc.write('\t\t\telse\n')
+          cc.write('\t\t\t{\n')
+
+          # then print the stuff
+          things_to_print = list(cluster_feature_printer_alternative)
+          things_to_print.extend(software_knobs_printers_alternative)
+          things_to_print.extend(metrics_printers_alternative)
+          things_to_print.extend(goal_printers)
+          things_to_print.extend(monitor_printers)
+          things_to_print.extend(data_feature_printer)
+
+          # set the endl from arguments
+          endl_indexes = [len(cluster_feature_printer_alternative)]
+          endl_indexes.append( endl_indexes[-1] + len(software_knobs_printers_alternative))
+          endl_indexes.append( endl_indexes[-1] + len(metrics_printers))
+          endl_indexes.append( endl_indexes[-1] + len(goal_printers))
+          endl_indexes.append( endl_indexes[-1] + len(monitor_printers))
+          endl_indexes.append( endl_indexes[-1] + len(data_feature_printer))
+
+          # write the print statement
+          composed_elements = []
+          for index, content in enumerate(things_to_print):
+            if index in endl_indexes:
+              composed_elements.append('std::endl')
+            string = '"[ {0} = " << {1} << "] "'.format(what_we_are_printing[index], content)
+            composed_elements.append(string)
+          string_to_print = '\n\t\t\t\t\t<< '.join(composed_elements)
+          cc.write('\t\t\t\tstd::cout <<')
+          cc.write('{0} << std::endl;\n'.format(string_to_print))
 
 
-      cc.write('\t\t\t}\n')
-      cc.write('\t\t\telse\n')
-      cc.write('\t\t\t{\n')
+          cc.write('\t\t\t}\n')
 
-      # then print the stuff
-      things_to_print = list(cluster_feature_printer_alternative)
-      things_to_print.extend(software_knobs_printers_alternative)
-      things_to_print.extend(metrics_printers_alternative)
-      things_to_print.extend(goal_printers)
-      things_to_print.extend(monitor_printers)
-      things_to_print.extend(data_feature_printer)
+      else:   # if there is at least one error monitor
 
-      # set the endl from arguments
-      endl_indexes = [len(cluster_feature_printer_alternative)]
-      endl_indexes.append( endl_indexes[-1] + len(software_knobs_printers_alternative))
-      endl_indexes.append( endl_indexes[-1] + len(metrics_printers))
-      endl_indexes.append( endl_indexes[-1] + len(goal_printers))
-      endl_indexes.append( endl_indexes[-1] + len(monitor_printers))
-      endl_indexes.append( endl_indexes[-1] + len(data_feature_printer))
+          # if we expect any error monitor value at this run then print the values for the error monitors too
+          # this is the same as if there were no error monitors at all
+          cc.write('\t\t\tif (expectingErrorReturn)\n')
+          cc.write('\t\t\t{\n')
+          cc.write('\t\t\t\tif (!(manager.is_application_knowledge_empty() || manager.in_design_space_exploration()))\n')
+          cc.write('\t\t\t\t{\n')
 
-      # write the print statement
-      composed_elements = []
-      for index, content in enumerate(things_to_print):
-        if index in endl_indexes:
-          composed_elements.append('std::endl')
-        string = '"[ {0} = " << {1} << "] "'.format(what_we_are_printing[index], content)
-        composed_elements.append(string)
-      string_to_print = '\n\t\t\t\t\t<< '.join(composed_elements)
-      cc.write('\t\t\t\tstd::cout <<')
-      cc.write('{0} << std::endl;\n'.format(string_to_print))
+          # then print the stuff
+          things_to_print = list(cluster_feature_printer)
+          things_to_print.extend(software_knobs_printers)
+          things_to_print.extend(metrics_printers)
+          things_to_print.extend(goal_printers)
+          things_to_print.extend(monitor_printers)
+          things_to_print.extend(data_feature_printer)
+
+          # set the endl from arguments
+          endl_indexes = [len(cluster_feature_printer)]
+          endl_indexes.append( endl_indexes[-1] + len(software_knobs_printers))
+          endl_indexes.append( endl_indexes[-1] + len(metrics_printers))
+          endl_indexes.append( endl_indexes[-1] + len(goal_printers))
+          endl_indexes.append( endl_indexes[-1] + len(monitor_printers))
+          endl_indexes.append( endl_indexes[-1] + len(data_feature_printer))
+
+          # write the print statement
+          composed_elements = []
+          for index, content in enumerate(things_to_print):
+            if index in endl_indexes:
+              composed_elements.append('std::endl')
+            string = '"[ {0} = " << {1} << "] "'.format(what_we_are_printing[index], content)
+            composed_elements.append(string)
+          string_to_print = '\n\t\t\t\t\t<< '.join(composed_elements)
+          cc.write('\t\t\t\t\tstd::cout <<')
+          cc.write('{0} << std::endl;\n'.format(string_to_print))
+
+          cc.write('\t\t\t\t}\n')
+          cc.write('\t\t\t\telse\n')
+          cc.write('\t\t\t\t{\n')
+
+          # then print the stuff
+          things_to_print = list(cluster_feature_printer_alternative)
+          things_to_print.extend(software_knobs_printers_alternative)
+          things_to_print.extend(metrics_printers_alternative)
+          things_to_print.extend(goal_printers)
+          things_to_print.extend(monitor_printers)
+          things_to_print.extend(data_feature_printer)
+
+          # set the endl from arguments
+          endl_indexes = [len(cluster_feature_printer_alternative)]
+          endl_indexes.append( endl_indexes[-1] + len(software_knobs_printers_alternative))
+          endl_indexes.append( endl_indexes[-1] + len(metrics_printers))
+          endl_indexes.append( endl_indexes[-1] + len(goal_printers))
+          endl_indexes.append( endl_indexes[-1] + len(monitor_printers))
+          endl_indexes.append( endl_indexes[-1] + len(data_feature_printer))
+
+          # write the print statement
+          composed_elements = []
+          for index, content in enumerate(things_to_print):
+            if index in endl_indexes:
+              composed_elements.append('std::endl')
+            string = '"[ {0} = " << {1} << "] "'.format(what_we_are_printing[index], content)
+            composed_elements.append(string)
+          string_to_print = '\n\t\t\t\t\t<< '.join(composed_elements)
+          cc.write('\t\t\t\t\tstd::cout <<')
+          cc.write('{0} << std::endl;\n'.format(string_to_print))
 
 
-      cc.write('\t\t\t}\n')
+          cc.write('\t\t\t\t}\n')
+          cc.write('\t\t\t}\n')
+          cc.write('\t\t\telse\n')
+          cc.write('\t\t\t{\n')
+
+
+          # if we do not expect any error monitor value at this run then write "N/A" besides the error monitors
+
+          cc.write('\t\t\t\tif (!(manager.is_application_knowledge_empty() || manager.in_design_space_exploration()))\n')
+          cc.write('\t\t\t\t{\n')
+
+          # then print the stuff
+          things_to_print = list(cluster_feature_printer)
+          things_to_print.extend(software_knobs_printers)
+          things_to_print.extend(metrics_printers)
+          things_to_print.extend(goal_printers)
+          things_to_print.extend(monitor_printers_error)
+          things_to_print.extend(data_feature_printer)
+
+          # set the endl from arguments
+          endl_indexes = [len(cluster_feature_printer)]
+          endl_indexes.append( endl_indexes[-1] + len(software_knobs_printers))
+          endl_indexes.append( endl_indexes[-1] + len(metrics_printers))
+          endl_indexes.append( endl_indexes[-1] + len(goal_printers))
+          endl_indexes.append( endl_indexes[-1] + len(monitor_printers_error))
+          endl_indexes.append( endl_indexes[-1] + len(data_feature_printer))
+
+          # write the print statement
+          composed_elements = []
+          for index, content in enumerate(things_to_print):
+            if index in endl_indexes:
+              composed_elements.append('std::endl')
+            string = '"[ {0} = " << {1} << "] "'.format(what_we_are_printing[index], content)
+            composed_elements.append(string)
+          string_to_print = '\n\t\t\t\t\t<< '.join(composed_elements)
+          cc.write('\t\t\t\t\tstd::cout <<')
+          cc.write('{0} << std::endl;\n'.format(string_to_print))
+
+          cc.write('\t\t\t\t}\n')
+          cc.write('\t\t\t\telse\n')
+          cc.write('\t\t\t\t{\n')
+
+          # then print the stuff
+          things_to_print = list(cluster_feature_printer_alternative)
+          things_to_print.extend(software_knobs_printers_alternative)
+          things_to_print.extend(metrics_printers_alternative)
+          things_to_print.extend(goal_printers)
+          things_to_print.extend(monitor_printers_error)
+          things_to_print.extend(data_feature_printer)
+
+          # set the endl from arguments
+          endl_indexes = [len(cluster_feature_printer_alternative)]
+          endl_indexes.append( endl_indexes[-1] + len(software_knobs_printers_alternative))
+          endl_indexes.append( endl_indexes[-1] + len(metrics_printers))
+          endl_indexes.append( endl_indexes[-1] + len(goal_printers))
+          endl_indexes.append( endl_indexes[-1] + len(monitor_printers_error))
+          endl_indexes.append( endl_indexes[-1] + len(data_feature_printer))
+
+          # write the print statement
+          composed_elements = []
+          for index, content in enumerate(things_to_print):
+            if index in endl_indexes:
+              composed_elements.append('std::endl')
+            string = '"[ {0} = " << {1} << "] "'.format(what_we_are_printing[index], content)
+            composed_elements.append(string)
+          string_to_print = '\n\t\t\t\t\t<< '.join(composed_elements)
+          cc.write('\t\t\t\t\tstd::cout <<')
+          cc.write('{0} << std::endl;\n'.format(string_to_print))
+          cc.write('\t\t\t\t}\n')
+
+          cc.write('\t\t\t}\n')
+
   else:
-      things_to_print = list(goal_printers)
-      things_to_print.extend(monitor_printers)
-      things_to_print.extend(data_feature_printer)
+      # if there are no error monitors leave the usual staightforward version
+      if not thereIsErrorMonitor:
 
-      # set the endl from arguments
-      endl_indexes = [len(goal_printers)]
-      endl_indexes.append( endl_indexes[-1] + len(monitor_printers))
-      endl_indexes.append( endl_indexes[-1] + len(data_feature_printer))
+          things_to_print = list(goal_printers)
+          things_to_print.extend(monitor_printers)
+          things_to_print.extend(data_feature_printer)
 
-      # write the print statement
-      composed_elements = []
-      for index, content in enumerate(things_to_print):
-        if index in endl_indexes:
-          composed_elements.append('std::endl')
-        string = '"[ {0} = " << {1} << "] "'.format(what_we_are_printing[index], content)
-        composed_elements.append(string)
-      string_to_print = '\n\t\t\t\t\t<< '.join(composed_elements)
-      cc.write('\t\t\t\tstd::cout <<')
-      cc.write('{0} << std::endl;\n'.format(string_to_print))
+          # set the endl from arguments
+          endl_indexes = [len(goal_printers)]
+          endl_indexes.append( endl_indexes[-1] + len(monitor_printers))
+          endl_indexes.append( endl_indexes[-1] + len(data_feature_printer))
+
+          # write the print statement
+          composed_elements = []
+          for index, content in enumerate(things_to_print):
+            if index in endl_indexes:
+              composed_elements.append('std::endl')
+            string = '"[ {0} = " << {1} << "] "'.format(what_we_are_printing[index], content)
+            composed_elements.append(string)
+          string_to_print = '\n\t\t\t\t\t<< '.join(composed_elements)
+          cc.write('\t\t\t\tstd::cout <<')
+          cc.write('{0} << std::endl;\n'.format(string_to_print))
+
+      else:   # if there is at least one error monitor
+
+          # if we expect any error monitor value at this run then print the values for the error monitors too
+          # this is the same as if there were no error monitors at all
+          cc.write('\t\t\t\tif (expectingErrorReturn)\n')
+          cc.write('\t\t\t\t{\n')
+
+          things_to_print = list(goal_printers)
+          things_to_print.extend(monitor_printers)
+          things_to_print.extend(data_feature_printer)
+
+          # set the endl from arguments
+          endl_indexes = [len(goal_printers)]
+          endl_indexes.append( endl_indexes[-1] + len(monitor_printers))
+          endl_indexes.append( endl_indexes[-1] + len(data_feature_printer))
+
+          # write the print statement
+          composed_elements = []
+          for index, content in enumerate(things_to_print):
+            if index in endl_indexes:
+              composed_elements.append('std::endl')
+            string = '"[ {0} = " << {1} << "] "'.format(what_we_are_printing[index], content)
+            composed_elements.append(string)
+          string_to_print = '\n\t\t\t\t\t<< '.join(composed_elements)
+          cc.write('\t\t\t\t\tstd::cout <<')
+          cc.write('{0} << std::endl;\n'.format(string_to_print))
+
+          cc.write('\t\t\t\t}\n')
+          cc.write('\t\t\t\telse\n')
+          cc.write('\t\t\t\t{\n')
+
+
+          # if we do not expect any error monitor value at this run then write "N/A" besides the error monitors
+
+          things_to_print = list(goal_printers)
+          things_to_print.extend(monitor_printers_error)
+          things_to_print.extend(data_feature_printer)
+
+          # set the endl from arguments
+          endl_indexes = [len(goal_printers)]
+          endl_indexes.append( endl_indexes[-1] + len(monitor_printers_error))
+          endl_indexes.append( endl_indexes[-1] + len(data_feature_printer))
+
+          # write the print statement
+          composed_elements = []
+          for index, content in enumerate(things_to_print):
+            if index in endl_indexes:
+              composed_elements.append('std::endl')
+            string = '"[ {0} = " << {1} << "] "'.format(what_we_are_printing[index], content)
+            composed_elements.append(string)
+          string_to_print = '\n\t\t\t\t\t<< '.join(composed_elements)
+          cc.write('\t\t\t\t\tstd::cout <<')
+          cc.write('{0} << std::endl;\n'.format(string_to_print))
+
+
   cc.write('\t\t\t#endif // MARGOT_LOG_STDOUT\n')
 
 

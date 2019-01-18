@@ -402,6 +402,11 @@ namespace beholder
         if (search_client != clients_list.end())
         {
           clients_list.erase(search_client);
+          agora::debug(log_prefix, "Removing client ", client_id, " from the list of managed applications following the reception of its kia message.");
+        }
+        else
+        {
+          agora::debug(log_prefix, "Ignoring kia message from client ", client_id, " since it is not in the list of managed clients.");
         }
       }
 
