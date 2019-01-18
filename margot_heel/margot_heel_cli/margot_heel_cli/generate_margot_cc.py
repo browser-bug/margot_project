@@ -955,52 +955,176 @@ def generate_block_body( block_model, op_lists, cc ):
 
   cc.write('\n\t\t\t#ifdef MARGOT_LOG_FILE\n')
   if (block_model.metrics and block_model.software_knobs ):
-      cc.write('\t\t\tif (!(manager.is_application_knowledge_empty() || manager.in_design_space_exploration()))\n')
-      cc.write('\t\t\t{\n')
+      # if there are no error monitors leave the usual staightforward version
+      if not thereIsErrorMonitor:
+          cc.write('\t\t\tif (!(manager.is_application_knowledge_empty() || manager.in_design_space_exploration()))\n')
+          cc.write('\t\t\t{\n')
 
 
-      # if we have ops it's easythen print the stuff
-      things_to_print = list(cluster_feature_printer)
-      things_to_print.extend(software_knobs_printers)
-      things_to_print.extend(metrics_printers)
-      things_to_print.extend(goal_printers)
-      things_to_print.extend(monitor_printers)
-      things_to_print.extend(data_feature_printer)
-      string_to_print = ',\n\t\t\t\t\t'.join(things_to_print)
-      cc.write('\t\t\t\tfile_logger.write(')
-      cc.write('{0});\n'.format(string_to_print))
+          # if we have ops it's easythen print the stuff
+          things_to_print = list(cluster_feature_printer)
+          things_to_print.extend(software_knobs_printers)
+          things_to_print.extend(metrics_printers)
+          things_to_print.extend(goal_printers)
+          things_to_print.extend(monitor_printers)
+          things_to_print.extend(data_feature_printer)
+          string_to_print = ',\n\t\t\t\t\t'.join(things_to_print)
+          cc.write('\t\t\t\tfile_logger.write(')
+          cc.write('{0});\n'.format(string_to_print))
 
 
-      cc.write('\t\t\t}\n')
-      cc.write('\t\t\telse\n')
-      cc.write('\t\t\t{\n')
+          cc.write('\t\t\t}\n')
+          cc.write('\t\t\telse\n')
+          cc.write('\t\t\t{\n')
 
-      # if we have no ops, we must made up the expected stuff
-      software_knobs_printers_alternative = ['{1}::knobs::{0}'.format(x.var_name, block_model.block_name) for x in block_model.software_knobs]
-      metrics_printers_alternative = ['"N/A"' for x in metrics_printers]
-      cluster_feature_printer_alternative = ['"N/A"' for x in cluster_feature_printer]
+          # if we have no ops, we must made up the expected stuff
+          software_knobs_printers_alternative = ['{1}::knobs::{0}'.format(x.var_name, block_model.block_name) for x in block_model.software_knobs]
+          metrics_printers_alternative = ['"N/A"' for x in metrics_printers]
+          cluster_feature_printer_alternative = ['"N/A"' for x in cluster_feature_printer]
 
-      # then print the stuff
-      things_to_print = list(cluster_feature_printer_alternative)
-      things_to_print.extend(software_knobs_printers_alternative)
-      things_to_print.extend(metrics_printers_alternative)
-      things_to_print.extend(goal_printers)
-      things_to_print.extend(monitor_printers)
-      things_to_print.extend(data_feature_printer)
-      string_to_print = ',\n\t\t\t\t\t'.join(things_to_print)
-      cc.write('\t\t\t\tfile_logger.write(')
-      cc.write('{0});\n'.format(string_to_print))
+          # then print the stuff
+          things_to_print = list(cluster_feature_printer_alternative)
+          things_to_print.extend(software_knobs_printers_alternative)
+          things_to_print.extend(metrics_printers_alternative)
+          things_to_print.extend(goal_printers)
+          things_to_print.extend(monitor_printers)
+          things_to_print.extend(data_feature_printer)
+          string_to_print = ',\n\t\t\t\t\t'.join(things_to_print)
+          cc.write('\t\t\t\tfile_logger.write(')
+          cc.write('{0});\n'.format(string_to_print))
+
+          cc.write('\t\t\t}\n')
+
+      else:   # if there is at least one error monitor
+
+          # if we expect any error monitor value at this run then print the values for the error monitors too
+          # this is the same as if there were no error monitors at all
+          cc.write('\t\t\tif (expectingErrorReturn)\n')
+          cc.write('\t\t\t{\n')
+
+          cc.write('\t\t\t\tif (!(manager.is_application_knowledge_empty() || manager.in_design_space_exploration()))\n')
+          cc.write('\t\t\t\t{\n')
 
 
+          # if we have ops it's easythen print the stuff
+          things_to_print = list(cluster_feature_printer)
+          things_to_print.extend(software_knobs_printers)
+          things_to_print.extend(metrics_printers)
+          things_to_print.extend(goal_printers)
+          things_to_print.extend(monitor_printers)
+          things_to_print.extend(data_feature_printer)
+          string_to_print = ',\n\t\t\t\t\t'.join(things_to_print)
+          cc.write('\t\t\t\t\tfile_logger.write(')
+          cc.write('{0});\n'.format(string_to_print))
 
-      cc.write('\t\t\t}\n')
+
+          cc.write('\t\t\t\t}\n')
+          cc.write('\t\t\t\telse\n')
+          cc.write('\t\t\t\t{\n')
+
+          # if we have no ops, we must made up the expected stuff
+          software_knobs_printers_alternative = ['{1}::knobs::{0}'.format(x.var_name, block_model.block_name) for x in block_model.software_knobs]
+          metrics_printers_alternative = ['"N/A"' for x in metrics_printers]
+          cluster_feature_printer_alternative = ['"N/A"' for x in cluster_feature_printer]
+
+          # then print the stuff
+          things_to_print = list(cluster_feature_printer_alternative)
+          things_to_print.extend(software_knobs_printers_alternative)
+          things_to_print.extend(metrics_printers_alternative)
+          things_to_print.extend(goal_printers)
+          things_to_print.extend(monitor_printers)
+          things_to_print.extend(data_feature_printer)
+          string_to_print = ',\n\t\t\t\t\t'.join(things_to_print)
+          cc.write('\t\t\t\t\tfile_logger.write(')
+          cc.write('{0});\n'.format(string_to_print))
+
+          cc.write('\t\t\t\t}\n')
+
+          cc.write('\t\t\t}\n')
+          cc.write('\t\t\telse\n')
+          cc.write('\t\t\t{\n')
+
+          # if we do not expect any error monitor value at this run then write "N/A" besides the error monitors
+          cc.write('\t\t\t\tif (!(manager.is_application_knowledge_empty() || manager.in_design_space_exploration()))\n')
+          cc.write('\t\t\t\t{\n')
+
+
+          # if we have ops it's easythen print the stuff
+          things_to_print = list(cluster_feature_printer)
+          things_to_print.extend(software_knobs_printers)
+          things_to_print.extend(metrics_printers)
+          things_to_print.extend(goal_printers)
+          things_to_print.extend(monitor_printers_error)
+          things_to_print.extend(data_feature_printer)
+          string_to_print = ',\n\t\t\t\t\t'.join(things_to_print)
+          cc.write('\t\t\t\t\tfile_logger.write(')
+          cc.write('{0});\n'.format(string_to_print))
+
+
+          cc.write('\t\t\t\t}\n')
+          cc.write('\t\t\t\telse\n')
+          cc.write('\t\t\t\t{\n')
+
+          # if we have no ops, we must made up the expected stuff
+          software_knobs_printers_alternative = ['{1}::knobs::{0}'.format(x.var_name, block_model.block_name) for x in block_model.software_knobs]
+          metrics_printers_alternative = ['"N/A"' for x in metrics_printers]
+          cluster_feature_printer_alternative = ['"N/A"' for x in cluster_feature_printer]
+
+          # then print the stuff
+          things_to_print = list(cluster_feature_printer_alternative)
+          things_to_print.extend(software_knobs_printers_alternative)
+          things_to_print.extend(metrics_printers_alternative)
+          things_to_print.extend(goal_printers)
+          things_to_print.extend(monitor_printers_error)
+          things_to_print.extend(data_feature_printer)
+          string_to_print = ',\n\t\t\t\t\t'.join(things_to_print)
+          cc.write('\t\t\t\t\tfile_logger.write(')
+          cc.write('{0});\n'.format(string_to_print))
+
+          cc.write('\t\t\t\t}\n')
+
+          cc.write('\t\t\t}\n')
+
   else:
-      things_to_print = list(goal_printers)
-      things_to_print.extend(monitor_printers)
-      things_to_print.extend(data_feature_printer)
-      string_to_print = ',\n\t\t\t\t\t'.join(things_to_print)
-      cc.write('\t\t\t\tfile_logger.write(')
-      cc.write('{0});\n'.format(string_to_print))
+      # if there are no error monitors leave the usual staightforward version
+      if not thereIsErrorMonitor:
+          things_to_print = list(goal_printers)
+          things_to_print.extend(monitor_printers)
+          things_to_print.extend(data_feature_printer)
+          string_to_print = ',\n\t\t\t\t\t'.join(things_to_print)
+          cc.write('\t\t\t\tfile_logger.write(')
+          cc.write('{0});\n'.format(string_to_print))
+
+      else:   # if there is at least one error monitor
+
+          # if we expect any error monitor value at this run then print the values for the error monitors too
+          # this is the same as if there were no error monitors at all
+          cc.write('\t\t\t\tif (expectingErrorReturn)\n')
+          cc.write('\t\t\t\t{\n')
+          things_to_print = list(goal_printers)
+          things_to_print.extend(monitor_printers)
+          things_to_print.extend(data_feature_printer)
+          string_to_print = ',\n\t\t\t\t\t'.join(things_to_print)
+          cc.write('\t\t\t\t\tfile_logger.write(')
+          cc.write('{0});\n'.format(string_to_print))
+
+          cc.write('\t\t\t\t}\n')
+          cc.write('\t\t\t\telse\n')
+          cc.write('\t\t\t\t{\n')
+
+          # if we do not expect any error monitor value at this run then write "N/A" besides the error monitors
+          cc.write('\t\t\t\tif (expectingErrorReturn)\n')
+          cc.write('\t\t\t\t{\n')
+          things_to_print = list(goal_printers)
+          things_to_print.extend(monitor_printers_error)
+          things_to_print.extend(data_feature_printer)
+          string_to_print = ',\n\t\t\t\t\t'.join(things_to_print)
+          cc.write('\t\t\t\t\tfile_logger.write(')
+          cc.write('{0});\n'.format(string_to_print))
+
+          cc.write('\t\t\t\t}\n')
+
+
   cc.write('\t\t\t#endif // MARGOT_LOG_FILE\n')
 
 
@@ -1145,8 +1269,8 @@ def generate_block_body( block_model, op_lists, cc ):
           cc.write('\t\t\t\t\tstd::cout <<')
           cc.write('{0} << std::endl;\n'.format(string_to_print))
 
-
           cc.write('\t\t\t\t}\n')
+
           cc.write('\t\t\t}\n')
           cc.write('\t\t\telse\n')
           cc.write('\t\t\t{\n')
