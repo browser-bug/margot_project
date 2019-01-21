@@ -721,6 +721,41 @@ void RemoteApplicationHandler::second_level_test( std::unordered_map<std::string
       agora::debug(log_prefix, "Client: ", i.first, ": Finished parsing and putting in the respective buffers the result of the trace query.");
       agora::debug(log_prefix, "Client: ", i.first, ": Computing which metrics have enough observations to actually perform the hypothesis test.");
 
+      // let's compute whether there are metrics for which we do not have not even one residual from trace,
+      // meaning that they are probably metrics enabled only during training.
+      // This is just to inform the user, there is no other purpose to this:
+      if (metric_to_be_analyzed.size() != client_residuals_map.size())
+      {
+        // we have to compute which are the metrics for which we do not have any residual,
+        // that is to say those metrics for which we do not have the "client_residuals_map" structure.
+
+        // let's make a temporary copy of the metrics to still be analyzed
+        std::set<std::string> copy_metric_to_be_analyzed;
+
+        for (auto j : metric_to_be_analyzed)
+        {
+          copy_metric_to_be_analyzed.emplace(j);
+        }
+
+        // let's remove from this temporary copy the metrics which have the "client_residuals_map" structure
+        for (auto& j : client_residuals_map)
+        {
+          auto search = copy_metric_to_be_analyzed.find(j.first);
+
+          if (search != copy_metric_to_be_analyzed.end())
+          {
+            copy_metric_to_be_analyzed.erase(search);
+          }
+        }
+
+        // now the temporary copy of the metrics to still be analyzed contains the metrics for
+        // which we do not have any residual
+        for (auto& j : copy_metric_to_be_analyzed)
+        {
+          agora::warning(log_prefix, "Client: ", i.first, ": There are no residuals for metric: ", j, "! Hypothesys test not feasible for this metric.");
+        }
+      }
+
       // let's analyze if any of the metrics has enough observations to perform the test and
       // remove the metrics which cannot be analyzed from the client_residuals_map.
       // The user can specify as a beholder cli option which is this minimum number of observations
@@ -845,6 +880,12 @@ void RemoteApplicationHandler::second_level_test( std::unordered_map<std::string
           if (timeout <= 0)
           {
             agora::debug(log_prefix, "Client: ", i.first, ": Even though there are some metrics to still be analyzed we run out of time. We consider this client a \"bad\" one...");
+
+            for (auto& k : metric_to_be_analyzed)
+            {
+              agora::debug(log_prefix, "Client: ", i.first, ": The hypothesis test has not been performed for metric ", k, " for lack of observations and timeout.");
+            }
+
             // if we arrive here it means that the 2nd level test has not confirmed the change as of now
             // and we run out of time, we need to move on.
             // We set the current client as a non-valid one then.
@@ -1151,7 +1192,7 @@ void RemoteApplicationHandler::parse_and_insert_observations_for_client_from_tra
   str_observation >> timestamp.nanoseconds;
 
   str_observation >> obs_client_id;
-  //agora::debug(log_prefix, "Client_id parsed: ", obs_client_id);
+  // agora::debug(log_prefix, "Client_id parsed: ", obs_client_id);
 
   int num_knobs = description.knobs.size();
 
@@ -1160,7 +1201,7 @@ void RemoteApplicationHandler::parse_and_insert_observations_for_client_from_tra
     std::string current_knob;
     str_observation >> current_knob;
     obs_configuration.emplace_back(current_knob);
-    //agora::debug(log_prefix, "Client: ", obs_client_id, ": Knob parsed: ", current_knob);
+    // agora::debug(log_prefix, "Client: ", obs_client_id, ": Knob parsed: ", current_knob);
     num_knobs--;
   }
 
@@ -1171,7 +1212,7 @@ void RemoteApplicationHandler::parse_and_insert_observations_for_client_from_tra
     std::string current_feature;
     str_observation >> current_feature;
     obs_features.emplace_back(current_feature);
-    //agora::debug(log_prefix, "Client: ", obs_client_id, ": Feature parsed: ", current_feature);
+    // agora::debug(log_prefix, "Client: ", obs_client_id, ": Feature parsed: ", current_feature);
     num_features--;
   }
 
@@ -1182,7 +1223,7 @@ void RemoteApplicationHandler::parse_and_insert_observations_for_client_from_tra
     std::string current_metric;
     str_observation >> current_metric;
     obs_metrics.emplace_back(current_metric);
-    //agora::debug(log_prefix, "Client: ", obs_client_id, ": Metrics parsed: ", current_metric);
+    // agora::debug(log_prefix, "Client: ", obs_client_id, ": Metrics parsed: ", current_metric);
     num_metrics--;
   }
 
@@ -1210,7 +1251,7 @@ void RemoteApplicationHandler::parse_and_insert_observations_for_client_from_tra
     }
 
     obs_estimates.emplace_back(current_estimate);
-    //agora::debug(log_prefix, "Client: ", obs_client_id, ": Estimate parsed: ", current_estimate);
+    // agora::debug(log_prefix, "Client: ", obs_client_id, ": Estimate parsed: ", current_estimate);
     num_metrics--;
   }
 
@@ -1254,19 +1295,20 @@ void RemoteApplicationHandler::parse_and_insert_observations_for_client_from_tra
       if (obs_metrics[index] == "N/A")
       {
         // skip the comparison on this metric between it was not enabled
-        return;
+        agora::debug(log_prefix, "Client: ", obs_client_id, ": Skipping metric ", *name_ref, " because it was disabled in the analyzed row.");
+        continue;
       }
       else
       {
         agora::warning(log_prefix, "Client: ", obs_client_id, ": Error in the parsed observation, mismatch between the observed (!N/A) and predicted (N/A) metric.");
-        return;
+        continue;
       }
     }
     // to catch the case in which the metric was null but the estimate was present (not null). Theoretically impossible by design.
     else if (obs_metrics[index] == "N/A")
     {
       agora::warning(log_prefix, "Client: ", obs_client_id, ": Error in the parsed observation, mismatch between the observed (N/A) and predicted (!N/A) metric.");
-      return;
+      continue;
     }
 
     // if we arrive here then the parsed metric should be valid (one of the enabled ones at least)

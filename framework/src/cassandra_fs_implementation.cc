@@ -1697,7 +1697,7 @@ observations_list_t CassandraClient::load_client_observations( const std::string
               }
               else
               {
-                warning("Handling float NULL value due to observed value for the respective metric not provided by client");
+                // warning("Handling float NULL value due to observed value for the respective metric not provided by client");
                 current_observation.append("N/A ");
               }
             }
@@ -1715,7 +1715,7 @@ observations_list_t CassandraClient::load_client_observations( const std::string
               }
               else
               {
-                warning("Handling double NULL value due to observed value for the respective metric not provided by client");
+                // warning("Handling double NULL value due to observed value for the respective metric not provided by client");
                 current_observation.append("N/A ");
               }
             }
