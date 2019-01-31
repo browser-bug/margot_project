@@ -124,13 +124,13 @@ namespace beholder
       t_statistic = (x1 - x2) / (sqrtf(temp));
       agora::debug(log_prefix, "T statistic: ", t_statistic);
 
-      if (isinf(t_statistic))
+      if (std::isinf(t_statistic))
       {
         agora::warning(log_prefix, "The t_statistic is infinite. We consider the test positive because the change is deterministic!");
         return true;
       }
 
-      if (isnan(t_statistic))
+      if (std::isnan(t_statistic))
       {
         agora::warning(log_prefix, "The t_statistic is NaN. We consider the test positive because the change is deterministic!");
         return true;
@@ -144,13 +144,13 @@ namespace beholder
       v_degree_freedom = powf(temp, 2) / ((powf(s1_2, 2) / (powf(n1, 2) * v1)) + (powf(s2_2, 2) / (powf(n2, 2) * v2)));
       agora::debug(log_prefix, "Degree of freedom: ", v_degree_freedom);
 
-      if (isinf(v_degree_freedom))
+      if (std::isinf(v_degree_freedom))
       {
         agora::warning(log_prefix, "The v_degree_freedom is infinite. We consider the test positive because the change is deterministic!");
         return true;
       }
 
-      if (isnan(v_degree_freedom))
+      if (std::isnan(v_degree_freedom))
       {
         agora::warning(log_prefix, "The v_degree_freedom is NaN. We consider the test positive because the change is deterministic!");
         return true;
