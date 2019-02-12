@@ -154,7 +154,7 @@ namespace beholder
         {
           // compute the Gaussianizing Transform according to [Mudholkar81]
           // compute the first 6 raw Moments
-          // https://en.wikipedia.org/wiki/Moment_(mathematics)
+          // https://en.wikipedia.org/wiki/Moment_(mathematics)#Sample_moments
           std::vector<float> moments;
 
           for (int order = 1; order <= 6; order++)
