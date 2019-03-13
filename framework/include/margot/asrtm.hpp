@@ -1515,16 +1515,21 @@ namespace margot
     {
       std::cout << "OUT OF SYNC" << std::endl;
     }
+    else if ( status == ApplicationStatus::TUNED )
+    {
+      std::cout << "SYNC" << std::endl;
+    }
+    else if ( status == ApplicationStatus::DESIGN_SPACE_EXPLORATION )
+    {
+      std::cout << "DESIGN_SPACE_EXPLORATION" << std::endl;
+    }
+    else if ( status == ApplicationStatus::WITH_MODEL )
+    {
+      std::cout << "WITH_MODEL" << std::endl;
+    }
     else
     {
-      if ( status == ApplicationStatus::TUNED )
-      {
-        std::cout << "SYNC" << std::endl;
-      }
-      else
-      {
-        std::cout << "UNKNOWN (ERROR!)" << std::endl;
-      }
+      std::cout << "UNKNOWN (ERROR!)" << std::endl;
     }
 
     const bool is_active_state_selected = current_optimizer != application_optimizers.end();
