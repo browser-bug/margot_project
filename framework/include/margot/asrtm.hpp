@@ -992,6 +992,14 @@ namespace margot
         // create a new Application-Specific Run-Time Manager
         Asrtm<OperatingPoint, state_id_type, priority_type, error_coef_type> cloned_manager;
 
+        // copy the runtime information provider
+        cloned_manager.runtime_information = runtime_information;
+
+        // reset their values
+        cloned_manager.runtime_information.reset();
+
+        // copy the monitor handlers
+        cloned_manager.monitor_handlers = monitor_handlers;
 
         // replicate the state structure
         for ( const auto& state : application_optimizers )
@@ -1007,14 +1015,11 @@ namespace margot
           }
         }
 
-        // copy the runtime information provider
-        cloned_manager.runtime_information = runtime_information;
-
-        // reset their values
-        cloned_manager.runtime_information.reset();
-
-        // copy the monitor handlers
-        cloned_manager.monitor_handlers = monitor_handlers;
+        // set the knowledge adaptors
+        for ( auto& state_pair : cloned_manager.application_optimizers )
+        {
+          state_pair.second.set_knowledge_adaptor(cloned_manager.runtime_information);
+        }
 
         return cloned_manager;
       }
