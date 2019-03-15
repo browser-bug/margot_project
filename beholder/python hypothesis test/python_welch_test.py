@@ -53,13 +53,13 @@ print ("Sample variance of residuals after the change: " + str(var_2))
 #print(t_score)
 
 # compute Welch's test
-# NB: the p-value returned here is the one to be compared directly with significance level α
+# NB: the p-value returned here is the one to be compared directly with significance level alpha
 # for the 2 sided (two-tailed) test.
 # In other situations the p_value is computed for the 1 sided test. In that case it is required to compare it with alpha/2.
 test = stats.ttest_ind(before_change_array,after_change_array, equal_var = False)
 
 print (test)
 
-# If the p-value is less than the significance level α, then we can conclude that our data
+# If the p-value is less than the significance level alpha, then we can conclude that our data
 # is statistically significant and the null hypothesis will be rejected.
-# Many statisticians typically use α = 0.05.
+# Many statisticians typically use alpha = 0.05.

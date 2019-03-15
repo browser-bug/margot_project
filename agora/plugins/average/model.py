@@ -44,7 +44,11 @@ def compute_average_model( args, root_path ):
         # get all the observation for this configuartion
         data_values = []
         for observation in session.execute('SELECT {1} FROM {0} WHERE {2} ALLOW FILTERING;'.format(args.observation, args.metric, where_clause)):
-            data_values.append(float(observation[args.metric]))
+	    # filter out those rows for which the metric is not available
+            if (observation[args.metric] is None):
+                continue;
+            else:
+                data_values.append(float(observation[args.metric]))
 
         # if we don't have any observation we need to raise an exception
         if not data_values:
