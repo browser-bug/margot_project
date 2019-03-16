@@ -286,6 +286,15 @@ int main( int argc, char* argv[] )
   }
 
   agora::info("Beholder Launched!");
+  agora::info("Functional parameters:\n---windows_size: ", beholder::Parameters_beholder::window_size,
+                                    "\n---training_windows: ", beholder::Parameters_beholder::training_windows,
+                                    "\n---gamma_mean: ", beholder::Parameters_beholder::gamma_mean,
+                                    "\n---gamma_variance: ", beholder::Parameters_beholder::gamma_variance,
+                                    "\n---bad_clients_threshold: ", beholder::Parameters_beholder::bad_clients_threshold,
+                                    "\n---min_observations for hypothesis test: ", beholder::Parameters_beholder::min_observations,
+                                    "\n---timeout for hypothesis test: ", beholder::Parameters_beholder::timeout,
+                                    "\n---frequency_check for trace: ", beholder::Parameters_beholder::frequency_check,
+                                    "\n---alpha, significance level: ", beholder::Parameters_beholder::alpha);
 
   // create a virtual channel to communicate with the applications and agora
   agora::info("Beholder main: bootstrap step 1: estabilish a connection with broker");
