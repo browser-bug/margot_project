@@ -34,6 +34,9 @@ namespace beholder
   {
     static std::string workspace_folder;
     static bool output_files;
+    static bool use_clt;
+    static bool use_difference_means_threshold;
+    static float means_threshold_multiplier;
     static int window_size;
     static int training_windows;
     static float gamma_mean;

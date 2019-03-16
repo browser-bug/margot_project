@@ -272,9 +272,9 @@ namespace beholder
       if (GlobalView::get_handlers_number() == 0)
       {
         // log the event
-        agora::info("Thread ", get_tid(), ": Beholder sending welcome message to agorà since the beholder has no application handlers currently.");
+        agora::info("Thread ", get_tid(), ": Beholder sending welcome message to agora since the beholder has no application handlers currently.");
         // sends the request of summary of current status to agorà
-        agora::io::remote.send_message({"beholder/welcome", "Beholder sending welcome message to agorà to inquire about possible applications with model."});
+        agora::io::remote.send_message({"beholder/welcome", "Beholder sending welcome message to agora to inquire about possible applications with model."});
       }
       else
       {

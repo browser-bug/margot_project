@@ -173,15 +173,24 @@ int main( int argc, char* argv[] )
   ("alpha", po::value<float>(&beholder::Parameters_beholder::alpha)->
    default_value(beholder::Parameters_beholder::alpha),
    "Alpha (significance level) used in the hyphotesis test. <float>")
+  ("use_clt", po::bool_switch(&beholder::Parameters_beholder::use_clt)->
+   default_value(beholder::Parameters_beholder::use_clt),
+   "Disables the Central Limit Theorem (CLT) Transformation of the trace before the hypothesis test.")
+  ("use_means_threshold", po::bool_switch(&beholder::Parameters_beholder::use_difference_means_threshold)->
+   default_value(beholder::Parameters_beholder::use_difference_means_threshold),
+   "Enables the use of a minimum difference in the before and after distributions mean to allow the hypothesis test.")
+  ("means_threshold_multiplier", po::value<float>(&beholder::Parameters_beholder::means_threshold_multiplier)->
+   default_value(beholder::Parameters_beholder::means_threshold_multiplier),
+   "Alpha (significance level) used in the hyphotesis test. <float>")
   ("no_trace_drop", po::bool_switch(&beholder::Parameters_beholder::no_trace_drop)->
    default_value(beholder::Parameters_beholder::no_trace_drop),
    "When enabled allows to just delete the trace (after a confirmed change) from the top to the last element of the change window.")
   ("workspace_folder", po::value<std::string>(&beholder::Parameters_beholder::workspace_folder)->
    default_value(beholder::Parameters_beholder::workspace_folder),
    "Absolute path where the application stores temporary files to plot the ICI CDT curves. <path>")
-  ("output_files_off", po::bool_switch(&beholder::Parameters_beholder::output_files)->
+  ("output_files_on", po::bool_switch(&beholder::Parameters_beholder::output_files)->
    default_value(beholder::Parameters_beholder::output_files),
-   "Disable the creation of the files needed to plot the ICI curves.")
+   "Enable the creation of the files needed to plot the ICI curves.")
   ;
   ParseCommandLine(argc, argv);
 
@@ -294,8 +303,23 @@ int main( int argc, char* argv[] )
                                     "\n---min_observations for hypothesis test: ", beholder::Parameters_beholder::min_observations,
                                     "\n---timeout for hypothesis test: ", beholder::Parameters_beholder::timeout,
                                     "\n---frequency_check for trace: ", beholder::Parameters_beholder::frequency_check,
-                                    "\n---alpha, significance level: ", beholder::Parameters_beholder::alpha);
-
+                                    "\n---alpha, significance level: ", beholder::Parameters_beholder::alpha,
+                                    "\n---means_threshold_multiplier: ", beholder::Parameters_beholder::means_threshold_multiplier);
+  if (beholder::Parameters_beholder::use_clt){
+    agora::info("Central Limit Theorem ON!");
+  } else {
+    agora::info("Central Limit Theorem OFF!");
+  }
+  if (beholder::Parameters_beholder::variance_off){
+    agora::info("Variance OFF!");
+  } else {
+    agora::info("Variance ON!");
+  }
+  if (beholder::Parameters_beholder::use_difference_means_threshold){
+    agora::info("Means Threshold ON!");
+  } else {
+    agora::info("Means Threshold OFF!");
+  }
   // create a virtual channel to communicate with the applications and agora
   agora::info("Beholder main: bootstrap step 1: estabilish a connection with broker");
 
