@@ -91,7 +91,7 @@ namespace beholder
       std::vector<float> clt_distribution_before;
       std::vector<float> clt_distribution_after;
 
-      if (Parameters_beholder::use_clt){
+      //if (Parameters_beholder::use_clt){
         // apply CLT theorem to distribution of the data before the change
         for (int j = 0; j < clt_sampling_variables; j++){
           std::vector<float> single_variable_before;
@@ -156,7 +156,7 @@ namespace beholder
         current_metric_before_file.close();
         current_metric_after_file.flush();
         current_metric_after_file.close();
-      }
+      //}
 
 
       if (Parameters_beholder::use_clt){
