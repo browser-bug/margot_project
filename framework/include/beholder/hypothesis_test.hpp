@@ -34,6 +34,7 @@ namespace beholder
   class HypTest
   {
     private:
+      static float compute_cohen_d(const int n1, const int n2, const float x1, const float x2, const float s1_2, const float s2_2);
 
     public:
 

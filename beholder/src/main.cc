@@ -181,7 +181,13 @@ int main( int argc, char* argv[] )
    "Enables the use of a minimum difference in the before and after distributions mean to allow the hypothesis test.")
   ("means_threshold_multiplier", po::value<float>(&beholder::Parameters_beholder::means_threshold_multiplier)->
    default_value(beholder::Parameters_beholder::means_threshold_multiplier),
-   "Alpha (significance level) used in the hyphotesis test. <float>")
+   "Threshold multiplier to reject change if the difference in the means of the two distributions in the hypothesis test is lower than the ICI training range times this multiplier. <float>")
+  ("disable_cohen_d_effect_size_check", po::bool_switch(&beholder::Parameters_beholder::disable_cohen_d_effect_size_check)->
+   default_value(beholder::Parameters_beholder::disable_cohen_d_effect_size_check),
+   "Disables the use of the Cohen's Effect Size check to assess the practical significance of the hypothesis test.")
+  ("cohen_d_threshold", po::value<float>(&beholder::Parameters_beholder::cohen_d_threshold)->
+   default_value(beholder::Parameters_beholder::cohen_d_threshold),
+   "Cohen's D threshold to reject change if the difference in the means of the two distributions in the hypothesis test is not practically significant. <float>")
   ("no_trace_drop", po::bool_switch(&beholder::Parameters_beholder::no_trace_drop)->
    default_value(beholder::Parameters_beholder::no_trace_drop),
    "When enabled allows to just delete the trace (after a confirmed change) from the top to the last element of the change window.")
@@ -304,7 +310,8 @@ int main( int argc, char* argv[] )
                                     "\n---timeout for hypothesis test: ", beholder::Parameters_beholder::timeout,
                                     "\n---frequency_check for trace: ", beholder::Parameters_beholder::frequency_check,
                                     "\n---alpha, significance level: ", beholder::Parameters_beholder::alpha,
-                                    "\n---means_threshold_multiplier: ", beholder::Parameters_beholder::means_threshold_multiplier);
+                                    "\n---means_threshold_multiplier: ", beholder::Parameters_beholder::means_threshold_multiplier,
+                                    "\n---cohen_d_threshold: ", beholder::Parameters_beholder::cohen_d_threshold);
   if (beholder::Parameters_beholder::use_clt){
     agora::info("Central Limit Theorem ON!");
   } else {
@@ -314,6 +321,11 @@ int main( int argc, char* argv[] )
     agora::info("Variance OFF!");
   } else {
     agora::info("Variance ON!");
+  }
+  if (beholder::Parameters_beholder::disable_cohen_d_effect_size_check){
+    agora::info("Cohen's D Effect Size Check OFF!");
+  } else {
+    agora::info("Cohen's D Effect Size Check ON!");
   }
   if (beholder::Parameters_beholder::use_difference_means_threshold){
     agora::info("Means Threshold ON!");

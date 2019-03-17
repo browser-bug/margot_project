@@ -34,8 +34,6 @@ namespace beholder
                                         const std::string& client_name, const std::string& application_workspace, const int& suffix_plot, const std::unordered_map<std::string, Data_ici_test>& ici_cdt_map)
   {
 
-    bool confirmed_change = false;
-
     int clt_sampling_variables = 1000; // number of sampled variables to be collected for each distribution
 
     // I'll have to go through each metric present in the structure, but as soon as i find a metric
@@ -48,28 +46,8 @@ namespace beholder
       // Prefix to log strings containing the app name, the client name and the metric name
       std::string log_prefix = "HYP_TEST:" + application_name + ":" + client_name + ":" + i.first + "---";
 
-      bool threshold_skip = false;
       float ici_training_mean_range;
       float mean_populations_difference;
-
-      if (Parameters_beholder::use_difference_means_threshold){
-        // look for the ici_cdt_map corresponding to the current metric
-        auto search = ici_cdt_map.find(i.first);
-
-        if (search == ici_cdt_map.end())
-        {
-          agora::warning(log_prefix, "Error: ICI data structure for the current metric in analysis not found!");
-        }
-        ici_training_mean_range = (search->second.reference_mean_conf_interval_upper - search->second.reference_mean_conf_interval_lower);
-        float mean_before = accumulate( i.second.before_change.begin(), i.second.before_change.end(), 0.0)/i.second.before_change.size();
-        float mean_after = accumulate( i.second.after_change.begin(), i.second.after_change.end(), 0.0)/i.second.after_change.size();
-        mean_populations_difference = abs(mean_before - mean_after);
-
-        if (mean_populations_difference < ici_training_mean_range * Parameters_beholder::means_threshold_multiplier){
-          //agora::info(log_prefix, "Skipping hypothesis test and REJECTING the change because the mean_populations_difference [", mean_populations_difference, "] is lower than the ici test training range for the mean [", ici_training_mean_range, "].");
-          threshold_skip = true;
-        }
-      }
 
       float t_statistic;
       float v_degree_freedom;
@@ -159,331 +137,222 @@ namespace beholder
       //}
 
 
+
       if (Parameters_beholder::use_clt){
-        /***** COMPUTATION OF HYPOTHESIS TEST ON CLT-TRANSFORMED RESIDUALS ******/
         n1 = clt_distribution_before.size();
         n2 = clt_distribution_after.size();
+        agora::debug(log_prefix, "First population sample size with CLT: ", n1);
+        agora::debug(log_prefix, "Second population sample size with CLT: ", n2);
+      }
 
-        // first population sample mean
-        float x1 = 0;
-
+      // first population sample mean
+      float x1 = 0;
+      if (Parameters_beholder::use_clt){
         for (auto& j : clt_distribution_before)
         {
           x1 += j;
-        }
-
-        x1 = x1 / n1;
-        agora::debug(log_prefix, "First population sample mean: ", x1);
-
-
-        // second population sample mean
-        float x2 = 0;
-
-        for (auto& j : clt_distribution_after)
-        {
-          x2 += j;
-        }
-
-        x2 = x2 / n2;
-        agora::debug(log_prefix, "Second population sample mean: ", x2);
-
-        // first population sample variance
-        float s1_2 = 0;
-
-        for (auto& j : clt_distribution_before)
-        {
-          s1_2 += powf(j - x1, 2);
-        }
-
-        s1_2 = s1_2 / (n1 - 1);
-        agora::debug(log_prefix, "First population sample variance: ", s1_2);
-
-        // second population sample variance
-        float s2_2 = 0;
-
-        for (auto& j : clt_distribution_after)
-        {
-          s2_2 += powf(j - x2, 2);
-        }
-
-        s2_2 = s2_2 / (n2 - 1);
-        agora::debug(log_prefix, "Second population sample variance: ", s2_2);
-
-        if (x1 == 0)
-        {
-          agora::warning(log_prefix, "The first population (before the change) sample mean is 0!");
-        }
-
-        if (x2 == 0)
-        {
-          agora::warning(log_prefix, "The second population (after the change) sample mean is 0!");
-        }
-
-        if (s1_2 == 0)
-        {
-          agora::warning(log_prefix, "The first population (before the change) sample variance is 0!");
-        }
-
-        if (s2_2 == 0)
-        {
-          agora::warning(log_prefix, "The second population (after the change) sample variance is 0!");
-        }
-
-        float temp = (s1_2 / n1) + (s2_2 / n2);
-
-        // t statistic computation
-        t_statistic = (x1 - x2) / (sqrtf(temp));
-        agora::debug(log_prefix, "T statistic: ", t_statistic);
-
-        if (std::isinf(t_statistic))
-        {
-          agora::warning(log_prefix, "The t_statistic is infinite. We consider the test positive because the change is deterministic!");
-          return true;
-        }
-
-        if (std::isnan(t_statistic))
-        {
-          agora::warning(log_prefix, "The t_statistic is NaN. We consider the test positive because the change is deterministic!");
-          return true;
-        }
-
-        // degree of freedom associated with the variance estimates
-        float v1 = n1 - 1;
-        float v2 = n2 - 1;
-
-        // v degree of freedom computation with the Welch–Satterthwaite equation
-        v_degree_freedom = powf(temp, 2) / ((powf(s1_2, 2) / (powf(n1, 2) * v1)) + (powf(s2_2, 2) / (powf(n2, 2) * v2)));
-        agora::debug(log_prefix, "Degree of freedom: ", v_degree_freedom);
-
-        if (std::isinf(v_degree_freedom))
-        {
-          agora::warning(log_prefix, "The v_degree_freedom is infinite. We consider the test positive because the change is deterministic!");
-          return true;
-        }
-
-        if (std::isnan(v_degree_freedom))
-        {
-          agora::warning(log_prefix, "The v_degree_freedom is NaN. We consider the test positive because the change is deterministic!");
-          return true;
-        }
-
-        agora::debug(log_prefix, "User-selected alpha: ", Parameters_beholder::alpha);
-
-        //
-        // Define our distribution, and get the probability:
-        // https://www.boost.org/doc/libs/1_69_0/libs/math/doc/html/math_toolkit/stat_tut/weg/st_eg/two_sample_students_t.html
-        // https://www.boost.org/doc/libs/1_69_0/libs/math/example/students_t_two_samples.cpp
-        //
-        students_t dist(v_degree_freedom);
-
-        // find the critical value
-        // the one usually found on the table, with the difference that here we can avoid rounding
-        // the v (degree of freedom) to the nearest integer.
-        float q = cdf(complement(dist, fabs(t_statistic)));
-        // Here we have used the absolute value of the t-statistic, because we initially want to know
-        // simply whether there is a difference or not (a two-sided test).
-        // The Null-hypothesis: there is no difference in means. Reject if complement of CDF for |t| < significance level / 2:
-        // The Alternative-hypothesis: there is a difference in means. Reject if complement of CDF for |t| > significance level / 2:
-        // In our situation the change is confirmed when the null hypothesis (no change) is rejected,
-        // and then the alternative hypothesis is not rejected.
-
-        if (q < Parameters_beholder::alpha / 2)
-        {
-          if (Parameters_beholder::use_difference_means_threshold){
-            if (threshold_skip){
-              confirmed_change = false;
-              agora::pedantic(log_prefix, "Critical value [", q, "] is lower than alpha/2 [", Parameters_beholder::alpha / 2, "].");
-              agora::info(log_prefix, "Hypothesis test confirmed the change, but the difference in means of the two distributions is lower than the user set threshold, so the change is overall REJECTED");
-              agora::info(log_prefix, "The change because the mean_populations_difference [", mean_populations_difference, "] is lower than the threshold [", ici_training_mean_range*Parameters_beholder::means_threshold_multiplier, "].");
-
-            } else {
-              confirmed_change = true;
-              agora::pedantic(log_prefix, "Critical value [", q, "] is lower than alpha/2 [", Parameters_beholder::alpha / 2, "].");
-              agora::debug(log_prefix, "Null hypothesis: Sample 1 Mean == Sample 2 Mean REJECTED.\n(Alternative hypothesis: Sample 1 Mean != Sample 2 Mean ACCEPTED.)");
-              agora::info(log_prefix, "HYPOTHESIS TEST, change confirmed on metric: ", i.first, "!");
-            }
-          } else {
-            confirmed_change = true;
-            agora::pedantic(log_prefix, "Critical value [", q, "] is lower than alpha/2 [", Parameters_beholder::alpha / 2, "].");
-            agora::debug(log_prefix, "Null hypothesis: Sample 1 Mean == Sample 2 Mean REJECTED.\n(Alternative hypothesis: Sample 1 Mean != Sample 2 Mean ACCEPTED.)");
-            agora::info(log_prefix, "HYPOTHESIS TEST, change confirmed on metric: ", i.first, "!");
-          }
-        }
-        else
-        {
-          agora::pedantic(log_prefix, "Critical value [", q, "] is greater than alpha/2 [", Parameters_beholder::alpha / 2, "].");
-          agora::debug(log_prefix, "Null hypothesis: Sample 1 Mean == Sample 2 Mean ACCEPTED.\n(Alternative hypothesis: Sample 1 Mean != Sample 2 Mean REJECTED.)");
-          agora::info(log_prefix, "HYPOTHESIS TEST, change rejected on metric: ", i.first, "!");
-        }
-
-        // at the first metric which confirms the change return to the caller
-        if (confirmed_change)
-        {
-          return confirmed_change;
         }
       } else {
-        /***** COMPUTATION OF HYPOTHESIS TEST ON RAW UNTRANSFORMED RESIDUALS ******/
-        // first population sample mean
-        float x1 = 0;
-
         for (auto& j : i.second.before_change)
         {
           x1 += j;
         }
+      }
+      x1 = x1 / n1;
+      agora::debug(log_prefix, "First population sample mean: ", x1);
 
-        x1 = x1 / n1;
-        agora::debug(log_prefix, "First population sample mean: ", x1);
-
-
-        // second population sample mean
-        float x2 = 0;
-
+      // second population sample mean
+      float x2 = 0;
+      if (Parameters_beholder::use_clt){
+        for (auto& j : clt_distribution_after)
+        {
+          x2 += j;
+        }
+      } else {
         for (auto& j : i.second.after_change)
         {
           x2 += j;
         }
+      }
+      x2 = x2 / n2;
+      agora::debug(log_prefix, "Second population sample mean: ", x2);
 
-        x2 = x2 / n2;
-        agora::debug(log_prefix, "Second population sample mean: ", x2);
-
-        // first population sample variance
-        float s1_2 = 0;
-
+      // first population sample variance
+      float s1_2 = 0;
+      if (Parameters_beholder::use_clt){
+        for (auto& j : clt_distribution_before)
+        {
+          s1_2 += powf(j - x1, 2);
+        }
+      } else {
         for (auto& j : i.second.before_change)
         {
           s1_2 += powf(j - x1, 2);
         }
+      }
+      s1_2 = s1_2 / (n1 - 1);
+      agora::debug(log_prefix, "First population sample variance: ", s1_2);
 
-        s1_2 = s1_2 / (n1 - 1);
-        agora::debug(log_prefix, "First population sample variance: ", s1_2);
-
-        // second population sample variance
-        float s2_2 = 0;
-
+      // second population sample variance
+      float s2_2 = 0;
+      if (Parameters_beholder::use_clt){
+        for (auto& j : clt_distribution_after)
+        {
+          s2_2 += powf(j - x2, 2);
+        }
+      } else {
         for (auto& j : i.second.after_change)
         {
           s2_2 += powf(j - x2, 2);
         }
+      }
+      s2_2 = s2_2 / (n2 - 1);
+      agora::debug(log_prefix, "Second population sample variance: ", s2_2);
 
-        s2_2 = s2_2 / (n2 - 1);
-        agora::debug(log_prefix, "Second population sample variance: ", s2_2);
+      if (x1 == 0)
+      {
+        agora::warning(log_prefix, "The first population (before the change) sample mean is 0!");
+      }
 
-        if (x1 == 0)
-        {
-          agora::warning(log_prefix, "The first population (before the change) sample mean is 0!");
-        }
+      if (x2 == 0)
+      {
+        agora::warning(log_prefix, "The second population (after the change) sample mean is 0!");
+      }
 
-        if (x2 == 0)
-        {
-          agora::warning(log_prefix, "The second population (after the change) sample mean is 0!");
-        }
+      if (s1_2 == 0)
+      {
+        agora::warning(log_prefix, "The first population (before the change) sample variance is 0!");
+      }
 
-        if (s1_2 == 0)
-        {
-          agora::warning(log_prefix, "The first population (before the change) sample variance is 0!");
-        }
+      if (s2_2 == 0)
+      {
+        agora::warning(log_prefix, "The second population (after the change) sample variance is 0!");
+      }
 
-        if (s2_2 == 0)
-        {
-          agora::warning(log_prefix, "The second population (after the change) sample variance is 0!");
-        }
+      float temp = (s1_2 / n1) + (s2_2 / n2);
 
-        float temp = (s1_2 / n1) + (s2_2 / n2);
+      // t statistic computation
+      t_statistic = (x1 - x2) / (sqrtf(temp));
+      agora::debug(log_prefix, "T statistic: ", t_statistic);
 
-        // t statistic computation
-        t_statistic = (x1 - x2) / (sqrtf(temp));
-        agora::debug(log_prefix, "T statistic: ", t_statistic);
+      if (std::isinf(t_statistic))
+      {
+        agora::warning(log_prefix, "The t_statistic is infinite. We consider the test positive because the change is deterministic!");
+        return true;
+      }
 
-        if (std::isinf(t_statistic))
-        {
-          agora::warning(log_prefix, "The t_statistic is infinite. We consider the test positive because the change is deterministic!");
-          return true;
-        }
+      if (std::isnan(t_statistic))
+      {
+        agora::warning(log_prefix, "The t_statistic is NaN. We consider the test positive because the change is deterministic!");
+        return true;
+      }
 
-        if (std::isnan(t_statistic))
-        {
-          agora::warning(log_prefix, "The t_statistic is NaN. We consider the test positive because the change is deterministic!");
-          return true;
-        }
+      // degree of freedom associated with the variance estimates
+      float v1 = n1 - 1;
+      float v2 = n2 - 1;
 
-        // degree of freedom associated with the variance estimates
-        float v1 = n1 - 1;
-        float v2 = n2 - 1;
+      // v degree of freedom computation with the Welch–Satterthwaite equation
+      v_degree_freedom = powf(temp, 2) / ((powf(s1_2, 2) / (powf(n1, 2) * v1)) + (powf(s2_2, 2) / (powf(n2, 2) * v2)));
+      agora::debug(log_prefix, "Degree of freedom: ", v_degree_freedom);
 
-        // v degree of freedom computation with the Welch–Satterthwaite equation
-        v_degree_freedom = powf(temp, 2) / ((powf(s1_2, 2) / (powf(n1, 2) * v1)) + (powf(s2_2, 2) / (powf(n2, 2) * v2)));
-        agora::debug(log_prefix, "Degree of freedom: ", v_degree_freedom);
+      if (std::isinf(v_degree_freedom))
+      {
+        agora::warning(log_prefix, "The v_degree_freedom is infinite. We consider the test positive because the change is deterministic!");
+        return true;
+      }
 
-        if (std::isinf(v_degree_freedom))
-        {
-          agora::warning(log_prefix, "The v_degree_freedom is infinite. We consider the test positive because the change is deterministic!");
-          return true;
-        }
+      if (std::isnan(v_degree_freedom))
+      {
+        agora::warning(log_prefix, "The v_degree_freedom is NaN. We consider the test positive because the change is deterministic!");
+        return true;
+      }
 
-        if (std::isnan(v_degree_freedom))
-        {
-          agora::warning(log_prefix, "The v_degree_freedom is NaN. We consider the test positive because the change is deterministic!");
-          return true;
-        }
+      agora::debug(log_prefix, "User-selected alpha: ", Parameters_beholder::alpha);
 
-        agora::debug(log_prefix, "User-selected alpha: ", Parameters_beholder::alpha);
+      //
+      // Define our distribution, and get the probability:
+      // https://www.boost.org/doc/libs/1_69_0/libs/math/doc/html/math_toolkit/stat_tut/weg/st_eg/two_sample_students_t.html
+      // https://www.boost.org/doc/libs/1_69_0/libs/math/example/students_t_two_samples.cpp
+      //
+      students_t dist(v_degree_freedom);
 
-        //
-        // Define our distribution, and get the probability:
-        // https://www.boost.org/doc/libs/1_69_0/libs/math/doc/html/math_toolkit/stat_tut/weg/st_eg/two_sample_students_t.html
-        // https://www.boost.org/doc/libs/1_69_0/libs/math/example/students_t_two_samples.cpp
-        //
-        students_t dist(v_degree_freedom);
+      // find the critical value
+      // the one usually found on the table, with the difference that here we can avoid rounding
+      // the v (degree of freedom) to the nearest integer.
+      float q = cdf(complement(dist, fabs(t_statistic)));
+      // Here we have used the absolute value of the t-statistic, because we initially want to know
+      // simply whether there is a difference or not (a two-sided test).
+      // The Null-hypothesis: there is no difference in means. Reject if complement of CDF for |t| < significance level / 2:
+      // The Alternative-hypothesis: there is a difference in means. Reject if complement of CDF for |t| > significance level / 2:
+      // In our situation the change is confirmed when the null hypothesis (no change) is rejected,
+      // and then the alternative hypothesis is not rejected.
 
-        // find the critical value
-        // the one usually found on the table, with the difference that here we can avoid rounding
-        // the v (degree of freedom) to the nearest integer.
-        float q = cdf(complement(dist, fabs(t_statistic)));
-        // Here we have used the absolute value of the t-statistic, because we initially want to know
-        // simply whether there is a difference or not (a two-sided test).
-        // The Null-hypothesis: there is no difference in means. Reject if complement of CDF for |t| < significance level / 2:
-        // The Alternative-hypothesis: there is a difference in means. Reject if complement of CDF for |t| > significance level / 2:
-        // In our situation the change is confirmed when the null hypothesis (no change) is rejected,
-        // and then the alternative hypothesis is not rejected.
 
-        if (q < Parameters_beholder::alpha / 2)
-        {
-          if (Parameters_beholder::use_difference_means_threshold){
-            if (threshold_skip){
-              confirmed_change = false;
-              agora::pedantic(log_prefix, "Critical value [", q, "] is lower than alpha/2 [", Parameters_beholder::alpha / 2, "].");
-              agora::info(log_prefix, "Hypothesis test confirmed the change, but the difference in means of the two distributions is lower than the user set threshold, so the change is overall REJECTED");
-              agora::info(log_prefix, "The change because the mean_populations_difference [", mean_populations_difference, "] is lower than the threshold [", ici_training_mean_range*Parameters_beholder::means_threshold_multiplier, "].");
 
-            } else {
-              confirmed_change = true;
-              agora::pedantic(log_prefix, "Critical value [", q, "] is lower than alpha/2 [", Parameters_beholder::alpha / 2, "].");
-              agora::debug(log_prefix, "Null hypothesis: Sample 1 Mean == Sample 2 Mean REJECTED.\n(Alternative hypothesis: Sample 1 Mean != Sample 2 Mean ACCEPTED.)");
-              agora::info(log_prefix, "HYPOTHESIS TEST, change confirmed on metric: ", i.first, "!");
-            }
-          } else {
-            confirmed_change = true;
+      if (q < Parameters_beholder::alpha / 2)
+      {
+        if (!Parameters_beholder::disable_cohen_d_effect_size_check){
+          float cohen_d = HypTest::compute_cohen_d(n1, n2, x1, x2, s1_2, s2_2);
+          agora::debug(log_prefix, "Cohen's D: ", cohen_d);
+          if (cohen_d > Parameters_beholder::cohen_d_threshold){
             agora::pedantic(log_prefix, "Critical value [", q, "] is lower than alpha/2 [", Parameters_beholder::alpha / 2, "].");
             agora::debug(log_prefix, "Null hypothesis: Sample 1 Mean == Sample 2 Mean REJECTED.\n(Alternative hypothesis: Sample 1 Mean != Sample 2 Mean ACCEPTED.)");
             agora::info(log_prefix, "HYPOTHESIS TEST, change confirmed on metric: ", i.first, "!");
+            return true;
+          } else {
+            agora::pedantic(log_prefix, "Critical value [", q, "] is lower than alpha/2 [", Parameters_beholder::alpha / 2, "].");
+            agora::info(log_prefix, "Hypothesis test confirmed the change, but the difference in means of the two distributions is not practically significant according to Cohen's Effect Size test, so the change is overall REJECTED");
+            agora::info(log_prefix, "The Cohen's D [", cohen_d, "] is lower than the threshold [", Parameters_beholder::cohen_d_threshold, "].");
           }
-        }
-        else
-        {
-          agora::pedantic(log_prefix, "Critical value [", q, "] is greater than alpha/2 [", Parameters_beholder::alpha / 2, "].");
-          agora::debug(log_prefix, "Null hypothesis: Sample 1 Mean == Sample 2 Mean ACCEPTED.\n(Alternative hypothesis: Sample 1 Mean != Sample 2 Mean REJECTED.)");
-          agora::info(log_prefix, "HYPOTHESIS TEST, change rejected on metric: ", i.first, "!");
-        }
+        } else if (Parameters_beholder::use_difference_means_threshold){
+          bool above_threshold = false;
+          // look for the ici_cdt_map corresponding to the current metric
+          auto search = ici_cdt_map.find(i.first);
 
-        // at the first metric which confirms the change return to the caller
-        if (confirmed_change)
-        {
-          return confirmed_change;
+          if (search == ici_cdt_map.end())
+          {
+            agora::warning(log_prefix, "Error: ICI data structure for the current metric in analysis not found!");
+          }
+          ici_training_mean_range = (search->second.reference_mean_conf_interval_upper - search->second.reference_mean_conf_interval_lower);
+          mean_populations_difference = abs(x1 - x2);
+
+          if (mean_populations_difference > ici_training_mean_range * Parameters_beholder::means_threshold_multiplier){
+            //agora::info(log_prefix, "Skipping hypothesis test and REJECTING the change because the mean_populations_difference [", mean_populations_difference, "] is lower than the ici test training range for the mean [", ici_training_mean_range, "].");
+            above_threshold = true;
+          }
+          if (above_threshold){
+            agora::pedantic(log_prefix, "Critical value [", q, "] is lower than alpha/2 [", Parameters_beholder::alpha / 2, "].");
+            agora::debug(log_prefix, "Null hypothesis: Sample 1 Mean == Sample 2 Mean REJECTED.\n(Alternative hypothesis: Sample 1 Mean != Sample 2 Mean ACCEPTED.)");
+            agora::info(log_prefix, "HYPOTHESIS TEST, change confirmed on metric: ", i.first, "!");
+            return true;
+          } else {
+            agora::pedantic(log_prefix, "Critical value [", q, "] is lower than alpha/2 [", Parameters_beholder::alpha / 2, "].");
+            agora::info(log_prefix, "Hypothesis test confirmed the change, but the difference in means of the two distributions is lower than the user set threshold, so the change is overall REJECTED");
+            agora::info(log_prefix, "The mean_populations_difference [", mean_populations_difference, "] is lower than the threshold [", ici_training_mean_range*Parameters_beholder::means_threshold_multiplier, "].");
+          }
+        } else {
+          agora::pedantic(log_prefix, "Critical value [", q, "] is lower than alpha/2 [", Parameters_beholder::alpha / 2, "].");
+          agora::debug(log_prefix, "Null hypothesis: Sample 1 Mean == Sample 2 Mean REJECTED.\n(Alternative hypothesis: Sample 1 Mean != Sample 2 Mean ACCEPTED.)");
+          agora::info(log_prefix, "HYPOTHESIS TEST, change confirmed on metric: ", i.first, "!");
+          return true;
         }
+      }
+      else
+      {
+        agora::pedantic(log_prefix, "Critical value [", q, "] is greater than alpha/2 [", Parameters_beholder::alpha / 2, "].");
+        agora::debug(log_prefix, "Null hypothesis: Sample 1 Mean == Sample 2 Mean ACCEPTED.\n(Alternative hypothesis: Sample 1 Mean != Sample 2 Mean REJECTED.)");
+        agora::info(log_prefix, "HYPOTHESIS TEST, change rejected on metric: ", i.first, "!");
       }
 
     }
 
-    return confirmed_change;
+    return false;
+  }
+
+  // returns the absolute value of Cohen's D
+  float HypTest::compute_cohen_d(const int n1, const int n2, const float x1, const float x2, const float s1_2, const float s2_2){
+    float pooled_stddev = sqrt((((n1 - 1) * s1_2) + ((n2 - 1) * s2_2)) / (n1 + n2 - 2));
+    float d = (x1 - x2) / (pooled_stddev);
+    return abs(d);
   }
 }

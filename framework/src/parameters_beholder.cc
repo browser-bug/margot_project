@@ -27,6 +27,8 @@ namespace beholder
   bool Parameters_beholder::use_clt = false;
   bool Parameters_beholder::use_difference_means_threshold = false;
   float Parameters_beholder::means_threshold_multiplier = 1.5;
+  bool Parameters_beholder::disable_cohen_d_effect_size_check = false;
+  float Parameters_beholder::cohen_d_threshold = 0.8;
   int Parameters_beholder::window_size = 20;
   int Parameters_beholder::training_windows = 5;
   float Parameters_beholder::gamma_mean = 3;
