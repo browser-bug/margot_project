@@ -287,12 +287,6 @@ namespace beholder
       // In our situation the change is confirmed when the null hypothesis (no change) is rejected,
       // and then the alternative hypothesis is not rejected.
 
-      if (!Parameters_beholder::disable_bonferroni_correction){
-        Parameters_beholder::alpha = Parameters_beholder::alpha / num_clients;
-        agora::pedantic(log_prefix, "Using Bonferroni correction, the significance level is: ", Parameters_beholder::alpha);
-      }
-
-
       if (q < Parameters_beholder::alpha / 2)
       {
         if (!Parameters_beholder::disable_cohen_d_effect_size_check){
