@@ -343,11 +343,6 @@ int main( int argc, char* argv[] )
   // create a virtual channel to communicate with the applications and agora
   agora::info("Beholder main: bootstrap step 1: estabilish a connection with broker");
 
-  if (!Parameters_beholder::disable_bonferroni_correction){
-    Parameters_beholder::alpha = Parameters_beholder::alpha / num_clients;
-    agora::pedantic(log_prefix, "Using Bonferroni correction, the significance level is: ", Parameters_beholder::alpha);
-  }
-
   if ( mqtt_implementation.compare("paho") == 0 )
   {
     agora::io::remote.create<agora::PahoClient>("beholder", broker_url, mqtt_qos, broker_username, broker_password, broker_trust_store, client_certificate, client_key);

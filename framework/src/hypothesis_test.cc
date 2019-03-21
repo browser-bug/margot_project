@@ -287,18 +287,24 @@ namespace beholder
       // In our situation the change is confirmed when the null hypothesis (no change) is rejected,
       // and then the alternative hypothesis is not rejected.
 
-      if (q < Parameters_beholder::alpha / 2)
+      float alpha = Parameters_beholder::alpha;
+      if (!Parameters_beholder::disable_bonferroni_correction){
+        alpha = alpha / num_clients;
+        agora::pedantic(log_prefix, "Using Bonferroni correction, the significance level is: ", alpha);
+      }
+
+      if (q < alpha / 2)
       {
         if (!Parameters_beholder::disable_cohen_d_effect_size_check){
           float cohen_d = HypTest::compute_cohen_d(n1, n2, x1, x2, s1_2, s2_2);
           agora::debug(log_prefix, "Cohen's D: ", cohen_d);
           if (cohen_d > Parameters_beholder::cohen_d_threshold){
-            agora::pedantic(log_prefix, "Critical value [", q, "] is lower than alpha/2 [", Parameters_beholder::alpha / 2, "].");
+            agora::pedantic(log_prefix, "Critical value [", q, "] is lower than alpha/2 [", alpha / 2, "].");
             agora::debug(log_prefix, "Null hypothesis: Sample 1 Mean == Sample 2 Mean REJECTED.\n(Alternative hypothesis: Sample 1 Mean != Sample 2 Mean ACCEPTED.)");
             agora::info(log_prefix, "HYPOTHESIS TEST, change confirmed on metric: ", i.first, "!");
             return true;
           } else {
-            agora::pedantic(log_prefix, "Critical value [", q, "] is lower than alpha/2 [", Parameters_beholder::alpha / 2, "].");
+            agora::pedantic(log_prefix, "Critical value [", q, "] is lower than alpha/2 [", alpha / 2, "].");
             agora::info(log_prefix, "Hypothesis test confirmed the change, but the difference in means of the two distributions is not practically significant according to Cohen's Effect Size test, so the change is overall REJECTED");
             agora::info(log_prefix, "The Cohen's D [", cohen_d, "] is lower than the threshold [", Parameters_beholder::cohen_d_threshold, "].");
           }
@@ -319,17 +325,17 @@ namespace beholder
             above_threshold = true;
           }
           if (above_threshold){
-            agora::pedantic(log_prefix, "Critical value [", q, "] is lower than alpha/2 [", Parameters_beholder::alpha / 2, "].");
+            agora::pedantic(log_prefix, "Critical value [", q, "] is lower than alpha/2 [", alpha / 2, "].");
             agora::debug(log_prefix, "Null hypothesis: Sample 1 Mean == Sample 2 Mean REJECTED.\n(Alternative hypothesis: Sample 1 Mean != Sample 2 Mean ACCEPTED.)");
             agora::info(log_prefix, "HYPOTHESIS TEST, change confirmed on metric: ", i.first, "!");
             return true;
           } else {
-            agora::pedantic(log_prefix, "Critical value [", q, "] is lower than alpha/2 [", Parameters_beholder::alpha / 2, "].");
+            agora::pedantic(log_prefix, "Critical value [", q, "] is lower than alpha/2 [", alpha / 2, "].");
             agora::info(log_prefix, "Hypothesis test confirmed the change, but the difference in means of the two distributions is lower than the user set threshold, so the change is overall REJECTED");
             agora::info(log_prefix, "The mean_populations_difference [", mean_populations_difference, "] is lower than the threshold [", ici_training_mean_range*Parameters_beholder::means_threshold_multiplier, "].");
           }
         } else {
-          agora::pedantic(log_prefix, "Critical value [", q, "] is lower than alpha/2 [", Parameters_beholder::alpha / 2, "].");
+          agora::pedantic(log_prefix, "Critical value [", q, "] is lower than alpha/2 [", alpha / 2, "].");
           agora::debug(log_prefix, "Null hypothesis: Sample 1 Mean == Sample 2 Mean REJECTED.\n(Alternative hypothesis: Sample 1 Mean != Sample 2 Mean ACCEPTED.)");
           agora::info(log_prefix, "HYPOTHESIS TEST, change confirmed on metric: ", i.first, "!");
           return true;
@@ -337,7 +343,7 @@ namespace beholder
       }
       else
       {
-        agora::pedantic(log_prefix, "Critical value [", q, "] is greater than alpha/2 [", Parameters_beholder::alpha / 2, "].");
+        agora::pedantic(log_prefix, "Critical value [", q, "] is greater than alpha/2 [", alpha / 2, "].");
         agora::debug(log_prefix, "Null hypothesis: Sample 1 Mean == Sample 2 Mean ACCEPTED.\n(Alternative hypothesis: Sample 1 Mean != Sample 2 Mean REJECTED.)");
         agora::info(log_prefix, "HYPOTHESIS TEST, change rejected on metric: ", i.first, "!");
       }
