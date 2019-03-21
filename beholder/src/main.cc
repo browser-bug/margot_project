@@ -188,6 +188,9 @@ int main( int argc, char* argv[] )
   ("cohen_d_threshold", po::value<float>(&beholder::Parameters_beholder::cohen_d_threshold)->
    default_value(beholder::Parameters_beholder::cohen_d_threshold),
    "Cohen's D threshold to reject change if the difference in the means of the two distributions in the hypothesis test is not practically significant. <float>")
+  ("disable_bonferroni_correction", po::bool_switch(&beholder::Parameters_beholder::disable_bonferroni_correction)->
+   default_value(beholder::Parameters_beholder::disable_bonferroni_correction),
+   "Disables the use of the Bonferroni correction (alpha/num_clients) for the hypothesis test.")
   ("no_trace_drop", po::bool_switch(&beholder::Parameters_beholder::no_trace_drop)->
    default_value(beholder::Parameters_beholder::no_trace_drop),
    "When enabled allows to just delete the trace (after a confirmed change) from the top to the last element of the change window.")
@@ -326,6 +329,11 @@ int main( int argc, char* argv[] )
     agora::info("Cohen's D Effect Size Check OFF!");
   } else {
     agora::info("Cohen's D Effect Size Check ON!");
+  }
+  if (beholder::Parameters_beholder::disable_bonferroni_correction){
+    agora::info("Bonferroni Correction OFF!");
+  } else {
+    agora::info("Bonferroni Correction ON!");
   }
   if (beholder::Parameters_beholder::use_difference_means_threshold){
     agora::info("Means Threshold ON!");

@@ -31,7 +31,7 @@ namespace beholder
 {
 
   bool HypTest::perform_hypothesis_test(const std::unordered_map<std::string, residuals_from_trace>& client_residuals_map, const std::string& application_name,
-                                        const std::string& client_name, const std::string& application_workspace, const int& suffix_plot, const std::unordered_map<std::string, Data_ici_test>& ici_cdt_map)
+                                        const std::string& client_name, const std::string& application_workspace, const int& suffix_plot, const std::unordered_map<std::string, Data_ici_test>& ici_cdt_map, const int num_clients)
   {
 
     int clt_sampling_variables = 1000; // number of sampled variables to be collected for each distribution
@@ -287,6 +287,10 @@ namespace beholder
       // In our situation the change is confirmed when the null hypothesis (no change) is rejected,
       // and then the alternative hypothesis is not rejected.
 
+      if (!Parameters_beholder::disable_bonferroni_correction){
+        Parameters_beholder::alpha = Parameters_beholder::alpha / num_clients;
+        agora::pedantic(log_prefix, "Using Bonferroni correction, the significance level is: ", Parameters_beholder::alpha);
+      }
 
 
       if (q < Parameters_beholder::alpha / 2)

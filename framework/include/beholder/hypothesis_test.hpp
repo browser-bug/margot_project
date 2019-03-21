@@ -44,7 +44,7 @@ namespace beholder
        * It returns a boolean: true if the outcome of the test is positive, false otherwise.
        */
       static bool perform_hypothesis_test(const std::unordered_map<std::string, residuals_from_trace>& client_residuals_map, const std::string& application_name,
-                                          const std::string& client_name, const std::string& application_workspace, const int& suffix_plot, const std::unordered_map<std::string, Data_ici_test>& ici_cdt_map);
+                                          const std::string& client_name, const std::string& application_workspace, const int& suffix_plot, const std::unordered_map<std::string, Data_ici_test>& ici_cdt_map, const int num_clients);
 
   };
 }

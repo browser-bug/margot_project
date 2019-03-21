@@ -39,6 +39,7 @@ namespace beholder
     static float means_threshold_multiplier;
     static bool disable_cohen_d_effect_size_check;
     static float cohen_d_threshold;
+    static bool disable_bonferroni_correction;
     static int window_size;
     static int training_windows;
     static float gamma_mean;

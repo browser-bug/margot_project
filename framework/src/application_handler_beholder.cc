@@ -848,7 +848,7 @@ void RemoteApplicationHandler::second_level_test( std::unordered_map<std::string
         }
 
         // Execute on the specific client the 2nd step of CDT: hypothesis TEST
-        confirmed_change = HypTest::perform_hypothesis_test(client_residuals_map, description.application_name, i.first, application_workspace, suffix_plot, ici_cdt_map);
+        confirmed_change = HypTest::perform_hypothesis_test(client_residuals_map, description.application_name, i.first, application_workspace, suffix_plot, ici_cdt_map, clients_list_snapshot.size());
         agora::debug(log_prefix, "Client: ", i.first, ": Outcome of hypothesis test: ", confirmed_change);
       }
 
