@@ -92,3 +92,7 @@ Clone the repository and send pull requests, any contribution is welcome.
 Contact: davide [dot] gadioli [at] polimi [dot] it
 
 Organization: Politecnico di Milano, Italy
+
+
+### Acknowledgment
+This work has been supported by European Commission under the grant 671623 FET-HPC-ANTAREX (AutoTuning and Adaptivity appRoach for Energy efficient eXascale HPC systems)
