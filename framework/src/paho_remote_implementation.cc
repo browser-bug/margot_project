@@ -20,7 +20,6 @@
 #include <string>
 #include <thread>
 #include <atomic>
-#include <iostream>
 #include <stdexcept>
 #include <cassert>
 #include <unistd.h>      // to get the hostname
@@ -133,8 +132,6 @@ PahoClient::PahoClient( const std::string& application_name, const std::string& 
     ssl.enableServerCertAuth = true;
     conn_opts.ssl = &ssl;
   }
-
-  std::cout << "Broker address: " << broker_address << std::endl;
 
   // set the last will and testment
   MQTTClient_willOptions last_will = MQTTClient_willOptions_initializer;
