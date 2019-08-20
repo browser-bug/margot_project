@@ -78,7 +78,7 @@ void print_usage( void )
   std::cout << "                                DEFAULT = \"\"" << std::endl;
   std::cout << " --client_certificate <str>     The path to the client certificate (e.g. client.crt), if any" << std::endl;
   std::cout << "                                DEFAULT = \"\"" << std::endl;
-  std::cout << " --client_private_key <str>     The path to the private key (e.g. client.key), if any" << std::endl;
+  std::cout << " --client_key <str>             The path to the private key (e.g. client.key), if any" << std::endl;
   std::cout << "                                DEFAULT = \"\"" << std::endl;
   std::cout << " --qos int                      The MQTT quality of service level [0-2]" << std::endl;
   std::cout << "                                DEFAULT = \"2\"" << std::endl;
