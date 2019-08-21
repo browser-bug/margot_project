@@ -5,7 +5,7 @@ import os
 import sys
 
 
-def dump_cassandra_database_cassandra( args, root_path ):
+def dump_database_cassandra( args, root_path ):
 
     import cassandra
     from cassandra.cluster import Cluster
@@ -80,7 +80,7 @@ def dump_cassandra_database_cassandra( args, root_path ):
 
 
 
-def dump_cassandra_database_cassandra( args, root_path ):
+def dump_database_csv( args, root_path ):
     from shutil import copyfile
 
     # this list will contain the name of all the predictors
@@ -91,7 +91,7 @@ def dump_cassandra_database_cassandra( args, root_path ):
         reader = csv.DictReader(infile)
 
         # open the file to write the knobs name
-        while open('knobs.txt', 'w') as outfile:
+        with open('knobs.txt', 'w') as outfile:
             for row in reader:
                 outfile.write('{0}\n'.format(row['name']))
                 predictors.append(row['name'])
@@ -101,7 +101,7 @@ def dump_cassandra_database_cassandra( args, root_path ):
         reader = csv.DictReader(infile)
 
         # open the file to write the knobs name
-        while open('features.txt', 'w') as outfile:
+        with open('features.txt', 'w') as outfile:
             for row in reader:
                 outfile.write('{0}\n'.format(row['name']))
                 predictors.append(row['name'])
@@ -112,7 +112,7 @@ def dump_cassandra_database_cassandra( args, root_path ):
         reader = csv.DictReader(infile)
 
         # open the file to write the observations
-        while open('dse.txt', 'w') as outfile:
+        with open('dse.txt', 'w') as outfile:
 
             # write the header
             outfile.write('{1},{0}\n'.format(args.metric, ','.join(predictors)))
@@ -127,7 +127,7 @@ def dump_cassandra_database_cassandra( args, root_path ):
         reader = csv.DictReader(infile)
 
         # open the file to write the actual request for the plugin
-        while open('prediction_request.txt', 'w') as outfile:
+        with open('prediction_request.txt', 'w') as outfile:
 
             # write the header
             outfile.write('{0}\n'.format(','.join(predictors)))
@@ -172,10 +172,10 @@ if __name__ == '__main__':
 
     # check which is the type of the storage
     if args.storage_type == 'CASSANDRA':
-        dump_cassandra_database_cassandra(args, root_path)
+        dump_database_cassandra(args, root_path)
         sys.exit(os.EX_OK)
     if args.storage_type == 'CSV':
-        dump_cassandra_database_csv(args, root_path)
+        dump_database_csv(args, root_path)
         sys.exit(os.EX_OK)
 
     # if we reach this point, we don't know how to dump the information
