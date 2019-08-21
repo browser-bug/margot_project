@@ -17,4 +17,10 @@ install.packages('RJDBC')
 install.packages('DiceDesign')
 install.packages('DiceEval')
 install.packages('DiceKriging')
+install.packages('tidyverse')
+install.packages('mda')
+install.packages('polspline')
+install.packages('quadprog')
 ```
+
+NOTE: the dependencies of tidyverse are the development files of curl and xml2.
