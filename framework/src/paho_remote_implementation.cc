@@ -70,7 +70,8 @@ extern "C"
     warning("MQTT callback: lost connection with broker due to \"", cause, "\"");
 
     // pretend that the error is a normal message
-    struct message_t error_message = {"$disconnect$", std::string(cause)};
+    struct message_t error_message = cause != nullptr ? message_t{"$disconnect$", std::string(cause)}
+                                                      : message_t{"$disconnect$", "Unknown error"};
 
     // put the message in the inbox
     // NOTE: this operation is dangerous, because we are assuming that context
