@@ -1,65 +1,45 @@
 #ifndef MARGOT_RESULT_PRINTER_HDR
 #define MARGOT_RESULT_PRINTER_HDR
 
-#include <fstream>
-#include <string>
-#include <vector>
-#include <utility>
-#include <map>
+#include <algorithm>
 #include <chrono>
 #include <cstddef>
+#include <fstream>
+#include <map>
+#include <string>
 #include <type_traits>
-#include <algorithm>
-
+#include <utility>
+#include <vector>
 
 #include "margot/statistics.hpp"
 
+struct data_serie_t {
+  using value_type = std::pair<int, uint64_t>;
 
-struct data_serie_t
-{
-  using value_type = std::pair< int, uint64_t >;
-
-  std::vector< value_type > data;
+  std::vector<value_type> data;
   std::string name;
 };
 
-
-template< class TimeType = std::chrono::microseconds >
-void plot( const std::string& file_basename, const std::vector< data_serie_t >& data_series )
-{
-
+template <class TimeType = std::chrono::microseconds>
+void plot(const std::string& file_basename, const std::vector<data_serie_t>& data_series) {
   // figuring out the suffix of the unit of measures for times
   std::string time_suffix;
 
-  if ( std::is_same<TimeType, std::chrono::nanoseconds>::value )
-  {
+  if (std::is_same<TimeType, std::chrono::nanoseconds>::value) {
     time_suffix = "[ns]";
-  }
-  else if ( std::is_same<TimeType, std::chrono::microseconds>::value )
-  {
+  } else if (std::is_same<TimeType, std::chrono::microseconds>::value) {
     time_suffix = "[us]";
-  }
-  else if ( std::is_same<TimeType, std::chrono::milliseconds>::value )
-  {
+  } else if (std::is_same<TimeType, std::chrono::milliseconds>::value) {
     time_suffix = "[ms]";
-  }
-  else if ( std::is_same<TimeType, std::chrono::seconds>::value )
-  {
+  } else if (std::is_same<TimeType, std::chrono::seconds>::value) {
     time_suffix = "[sec]";
-  }
-  else if ( std::is_same<TimeType, std::chrono::minutes>::value )
-  {
+  } else if (std::is_same<TimeType, std::chrono::minutes>::value) {
     time_suffix = "[minutes]";
-  }
-  else if ( std::is_same<TimeType, std::chrono::hours>::value )
-  {
+  } else if (std::is_same<TimeType, std::chrono::hours>::value) {
     time_suffix = "[hours]";
-  }
-  else
-  {
+  } else {
     time_suffix = "[unkown]";
   }
-
 
   // ------------------------------------  write the gnuplot script
 
@@ -88,11 +68,12 @@ void plot( const std::string& file_basename, const std::vector< data_serie_t >& 
   // write the plot command for the dataseries
   int serie_counter = 0;
 
-  for ( const data_serie_t& serie : data_series )
-  {
+  for (const data_serie_t& serie : data_series) {
     const std::string title_bit = serie.name.empty() ? "notitle" : "title \"" + serie.name + "\"";
-    //plot << "\"" << file_basename << serie_counter << ".data\" u 1:2:4 with filledcu ls " << serie_counter + 1 << " notitle, ";
-    plot << "\"" << file_basename << serie_counter << ".data\" u 1:3 with linespoints ls " << serie_counter + 1 << " " << title_bit << ", ";
+    // plot << "\"" << file_basename << serie_counter << ".data\" u 1:2:4 with filledcu ls " << serie_counter
+    // + 1 << " notitle, ";
+    plot << "\"" << file_basename << serie_counter << ".data\" u 1:3 with linespoints ls "
+         << serie_counter + 1 << " " << title_bit << ", ";
     ++serie_counter;
   }
 
@@ -100,14 +81,12 @@ void plot( const std::string& file_basename, const std::vector< data_serie_t >& 
   plot << std::endl;
   plot.close();
 
-
   // ------------------------------------  write the data file
 
   // loop over the data serie
   serie_counter = 0;
 
-  for ( const data_serie_t& serie : data_series )
-  {
+  for (const data_serie_t& serie : data_series) {
     // open the datafile
     std::ofstream df;
     df.open(file_basename + std::to_string(serie_counter) + ".data");
@@ -116,41 +95,36 @@ void plot( const std::string& file_basename, const std::vector< data_serie_t >& 
     // print the header
     df << "# num_ops\tminus_sigma\tmean\tplus_sigma" << std::endl;
 
-
     // cluster the data according to the number of Operating Points
-    std::map< int, std::vector< uint64_t > > clustered_data;
+    std::map<int, std::vector<uint64_t> > clustered_data;
 
-    for ( const auto data_pair : serie.data )
-    {
+    for (const auto data_pair : serie.data) {
       // insert the data
       const auto it = clustered_data.find(data_pair.first);
 
-      if (it == clustered_data.end())
-      {
-        auto result = clustered_data.emplace(data_pair.first, std::vector< uint64_t > {});
+      if (it == clustered_data.end()) {
+        auto result = clustered_data.emplace(data_pair.first, std::vector<uint64_t>{});
         result.first->second.emplace_back(data_pair.second);
-      }
-      else
-      {
+      } else {
         it->second.emplace_back(data_pair.second);
       }
     }
 
-
     // loop over the values
-    for ( const auto pair : clustered_data)
-    {
+    for (const auto pair : clustered_data) {
       // compute the statistics with high precision
-      const auto average_value = margot::average< std::vector< uint64_t >, double>(pair.second);
-      const auto standard_deviation = margot::stddev< std::vector< uint64_t >, double>(pair.second, average_value);
+      const auto average_value = margot::average<std::vector<uint64_t>, double>(pair.second);
+      const auto standard_deviation =
+          margot::stddev<std::vector<uint64_t>, double>(pair.second, average_value);
 
       // compute the upper and lower bound (they are in double, representing ns)
       const auto upper_bound = average_value + standard_deviation;
       const auto average = average_value;
-      const auto lower_bound = std::max( static_cast<double>(0), average_value - standard_deviation );
+      const auto lower_bound = std::max(static_cast<double>(0), average_value - standard_deviation);
 
       // compute the conversion ratio in double (for the given time format)
-      const uint64_t time_in_nanosec = std::chrono::duration_cast<std::chrono::nanoseconds>(TimeType(1)).count();
+      const uint64_t time_in_nanosec =
+          std::chrono::duration_cast<std::chrono::nanoseconds>(TimeType(1)).count();
       const double ratio = static_cast<long double>(1) / static_cast<long double>(time_in_nanosec);
 
       // convert them in microseconds
@@ -159,18 +133,13 @@ void plot( const std::string& file_basename, const std::vector< data_serie_t >& 
       const double actual_lower_bound = lower_bound * ratio;
 
       // log the result
-      df << pair.first << '\t' << actual_upper_bound << '\t' << actual_average << '\t' << actual_lower_bound << std::endl;
+      df << pair.first << '\t' << actual_upper_bound << '\t' << actual_average << '\t' << actual_lower_bound
+         << std::endl;
     }
-
 
     // close the datafile
     df.close();
   }
-
-
 }
 
-
-
-
-#endif // MARGOT_RESULT_PRINTER_HDR
+#endif  // MARGOT_RESULT_PRINTER_HDR

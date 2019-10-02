@@ -17,27 +17,30 @@
  * USA
  */
 
-#include <stdexcept>
 #include <algorithm>
 #include <cassert>
+#include <stdexcept>
 
-#include "agora/logger.hpp"
 #include "agora/cassandra_fs_implementation.hpp"
-
+#include "agora/logger.hpp"
 
 using namespace agora;
 
-CassandraClient::CassandraClient(const std::string& url, const std::string& username, const std::string& password)
-  : is_connected(false), database_name("margot"), default_application_separator('/'), table_application_separator('_')
-  , address(url), username(username), password(password)
-{
+CassandraClient::CassandraClient(const std::string& url, const std::string& username,
+                                 const std::string& password)
+    : is_connected(false),
+      database_name("margot"),
+      default_application_separator('/'),
+      table_application_separator('_'),
+      address(url),
+      username(username),
+      password(password) {
   // initialize the proper data structure
   CassCluster* cluster = cass_cluster_new();
   session = cass_session_new();
 
   // set the username and password for the connection, if any
-  if (!(username.empty() || password.empty()))
-  {
+  if (!(username.empty() || password.empty())) {
     cass_cluster_set_credentials(cluster, username.c_str(), password.c_str());
   }
 
@@ -49,15 +52,14 @@ CassandraClient::CassandraClient(const std::string& url, const std::string& user
   CassError rc = cass_future_error_code(connection_result);
 
   // log the result of the connection
-  if (rc == CASS_OK)
-  {
+  if (rc == CASS_OK) {
     info("Cassandra client: successfully connected to databse at \"", url, "\" as \"", username, "\"");
     is_connected = true;
-  }
-  else
-  {
-    warning("Cassandra client: unable to connect to database at \"", url, "\" as \"", username, "\" due to: ", cass_error_desc(rc));
-    throw std::runtime_error("Cassandra error: unable to connect to database, due to: " + std::string(cass_error_desc(rc)));
+  } else {
+    warning("Cassandra client: unable to connect to database at \"", url, "\" as \"", username,
+            "\" due to: ", cass_error_desc(rc));
+    throw std::runtime_error("Cassandra error: unable to connect to database, due to: " +
+                             std::string(cass_error_desc(rc)));
   }
 
   // free the memory, since we are either connected or not
@@ -65,28 +67,23 @@ CassandraClient::CassandraClient(const std::string& url, const std::string& user
   cass_cluster_free(cluster);
 
   // create the database, ehm the key space >.>
-  execute_query_synch("CREATE KEYSPACE IF NOT EXISTS " + database_name + " WITH REPLICATION = { 'class' : 'SimpleStrategy', 'replication_factor' : 1 };");
+  execute_query_synch("CREATE KEYSPACE IF NOT EXISTS " + database_name +
+                      " WITH REPLICATION = { 'class' : 'SimpleStrategy', 'replication_factor' : 1 };");
 
   // switch to the correct database
   execute_query_synch("USE " + database_name);
-
 }
 
-
-CassandraClient::~CassandraClient( void )
-{
+CassandraClient::~CassandraClient(void) {
   // disconnect from the database
   CassFuture* connection_result = cass_session_close(session);
-  cass_future_wait(connection_result); // wait for inflight traffic, might happens
+  cass_future_wait(connection_result);  // wait for inflight traffic, might happens
   cass_future_free(connection_result);
   cass_session_free(session);
   info("Cassandra client: disconnected from the databse");
 }
 
-
-
-void CassandraClient::execute_query_synch( const std::string& query )
-{
+void CassandraClient::execute_query_synch(const std::string& query) {
   // execute the query
   CassFuture* query_future = send_query(query);
 
@@ -94,9 +91,7 @@ void CassandraClient::execute_query_synch( const std::string& query )
   cass_future_free(query_future);
 }
 
-
-CassFuture* CassandraClient::send_query( const std::string& query )
-{
+CassFuture* CassandraClient::send_query(const std::string& query) {
   // check if we are connected to the cassandra database
   assert(is_connected && "Error: we must be connected in order to perform queries");
 
@@ -112,39 +107,31 @@ CassFuture* CassandraClient::send_query( const std::string& query )
   CassError rc = cass_future_error_code(query_future);
   const bool is_query_ok = rc == CASS_OK;
 
-  if ( is_query_ok )
-  {
+  if (is_query_ok) {
     debug("Cassandra client: query \"", query, "\" executed successfully");
-  }
-  else
-  {
+  } else {
     warning("Cassandra client: query \"", query, "\" failed, due to \"", cass_error_desc(rc), "\"");
   }
 
   return query_future;
 }
 
-
-
-
-void CassandraClient::store_metrics( const std::string& application_name, const application_metrics_t& metrics )
-{
+void CassandraClient::store_metrics(const std::string& application_name,
+                                    const application_metrics_t& metrics) {
   std::string table_name = get_metrics_name(application_name);
 
   // create the table
-  execute_query_synch("CREATE TABLE " + table_name + " ( name text PRIMARY KEY, type text, prediction text);");
+  execute_query_synch("CREATE TABLE " + table_name +
+                      " ( name text PRIMARY KEY, type text, prediction text);");
 
   // populate the query
-  for ( const auto& metric : metrics )
-  {
+  for (const auto& metric : metrics) {
     execute_query_synch("INSERT INTO " + table_name + " (name,type,prediction) VALUES ('" + metric.name +
                         "', '" + metric.type + "', '" + metric.prediction_method + "');");
   }
 }
 
-
-application_metrics_t CassandraClient::load_metrics( const std::string& application_name )
-{
+application_metrics_t CassandraClient::load_metrics(const std::string& application_name) {
   // this will cotain the model
   application_metrics_t application_metrics;
 
@@ -152,16 +139,12 @@ application_metrics_t CassandraClient::load_metrics( const std::string& applicat
   std::string table_name = get_metrics_name(application_name);
 
   // how the result of the query will be processed
-  const auto result_handler = [&application_metrics, &application_name] ( const CassResult * query_result )
-  {
-
+  const auto result_handler = [&application_metrics, &application_name](const CassResult* query_result) {
     // loop over the results
-    if (query_result != nullptr)
-    {
+    if (query_result != nullptr) {
       CassIterator* row_iterator = cass_iterator_from_result(query_result);
 
-      while (cass_iterator_next(row_iterator))
-      {
+      while (cass_iterator_next(row_iterator)) {
         // get the reference from the row
         const CassRow* row = cass_iterator_get_row(row_iterator);
 
@@ -175,8 +158,7 @@ application_metrics_t CassandraClient::load_metrics( const std::string& applicat
         field_value = cass_row_get_column_by_name(row, "name");
         rc = cass_value_get_string(field_value, &field_value_s, &lenght_output_string);
 
-        if (rc != CASS_OK)
-        {
+        if (rc != CASS_OK) {
           warning("Cassandra client: unable to convert a field to string");
         }
 
@@ -186,8 +168,7 @@ application_metrics_t CassandraClient::load_metrics( const std::string& applicat
         field_value = cass_row_get_column_by_name(row, "prediction");
         rc = cass_value_get_string(field_value, &field_value_s, &lenght_output_string);
 
-        if (rc != CASS_OK)
-        {
+        if (rc != CASS_OK) {
           warning("Cassandra client: unable to convert a field to string");
         }
 
@@ -197,8 +178,7 @@ application_metrics_t CassandraClient::load_metrics( const std::string& applicat
         field_value = cass_row_get_column_by_name(row, "type");
         rc = cass_value_get_string(field_value, &field_value_s, &lenght_output_string);
 
-        if (rc != CASS_OK)
-        {
+        if (rc != CASS_OK) {
           warning("Cassandra client: unable to convert a field to string");
         }
 
@@ -220,29 +200,23 @@ application_metrics_t CassandraClient::load_metrics( const std::string& applicat
   const std::string query = "SELECT * FROM " + table_name + ";";
   execute_query_synch(query, result_handler);
 
-
   return application_metrics;
 }
 
-
-
-
-void CassandraClient::store_knobs( const std::string& application_name, const application_knobs_t& knobs )
-{
+void CassandraClient::store_knobs(const std::string& application_name, const application_knobs_t& knobs) {
   // compose the name of the table
   std::string table_name = get_knobs_name(application_name);
 
   // create the table
-  execute_query_synch("CREATE TABLE " + table_name + " ( name text PRIMARY KEY, type text, values set<text> );");
+  execute_query_synch("CREATE TABLE " + table_name +
+                      " ( name text PRIMARY KEY, type text, values set<text> );");
 
   // populate the query
-  for ( const auto& knob : knobs )
-  {
+  for (const auto& knob : knobs) {
     // write the sequence of values
     std::string values = "{ ";
 
-    for ( const auto& value : knob.values )
-    {
+    for (const auto& value : knob.values) {
       values += "'" + value + "', ";
     }
 
@@ -250,14 +224,12 @@ void CassandraClient::store_knobs( const std::string& application_name, const ap
     values[values.size() - 2] = ' ';
 
     // execute the query
-    execute_query_synch("INSERT INTO " + table_name + " (name,type,values) VALUES ('" + knob.name +
-                        "', '" + knob.type + "', " + values + "} );");
+    execute_query_synch("INSERT INTO " + table_name + " (name,type,values) VALUES ('" + knob.name + "', '" +
+                        knob.type + "', " + values + "} );");
   }
 }
 
-
-application_knobs_t CassandraClient::load_knobs( const std::string& application_name )
-{
+application_knobs_t CassandraClient::load_knobs(const std::string& application_name) {
   // this will cotain the model
   application_knobs_t application_knobs;
 
@@ -265,16 +237,12 @@ application_knobs_t CassandraClient::load_knobs( const std::string& application_
   std::string table_name = get_knobs_name(application_name);
 
   // how the result of the query will be processed
-  const auto result_handler = [&application_knobs, &application_name] ( const CassResult * query_result )
-  {
-
+  const auto result_handler = [&application_knobs, &application_name](const CassResult* query_result) {
     // loop over the results
-    if (query_result != nullptr)
-    {
+    if (query_result != nullptr) {
       CassIterator* row_iterator = cass_iterator_from_result(query_result);
 
-      while (cass_iterator_next(row_iterator))
-      {
+      while (cass_iterator_next(row_iterator)) {
         // get the reference from the row
         const CassRow* row = cass_iterator_get_row(row_iterator);
 
@@ -288,8 +256,7 @@ application_knobs_t CassandraClient::load_knobs( const std::string& application_
         field_value = cass_row_get_column_by_name(row, "name");
         rc = cass_value_get_string(field_value, &field_value_s, &lenght_output_string);
 
-        if (rc != CASS_OK)
-        {
+        if (rc != CASS_OK) {
           warning("Cassandra client: unable to convert a field to string");
         }
 
@@ -299,27 +266,23 @@ application_knobs_t CassandraClient::load_knobs( const std::string& application_
         field_value = cass_row_get_column_by_name(row, "type");
         rc = cass_value_get_string(field_value, &field_value_s, &lenght_output_string);
 
-        if (rc != CASS_OK)
-        {
+        if (rc != CASS_OK) {
           warning("Cassandra client: unable to convert a field to string");
         }
 
         const std::string knob_type(field_value_s, lenght_output_string);
-
 
         // get the possible values
         std::vector<std::string> knob_values;
         field_value = cass_row_get_column_by_name(row, "values");
         CassIterator* collection_data_iterator = cass_iterator_from_collection(field_value);
 
-        while (cass_iterator_next(collection_data_iterator))
-        {
+        while (cass_iterator_next(collection_data_iterator)) {
           // get the actual value from the iterator
           field_value = cass_iterator_get_value(collection_data_iterator);
           rc = cass_value_get_string(field_value, &field_value_s, &lenght_output_string);
 
-          if (rc != CASS_OK)
-          {
+          if (rc != CASS_OK) {
             warning("Cassandra client: unable to convert a field to string");
           }
 
@@ -344,27 +307,24 @@ application_knobs_t CassandraClient::load_knobs( const std::string& application_
   const std::string query = "SELECT * FROM " + table_name + ";";
   execute_query_synch(query, result_handler);
 
-
   return application_knobs;
 }
 
-
-void CassandraClient::store_features( const std::string& application_name, const application_features_t& features )
-{
+void CassandraClient::store_features(const std::string& application_name,
+                                     const application_features_t& features) {
   // compose the name of the table
   std::string table_name = get_features_name(application_name);
 
   // create the table
-  execute_query_synch("CREATE TABLE " + table_name + " ( name text PRIMARY KEY, type text, values set<text> );");
+  execute_query_synch("CREATE TABLE " + table_name +
+                      " ( name text PRIMARY KEY, type text, values set<text> );");
 
   // populate the query
-  for ( const auto& feature : features )
-  {
+  for (const auto& feature : features) {
     // write the sequence of values
     std::string values = "{ ";
 
-    for ( const auto& value : feature.values )
-    {
+    for (const auto& value : feature.values) {
       values += "'" + value + "', ";
     }
 
@@ -377,8 +337,7 @@ void CassandraClient::store_features( const std::string& application_name, const
   }
 }
 
-application_features_t CassandraClient::load_features( const std::string& application_name )
-{
+application_features_t CassandraClient::load_features(const std::string& application_name) {
   // this will cotain the model
   application_features_t application_features;
 
@@ -386,16 +345,12 @@ application_features_t CassandraClient::load_features( const std::string& applic
   std::string table_name = get_features_name(application_name);
 
   // how the result of the query will be processed
-  const auto result_handler = [&application_features, &application_name] ( const CassResult * query_result )
-  {
-
+  const auto result_handler = [&application_features, &application_name](const CassResult* query_result) {
     // loop over the results
-    if (query_result != nullptr)
-    {
+    if (query_result != nullptr) {
       CassIterator* row_iterator = cass_iterator_from_result(query_result);
 
-      while (cass_iterator_next(row_iterator))
-      {
+      while (cass_iterator_next(row_iterator)) {
         // get the reference from the row
         const CassRow* row = cass_iterator_get_row(row_iterator);
 
@@ -409,8 +364,7 @@ application_features_t CassandraClient::load_features( const std::string& applic
         field_value = cass_row_get_column_by_name(row, "name");
         rc = cass_value_get_string(field_value, &field_value_s, &lenght_output_string);
 
-        if (rc != CASS_OK)
-        {
+        if (rc != CASS_OK) {
           warning("Cassandra client: unable to convert a field to string");
         }
 
@@ -420,27 +374,23 @@ application_features_t CassandraClient::load_features( const std::string& applic
         field_value = cass_row_get_column_by_name(row, "type");
         rc = cass_value_get_string(field_value, &field_value_s, &lenght_output_string);
 
-        if (rc != CASS_OK)
-        {
+        if (rc != CASS_OK) {
           warning("Cassandra client: unable to convert a field to string");
         }
 
         const std::string feature_type(field_value_s, lenght_output_string);
-
 
         // get the possible values
         std::vector<std::string> feature_values;
         field_value = cass_row_get_column_by_name(row, "values");
         CassIterator* collection_data_iterator = cass_iterator_from_collection(field_value);
 
-        while (cass_iterator_next(collection_data_iterator))
-        {
+        while (cass_iterator_next(collection_data_iterator)) {
           // get the actual value from the iterator
           field_value = cass_iterator_get_value(collection_data_iterator);
           rc = cass_value_get_string(field_value, &field_value_s, &lenght_output_string);
 
-          if (rc != CASS_OK)
-          {
+          if (rc != CASS_OK) {
             warning("Cassandra client: unable to convert a field to string");
           }
 
@@ -465,13 +415,10 @@ application_features_t CassandraClient::load_features( const std::string& applic
   const std::string query = "SELECT * FROM " + table_name + ";";
   execute_query_synch(query, result_handler);
 
-
   return application_features;
 }
 
-
-void CassandraClient::store_doe( const application_description_t& description, const doe_t& doe )
-{
+void CassandraClient::store_doe(const application_description_t& description, const doe_t& doe) {
   // compose the name of the table
   std::string table_name = get_doe_name(description.application_name);
 
@@ -480,9 +427,8 @@ void CassandraClient::store_doe( const application_description_t& description, c
   std::string primary_key = "";
   const int number_of_knobs = description.knobs.size();
 
-  for ( int i = 0; i < number_of_knobs; ++i )
-  {
-    table_desc.append(description.knobs[i].name +  " " + description.knobs[i].type + ",");
+  for (int i = 0; i < number_of_knobs; ++i) {
+    table_desc.append(description.knobs[i].name + " " + description.knobs[i].type + ",");
     primary_key.append(description.knobs[i].name + ",");
   }
 
@@ -491,24 +437,22 @@ void CassandraClient::store_doe( const application_description_t& description, c
   primary_key.pop_back();
 
   // create the table
-  execute_query_synch("CREATE TABLE " + table_name + " (" + table_desc + ", PRIMARY KEY (" + primary_key + ") );");
-
+  execute_query_synch("CREATE TABLE " + table_name + " (" + table_desc + ", PRIMARY KEY (" + primary_key +
+                      ") );");
 
   // create a secondary index on the number of observations on configuration
   // to improve the efficiency of the queries
   execute_query_synch("CREATE INDEX ON " + table_name + " (counter);");
 
   // populate the query
-  for ( const auto& configuration_pair : doe.required_explorations )
-  {
+  for (const auto& configuration_pair : doe.required_explorations) {
     // execute the query
-    execute_query_synch( "INSERT INTO " + table_name + " (" + primary_key + ",counter) VALUES (" + configuration_pair.first + "," + std::to_string(configuration_pair.second) + " );" );
+    execute_query_synch("INSERT INTO " + table_name + " (" + primary_key + ",counter) VALUES (" +
+                        configuration_pair.first + "," + std::to_string(configuration_pair.second) + " );");
   }
 }
 
-
-doe_t CassandraClient::load_doe( const std::string& application_name )
-{
+doe_t CassandraClient::load_doe(const std::string& application_name) {
   // this will cotain the model
   doe_t output_doe;
 
@@ -516,27 +460,23 @@ doe_t CassandraClient::load_doe( const std::string& application_name )
   std::string table_name = get_doe_name(application_name);
 
   // how the result of the query will be processed
-  const auto result_handler = [&output_doe, &application_name] ( const CassResult * query_result )
-  {
+  const auto result_handler = [&output_doe, &application_name](const CassResult* query_result) {
     // check if we actually have a result, i.e. table not created yet
-    if (query_result != nullptr)
-    {
+    if (query_result != nullptr) {
       // this array it is used to store all the types of the columns of the query
       std::vector<CassValueType> column_types;
 
       // get information on the fields
       const size_t number_of_columns = cass_result_column_count(query_result);
 
-      for ( size_t i = 0; i < number_of_columns; ++i )
-      {
+      for (size_t i = 0; i < number_of_columns; ++i) {
         column_types.emplace_back(cass_result_column_type(query_result, i));
       }
 
       // Get the actual content of table
       CassIterator* row_iterator = cass_iterator_from_result(query_result);
 
-      while (cass_iterator_next(row_iterator))
-      {
+      while (cass_iterator_next(row_iterator)) {
         // get the reference from the row
         const CassRow* row = cass_iterator_get_row(row_iterator);
 
@@ -548,84 +488,63 @@ doe_t CassandraClient::load_doe( const std::string& application_name )
         CassIterator* column_iterator = cass_iterator_from_row(row);
         auto type_iterator = column_types.cbegin();
 
-        while (cass_iterator_next(column_iterator))
-        {
+        while (cass_iterator_next(column_iterator)) {
           // retrieve the field value
           const CassValue* field_value = cass_iterator_get_column(column_iterator);
 
           // check if the value is actually missing
-          if (cass_value_is_null(field_value))
-          {
+          if (cass_value_is_null(field_value)) {
             warning("Cassandra client: error, we have an empty doe row");
             throw std::runtime_error("Cassandra client error: empty doe row");
           }
 
           // store it as a string
-          switch (*type_iterator)
-          {
-            case CASS_VALUE_TYPE_INT:
-            {
+          switch (*type_iterator) {
+            case CASS_VALUE_TYPE_INT: {
               int32_t out_value32;
               CassError rc = cass_value_get_int32(field_value, &out_value32);
 
-              if (rc == CASS_OK)
-              {
+              if (rc == CASS_OK) {
                 predictor.append(std::to_string(out_value32) + ",");
-                doe_counter = out_value32; // for the counter should be enough
-              }
-              else
-              {
+                doe_counter = out_value32;  // for the counter should be enough
+              } else {
                 int64_t out_value64;
                 CassError rc = cass_value_get_int64(field_value, &out_value64);
 
-                if (rc == CASS_OK)
-                {
+                if (rc == CASS_OK) {
                   predictor.append(std::to_string(out_value64) + ",");
-                  doe_counter = out_value64; // for the counter should be enough
-                }
-                else
-                {
+                  doe_counter = out_value64;  // for the counter should be enough
+                } else {
                   warning("Cassandra client: i have a huge int, can't handle it :(");
                   predictor.append("N/A,");
-                  doe_counter = -1; // we know that the counter is the last field
+                  doe_counter = -1;  // we know that the counter is the last field
                 }
               }
-            }
-            break;
+            } break;
 
-            case CASS_VALUE_TYPE_FLOAT:
-            {
+            case CASS_VALUE_TYPE_FLOAT: {
               float out_value_f;
               CassError rc = cass_value_get_float(field_value, &out_value_f);
 
-              if (rc == CASS_OK)
-              {
+              if (rc == CASS_OK) {
                 predictor.append(std::to_string(out_value_f) + ",");
-              }
-              else
-              {
+              } else {
                 warning("Cassandra client: i have a float which is not a float... yeah, exactly...");
                 predictor.append("N/A,");
               }
-            }
-            break;
+            } break;
 
-            case CASS_VALUE_TYPE_DOUBLE:
-            {
+            case CASS_VALUE_TYPE_DOUBLE: {
               double out_value_d;
               CassError rc = cass_value_get_double(field_value, &out_value_d);
 
-              if (rc == CASS_OK)
-              {
+              if (rc == CASS_OK) {
                 predictor.append(std::to_string(out_value_d) + ",");
-              }
-              else
-              {
+              } else {
                 warning("Cassandra client: i have a double which is not a double... yeah, exactly...");
                 predictor.append("N/A,");
               }
-            }
-            break;
+            } break;
 
             default:
               warning("Cassandra client: i am reading an unknown value from the db");
@@ -635,7 +554,6 @@ doe_t CassandraClient::load_doe( const std::string& application_name )
           // increment the type counter
           ++type_iterator;
         }
-
 
         // pop the last coma from the string
         predictor.pop_back();
@@ -665,18 +583,14 @@ doe_t CassandraClient::load_doe( const std::string& application_name )
   const std::string query = "SELECT * FROM " + table_name + " WHERE counter > 0 ALLOW FILTERING;";
   execute_query_synch(query, result_handler);
 
-
   return output_doe;
 }
 
-void CassandraClient::empty_doe_entries( const application_description_t& description )
-{
+void CassandraClient::empty_doe_entries(const application_description_t& description) {
   execute_query_synch("TRUNCATE " + get_doe_name(description.application_name) + ";");
 }
 
-
-void CassandraClient::store_model( const application_description_t& description, const model_t& model )
-{
+void CassandraClient::store_model(const application_description_t& description, const model_t& model) {
   // compose the name of the table
   std::string table_name = get_model_name(description.application_name);
 
@@ -688,22 +602,19 @@ void CassandraClient::store_model( const application_description_t& description,
   const int number_of_features = description.features.size();
   const int number_of_metrics = description.metrics.size();
 
-  for ( int i = 0; i < number_of_knobs; ++i )
-  {
-    table_desc.append(description.knobs[i].name +  " " + description.knobs[i].type + ",");
+  for (int i = 0; i < number_of_knobs; ++i) {
+    table_desc.append(description.knobs[i].name + " " + description.knobs[i].type + ",");
     primary_key.append(description.knobs[i].name + ",");
   }
 
-  for ( int i = 0; i < number_of_features; ++i )
-  {
-    table_desc.append(description.features[i].name +  " " + description.features[i].type + ",");
+  for (int i = 0; i < number_of_features; ++i) {
+    table_desc.append(description.features[i].name + " " + description.features[i].type + ",");
     primary_key.append(description.features[i].name + ",");
   }
 
-  for ( int i = 0; i < number_of_metrics; ++i )
-  {
-    table_desc.append(description.metrics[i].name +  "_avg " + description.metrics[i].type + ",");
-    table_desc.append(description.metrics[i].name +  "_std " + description.metrics[i].type + ",");
+  for (int i = 0; i < number_of_metrics; ++i) {
+    table_desc.append(description.metrics[i].name + "_avg " + description.metrics[i].type + ",");
+    table_desc.append(description.metrics[i].name + "_std " + description.metrics[i].type + ",");
     non_primary_key.append(description.metrics[i].name + "_avg,");
     non_primary_key.append(description.metrics[i].name + "_std,");
   }
@@ -713,44 +624,41 @@ void CassandraClient::store_model( const application_description_t& description,
   non_primary_key.pop_back();
 
   // create the table
-  execute_query_synch("CREATE TABLE " + table_name + " (" + table_desc + " PRIMARY KEY (" + primary_key + ") );");
+  execute_query_synch("CREATE TABLE " + table_name + " (" + table_desc + " PRIMARY KEY (" + primary_key +
+                      ") );");
 
   // set the number of fields to actually set
-  std::string inserted_fields = model.column_size() == number_of_knobs + number_of_features + (2 * number_of_metrics) ?
-                                primary_key + non_primary_key : primary_key;
+  std::string inserted_fields =
+      model.column_size() == number_of_knobs + number_of_features + (2 * number_of_metrics)
+          ? primary_key + non_primary_key
+          : primary_key;
 
   // populate the query
-  for ( const auto& configuration : model.knowledge )
-  {
+  for (const auto& configuration : model.knowledge) {
     // execute the query
-    execute_query_synch( "INSERT INTO " + table_name + " (" + inserted_fields + ") VALUES (" + configuration + " );" );
+    execute_query_synch("INSERT INTO " + table_name + " (" + inserted_fields + ") VALUES (" + configuration +
+                        " );");
   }
 }
 
-
-model_t CassandraClient::load_model( const application_description_t& description )
-{
+model_t CassandraClient::load_model(const application_description_t& description) {
   // this will cotain the model
   model_t output_model;
 
   // compose the name of the table
   std::string table_name = get_model_name(description.application_name);
 
-
   // how the result of the query will be processed
-  const auto result_handler = [&output_model] ( const CassResult * query_result )
-  {
+  const auto result_handler = [&output_model](const CassResult* query_result) {
     // check if we actually have a result, i.e. table not created yet
-    if (query_result != nullptr)
-    {
+    if (query_result != nullptr) {
       // this array it is used to store all the types of the columns of the query
       std::vector<CassValueType> column_types;
 
       // get information on the fields
       const size_t number_of_columns = cass_result_column_count(query_result);
 
-      for ( size_t i = 0; i < number_of_columns; ++i )
-      {
+      for (size_t i = 0; i < number_of_columns; ++i) {
         // get the type of the column
         const auto field_type = cass_result_column_type(query_result, i);
         column_types.emplace_back(field_type);
@@ -759,8 +667,7 @@ model_t CassandraClient::load_model( const application_description_t& descriptio
       // STEP 2: Get the actual content of table
       CassIterator* row_iterator = cass_iterator_from_result(query_result);
 
-      while (cass_iterator_next(row_iterator))
-      {
+      while (cass_iterator_next(row_iterator)) {
         // get the reference from the row
         const CassRow* row = cass_iterator_get_row(row_iterator);
 
@@ -771,80 +678,59 @@ model_t CassandraClient::load_model( const application_description_t& descriptio
         CassIterator* column_iterator = cass_iterator_from_row(row);
         auto type_iterator = column_types.cbegin();
 
-        while (cass_iterator_next(column_iterator))
-        {
+        while (cass_iterator_next(column_iterator)) {
           // retrieve the field value
           const CassValue* field_value = cass_iterator_get_column(column_iterator);
 
           // check if the value is actually missing
-          if (cass_value_is_null(field_value))
-          {
-            break; // we reached the metrics section
+          if (cass_value_is_null(field_value)) {
+            break;  // we reached the metrics section
           }
 
           // store it as a string
-          switch (*type_iterator)
-          {
-            case CASS_VALUE_TYPE_INT:
-            {
+          switch (*type_iterator) {
+            case CASS_VALUE_TYPE_INT: {
               int32_t out_value32;
               CassError rc = cass_value_get_int32(field_value, &out_value32);
 
-              if (rc == CASS_OK)
-              {
+              if (rc == CASS_OK) {
                 predictor.append(std::to_string(out_value32) + ",");
-              }
-              else
-              {
+              } else {
                 int64_t out_value64;
                 CassError rc = cass_value_get_int64(field_value, &out_value64);
 
-                if (rc == CASS_OK)
-                {
+                if (rc == CASS_OK) {
                   predictor.append(std::to_string(out_value64) + ",");
-                }
-                else
-                {
+                } else {
                   warning("Cassandra client: i have a huge int, can't handle it :(");
                   predictor.append("N/A,");
                 }
               }
-            }
-            break;
+            } break;
 
-            case CASS_VALUE_TYPE_FLOAT:
-            {
+            case CASS_VALUE_TYPE_FLOAT: {
               float out_value_f;
               CassError rc = cass_value_get_float(field_value, &out_value_f);
 
-              if (rc == CASS_OK)
-              {
+              if (rc == CASS_OK) {
                 predictor.append(std::to_string(out_value_f) + ",");
-              }
-              else
-              {
+              } else {
                 warning("Cassandra client: i have a float which is not a float... yeah, exactly...");
                 predictor.append("N/A,");
               }
-            }
-            break;
+            } break;
 
-            case CASS_VALUE_TYPE_DOUBLE:
-            {
+            case CASS_VALUE_TYPE_DOUBLE: {
               double out_value_d;
               CassError rc = cass_value_get_double(field_value, &out_value_d);
 
-              if (rc == CASS_OK)
-              {
+              if (rc == CASS_OK) {
                 predictor.append(std::to_string(out_value_d) + ",");
-              }
-              else
-              {
+              } else {
                 warning("Cassandra client: i have a double which is not a double... yeah, exactly...");
                 predictor.append("N/A,");
               }
-            }
-            break;
+            } break;
 
             default:
               warning("Cassandra client: i am reading an unknown value from the db");
@@ -878,17 +764,15 @@ model_t CassandraClient::load_model( const application_description_t& descriptio
   execute_query_synch(query, result_handler);
 
   // computet
-  const std::size_t theoretical_number_of_columns = description.knobs.size()
-      + description.features.size()
-      + (2 * description.metrics.size());
-  const bool model_is_usable = static_cast<std::size_t>(output_model.column_size()) == theoretical_number_of_columns;
+  const std::size_t theoretical_number_of_columns =
+      description.knobs.size() + description.features.size() + (2 * description.metrics.size());
+  const bool model_is_usable =
+      static_cast<std::size_t>(output_model.column_size()) == theoretical_number_of_columns;
 
   return model_is_usable ? output_model : model_t{};
 }
 
-
-void CassandraClient::create_trace_table( const application_description_t& description )
-{
+void CassandraClient::create_trace_table(const application_description_t& description) {
   // compose the name of the table
   std::string table_name = get_observation_name(description.application_name);
 
@@ -899,50 +783,45 @@ void CassandraClient::create_trace_table( const application_description_t& descr
   const int number_of_features = static_cast<int>(description.features.size());
   const int number_of_metrics = static_cast<int>(description.metrics.size());
 
-  for ( int i = 0; i < number_of_knobs; ++i )
-  {
-    table_desc.append(description.knobs[i].name +  " " + description.knobs[i].type + ",");
+  for (int i = 0; i < number_of_knobs; ++i) {
+    table_desc.append(description.knobs[i].name + " " + description.knobs[i].type + ",");
     primary_key.append(description.knobs[i].name + ",");
   }
 
-  for ( int i = 0; i < number_of_features; ++i )
-  {
-    table_desc.append(description.features[i].name +  " " + description.features[i].type + ",");
+  for (int i = 0; i < number_of_features; ++i) {
+    table_desc.append(description.features[i].name + " " + description.features[i].type + ",");
     primary_key.append(description.features[i].name + ",");
   }
 
-  for ( int i = 0; i < number_of_metrics; ++i )
-  {
-    table_desc.append(description.metrics[i].name +  " " + description.metrics[i].type + ",");
+  for (int i = 0; i < number_of_metrics; ++i) {
+    table_desc.append(description.metrics[i].name + " " + description.metrics[i].type + ",");
   }
 
   // remove the last come from the field list
   primary_key.pop_back();
 
   // create the table
-  execute_query_synch("CREATE TABLE " + table_name + " (" + table_desc + " PRIMARY KEY (" + primary_key + ") );");
+  execute_query_synch("CREATE TABLE " + table_name + " (" + table_desc + " PRIMARY KEY (" + primary_key +
+                      ") );");
 }
 
-void CassandraClient::insert_trace_entry( const application_description_t& description, const std::string& values )
-{
+void CassandraClient::insert_trace_entry(const application_description_t& description,
+                                         const std::string& values) {
   // compose the name of the table
   std::string table_name = get_observation_name(description.application_name);
 
   // compose the table description and the primary keys
   std::string fields = "day,timestamp,client_id,";
 
-  for ( const auto& knob : description.knobs )
-  {
+  for (const auto& knob : description.knobs) {
     fields.append(knob.name + ",");
   }
 
-  for ( const auto& feature : description.features )
-  {
+  for (const auto& feature : description.features) {
     fields.append(feature.name + ",");
   }
 
-  for ( const auto& metric : description.metrics )
-  {
+  for (const auto& metric : description.metrics) {
     fields.append(metric.name + ",");
   }
 
@@ -954,8 +833,9 @@ void CassandraClient::insert_trace_entry( const application_description_t& descr
   const auto pos_second_coma = values.find_first_of(',', pos_first_coma + 1);
   time_t secs_since_epoch;
   uint64_t nanosecs_since_secs;
-  std::istringstream( values.substr(0, pos_first_coma) ) >> secs_since_epoch;
-  std::istringstream( values.substr(pos_first_coma + 1, pos_second_coma - pos_first_coma) ) >> nanosecs_since_secs;
+  std::istringstream(values.substr(0, pos_first_coma)) >> secs_since_epoch;
+  std::istringstream(values.substr(pos_first_coma + 1, pos_second_coma - pos_first_coma)) >>
+      nanosecs_since_secs;
 
   // now we have to convert them in the funny casssandra format
   cass_uint32_t year_month_day = cass_date_from_epoch(secs_since_epoch);
@@ -965,23 +845,21 @@ void CassandraClient::insert_trace_entry( const application_description_t& descr
   time_of_day += nanosecs_since_secs;
 
   // now we have to compose again the values string
-  std::string&& actual_data = std::to_string(year_month_day) + "," + std::to_string(time_of_day) + values.substr(pos_second_coma, std::string::npos);
+  std::string&& actual_data = std::to_string(year_month_day) + "," + std::to_string(time_of_day) +
+                              values.substr(pos_second_coma, std::string::npos);
 
   // create the table
   execute_query_synch("INSERT INTO " + table_name + " (" + fields + ") VALUES (" + actual_data + ");");
 }
 
-
-void CassandraClient::update_doe( const application_description_t& description, const std::string& values )
-{
+void CassandraClient::update_doe(const application_description_t& description, const std::string& values) {
   // compose the name of the table
   std::string table_name = get_doe_name(description.application_name);
 
   // compose the table description and the primary keys
   std::string fields = "";
 
-  for ( const auto& knob : description.knobs )
-  {
+  for (const auto& knob : description.knobs) {
     fields.append(knob.name + ",");
   }
 
@@ -991,11 +869,10 @@ void CassandraClient::update_doe( const application_description_t& description, 
   execute_query_synch("INSERT INTO " + table_name + " (" + fields + ") VALUES (" + values + ");");
 }
 
-
-void CassandraClient::erase( const std::string& application_name )
-{
+void CassandraClient::erase(const std::string& application_name) {
   std::string table_name = application_name;
-  std::replace(table_name.begin(), table_name.end(), default_application_separator, table_application_separator );
+  std::replace(table_name.begin(), table_name.end(), default_application_separator,
+               table_application_separator);
 
   // obliterate the information about the application
   execute_query_synch("DROP TABLE " + get_knobs_name(application_name));
@@ -1006,9 +883,7 @@ void CassandraClient::erase( const std::string& application_name )
   execute_query_synch("DROP TABLE " + get_observation_name(application_name));
 }
 
-
-void CassandraClient::store_description( const application_description_t& description )
-{
+void CassandraClient::store_description(const application_description_t& description) {
   std::string table_name = get_doe_info_name(description.application_name);
 
   // create the table of the doe info
@@ -1017,11 +892,14 @@ void CassandraClient::store_description( const application_description_t& descri
   // populate the the doe info table
   execute_query_synch("INSERT INTO " + table_name + " (property_name,value) VALUES ('doe_name','" +
                       description.doe_name + "');");
-  execute_query_synch("INSERT INTO " + table_name + " (property_name,value) VALUES ('number_configurations_per_iteration','" +
+  execute_query_synch("INSERT INTO " + table_name +
+                      " (property_name,value) VALUES ('number_configurations_per_iteration','" +
                       description.number_configurations_per_iteration + "');");
-  execute_query_synch("INSERT INTO " + table_name + " (property_name,value) VALUES ('number_observations_per_configuration','" +
+  execute_query_synch("INSERT INTO " + table_name +
+                      " (property_name,value) VALUES ('number_observations_per_configuration','" +
                       description.number_observations_per_configuration + "');");
-  execute_query_synch("INSERT INTO " + table_name + " (property_name,value) VALUES ('max_number_iteration','" +
+  execute_query_synch("INSERT INTO " + table_name +
+                      " (property_name,value) VALUES ('max_number_iteration','" +
                       description.max_number_iteration + "');");
   execute_query_synch("INSERT INTO " + table_name + " (property_name,value) VALUES ('max_mae','" +
                       description.max_mae + "');");
@@ -1033,8 +911,7 @@ void CassandraClient::store_description( const application_description_t& descri
                       description.k_value + "');");
   execute_query_synch("INSERT INTO " + table_name + " (property_name,value) VALUES ('minimum_distance','" +
                       description.minimum_distance + "');");
-  if (!description.doe_limits.empty())
-  {
+  if (!description.doe_limits.empty()) {
     execute_query_synch("INSERT INTO " + table_name + " (property_name,value) VALUES ('doe_limits','" +
                         description.doe_limits + "');");
   }
@@ -1045,25 +922,17 @@ void CassandraClient::store_description( const application_description_t& descri
   store_knobs(description.application_name, description.knobs);
 }
 
-application_description_t CassandraClient::load_description( const std::string& application_name )
-{
-  application_description_t description = { application_name,
-                                            load_knobs(application_name),
-                                            load_features(application_name),
-                                            load_metrics(application_name)
-                                          };
+application_description_t CassandraClient::load_description(const std::string& application_name) {
+  application_description_t description = {application_name, load_knobs(application_name),
+                                           load_features(application_name), load_metrics(application_name)};
 
   // how the result of the query will be processed
-  const auto result_handler = [&description, &application_name] ( const CassResult * query_result )
-  {
-
+  const auto result_handler = [&description, &application_name](const CassResult* query_result) {
     // loop over the results
-    if (query_result != nullptr)
-    {
+    if (query_result != nullptr) {
       CassIterator* row_iterator = cass_iterator_from_result(query_result);
 
-      while (cass_iterator_next(row_iterator))
-      {
+      while (cass_iterator_next(row_iterator)) {
         // get the reference from the row
         const CassRow* row = cass_iterator_get_row(row_iterator);
 
@@ -1077,8 +946,7 @@ application_description_t CassandraClient::load_description( const std::string& 
         field_value = cass_row_get_column_by_name(row, "property_name");
         rc = cass_value_get_string(field_value, &field_value_s, &lenght_output_string);
 
-        if (rc != CASS_OK)
-        {
+        if (rc != CASS_OK) {
           warning("Cassandra client: unable to convert a field to string");
         }
 
@@ -1088,75 +956,45 @@ application_description_t CassandraClient::load_description( const std::string& 
         field_value = cass_row_get_column_by_name(row, "value");
         rc = cass_value_get_string(field_value, &field_value_s, &lenght_output_string);
 
-        if (rc != CASS_OK)
-        {
+        if (rc != CASS_OK) {
           warning("Cassandra client: unable to convert a field to string");
         }
 
         const std::string property_value(field_value_s, lenght_output_string);
 
         // parse the property of the doe to update the description table
-        if (property_name.compare("number_configurations_per_iteration") == 0)
-        {
+        if (property_name.compare("number_configurations_per_iteration") == 0) {
           description.number_configurations_per_iteration = property_value;
-        }
-        else
-        {
-          if (property_name.compare("number_observations_per_configuration") == 0)
-          {
+        } else {
+          if (property_name.compare("number_observations_per_configuration") == 0) {
             description.number_observations_per_configuration = property_value;
-          }
-          else
-          {
-            if (property_name.compare("doe_name") == 0)
-            {
+          } else {
+            if (property_name.compare("doe_name") == 0) {
               description.doe_name = property_value;
-            }
-            else
-            {
-              if (property_name.compare("max_number_iteration") == 0)
-              {
+            } else {
+              if (property_name.compare("max_number_iteration") == 0) {
                 description.max_number_iteration = property_value;
-              }
-              else
-              {
-                if (property_name.compare("max_mae") == 0)
-                {
+              } else {
+                if (property_name.compare("max_mae") == 0) {
                   description.max_mae = property_value;
-                }
-                else
-                {
-                  if (property_name.compare("min_r2") == 0)
-                  {
+                } else {
+                  if (property_name.compare("min_r2") == 0) {
                     description.min_r2 = property_value;
-                  }
-                  else
-                  {
-                    if (property_name.compare("validation_split") == 0)
-                    {
+                  } else {
+                    if (property_name.compare("validation_split") == 0) {
                       description.validation_split = property_value;
-                    }
-                    else
-                    {
-                      if (property_name.compare("k_value") == 0)
-                      {
+                    } else {
+                      if (property_name.compare("k_value") == 0) {
                         description.k_value = property_value;
-                      }
-                      else
-                      {
-                        if (property_name.compare("minimum_distance") == 0)
-                        {
+                      } else {
+                        if (property_name.compare("minimum_distance") == 0) {
                           description.minimum_distance = property_value;
-                        }
-                        else
-                        {
-                          if (property_name.compare("doe_limits") == 0 )
-                          {
+                        } else {
+                          if (property_name.compare("doe_limits") == 0) {
                             description.doe_limits = property_value;
-                          }
-                          else
-                          {
-                            warning("Cassandra client: unknown doe property \"" + property_name + "\" with value \"" + property_value + "\"");
+                          } else {
+                            warning("Cassandra client: unknown doe property \"" + property_name +
+                                    "\" with value \"" + property_value + "\"");
                           }
                         }
                       }
@@ -1181,6 +1019,9 @@ application_description_t CassandraClient::load_description( const std::string& 
   const std::string query = "SELECT * FROM " + get_doe_info_name(application_name) + ";";
   execute_query_synch(query, result_handler);
 
-  return !(description.number_configurations_per_iteration.empty() || description.number_observations_per_configuration.empty() || description.doe_name.empty() ||
-           description.minimum_distance.empty()) ? description : application_description_t{};
+  return !(description.number_configurations_per_iteration.empty() ||
+           description.number_observations_per_configuration.empty() || description.doe_name.empty() ||
+           description.minimum_distance.empty())
+             ? description
+             : application_description_t{};
 }

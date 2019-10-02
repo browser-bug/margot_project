@@ -24,65 +24,55 @@
 
 #include "margot/monitor.hpp"
 
-namespace margot
-{
+namespace margot {
+
+/**
+ * @brief  The Memory Monitor
+ *
+ * @template The type of the monitor
+ *
+ * @details
+ * This class represent a monitor that observe the memory used by the application.
+ * Moreover it provide a methods that get the used peak virtual memory.
+ * It parses the /proc metafiles to read the measure, so this monitor is linux specific.
+ * The unit of measure of the monitor is the kB.
+ */
+class MemoryMonitor : public Monitor<std::size_t> {
+ public:
+  /**
+   * @brief define the type of the elements stored in the monitor
+   */
+  using value_type = std::size_t;
 
   /**
-   * @brief  The Memory Monitor
+   * @brief  The Memory Monitor default constructor
    *
-   * @template The type of the monitor
+   * @param [in] window_size The dimension of the observation window
+   */
+  MemoryMonitor(const std::size_t window_size = 1);
+
+  /**
+   * @brief Read the memory usage of the application
    *
    * @details
-   * This class represent a monitor that observe the memory used by the application.
-   * Moreover it provide a methods that get the used peak virtual memory.
-   * It parses the /proc metafiles to read the measure, so this monitor is linux specific.
-   * The unit of measure of the monitor is the kB.
+   * The measure of the memory is extracted by parsing the /proc/self/statm
+   * metafile. For this reason the measure doesn't require a start()/stop().
+   * The measure is pushed inside the data buffer
    */
-  class MemoryMonitor: public Monitor<std::size_t>
-  {
+  void extractMemoryUsage();
 
+  /**
+   * @brief Get the virtual memory peak
+   *
+   * @return the value of the virtual memory peak
+   *
+   * @note
+   * This value is not stored inside the data buffer, but is intended as an
+   * utility value.
+   */
+  value_type extractVmPeakSize();
+};
 
-    public:
+}  // namespace margot
 
-
-      /**
-       * @brief define the type of the elements stored in the monitor
-       */
-      using value_type = std::size_t;
-
-
-      /**
-       * @brief  The Memory Monitor default constructor
-       *
-       * @param [in] window_size The dimension of the observation window
-       */
-      MemoryMonitor( const std::size_t window_size = 1 );
-
-
-      /**
-       * @brief Read the memory usage of the application
-       *
-       * @details
-       * The measure of the memory is extracted by parsing the /proc/self/statm
-       * metafile. For this reason the measure doesn't require a start()/stop().
-       * The measure is pushed inside the data buffer
-       */
-      void extractMemoryUsage();
-
-
-      /**
-       * @brief Get the virtual memory peak
-       *
-       * @return the value of the virtual memory peak
-       *
-       * @note
-       * This value is not stored inside the data buffer, but is intended as an
-       * utility value.
-       */
-      value_type extractVmPeakSize();
-
-  };
-
-}
-
-#endif // MARGOT_MEMORY_MONITOR_HDR
+#endif  // MARGOT_MEMORY_MONITOR_HDR

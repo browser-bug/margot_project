@@ -17,11 +17,9 @@
  * USA
  */
 
-
 #include "agora/global_view.hpp"
 
-namespace agora
-{
-  std::mutex GlobalView::global_structure;
-  std::unordered_map< std::string, GlobalView::RemoteApplicationHandlerPtr > GlobalView::handled_applications;
-}
+namespace agora {
+std::mutex GlobalView::global_structure;
+std::unordered_map<std::string, GlobalView::RemoteApplicationHandlerPtr> GlobalView::handled_applications;
+}  // namespace agora

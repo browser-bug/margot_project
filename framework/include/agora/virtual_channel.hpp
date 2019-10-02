@@ -17,71 +17,56 @@
  * USA
  */
 
-
 #ifndef MARGOT_AGORA_VIRTUAL_CHANNEL_HDR
 #define MARGOT_AGORA_VIRTUAL_CHANNEL_HDR
 
-#include <memory>
 #include <cassert>
+#include <memory>
 
 #include "agora/remote_handler.hpp"
 
+namespace agora {
 
-namespace agora
-{
+class VirtualChannel {
+ private:
+  std::shared_ptr<RemoteHandler> channel;
 
-  class VirtualChannel
-  {
-    private:
+ public:
+  template <class T, class... Ts>
+  inline void create(const Ts&... remote_arguments) {
+    channel.reset(new T(remote_arguments...));
+  }
 
-      std::shared_ptr< RemoteHandler > channel;
+  inline void destroy_channel(void) {
+    assert(channel && "Error: destroy on an empty channel");
+    channel->disconnect();
+  }
 
-    public:
+  inline bool recv_message(message_t& output_message) {
+    assert(channel && "Error: recv on an empty channel");
+    return channel->recv_message(output_message);
+  }
 
-      template< class T, class ...Ts >
-      inline void create( const Ts& ... remote_arguments )
-      {
-        channel.reset( new T(remote_arguments...));
-      }
+  inline void send_message(const message_t&& input_message) {
+    assert(channel && "Error: send on an empty channel");
+    channel->send_message(std::move(input_message));
+  }
 
-      inline void destroy_channel( void )
-      {
-        assert(channel && "Error: destroy on an empty channel");
-        channel->disconnect();
-      }
+  inline void subscribe(const std::string& topic) {
+    assert(channel && "Error: subscribe on an empty channel");
+    channel->subscribe(topic);
+  }
 
-      inline bool recv_message( message_t& output_message )
-      {
-        assert(channel && "Error: recv on an empty channel");
-        return channel->recv_message(output_message);
-      }
+  inline void unsubscribe(const std::string& topic) {
+    assert(channel && "Error: unsubscribe on an empty channel");
+    channel->subscribe(topic);
+  }
 
-      inline void send_message( const message_t&& input_message )
-      {
-        assert(channel && "Error: send on an empty channel");
-        channel->send_message(std::move(input_message));
-      }
+  inline std::string get_my_client_id(void) const {
+    assert(channel && "Error: unable to get the client id from an empty channel");
+    return channel->get_my_client_id();
+  }
+};
+}  // namespace agora
 
-      inline void subscribe( const std::string& topic)
-      {
-        assert(channel && "Error: subscribe on an empty channel");
-        channel->subscribe(topic);
-      }
-
-      inline void unsubscribe( const std::string& topic )
-      {
-        assert(channel && "Error: unsubscribe on an empty channel");
-        channel->subscribe(topic);
-      }
-
-      inline std::string get_my_client_id( void ) const
-      {
-        assert(channel && "Error: unable to get the client id from an empty channel");
-        return channel->get_my_client_id();
-      }
-
-  };
-}
-
-
-#endif // MARGOT_AGORA_VIRTUAL_CHANNEL_HDR
+#endif  // MARGOT_AGORA_VIRTUAL_CHANNEL_HDR

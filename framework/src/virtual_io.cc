@@ -19,13 +19,11 @@
 
 #include "agora/virtual_io.hpp"
 
-namespace agora
-{
-  namespace io
-  {
-    VirtualChannel remote;
-    VirtualFs storage;
-    Launcher<LauncherType::ModelGenerator> model_generator;
-    Launcher<LauncherType::DoeGenerator> doe_generator;
-  }
-}
+namespace agora {
+namespace io {
+VirtualChannel remote;
+VirtualFs storage;
+Launcher<LauncherType::ModelGenerator> model_generator;
+Launcher<LauncherType::DoeGenerator> doe_generator;
+}  // namespace io
+}  // namespace agora

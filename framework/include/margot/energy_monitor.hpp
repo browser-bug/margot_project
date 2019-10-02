@@ -20,109 +20,87 @@
 #ifndef MARGOT_ENERGY_MONITOR_HDR
 #define MARGOT_ENERGY_MONITOR_HDR
 
+#include <cstddef>
 #include <functional>
 #include <vector>
-#include <cstddef>
 
 #include "margot/monitor.hpp"
 
-namespace margot
-{
+namespace margot {
+
+/**
+ * @brief  The energy monitor
+ *
+ * @details
+ * All the measures are expressed in uJ
+ * For the measurement it uses the rapl framework, therefore it works only on
+ * intel platforms that support that framework.
+ */
+class EnergyMonitor : public Monitor<long double> {
+ public:
+  /**
+   * @brief This enums represents the domain of interest for the monitor
+   */
+  enum class Domain : unsigned int { Cores, Uncores, Ram, Package };
 
   /**
-   * @brief  The energy monitor
+   * @brief define the type of the elements stored in the monitor
+   */
+  using value_type = long double;
+
+  /****************************************************
+   * ENERGY MONITOR METHODS
+   ****************************************************/
+
+  /**
+   * @brief Trivial constructor
+   *
+   * @param window_size The dimension of the observation window
+   */
+  EnergyMonitor(const std::size_t window_size = 1);
+
+  /**
+   * @brief  Default constructor of the monitor
+   *
+   * @param [in] interested_domain The enumerator that indetifies the domain of interest
+   * @param [in] target_packages A std::vector of int that identifies the packages of interest
+   * @param [in] window_size The dimension of the observation window
    *
    * @details
-   * All the measures are expressed in uJ
-   * For the measurement it uses the rapl framework, therefore it works only on
-   * intel platforms that support that framework.
+   * The RAPL framework takes measures per package. It is possible to select which packages
+   * are of interest for the monitor. By default it selects all the available packages.
+   * If there are more than one package, the monitor summs the measurement
    */
-  class EnergyMonitor: public Monitor<long double>
-  {
+  EnergyMonitor(const Domain interested_domain, const std::vector<std::size_t> target_packages = {},
+                const std::size_t window_size = 1);
 
+  /**
+   * @brief Start the measure
+   */
+  void start(void);
 
-    public:
+  /**
+   * @brief Stop the measure
+   */
+  void stop(void);
 
+ private:
+  /**
+   * @brief A reference to function used to extract the energy
+   */
+  std::function<std::vector<std::pair<unsigned long long int, unsigned long long int>>(void)> extractor;
 
-      /**
-       * @brief This enums represents the domain of interest for the monitor
-       */
-      enum class Domain : unsigned int
-      {
-        Cores,
-        Uncores,
-        Ram,
-        Package
-      };
+  /**
+   * @brief The previous value of the counter (used to compute the measure by difference)
+   */
+  std::vector<std::pair<unsigned long long int, unsigned long long int>> previous_measure;
 
-      /**
-       * @brief define the type of the elements stored in the monitor
-       */
-      using value_type = long double;
+  /**
+   * @brief States if the measure is started
+   */
+  bool started;
+};
 
+}  // namespace margot
 
-
-
-      /****************************************************
-       * ENERGY MONITOR METHODS
-       ****************************************************/
-
-
-      /**
-       * @brief Trivial constructor
-       *
-       * @param window_size The dimension of the observation window
-       */
-      EnergyMonitor( const std::size_t window_size = 1 );
-
-
-      /**
-       * @brief  Default constructor of the monitor
-       *
-       * @param [in] interested_domain The enumerator that indetifies the domain of interest
-       * @param [in] target_packages A std::vector of int that identifies the packages of interest
-       * @param [in] window_size The dimension of the observation window
-       *
-       * @details
-       * The RAPL framework takes measures per package. It is possible to select which packages
-       * are of interest for the monitor. By default it selects all the available packages.
-       * If there are more than one package, the monitor summs the measurement
-       */
-      EnergyMonitor(const Domain interested_domain, const std::vector<std::size_t> target_packages = {}, const std::size_t window_size = 1);
-
-
-      /**
-       * @brief Start the measure
-       */
-      void start( void );
-
-
-      /**
-       * @brief Stop the measure
-       */
-      void stop( void );
-
-
-    private:
-
-
-      /**
-       * @brief A reference to function used to extract the energy
-       */
-      std::function<std::vector <std::pair<unsigned long long int, unsigned long long int>> (void)> extractor;
-
-
-      /**
-       * @brief The previous value of the counter (used to compute the measure by difference)
-       */
-      std::vector <std::pair<unsigned long long int, unsigned long long int>> previous_measure;
-
-      /**
-       * @brief States if the measure is started
-       */
-      bool started;
-  };
-
-}
-
-#endif // MARGOT_ENERGY_MONITOR_HDR
+#endif  // MARGOT_ENERGY_MONITOR_HDR

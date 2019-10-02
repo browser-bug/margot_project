@@ -24,15 +24,11 @@
 
 #include <margot/temperature_monitor.hpp>
 
-
-
 static bool initialized = false;
 
-int n_core_sensors()
-{
+int n_core_sensors() {
   // initialize the sensors
-  if (!initialized)
-  {
+  if (!initialized) {
     sensors_init(NULL);
     initialized = true;
   }
@@ -40,23 +36,13 @@ int n_core_sensors()
   sensors_chip_name const* cn;
   int i = 0, c = 0;
 
-  for (
-    cn = sensors_get_detected_chips(NULL, &c);
-    cn != NULL;
-    cn = sensors_get_detected_chips(NULL, &c)
-  )
-    if (strncmp(cn->prefix, "coretemp", 8) == 0)
-    {
+  for (cn = sensors_get_detected_chips(NULL, &c); cn != NULL; cn = sensors_get_detected_chips(NULL, &c))
+    if (strncmp(cn->prefix, "coretemp", 8) == 0) {
       sensors_feature const* feat;
       int f = 0;
 
-      for (
-        feat = sensors_get_features(cn, &f);
-        feat != NULL;
-        feat = sensors_get_features(cn, &f)
-      )
-        if (feat->type == SENSORS_FEATURE_TEMP)
-        {
+      for (feat = sensors_get_features(cn, &f); feat != NULL; feat = sensors_get_features(cn, &f))
+        if (feat->type == SENSORS_FEATURE_TEMP) {
           i++;
         }
     }
@@ -64,109 +50,76 @@ int n_core_sensors()
   return i;
 }
 
+namespace margot {
 
+TemperatureMonitor::TemperatureMonitor(const std::size_t window_size) : Monitor(window_size) {}
 
+TemperatureMonitor::value_type TemperatureMonitor::TemperatureSensor::measure(void) {
+  double avg = 0, temperature;
 
-namespace margot
-{
-
-  TemperatureMonitor::TemperatureMonitor(const std::size_t window_size): Monitor( window_size )
-  {
-  }
-
-
-  TemperatureMonitor::value_type TemperatureMonitor::TemperatureSensor::measure(void)
-  {
-    double avg = 0, temperature;
-
-    // take the temperature for every sensor
-    for (auto& sensor : sensors)
-    {
-      int result = sensors_get_value(sensor.cn, sensor.temp_input, &temperature);
+  // take the temperature for every sensor
+  for (auto& sensor : sensors) {
+    int result = sensors_get_value(sensor.cn, sensor.temp_input, &temperature);
 
 #ifndef NDEBUG
 
-      if ( result < 0 )
-      {
-        throw std::runtime_error("[TemperatureMonitor] Error: Unable to retrieve monitor informations");
-      }
+    if (result < 0) {
+      throw std::runtime_error("[TemperatureMonitor] Error: Unable to retrieve monitor informations");
+    }
 
 #endif
 
-      avg += temperature;
-    }
-
-    if (ns > 0)
-    {
-      return static_cast<TemperatureMonitor::value_type>(avg / ns);
-    }
-
-    return static_cast<TemperatureMonitor::value_type>(0);
+    avg += temperature;
   }
 
-
-
-  TemperatureMonitor::TemperatureSensor::~TemperatureSensor(void)
-  {
-    sensors_cleanup();
-    sensors.clear();
+  if (ns > 0) {
+    return static_cast<TemperatureMonitor::value_type>(avg / ns);
   }
 
-
-
-  TemperatureMonitor::TemperatureSensor::TemperatureSensor( void ): ns(n_core_sensors()), nc(sysconf(_SC_NPROCESSORS_ONLN))
-  {
-    // initialize the sensors
-    if (!initialized)
-    {
-      sensors_init(NULL);
-      initialized = true;
-    }
-
-    // resize the array of the sensors
-    sensors.reserve(ns);
-    // intialize the data structure
-    sensors_chip_name const* cn;
-    int c = 0;
-
-    for (cn = sensors_get_detected_chips(NULL, &c); cn != NULL;
-         cn = sensors_get_detected_chips(NULL, &c))
-    {
-      // check if the sensor chip is about the cpu
-      if (strcmp(cn->prefix, "coretemp") == 0)
-      {
-        // compute the number of sensor per cip
-        const unsigned int num_sensor_per_cpu = ns / nc;
-        // populate the sensor structure
-        sensors_feature const* feat;
-        int f = 0;
-
-        for (
-          feat = sensors_get_features(cn, &f);
-          feat != NULL;
-          feat = sensors_get_features(cn, &f)
-        )
-          if (feat->type == SENSORS_FEATURE_TEMP)
-          {
-            // get the critical temperature of the sensor
-            double critical_temp;
-            sensors_get_value(cn,
-                              sensors_get_subfeature(cn, feat, SENSORS_SUBFEATURE_TEMP_CRIT)->number,
-                              &critical_temp);
-            // actually add the sensor
-            sensors.push_back(
-            {
-              feat->number,
-              cn,
-              sensors_get_subfeature(cn, feat, SENSORS_SUBFEATURE_TEMP_INPUT)->number,
-              critical_temp,
-              num_sensor_per_cpu
-            });
-          }
-      }
-    }
-  }
-
-
-
+  return static_cast<TemperatureMonitor::value_type>(0);
 }
+
+TemperatureMonitor::TemperatureSensor::~TemperatureSensor(void) {
+  sensors_cleanup();
+  sensors.clear();
+}
+
+TemperatureMonitor::TemperatureSensor::TemperatureSensor(void)
+    : ns(n_core_sensors()), nc(sysconf(_SC_NPROCESSORS_ONLN)) {
+  // initialize the sensors
+  if (!initialized) {
+    sensors_init(NULL);
+    initialized = true;
+  }
+
+  // resize the array of the sensors
+  sensors.reserve(ns);
+  // intialize the data structure
+  sensors_chip_name const* cn;
+  int c = 0;
+
+  for (cn = sensors_get_detected_chips(NULL, &c); cn != NULL; cn = sensors_get_detected_chips(NULL, &c)) {
+    // check if the sensor chip is about the cpu
+    if (strcmp(cn->prefix, "coretemp") == 0) {
+      // compute the number of sensor per cip
+      const unsigned int num_sensor_per_cpu = ns / nc;
+      // populate the sensor structure
+      sensors_feature const* feat;
+      int f = 0;
+
+      for (feat = sensors_get_features(cn, &f); feat != NULL; feat = sensors_get_features(cn, &f))
+        if (feat->type == SENSORS_FEATURE_TEMP) {
+          // get the critical temperature of the sensor
+          double critical_temp;
+          sensors_get_value(cn, sensors_get_subfeature(cn, feat, SENSORS_SUBFEATURE_TEMP_CRIT)->number,
+                            &critical_temp);
+          // actually add the sensor
+          sensors.push_back({feat->number, cn,
+                             sensors_get_subfeature(cn, feat, SENSORS_SUBFEATURE_TEMP_INPUT)->number,
+                             critical_temp, num_sensor_per_cpu});
+        }
+    }
+  }
+}
+
+}  // namespace margot

@@ -21,66 +21,46 @@
 
 #include <margot/throughput_monitor.hpp>
 
-using std::chrono::duration_cast;
 using std::chrono::duration;
+using std::chrono::duration_cast;
 
+namespace margot {
 
+ThroughputMonitor::ThroughputMonitor(const std::size_t window_size) : Monitor(window_size) {
+  started = false;
+}
 
-namespace margot
-{
-
-
-
-  ThroughputMonitor::ThroughputMonitor(const std::size_t window_size): Monitor(window_size)
-  {
-    started = false;
+void ThroughputMonitor::start() {
+  if (started) {
+    return;
   }
 
+  tStart = std::chrono::steady_clock::now();
 
+  started = true;
+}
 
-  void ThroughputMonitor::start()
-  {
+void ThroughputMonitor::stop(float data) {
+  std::chrono::steady_clock::time_point tStop = std::chrono::steady_clock::now();
 
-    if (started)
-    {
-      return;
-    }
-
-    tStart = std::chrono::steady_clock::now();
-
-    started = true;
+  if (!started) {
+    return;
   }
 
-
-  void ThroughputMonitor::stop(float data)
-  {
-
-    std::chrono::steady_clock::time_point tStop = std::chrono::steady_clock::now();
-
-    if (!started)
-    {
-      return;
-
-    }
-
-    uint64_t elapsed_time = duration_cast<std::chrono::microseconds>(tStop - tStart).count();
+  uint64_t elapsed_time = duration_cast<std::chrono::microseconds>(tStop - tStart).count();
 
 #ifndef NDEBUG
 
-    if (elapsed_time == 0)
-    {
-      throw std::runtime_error("[ThroughputMonitor] Error: the observed functionality should last at least 1us");
-    }
-
-#endif // NDEBUG
-
-    push(data * (1000000.0f / elapsed_time));
-
-    started = false;
+  if (elapsed_time == 0) {
+    throw std::runtime_error(
+        "[ThroughputMonitor] Error: the observed functionality should last at least 1us");
   }
 
+#endif  // NDEBUG
 
+  push(data * (1000000.0f / elapsed_time));
 
-
-
+  started = false;
 }
+
+}  // namespace margot

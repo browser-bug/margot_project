@@ -17,92 +17,84 @@
  * USA
  */
 
+#include <sys/syscall.h>  // i didn't tough that it was so difficult
+#include <unistd.h>       // to get the hostname
+#include <atomic>
+#include <cassert>
+#include <stdexcept>
 #include <string>
 #include <thread>
-#include <atomic>
-#include <stdexcept>
-#include <cassert>
-#include <unistd.h>      // to get the hostname
-#include <sys/syscall.h> // i didn't tough that it was so difficult
-#define gettid() syscall(SYS_gettid) // glibc wrapper missing
+#define gettid() syscall(SYS_gettid)  // glibc wrapper missing
 
-
-#include "agora/paho_remote_implementation.hpp"
 #include "agora/logger.hpp"
+#include "agora/paho_remote_implementation.hpp"
 
 using namespace agora;
 
 #define MAX_HOSTNAME_LENGHT 256
 
-extern "C"
-{
+extern "C" {
 
-  int recv_callback_function( void* recv_buffer, char* topic_c_str, int topic_size, MQTTClient_message* message )
-  {
+int recv_callback_function(void* recv_buffer, char* topic_c_str, int topic_size,
+                           MQTTClient_message* message) {
+  // fix the string if it is broken and convert it to a std::string
+  std::string payload((char*)message->payload, message->payloadlen);
 
-    // fix the string if it is broken and convert it to a std::string
-    std::string payload((char*) message->payload, message->payloadlen);
+  // log the reception of a message
+  pedantic("MQTT callback: received a message on topic \"", topic_c_str, "\" with payload \"", payload, "\"");
 
-    // log the reception of a message
-    pedantic("MQTT callback: received a message on topic \"", topic_c_str, "\" with payload \"", payload, "\"");
+  // compose the actual message
+  struct message_t incoming_message = {std::string(topic_c_str), payload};
 
-    // compose the actual message
-    struct message_t incoming_message = {std::string(topic_c_str), payload};
+  // push the message in the queue
+  // NOTE: this operation is dangerous, because we are assuming that context
+  //       is actually refering to a safe queue in remote_handler.hpp. However,
+  //       since we are dealing with a c interface... brace yourself!
+  static_cast<RemoteHandler::MessageQueue*>(recv_buffer)->enqueue(incoming_message);
 
-    // push the message in the queue
-    // NOTE: this operation is dangerous, because we are assuming that context
-    //       is actually refering to a safe queue in remote_handler.hpp. However,
-    //       since we are dealing with a c interface... brace yourself!
-    static_cast<RemoteHandler::MessageQueue*>(recv_buffer)->enqueue(incoming_message);
+  // now we have to free the message memory
+  MQTTClient_freeMessage(&message);
+  MQTTClient_free(topic_c_str);
 
-    // now we have to free the message memory
-    MQTTClient_freeMessage(&message);
-    MQTTClient_free(topic_c_str);
-
-    // everything is fine, we must return something different from 0
-    // according to the documentation
-    return 1;
-  }
-
-  void connlost_callback_function( void* recv_buffer, char* cause )
-  {
-    // first log that we are in trouble
-    warning("MQTT callback: lost connection with broker due to \"", cause, "\"");
-
-    // pretend that the error is a normal message
-    struct message_t error_message = {"$disconnect$", std::string(cause)};
-
-    // put the message in the inbox
-    // NOTE: this operation is dangerous, because we are assuming that context
-    //       is actually refering to a safe queue in remote_handler.hpp. However,
-    //       since we are dealing with a c interface... brace yourself!
-    static_cast<RemoteHandler::MessageQueue*>(recv_buffer)->enqueue(error_message);
-  }
-
-  void delivered_callback_function( void* context, MQTTClient_deliveryToken delivered_token)
-  {
-    // since we are not willing to explictly deal with tokens, we log this
-    // event to be postprocessed externally.
-    pedantic("MQTT callback: succesfully delivered message with token \"", delivered_token, "\"");
-  }
-
-
+  // everything is fine, we must return something different from 0
+  // according to the documentation
+  return 1;
 }
 
+void connlost_callback_function(void* recv_buffer, char* cause) {
+  // first log that we are in trouble
+  warning("MQTT callback: lost connection with broker due to \"", cause, "\"");
 
-PahoClient::PahoClient( const std::string& application_name, const std::string& broker_address,
-                        const uint8_t qos_level, const std::string& username, const std::string& password,
-                        const std::string& trust_store, const std::string& client_certificate, const std::string& client_key)
-  : RemoteHandler(), is_connected(false), qos_level(qos_level)
-{
+  // pretend that the error is a normal message
+  struct message_t error_message = {"$disconnect$", std::string(cause)};
+
+  // put the message in the inbox
+  // NOTE: this operation is dangerous, because we are assuming that context
+  //       is actually refering to a safe queue in remote_handler.hpp. However,
+  //       since we are dealing with a c interface... brace yourself!
+  static_cast<RemoteHandler::MessageQueue*>(recv_buffer)->enqueue(error_message);
+}
+
+void delivered_callback_function(void* context, MQTTClient_deliveryToken delivered_token) {
+  // since we are not willing to explictly deal with tokens, we log this
+  // event to be postprocessed externally.
+  pedantic("MQTT callback: succesfully delivered message with token \"", delivered_token, "\"");
+}
+}
+
+PahoClient::PahoClient(const std::string& application_name, const std::string& broker_address,
+                       const uint8_t qos_level, const std::string& username, const std::string& password,
+                       const std::string& trust_store, const std::string& client_certificate,
+                       const std::string& client_key)
+    : RemoteHandler(), is_connected(false), qos_level(qos_level) {
   // create the client id as unique-ish in the network
   char hostname[MAX_HOSTNAME_LENGHT];
   gethostname(hostname, MAX_HOSTNAME_LENGHT);
   client_id = std::string(hostname) + "_" + std::to_string(::gettid());
 
   // escape problematic characters
-  std::replace(client_id.begin(), client_id.end(), '.', '_' );
-  std::replace(client_id.begin(), client_id.end(), '-', '_' );
+  std::replace(client_id.begin(), client_id.end(), '.', '_');
+  std::replace(client_id.begin(), client_id.end(), '-', '_');
 
   // create the topic name for the last will and testment
   goodbye_topic = "margot/" + application_name + "/kia";
@@ -115,17 +107,14 @@ PahoClient::PahoClient( const std::string& application_name, const std::string& 
   // initialize the connection with ssl certicates
   MQTTClient_SSLOptions ssl = MQTTClient_SSLOptions_initializer;
 
-  if (!trust_store.empty())
-  {
+  if (!trust_store.empty()) {
     ssl.trustStore = trust_store.c_str();
 
-    if (!client_certificate.empty())
-    {
+    if (!client_certificate.empty()) {
       ssl.keyStore = client_certificate.c_str();
     }
 
-    if (!client_key.empty())
-    {
+    if (!client_key.empty()) {
       ssl.privateKey = client_key.c_str();
     }
 
@@ -140,50 +129,44 @@ PahoClient::PahoClient( const std::string& application_name, const std::string& 
   last_will.qos = qos_level;
   conn_opts.will = &last_will;
 
-  if (!username.empty())
-  {
+  if (!username.empty()) {
     conn_opts.username = username.c_str();
   }
 
-  if (!password.empty())
-  {
+  if (!password.empty()) {
     conn_opts.password = password.c_str();
   }
 
   // initialize the client data structure
-  int return_code = MQTTClient_create(&client, broker_address.c_str(), client_id.c_str(), MQTTCLIENT_PERSISTENCE_NONE, NULL);
+  int return_code = MQTTClient_create(&client, broker_address.c_str(), client_id.c_str(),
+                                      MQTTCLIENT_PERSISTENCE_NONE, NULL);
 
-  if (return_code != MQTTCLIENT_SUCCESS)
-  {
-    throw std::runtime_error("MQTT client: unable to initialize client structure, errno=" + std::to_string(return_code));
+  if (return_code != MQTTCLIENT_SUCCESS) {
+    throw std::runtime_error("MQTT client: unable to initialize client structure, errno=" +
+                             std::to_string(return_code));
   }
 
   // NOTE: if you change the second parameter of the following function, you will cause undefined
   //       behavior on all the callbacks, since they assume that the context is the address of the inbox
-  return_code = MQTTClient_setCallbacks(client, static_cast<void*>(&inbox),
-                                        connlost_callback_function,
-                                        recv_callback_function,
-                                        delivered_callback_function);
+  return_code = MQTTClient_setCallbacks(client, static_cast<void*>(&inbox), connlost_callback_function,
+                                        recv_callback_function, delivered_callback_function);
 
-  if (return_code != MQTTCLIENT_SUCCESS)
-  {
-    throw std::runtime_error("MQTT client: unable to set callbacks in client structure, errno=" + std::to_string(return_code));
+  if (return_code != MQTTCLIENT_SUCCESS) {
+    throw std::runtime_error("MQTT client: unable to set callbacks in client structure, errno=" +
+                             std::to_string(return_code));
   }
 
   // eventually estabilish the connection with the broker
   return_code = MQTTClient_connect(client, &conn_opts);
 
   // check the result
-  if ( return_code == MQTTCLIENT_SUCCESS )
-  {
+  if (return_code == MQTTCLIENT_SUCCESS) {
     is_connected = true;
     info("MQTT client: successfully connected to broker \"", broker_address, "\" as \"", username, "\"");
-  }
-  else
-  {
+  } else {
     std::string error_cause;
 
-    switch (return_code) // yeah i know, but documentation doesn't provide names
+    switch (return_code)  // yeah i know, but documentation doesn't provide names
     {
       // for the connection errors, just numbers...
       case 1:
@@ -212,8 +195,7 @@ PahoClient::PahoClient( const std::string& application_name, const std::string& 
 
     std::string warning_string = "MQTT client: unable to connect with broker \"" + broker_address + "\"";
 
-    if (!username.empty())
-    {
+    if (!username.empty()) {
       warning_string += " as \"" + username + "\"";
     }
 
@@ -221,23 +203,17 @@ PahoClient::PahoClient( const std::string& application_name, const std::string& 
     warning(warning_string);
     throw std::runtime_error("MQTT client: unable to connect with broker due to \"" + error_cause + "\"");
   }
-
 }
 
-
-PahoClient::~PahoClient( void )
-{
+PahoClient::~PahoClient(void) {
   // if we haven't done it yet, we have to disconnet the channel
   disconnect();
 }
 
-
-void PahoClient::send_message( const message_t&& output_message )
-{
+void PahoClient::send_message(const message_t&& output_message) {
   // make sure to send a message while we are actually connected to a broker
   // it may happens in the shutdown procedure
-  if (!is_connected)
-  {
+  if (!is_connected) {
     warning("MQTT client: attempt to send a message while disconnected");
     return;
   }
@@ -247,7 +223,7 @@ void PahoClient::send_message( const message_t&& output_message )
 
   // compose the message using paho facilities
   MQTTClient_message message = MQTTClient_message_initializer;
-  message.payload = (void*) output_message.payload.c_str(); //brrr, who should free the memory?
+  message.payload = (void*)output_message.payload.c_str();  // brrr, who should free the memory?
   message.payloadlen = output_message.payload.size();
   message.qos = qos_level;
   message.retained = 0;  // change to 1 if we want messages to appear to new subcribers
@@ -260,21 +236,18 @@ void PahoClient::send_message( const message_t&& output_message )
   }
 
   // check if the message is actually sent in the outer space (no guarantees to delivery though)
-  if (return_code != MQTTCLIENT_SUCCESS)
-  {
+  if (return_code != MQTTCLIENT_SUCCESS) {
     throw std::runtime_error("MQTT client: unable to send a message, errno=" + std::to_string(return_code));
   }
 
-  pedantic("MQTT client: sent message on topic \"", output_message.topic, "\" with token \"", delivery_token, "\"");
+  pedantic("MQTT client: sent message on topic \"", output_message.topic, "\" with token \"", delivery_token,
+           "\"");
 }
 
-
-void PahoClient::subscribe( const std::string& topic )
-{
+void PahoClient::subscribe(const std::string& topic) {
   // make sure to subscibe while we are actually connected to a broker
   // it may happens in the shutdown procedure
-  if (!is_connected)
-  {
+  if (!is_connected) {
     warning("MQTT client: attempt to subscribe in a topic while disconnected");
     return;
   }
@@ -282,41 +255,35 @@ void PahoClient::subscribe( const std::string& topic )
   // subscribe to the topic
   int return_code = MQTTClient_subscribe(client, topic.c_str(), qos_level);
 
-  if (return_code != MQTTCLIENT_SUCCESS)
-  {
-    throw std::runtime_error("MQTT client: unable to subscribe for topic \"" + topic + "\", errno=" + std::to_string(return_code));
+  if (return_code != MQTTCLIENT_SUCCESS) {
+    throw std::runtime_error("MQTT client: unable to subscribe for topic \"" + topic +
+                             "\", errno=" + std::to_string(return_code));
   }
 
   pedantic("MQTT client: subscribed to topic \"", topic, "\"");
 }
 
-
-void PahoClient::unsubscribe( const std::string& topic )
-{
+void PahoClient::unsubscribe(const std::string& topic) {
   // make sure to unsubscibe while we are actually connected to a broker
   // it may happens in the shutdown procedure
-  if (!is_connected)
-  {
+  if (!is_connected) {
     warning("MQTT client: attempt to unsubscribe from a topic while disconnected");
     return;
   }
 
   int return_code = MQTTClient_unsubscribe(client, topic.c_str());
 
-  if (return_code != MQTTCLIENT_SUCCESS)
-  {
-    throw std::runtime_error("MQTT client: unable to unsubscribe to topic \"" + topic + "\", errno=" + std::to_string(return_code));
+  if (return_code != MQTTCLIENT_SUCCESS) {
+    throw std::runtime_error("MQTT client: unable to unsubscribe to topic \"" + topic +
+                             "\", errno=" + std::to_string(return_code));
   }
 
   pedantic("MQTT client: unsubscribed to topic \"", topic, "\"");
 }
 
-
-void PahoClient::disconnect( void )
-{
+void PahoClient::disconnect(void) {
   // first of all we need to end the connection with the broker
-  if (is_connected)
-  {
+  if (is_connected) {
     // send a goodbye message in the system
     send_message({goodbye_topic, client_id});
 
@@ -326,12 +293,9 @@ void PahoClient::disconnect( void )
     int return_code = MQTTClient_disconnect(client, disconnect_timeout_ms);
 
     // this is basically for show, since we cannot doing anything
-    if (return_code != MQTTCLIENT_SUCCESS)
-    {
+    if (return_code != MQTTCLIENT_SUCCESS) {
       warning("MQTT client: unable to disconnect from client properly");
-    }
-    else
-    {
+    } else {
       warning("MQTT client: we are now disconnected from the broker");
     }
   }
@@ -346,8 +310,4 @@ void PahoClient::disconnect( void )
   inbox.send_terminate_signal();
 }
 
-
-std::string PahoClient::get_my_client_id( void ) const
-{
-  return client_id;
-}
+std::string PahoClient::get_my_client_id(void) const { return client_id; }

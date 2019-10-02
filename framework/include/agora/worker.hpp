@@ -17,19 +17,14 @@
  * USA
  */
 
-
 #ifndef MARGOT_AGORA_WORKER_HDR
 #define MARGOT_AGORA_WORKER_HDR
 
-
 #include "agora/virtual_io.hpp"
 
+namespace agora {
 
-namespace agora
-{
-
-  void agora_worker_function( void );
-
+void agora_worker_function(void);
 }
 
-#endif // MARGOT_AGORA_WORKER_HDR
+#endif  // MARGOT_AGORA_WORKER_HDR

@@ -22,63 +22,50 @@
 
 #include "margot/monitor.hpp"
 
-namespace margot
-{
+namespace margot {
+
+/**
+ * @brief  The System CPU usage monitor
+ *
+ * @details
+ * This class represent a monitor that observe the percentage of time that the whole system
+ * has spent in user or system time over the observation period.
+ * The measure is used parsing the /proc/stat metafile
+ */
+class OdroidPowerMonitor : public Monitor<float> {
+ public:
+  /**
+   * @brief define the throughput_monitor type
+   */
+  using value_type = float;
 
   /**
-   * @brief  The System CPU usage monitor
+   * @brief  Default constructor
    *
-   * @details
-   * This class represent a monitor that observe the percentage of time that the whole system
-   * has spent in user or system time over the observation period.
-   * The measure is used parsing the /proc/stat metafile
+   * @param window_size The dimension of the observation window
+   *
    */
-  class OdroidPowerMonitor: public Monitor<float>
-  {
+  OdroidPowerMonitor(const std::size_t window_size = 1);
 
+  /**
+   * @brief  Start the observation
+   *
+   */
+  void start();
 
-    public:
+  /**
+   * @brief  Stop the observation and push the new data in the buffer
+   *
+   */
+  void stop();
 
+ private:
+  /**
+   * @brief States if a measure is started
+   */
+  bool started;
+};
 
-      /**
-       * @brief define the throughput_monitor type
-       */
-      using value_type = float;
+}  // namespace margot
 
-
-      /**
-       * @brief  Default constructor
-       *
-       * @param window_size The dimension of the observation window
-       *
-       */
-      OdroidPowerMonitor(const std::size_t window_size = 1);
-
-
-      /**
-       * @brief  Start the observation
-       *
-       */
-      void start();
-
-
-      /**
-       * @brief  Stop the observation and push the new data in the buffer
-       *
-       */
-      void stop();
-
-
-    private:
-
-
-      /**
-       * @brief States if a measure is started
-       */
-      bool started;
-
-  };
-
-}
-
-#endif // MARGOT_ODROID_POWER_MONITOR_HDR
+#endif  // MARGOT_ODROID_POWER_MONITOR_HDR

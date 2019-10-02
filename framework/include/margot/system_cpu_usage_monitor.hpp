@@ -22,83 +22,64 @@
 
 #include "margot/monitor.hpp"
 
-namespace margot
-{
+namespace margot {
+
+/**
+ * @brief  The System CPU usage monitor
+ *
+ * @details
+ * This class represent a monitor that observe the percentage of time that the whole system
+ * has spent in user or system time over the observation period.
+ * The measure is used parsing the /proc/stat metafile
+ */
+class SystemCpuMonitor : public Monitor<float> {
+ public:
+  /**
+   * @brief define the type of the elements stored in the monitor
+   */
+  using value_type = float;
+
+  /****************************************************
+   * System CPU Usage Monitor methods
+   ****************************************************/
 
   /**
-   * @brief  The System CPU usage monitor
+   * @brief  Default constructor
    *
-   * @details
-   * This class represent a monitor that observe the percentage of time that the whole system
-   * has spent in user or system time over the observation period.
-   * The measure is used parsing the /proc/stat metafile
+   * @param window_size The dimension of the observation window
+   *
    */
-  class SystemCpuMonitor: public Monitor<float>
-  {
+  SystemCpuMonitor(const std::size_t window_size = 1);
 
+  /**
+   * @brief  Start the observation
+   *
+   */
+  void start();
 
-    public:
+  /**
+   * @brief  Stop the observation and push the new data in the buffer
+   *
+   */
+  void stop();
 
+ private:
+  /**
+   * @brief The total busy time of the system
+   */
+  uint64_t busy_time;
 
-      /**
-       * @brief define the type of the elements stored in the monitor
-       */
-      using value_type = float;
+  /**
+   * @brief The wall time elapsed
+   */
+  uint64_t total_time;
 
+  /**
+   * @brief States if a measure is started
+   */
+  bool started;
+};
 
+}  // namespace margot
 
-
-      /****************************************************
-       * System CPU Usage Monitor methods
-       ****************************************************/
-
-
-      /**
-       * @brief  Default constructor
-       *
-       * @param window_size The dimension of the observation window
-       *
-       */
-      SystemCpuMonitor(const std::size_t window_size = 1);
-
-
-      /**
-       * @brief  Start the observation
-       *
-       */
-      void start();
-
-
-      /**
-       * @brief  Stop the observation and push the new data in the buffer
-       *
-       */
-      void stop();
-
-
-    private:
-
-
-
-      /**
-       * @brief The total busy time of the system
-       */
-      uint64_t busy_time;
-
-
-      /**
-       * @brief The wall time elapsed
-       */
-      uint64_t total_time;
-
-
-      /**
-       * @brief States if a measure is started
-       */
-      bool started;
-
-  };
-
-}
-
-#endif // MARGOT_SYSTEM_CPU_USAGE_MONITOR_HDR
+#endif  // MARGOT_SYSTEM_CPU_USAGE_MONITOR_HDR

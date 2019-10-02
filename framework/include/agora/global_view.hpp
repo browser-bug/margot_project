@@ -20,58 +20,46 @@
 #ifndef MARGOT_AGORA_GLOBAL_VIEW_HDR
 #define MARGOT_AGORA_GLOBAL_VIEW_HDR
 
-
-#include <mutex>
-#include <unordered_map>
-#include <string>
 #include <memory>
-
+#include <mutex>
+#include <string>
+#include <unordered_map>
 
 #include "agora/application_handler.hpp"
 
+namespace agora {
 
-namespace agora
-{
+class GlobalView {
+ public:
+  using RemoteApplicationHandlerPtr = std::shared_ptr<RemoteApplicationHandler>;
 
-  class GlobalView
-  {
+  static inline RemoteApplicationHandlerPtr get_handler(const std::string& application_name) {
+    std::lock_guard<std::mutex> lock(global_structure);
+    auto iterator = handled_applications.find(application_name);
 
-    public:
+    if (iterator == handled_applications.end()) {
+      auto&& application_ptr = RemoteApplicationHandlerPtr(new RemoteApplicationHandler(application_name));
+      const auto result_pair = handled_applications.emplace(application_name, application_ptr);
+      return result_pair.first->second;
+    }
 
-      using RemoteApplicationHandlerPtr = std::shared_ptr<RemoteApplicationHandler>;
+    return iterator->second;
+  }
 
-      static inline RemoteApplicationHandlerPtr get_handler( const std::string& application_name )
-      {
-        std::lock_guard<std::mutex> lock(global_structure);
-        auto iterator = handled_applications.find(application_name);
+  static inline void remove_handler(const std::string& application_name) {
+    std::lock_guard<std::mutex> lock(global_structure);
+    auto iterator = handled_applications.find(application_name);
 
-        if (iterator == handled_applications.end())
-        {
-          auto&& application_ptr = RemoteApplicationHandlerPtr(new RemoteApplicationHandler(application_name));
-          const auto result_pair = handled_applications.emplace(application_name, application_ptr);
-          return result_pair.first->second;
-        }
+    if (iterator != handled_applications.end()) {
+      handled_applications.erase(iterator);
+    }
+  }
 
-        return iterator->second;
-      }
+ private:
+  static std::mutex global_structure;
+  static std::unordered_map<std::string, RemoteApplicationHandlerPtr> handled_applications;
+};
 
-      static inline void remove_handler( const std::string& application_name )
-      {
-        std::lock_guard<std::mutex> lock(global_structure);
-        auto iterator = handled_applications.find(application_name);
+}  // namespace agora
 
-        if (iterator != handled_applications.end())
-        {
-          handled_applications.erase(iterator);
-        }
-      }
-
-    private:
-
-      static std::mutex global_structure;
-      static std::unordered_map< std::string, RemoteApplicationHandlerPtr > handled_applications;
-  };
-
-}
-
-#endif // MARGOT_AGORA_GLOBAL_VIEW_HDR
+#endif  // MARGOT_AGORA_GLOBAL_VIEW_HDR

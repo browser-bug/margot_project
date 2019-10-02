@@ -20,21 +20,19 @@
 #ifndef MARGOT_AGORA_VIRTUAL_IO_HDR
 #define MARGOT_AGORA_VIRTUAL_IO_HDR
 
+#include "agora/launcher.hpp"
 #include "agora/virtual_channel.hpp"
 #include "agora/virtual_fs.hpp"
-#include "agora/launcher.hpp"
 
-namespace agora
-{
+namespace agora {
 
-  namespace io
-  {
-    extern VirtualChannel remote;
-    extern VirtualFs storage;
-    extern Launcher<LauncherType::ModelGenerator> model_generator;
-    extern Launcher<LauncherType::DoeGenerator> doe_generator;
-  }
+namespace io {
+extern VirtualChannel remote;
+extern VirtualFs storage;
+extern Launcher<LauncherType::ModelGenerator> model_generator;
+extern Launcher<LauncherType::DoeGenerator> doe_generator;
+}  // namespace io
 
-}
+}  // namespace agora
 
-#endif // MARGOT_AGORA_VIRTUAL_IO_HDR
+#endif  // MARGOT_AGORA_VIRTUAL_IO_HDR

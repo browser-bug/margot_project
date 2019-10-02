@@ -24,81 +24,64 @@
 
 #include "margot/monitor.hpp"
 
-namespace margot
-{
+namespace margot {
+
+/**
+ * @brief  The throughput monitor
+ *
+ * @details
+ * This use the std::chrono interface to gather the execution time
+ * using a steady clock, if available. Otherwise it uses the monotonic_clock
+ *
+ * @note
+ * The throughput is measured as [data]/seconds; however the resolution is in
+ * microseconds, thus the monitor functionality should last at least 1us
+ */
+class ThroughputMonitor : public Monitor<float> {
+ public:
+  /**
+   * @brief define the throughput_monitor type
+   */
+  using value_type = float;
+
+  /****************************************************
+   * Throughput Monitor methods
+   ****************************************************/
 
   /**
-   * @brief  The throughput monitor
+   * @brief  Default constructor
    *
-   * @details
-   * This use the std::chrono interface to gather the execution time
-   * using a steady clock, if available. Otherwise it uses the monotonic_clock
+   * @param window_size The maximum number of elements stored in a monitor
    *
-   * @note
-   * The throughput is measured as [data]/seconds; however the resolution is in
-   * microseconds, thus the monitor functionality should last at least 1us
    */
-  class ThroughputMonitor: public Monitor<float>
-  {
+  ThroughputMonitor(const std::size_t window_size = 1);
 
+  /**
+   * @brief  Start the observation
+   *
+   */
+  void start();
 
-    public:
+  /**
+   * @brief  Stop the observation and push the new data in the buffer
+   *
+   * @param [in] data The number of data processed in the observed execution time
+   *
+   */
+  void stop(float data);
 
+ private:
+  /**
+   * @brief The starting time when the measure is started
+   */
+  std::chrono::steady_clock::time_point tStart;
 
-      /**
-       * @brief define the throughput_monitor type
-       */
-      using value_type = float;
+  /**
+   * @brief States if a measure is started
+   */
+  bool started;
+};
 
+}  // namespace margot
 
-
-
-      /****************************************************
-       * Throughput Monitor methods
-       ****************************************************/
-
-
-      /**
-       * @brief  Default constructor
-       *
-       * @param window_size The maximum number of elements stored in a monitor
-       *
-       */
-      ThroughputMonitor(const std::size_t window_size = 1);
-
-
-      /**
-       * @brief  Start the observation
-       *
-       */
-      void start();
-
-
-      /**
-       * @brief  Stop the observation and push the new data in the buffer
-       *
-       * @param [in] data The number of data processed in the observed execution time
-       *
-       */
-      void stop(float data);
-
-
-    private:
-
-
-      /**
-       * @brief The starting time when the measure is started
-       */
-      std::chrono::steady_clock::time_point tStart;
-
-
-      /**
-       * @brief States if a measure is started
-       */
-      bool started;
-
-  };
-
-}
-
-#endif // MARGOT_THROUGHPUT_MONITOR_HDR
+#endif  // MARGOT_THROUGHPUT_MONITOR_HDR

@@ -17,64 +17,51 @@
  * USA
  */
 
-
 #ifndef MARGOT_AGORA_PAHO_REMOTE_IMPLEMENTATION_HDR
 #define MARGOT_AGORA_PAHO_REMOTE_IMPLEMENTATION_HDR
 
-
-#include <string>
 #include <mutex>
+#include <string>
 
-
-extern "C"
-{
+extern "C" {
 #include "MQTTClient.h"
 }
 
-
 #include "agora/remote_handler.hpp"
 
+namespace agora {
 
-namespace agora
-{
+class PahoClient : public RemoteHandler {
+ private:
+  MQTTClient client;
+  bool is_connected;
+  uint8_t qos_level;
+  std::string client_id;
+  std::mutex send_mutex;
+  std::string goodbye_topic;
 
-  class PahoClient: public RemoteHandler
-  {
-    private:
+ public:
+  PahoClient(const std::string& application_name, const std::string& broker_address,
+             const uint8_t qos_level = 1, const std::string& username = "", const std::string& password = "",
+             const std::string& trust_store = "", const std::string& client_certificate = "",
+             const std::string& client_key = "");
+  ~PahoClient(void);
 
-      MQTTClient client;
-      bool is_connected;
-      uint8_t qos_level;
-      std::string client_id;
-      std::mutex send_mutex;
-      std::string goodbye_topic;
+  // don't copy or move this object, things explode otherwise
+  PahoClient(const PahoClient&) = delete;
+  PahoClient(PahoClient&&) = delete;
 
+  void send_message(const message_t&& output_message);
 
-    public:
+  void subscribe(const std::string& topic);
 
-      PahoClient( const std::string& application_name, const std::string& broker_address,
-                  const uint8_t qos_level = 1, const std::string& username = "", const std::string& password = "",
-                  const std::string& trust_store = "", const std::string& client_certificate = "", const std::string& client_key = "");
-      ~PahoClient( void );
+  void unsubscribe(const std::string& topic);
 
-      // don't copy or move this object, things explode otherwise
-      PahoClient( const PahoClient& ) = delete;
-      PahoClient( PahoClient&& ) = delete;
+  std::string get_my_client_id(void) const;
 
+  void disconnect(void);
+};
 
-      void send_message( const message_t&& output_message );
+}  // namespace agora
 
-      void subscribe( const std::string& topic );
-
-      void unsubscribe( const std::string& topic );
-
-      std::string get_my_client_id( void ) const;
-
-      void disconnect( void );
-
-  };
-
-}
-
-
-#endif // MARGOT_AGORA_PAHO_REMOTE_IMPLEMENTATION_HDR
+#endif  // MARGOT_AGORA_PAHO_REMOTE_IMPLEMENTATION_HDR

@@ -17,138 +17,94 @@
  * USA
  */
 
-
 #ifndef MARGOT_AGORA_VIRTUAL_FS_HDR
 #define MARGOT_AGORA_VIRTUAL_FS_HDR
 
-#include <memory>
 #include <cassert>
+#include <memory>
 
 #include "agora/fs_handler.hpp"
 
-namespace agora
-{
+namespace agora {
 
-  class VirtualFs
-  {
-    private:
+class VirtualFs {
+ private:
+  std::shared_ptr<FsHandler> fs;
 
-      std::shared_ptr< FsHandler > fs;
+ public:
+  template <class T, class... Ts>
+  inline void create(const Ts&... fs_arguments) {
+    fs.reset(new T(fs_arguments...));
+  }
 
-    public:
+  inline void store_description(const application_description_t& description) {
+    fs->store_description(description);
+  }
 
-      template< class T, class ...Ts >
-      inline void create( const Ts& ... fs_arguments )
-      {
-        fs.reset( new T(fs_arguments...));
-      }
+  inline application_description_t load_description(const std::string& application_name) {
+    return fs->load_description(application_name);
+  }
 
-      inline void store_description( const application_description_t& description )
-      {
-        fs->store_description(description);
-      }
+  inline void store_model(const application_description_t& description, const model_t& model) {
+    fs->store_model(description, model);
+  }
 
-      inline application_description_t load_description( const std::string& application_name )
-      {
-        return fs->load_description(application_name);
-      }
+  inline model_t load_model(const application_description_t& description) {
+    return fs->load_model(description);
+  }
 
-      inline void store_model( const application_description_t& description, const model_t& model )
-      {
-        fs->store_model(description, model);
-      }
+  inline void store_doe(const application_description_t& description, const doe_t& doe) {
+    fs->store_doe(description, doe);
+  }
 
-      inline model_t load_model( const application_description_t& description )
-      {
-        return fs->load_model(description);
-      }
+  inline doe_t load_doe(const std::string& application_name) { return fs->load_doe(application_name); }
 
-      inline void store_doe( const application_description_t& description, const doe_t& doe )
-      {
-        fs->store_doe(description, doe);
-      }
+  inline void update_doe(const application_description_t& description, const std::string& values) {
+    return fs->update_doe(description, values);
+  }
 
-      inline doe_t load_doe( const std::string& application_name )
-      {
-        return fs->load_doe(application_name);
-      }
+  inline void empty_doe_entries(const application_description_t& description) {
+    return fs->empty_doe_entries(description);
+  }
 
-      inline void update_doe( const application_description_t& description, const std::string& values )
-      {
-        return fs->update_doe(description, values);
-      }
+  inline void create_trace_table(const application_description_t& description) {
+    fs->create_trace_table(description);
+  }
 
-      inline void empty_doe_entries( const application_description_t& description )
-      {
-        return fs->empty_doe_entries(description);
-      }
+  inline void insert_trace_entry(const application_description_t& description, const std::string& values) {
+    fs->insert_trace_entry(description, values);
+  }
 
-      inline void create_trace_table( const application_description_t& description )
-      {
-        fs->create_trace_table(description);
-      }
+  inline bool support_concurrency(void) const { return fs->support_concurrency(); }
 
-      inline void insert_trace_entry( const application_description_t& description, const std::string& values )
-      {
-        fs->insert_trace_entry(description, values);
-      }
+  inline std::string get_type(void) const { return fs->get_type(); }
+  inline std::string get_address(void) const { return fs->get_address(); }
+  inline std::string get_username(void) const { return fs->get_username(); }
+  inline std::string get_password(void) const { return fs->get_password(); }
+  inline std::string get_observation_name(const std::string& application_name) const {
+    return fs->get_observation_name(application_name);
+  }
+  inline std::string get_model_name(const std::string& application_name) const {
+    return fs->get_model_name(application_name);
+  }
+  inline std::string get_knobs_name(const std::string& application_name) const {
+    return fs->get_knobs_name(application_name);
+  }
+  inline std::string get_features_name(const std::string& application_name) const {
+    return fs->get_features_name(application_name);
+  }
+  inline std::string get_metrics_name(const std::string& application_name) const {
+    return fs->get_metrics_name(application_name);
+  }
+  inline std::string get_doe_name(const std::string& application_name) const {
+    return fs->get_doe_name(application_name);
+  }
+  inline std::string get_doe_info_name(const std::string& application_name) const {
+    return fs->get_doe_info_name(application_name);
+  }
+  inline void erase(const std::string& application_name) { fs->erase(application_name); }
+};
 
-      inline bool support_concurrency( void ) const
-      {
-        return fs->support_concurrency();
-      }
+}  // namespace agora
 
-      inline std::string get_type( void ) const
-      {
-        return fs->get_type();
-      }
-      inline std::string get_address( void ) const
-      {
-        return fs->get_address();
-      }
-      inline std::string get_username( void ) const
-      {
-        return fs->get_username();
-      }
-      inline std::string get_password( void ) const
-      {
-        return fs->get_password();
-      }
-      inline std::string get_observation_name( const std::string& application_name ) const
-      {
-        return fs->get_observation_name(application_name);
-      }
-      inline std::string get_model_name( const std::string& application_name ) const
-      {
-        return fs->get_model_name(application_name);
-      }
-      inline std::string get_knobs_name( const std::string& application_name ) const
-      {
-        return fs->get_knobs_name(application_name);
-      }
-      inline std::string get_features_name( const std::string& application_name ) const
-      {
-        return fs->get_features_name(application_name);
-      }
-      inline std::string get_metrics_name( const std::string& application_name ) const
-      {
-        return fs->get_metrics_name(application_name);
-      }
-      inline std::string get_doe_name( const std::string& application_name ) const
-      {
-        return fs->get_doe_name(application_name);
-      }
-      inline std::string get_doe_info_name( const std::string& application_name ) const
-      {
-        return fs->get_doe_info_name(application_name);
-      }
-      inline void erase( const std::string& application_name )
-      {
-        fs->erase(application_name);
-      }
-
-  };
-
-}
-
-#endif // MARGOT_AGORA_VIRTUAL_FS_HDR
+#endif  // MARGOT_AGORA_VIRTUAL_FS_HDR

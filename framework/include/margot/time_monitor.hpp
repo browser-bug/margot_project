@@ -26,96 +26,77 @@
 
 #include "margot/monitor.hpp"
 
-namespace margot
-{
+namespace margot {
+
+/**
+ * @brief  The time monitor
+ *
+ * @details
+ * This monitor uses the std::chrono interface to gather the execution time
+ * using a steady clock, if available. Otherwise it uses the monotonic_clock
+ */
+class TimeMonitor : public Monitor<unsigned long int> {
+ public:
+  /**
+   * @brief define the time_monitor type
+   */
+  using value_type = unsigned long int;
+
+  /****************************************************
+   * Time Monitor methods
+   ****************************************************/
 
   /**
-   * @brief  The time monitor
+   * @brief  Default constructor
+   *
+   * @param [in] window_size The maximum number of elements stored in a monitor
    *
    * @details
-   * This monitor uses the std::chrono interface to gather the execution time
-   * using a steady clock, if available. Otherwise it uses the monotonic_clock
+   * The default measure is in milliseconds
+   *
    */
-  class TimeMonitor: public Monitor<unsigned long int>
-  {
+  TimeMonitor(const std::size_t window_size = 1);
 
+  /**
+   * @brief  Generalized constructor
+   *
+   * @param time_measure The measure unit
+   *
+   * @param window_size The dimension of the observation window
+   *
+   */
+  TimeMonitor(TimeUnit time_measure, const std::size_t window_size = 1);
 
-    public:
+  /**
+   * @brief  Start the observation
+   *
+   */
+  void start();
 
+  /**
+   * @brief  Stop the observation and push the new data in the circular buffer
+   *
+   */
+  void stop();
 
-      /**
-       * @brief define the time_monitor type
-       */
-      using value_type = unsigned long int;
+ private:
+  /**
+   * @brief The starting time when the measure is started
+   */
+  std::chrono::steady_clock::time_point t_start;
 
+  /**
+   * @brief States if a measure is started
+   */
+  bool started;
 
-
-
-      /****************************************************
-       * Time Monitor methods
-       ****************************************************/
-
-
-      /**
-       * @brief  Default constructor
-       *
-       * @param [in] window_size The maximum number of elements stored in a monitor
-       *
-       * @details
-       * The default measure is in milliseconds
-       *
-       */
-      TimeMonitor(const std::size_t window_size = 1);
-
-
-      /**
-       * @brief  Generalized constructor
-       *
-       * @param time_measure The measure unit
-       *
-       * @param window_size The dimension of the observation window
-       *
-       */
-      TimeMonitor(TimeUnit time_measure, const std::size_t window_size = 1);
-
-
-      /**
-       * @brief  Start the observation
-       *
-       */
-      void start();
-
-
-      /**
-       * @brief  Stop the observation and push the new data in the circular buffer
-       *
-       */
-      void stop();
-
-
-    private:
-
-
-      /**
-       * @brief The starting time when the measure is started
-       */
-      std::chrono::steady_clock::time_point t_start;
-
-
-      /**
-       * @brief States if a measure is started
-       */
-      bool started;
-
-
-      /**
-       * @brief Function used to convert the time interval
-       */
-      std::function<value_type(std::chrono::steady_clock::time_point, std::chrono::steady_clock::time_point)>
+  /**
+   * @brief Function used to convert the time interval
+   */
+  std::function<value_type(std::chrono::steady_clock::time_point, std::chrono::steady_clock::time_point)>
       time_extractor;
+};
 
-  };
+}  // namespace margot
 
-}
-
-#endif // MARGOT_TIME_MONITOR_HDR
+#endif  // MARGOT_TIME_MONITOR_HDR

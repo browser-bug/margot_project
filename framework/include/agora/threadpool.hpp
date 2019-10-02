@@ -20,58 +20,42 @@
 #ifndef MARGOT_AGORA_THREADPOOL_HDR
 #define MARGOT_AGORA_THREADPOOL_HDR
 
+#include <cstdint>
 #include <thread>
 #include <vector>
-#include <cstdint>
 
+namespace agora {
 
-namespace agora
-{
+class ThreadPool {
+ private:
+  std::vector<std::thread> pool;
 
-  class ThreadPool
-  {
+ public:
+  template <class Function, class... Arguments>
+  ThreadPool(uint16_t number_of_workers, Function&& f, Arguments&&... args) {
+    // spawn all the threads
+    pool.reserve(number_of_workers);
 
-    private:
-
-      std::vector<std::thread> pool;
-
-    public:
-
-      template< class Function, class... Arguments >
-      ThreadPool( uint16_t number_of_workers, Function&& f,  Arguments&& ... args)
-      {
-        // spawn all the threads
-        pool.reserve(number_of_workers);
-
-        for ( uint16_t i = 0; i < number_of_workers; ++i)
-        {
-          pool.emplace_back(std::thread(f, args...));
-        }
-      }
-
-      ~ThreadPool( void );
-
-      void wait_workers( void );
-
-  };
-
-
-  ThreadPool::~ThreadPool( void )
-  {
-    wait_workers();
-  }
-
-  void ThreadPool::wait_workers( void )
-  {
-    for ( auto& worker : pool)
-    {
-      if (worker.joinable())
-      {
-        worker.join();
-      }
+    for (uint16_t i = 0; i < number_of_workers; ++i) {
+      pool.emplace_back(std::thread(f, args...));
     }
   }
 
+  ~ThreadPool(void);
+
+  void wait_workers(void);
+};
+
+ThreadPool::~ThreadPool(void) { wait_workers(); }
+
+void ThreadPool::wait_workers(void) {
+  for (auto& worker : pool) {
+    if (worker.joinable()) {
+      worker.join();
+    }
+  }
 }
 
-#endif // MARGOT_AGORA_THREADPOOL_HDR
+}  // namespace agora
+
+#endif  // MARGOT_AGORA_THREADPOOL_HDR

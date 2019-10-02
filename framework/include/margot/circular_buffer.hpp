@@ -20,238 +20,189 @@
 #ifndef MARGOT_CIRCULAR_BUFFER_HDR
 #define MARGOT_CIRCULAR_BUFFER_HDR
 
-#include <vector>
 #include <algorithm>
+#include <cassert>
 #include <chrono>
 #include <cstddef>
 #include <mutex>
-#include <cassert>
+#include <vector>
 
-namespace margot
-{
+namespace margot {
 
+/**
+ * @brief A circular buffer that stores the last n observations
+ *
+ * @tparam T The type of the stored elements
+ *
+ * @details
+ * This class represents an observation windows with a sliding temporal frame,
+ * depending on the number of observation.
+ * All the publics method that access the container are protected with a mutex,
+ * therfore this class is thread-safe.
+ */
+template <typename T>
+class CircularBuffer {
+ public:
+  /**
+   * @brief Explicit definition of the type of the stored elements
+   */
+  using value_type = T;
 
   /**
-   * @brief A circular buffer that stores the last n observations
-   *
-   * @tparam T The type of the stored elements
+   * @brief The type of the container used by the circular buffer
    *
    * @details
-   * This class represents an observation windows with a sliding temporal frame,
-   * depending on the number of observation.
-   * All the publics method that access the container are protected with a mutex,
-   * therfore this class is thread-safe.
+   * For performance reason, we have choose to store all the elements in a
+   * vector, using a index reference to keep track of the next element to
+   * overwrite.
    */
-  template< typename T >
-  class CircularBuffer
-  {
+  using container_type = std::vector<T>;
 
+  /**
+   * @brief Default constructor
+   *
+   * @param [in] size The maximum number of elements stored in the buffer
+   */
+  CircularBuffer(const std::size_t size) : next_element(0), maximum_number_element(size) {
+    buffer.reserve(size);
+    last_change = std::chrono::steady_clock::now();
+  }
 
-    public:
+  /******************************************************************
+   *  METHODS TO ALTER THE CIRCULAR BUFFER
+   ******************************************************************/
 
+  /**
+   * @brief Store a new element inside the circular buffer
+   *
+   * @details
+   * The size of the container grows at runtime until we reach the maximum
+   * number of elements. Afterward, each new element replace the last one.
+   */
+  void push(const T new_value) {
+    std::lock_guard<std::mutex> lock(buffer_mutex);
 
-      /**
-       * @brief Explicit definition of the type of the stored elements
-       */
-      using value_type = T;
+    if (buffer.size() < maximum_number_element) {
+      buffer.emplace_back(new_value);
+    } else {
+      buffer[next_element++] = new_value;
 
-
-      /**
-       * @brief The type of the container used by the circular buffer
-       *
-       * @details
-       * For performance reason, we have choose to store all the elements in a
-       * vector, using a index reference to keep track of the next element to
-       * overwrite.
-       */
-      using container_type = std::vector<T>;
-
-
-      /**
-       * @brief Default constructor
-       *
-       * @param [in] size The maximum number of elements stored in the buffer
-       */
-      CircularBuffer( const std::size_t size):
-        next_element(0), maximum_number_element(size)
-      {
-        buffer.reserve(size);
-        last_change = std::chrono::steady_clock::now();
-      }
-
-
-
-
-      /******************************************************************
-       *  METHODS TO ALTER THE CIRCULAR BUFFER
-       ******************************************************************/
-
-
-      /**
-       * @brief Store a new element inside the circular buffer
-       *
-       * @details
-       * The size of the container grows at runtime until we reach the maximum
-       * number of elements. Afterward, each new element replace the last one.
-       */
-      void push( const T new_value)
-      {
-        std::lock_guard<std::mutex> lock(buffer_mutex);
-
-        if (buffer.size() < maximum_number_element)
-        {
-          buffer.emplace_back(new_value);
-        }
-        else
-        {
-          buffer[next_element++] = new_value;
-
-          if (next_element == maximum_number_element)
-          {
-            next_element = 0;
-          }
-        }
-
-        last_change = std::chrono::steady_clock::now();
-      }
-
-
-      /**
-       * @brief Clear the container from all the values
-       *
-       * @details
-       * This method calls the clear method of the underlying container, therefore
-       * it changes the size of the container
-       */
-      inline void clear( void )
-      {
-        std::lock_guard<std::mutex> lock(buffer_mutex);
+      if (next_element == maximum_number_element) {
         next_element = 0;
-        buffer.clear();
-        last_change = std::chrono::steady_clock::now();
       }
+    }
 
+    last_change = std::chrono::steady_clock::now();
+  }
 
+  /**
+   * @brief Clear the container from all the values
+   *
+   * @details
+   * This method calls the clear method of the underlying container, therefore
+   * it changes the size of the container
+   */
+  inline void clear(void) {
+    std::lock_guard<std::mutex> lock(buffer_mutex);
+    next_element = 0;
+    buffer.clear();
+    last_change = std::chrono::steady_clock::now();
+  }
 
+  /******************************************************************
+   *  UTILITY METHODS FOR THE CIRCULAR BUFFER
+   ******************************************************************/
 
-      /******************************************************************
-       *  UTILITY METHODS FOR THE CIRCULAR BUFFER
-       ******************************************************************/
+  /**
+   * @brief Test whether the container is empty
+   *
+   * @return True, if the container is empty, i.e. it has no elements
+   */
+  inline bool empty(void) const {
+    std::lock_guard<std::mutex> lock(buffer_mutex);
+    return buffer.empty();
+  }
 
+  /**
+   * @brief Test whether the container is full
+   *
+   * @return True, if the size of the container is equal to the maximum number of elements
+   */
+  inline bool full(void) const {
+    std::lock_guard<std::mutex> lock(buffer_mutex);
+    return buffer.size() == maximum_number_element;
+  }
 
-      /**
-       * @brief Test whether the container is empty
-       *
-       * @return True, if the container is empty, i.e. it has no elements
-       */
-      inline bool empty( void ) const
-      {
-        std::lock_guard<std::mutex> lock(buffer_mutex);
-        return buffer.empty();
-      }
+  /**
+   * @brief Retrieve the last element of the container
+   *
+   * @return The last element inserted in the container
+   */
+  inline T last(void) const {
+    std::lock_guard<std::mutex> lock(buffer_mutex);
 
+    assert(buffer.size() > 0 && "Attempt to get the last element from an empty buffer");
 
-      /**
-       * @brief Test whether the container is full
-       *
-       * @return True, if the size of the container is equal to the maximum number of elements
-       */
-      inline bool full( void ) const
-      {
-        std::lock_guard<std::mutex> lock(buffer_mutex);
-        return buffer.size() == maximum_number_element;
-      }
+    // even in the case that buffer.size() < maximum_number_element, the last
+    // element is still the back of the buffer
+    return next_element == 0 ? buffer.back() : buffer[next_element - 1];
+  }
 
+  /**
+   * @brief Retrieve the number of observations
+   *
+   * @return The size of the container
+   */
+  inline std::size_t size(void) const {
+    std::lock_guard<std::mutex> lock(buffer_mutex);
+    return buffer.size();
+  }
 
-      /**
-       * @brief Retrieve the last element of the container
-       *
-       * @return The last element inserted in the container
-       */
-      inline T last( void ) const
-      {
-        std::lock_guard<std::mutex> lock(buffer_mutex);
+ protected:
+  /**
+   * @brief Test whether is possible to extract information from the buffer
+   *
+   * @return True, if the circular buffer is valid
+   *
+   * @details
+   * If it is possible to extract meaningffull statistical properties from
+   * the buffer, then it is valid.
+   * In the currrent implementation, the buffer is valid if it is full.
+   */
+  inline bool valid(void) const { return buffer.size() == maximum_number_element; }
 
-        assert(buffer.size() > 0
-               && "Attempt to get the last element from an empty buffer");
+  /**
+   * @brief Definition of the time point
+   */
+  using time_point_type = std::chrono::steady_clock::time_point;
 
-        // even in the case that buffer.size() < maximum_number_element, the last
-        // element is still the back of the buffer
-        return next_element == 0 ? buffer.back() : buffer[next_element - 1];
-      }
+  /**
+   * @brief The unfolded circular buffer
+   */
+  container_type buffer;
 
+  /**
+   * @brief The timestamp of the last modification
+   */
+  std::chrono::steady_clock::time_point last_change;
 
-      /**
-       * @brief Retrieve the number of observations
-       *
-       * @return The size of the container
-       */
-      inline std::size_t size( void ) const
-      {
-        std::lock_guard<std::mutex> lock(buffer_mutex);
-        return buffer.size();
-      }
+  /**
+   * @brief The mutex used to protect the access to the buffer
+   */
+  mutable std::mutex buffer_mutex;
 
+ private:
+  /**
+   * @brief The index of the next element to be overwritten
+   */
+  std::size_t next_element;
 
-    protected:
+  /**
+   * @brief The maximum number of elements in the container
+   */
+  const std::size_t maximum_number_element;
+};
 
+}  // namespace margot
 
-      /**
-       * @brief Test whether is possible to extract information from the buffer
-       *
-       * @return True, if the circular buffer is valid
-       *
-       * @details
-       * If it is possible to extract meaningffull statistical properties from
-       * the buffer, then it is valid.
-       * In the currrent implementation, the buffer is valid if it is full.
-       */
-      inline bool valid( void ) const
-      {
-        return buffer.size() == maximum_number_element;
-      }
-
-
-      /**
-       * @brief Definition of the time point
-       */
-      using time_point_type = std::chrono::steady_clock::time_point;
-
-
-      /**
-       * @brief The unfolded circular buffer
-       */
-      container_type buffer;
-
-
-      /**
-      * @brief The timestamp of the last modification
-      */
-      std::chrono::steady_clock::time_point last_change;
-
-
-      /**
-       * @brief The mutex used to protect the access to the buffer
-       */
-      mutable std::mutex buffer_mutex;
-
-
-    private:
-
-
-      /**
-       * @brief The index of the next element to be overwritten
-       */
-      std::size_t next_element;
-
-
-      /**
-       * @brief The maximum number of elements in the container
-       */
-      const std::size_t maximum_number_element;
-
-  };
-
-}
-
-#endif // MARGOT_CIRCULAR_BUFFER_HDR
+#endif  // MARGOT_CIRCULAR_BUFFER_HDR

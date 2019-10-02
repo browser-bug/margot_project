@@ -17,144 +17,127 @@
  * USA
  */
 
-
 #ifndef MARGOT_AGORA_APPLICATION_HANDLER_HDR
 #define MARGOT_AGORA_APPLICATION_HANDLER_HDR
 
-#include <string>
-#include <mutex>
-#include <unordered_set>
-#include <unordered_map>
-#include <cstdint>
 #include <cassert>
+#include <cstdint>
+#include <mutex>
+#include <string>
+#include <unordered_map>
+#include <unordered_set>
 
-#include "agora/virtual_io.hpp"
 #include "agora/common_objects.hpp"
 #include "agora/doe.hpp"
+#include "agora/virtual_io.hpp"
 
-namespace agora
-{
+namespace agora {
 
-  enum class ApplicationStatus : uint_fast8_t
-  {
-    CLUELESS,
-    RECOVERING,
-    ASKING_FOR_INFORMATION,
-    BUILDING_DOE,
-    EXPLORING,
-    BUILDING_MODEL,
-    WITH_MODEL,
-  };
+enum class ApplicationStatus : uint_fast8_t {
+  CLUELESS,
+  RECOVERING,
+  ASKING_FOR_INFORMATION,
+  BUILDING_DOE,
+  EXPLORING,
+  BUILDING_MODEL,
+  WITH_MODEL,
+};
 
+class RemoteApplicationHandler {
+ private:
+  // to protect the data structure
+  std::mutex mutex;
 
-  class RemoteApplicationHandler
-  {
+  // to handle the progress of the elaboration
+  ApplicationStatus status;
 
+  // this table contains all the clients of this application
+  application_list_t active_clients;
 
-    private:
+  // this relates a client with the assigned configuration
+  application_map_t assigned_configurations;
 
-      // to protect the data structure
-      std::mutex mutex;
+  // this is the name of the client who is in charge of collecting info
+  std::string information_client;
 
-      // to handle the progress of the elaboration
-      ApplicationStatus status;
+  // these are the data structures that actually have information
+  // about the application behavior
+  application_description_t description;
+  model_t model;
+  doe_t doe;
 
-      // this table contains all the clients of this application
-      application_list_t active_clients;
+  // this is a counter for the number of iterations used to build the model
+  uint_fast32_t model_iteration_number;
 
-      // this relates a client with the assigned configuration
-      application_map_t assigned_configurations;
+  inline configuration_t get_next(void) {
+    doe.next_configuration++;
 
-      // this is the name of the client who is in charge of collecting info
-      std::string information_client;
+    if (doe.next_configuration == doe.required_explorations.end()) {
+      doe.next_configuration = doe.required_explorations.begin();
+    }
 
+    auto configuration_to_send = doe.next_configuration->first;
+    return configuration_to_send;
+  }
 
-      // these are the data structures that actually have information
-      // about the application behavior
-      application_description_t description;
-      model_t model;
-      doe_t doe;
+  // these are the function used to communicate using MQTT topics
 
-      // this is a counter for the number of iterations used to build the model
-      uint_fast32_t model_iteration_number;
+  // send a configuration to the clinet
+  inline void send_configuration(const std::string& client_name) {
+    if (!doe.required_explorations.empty()) {
+      // get the configuration to explore
+      auto next_configuration = get_next();
 
-      inline configuration_t get_next( void )
-      {
-        doe.next_configuration++;
+      // update the assigned configurations
+      assigned_configurations[client_name] = next_configuration;
 
-        if (doe.next_configuration == doe.required_explorations.end())
-        {
-          doe.next_configuration = doe.required_explorations.begin();
-        }
+      // replace the coma with spaces
+      std::replace(next_configuration.begin(), next_configuration.end(), ',', ' ');
 
-        auto configuration_to_send = doe.next_configuration->first;
-        return configuration_to_send;
-      }
+      // send the configuration
+      io::remote.send_message(
+          {{"margot/" + description.application_name + "/" + client_name + "/explore"}, next_configuration});
+    }
+  }
 
-      // these are the function used to communicate using MQTT topics
+  // send the model to a specific topic
+  inline void send_model(const std::string& topic_name) const {
+    io::remote.send_message({topic_name, model.join(description)});
+  }
 
-      // send a configuration to the clinet
-      inline void send_configuration( const std::string& client_name )
-      {
-        if (!doe.required_explorations.empty())
-        {
+  // ask a client to retrieve information about the application
+  inline void ask_information(void) {
+    assert(!active_clients.empty());
+    information_client = *active_clients.begin();
+    io::remote.send_message(
+        {{"margot/" + description.application_name + "/" + information_client + "/info"}, ""});
+    info("Handler ", description.application_name, ": asking \"", information_client, "\" information");
+  }
 
-          // get the configuration to explore
-          auto next_configuration = get_next();
+  // clear the information of this object
+  inline void clear(void) {
+    status = ApplicationStatus::CLUELESS;
+    active_clients.clear();
+    assigned_configurations.clear();
+    information_client.clear();
+    description.clear();
+    model.clear();
+    doe.clear();
+    model_iteration_number = 1;
+  }
 
-          // update the assigned configurations
-          assigned_configurations[client_name] = next_configuration;
+ public:
+  RemoteApplicationHandler(const std::string& application_name);
 
-          // replace the coma with spaces
-          std::replace(next_configuration.begin(), next_configuration.end(), ',', ' ' );
+  void welcome_client(const std::string& client_name, const std::string& application_name);
 
-          // send the configuration
-          io::remote.send_message({{"margot/" + description.application_name + "/" + client_name + "/explore"}, next_configuration});
-        }
-      }
+  void bye_client(const std::string& client_name);
 
-      // send the model to a specific topic
-      inline void send_model( const std::string& topic_name ) const
-      {
-        io::remote.send_message({topic_name, model.join(description)});
-      }
+  void process_info(const std::string& info);
 
-      // ask a client to retrieve information about the application
-      inline void ask_information( void )
-      {
-        assert( !active_clients.empty() );
-        information_client = *active_clients.begin();
-        io::remote.send_message({{"margot/" + description.application_name + "/" + information_client + "/info"}, ""});
-        info("Handler ", description.application_name, ": asking \"", information_client, "\" information");
-      }
+  void new_observation(const std::string& values);
+};
 
-      // clear the information of this object
-      inline void clear( void )
-      {
-        status = ApplicationStatus::CLUELESS;
-        active_clients.clear();
-        assigned_configurations.clear();
-        information_client.clear();
-        description.clear();
-        model.clear();
-        doe.clear();
-        model_iteration_number = 1;
-      }
+}  // namespace agora
 
-    public:
-
-      RemoteApplicationHandler( const std::string& application_name );
-
-      void welcome_client( const std::string& client_name, const std::string& application_name );
-
-      void bye_client( const std::string& client_name );
-
-      void process_info( const std::string& info );
-
-      void new_observation( const std::string& values );
-
-  };
-
-}
-
-#endif // MARGOT_AGORA_APPLICATION_HANDLER_HDR
+#endif  // MARGOT_AGORA_APPLICATION_HANDLER_HDR

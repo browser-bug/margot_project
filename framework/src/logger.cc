@@ -19,28 +19,21 @@
 
 #include "agora/logger.hpp"
 
-
-
 using namespace agora;
 
 Logger agora::my_agora_logger;
 
-Logger::Logger( void )
-  : filter_level(static_cast<uint8_t>(LogLevel::DEBUG))
-{
-  //log_file.open("margot_agora.log", std::ofstream::out | std::ofstream::app);
+Logger::Logger(void) : filter_level(static_cast<uint8_t>(LogLevel::DEBUG)) {
+  // log_file.open("margot_agora.log", std::ofstream::out | std::ofstream::app);
 }
 
-Logger::~Logger( void )
-{
-  //if (log_file.is_open())
+Logger::~Logger(void) {
+  // if (log_file.is_open())
   //{
   //  log_file.close();
   //}
 }
 
-
-void Logger::set_filter_at(const LogLevel new_minimum_log_level)
-{
+void Logger::set_filter_at(const LogLevel new_minimum_log_level) {
   filter_level = static_cast<uint8_t>(new_minimum_log_level);
 }

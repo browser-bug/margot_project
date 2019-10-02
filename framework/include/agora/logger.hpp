@@ -20,125 +20,96 @@
 #ifndef MARGOT_AGORA_LOGGER_HDR
 #define MARGOT_AGORA_LOGGER_HDR
 
-#include <fstream>
-#include <string>
-#include <cstdint>
 #include <chrono>
-#include <iostream>
+#include <cstdint>
 #include <ctime>
+#include <fstream>
 #include <iomanip>
+#include <iostream>
 #include <mutex>
+#include <string>
 
+namespace agora {
 
-namespace agora
-{
+enum class LogLevel : uint8_t { DISABLED = 0, WARNING, INFO, PEDANTIC, DEBUG };
 
+inline const std::string get_string_level(const LogLevel level) {
+  switch (static_cast<uint8_t>(level)) {
+    case static_cast<uint8_t>(LogLevel::WARNING):
+      return "Warning ";
 
-  enum class LogLevel : uint8_t
-  {
-    DISABLED = 0,
-    WARNING,
-    INFO,
-    PEDANTIC,
-    DEBUG
-  };
+    case static_cast<uint8_t>(LogLevel::INFO):
+      return "Info    ";
 
-  inline const std::string get_string_level( const LogLevel level )
-  {
-    switch (static_cast<uint8_t>(level))
-    {
-      case static_cast<uint8_t>(LogLevel::WARNING):
-        return "Warning ";
+    case static_cast<uint8_t>(LogLevel::PEDANTIC):
+      return "Pedantic";
 
-      case static_cast<uint8_t>(LogLevel::INFO):
-        return "Info    ";
+    case static_cast<uint8_t>(LogLevel::DEBUG):
+      return "Debug   ";
 
-      case static_cast<uint8_t>(LogLevel::PEDANTIC):
-        return "Pedantic";
+    default:
+      return "Undef   ";
+  }
+}
 
-      case static_cast<uint8_t>(LogLevel::DEBUG):
-        return "Debug   ";
+class Logger {
+ private:
+  // std::ofstream log_file;
+  uint8_t filter_level;
+  std::mutex sync_mutex;
 
-      default:
-        return "Undef   ";
+ public:
+  Logger(void);
+
+  ~Logger(void);
+
+  void set_filter_at(const LogLevel new_minimum_log_level);
+
+  template <class... T>
+  inline void log(const LogLevel level, const T... payload) {
+    if (static_cast<uint8_t>(level) <= filter_level) {
+      std::lock_guard<std::mutex> lock(sync_mutex);
+      const auto now = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+      internal_log(std::put_time(std::localtime(&now), "%F %T"), " [", get_string_level(level), "] ",
+                   payload...);
     }
   }
 
-
-
-  class Logger
-  {
-    private:
-
-      //std::ofstream log_file;
-      uint8_t filter_level;
-      std::mutex sync_mutex;
-
-
-    public:
-
-      Logger( void );
-
-      ~Logger( void );
-
-      void set_filter_at( const LogLevel new_minimum_log_level );
-
-      template<class ...T>
-      inline void log( const LogLevel level, const T... payload)
-      {
-        if (static_cast<uint8_t>(level) <= filter_level)
-        {
-          std::lock_guard<std::mutex> lock(sync_mutex);
-          const auto now = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-          internal_log(std::put_time(std::localtime(&now), "%F %T"), " [", get_string_level(level), "] ", payload...);
-        }
-      }
-
-    protected:
-
-      template< class T, class ...Ts >
-      inline void internal_log( const T first_argument, const Ts... remainder )
-      {
-        std::cout << first_argument;
-        internal_log(remainder...);
-      }
-
-      template< class T >
-      inline void internal_log( const T last_argument )
-      {
-        std::cout << last_argument << std::endl;
-      }
-
-  };
-
-  extern Logger my_agora_logger;
-
-
-  template< class ...T>
-  inline void warning(const T... arguments)
-  {
-    my_agora_logger.log(LogLevel::WARNING, arguments...);
+ protected:
+  template <class T, class... Ts>
+  inline void internal_log(const T first_argument, const Ts... remainder) {
+    std::cout << first_argument;
+    internal_log(remainder...);
   }
 
-  template< class ...T>
-  inline void info(const T... arguments)
-  {
-    my_agora_logger.log(LogLevel::INFO, arguments...);
+  template <class T>
+  inline void internal_log(const T last_argument) {
+    std::cout << last_argument << std::endl;
   }
+};
 
-  template< class ...T>
-  inline void pedantic(const T... arguments)
-  {
-    my_agora_logger.log(LogLevel::PEDANTIC, arguments...);
-  }
+extern Logger my_agora_logger;
 
-  template< class ...T>
-  inline void debug(const T... arguments)
-  {
-    my_agora_logger.log(LogLevel::DEBUG, arguments...);
-  }
-
-
+template <class... T>
+inline void warning(const T... arguments) {
+  my_agora_logger.log(LogLevel::WARNING, arguments...);
 }
 
-#endif // MARGOT_AGORA_LOGGER_HDR
+template <class... T>
+inline void info(const T... arguments) {
+  my_agora_logger.log(LogLevel::INFO, arguments...);
+}
+
+template <class... T>
+inline void pedantic(const T... arguments) {
+  my_agora_logger.log(LogLevel::PEDANTIC, arguments...);
+}
+
+template <class... T>
+inline void debug(const T... arguments) {
+  my_agora_logger.log(LogLevel::DEBUG, arguments...);
+}
+
+}  // namespace agora
+
+#endif  // MARGOT_AGORA_LOGGER_HDR

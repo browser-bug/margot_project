@@ -17,118 +17,103 @@
  * USA
  */
 
+#include <unistd.h>
+#include <cassert>
 #include <cstdio>
 #include <cstring>
 #include <memory>
-#include <unistd.h>
 #include <string>
-#include <cassert>
 
 #include "margot/frequency_monitor.hpp"
 
-namespace margot
-{
+namespace margot {
 
+FrequencyMonitor::FrequencyMonitor(const std::size_t window_size) : Monitor(window_size) {
+  // get the number of the processors
+  unsigned int number_cores = 0;
 
-  FrequencyMonitor::FrequencyMonitor( const std::size_t window_size ): Monitor( window_size )
-  {
-    // get the number of the processors
-    unsigned int number_cores = 0;
+  // find the number of cores
+  bool found_core = true;
 
+  while (found_core) {
+    FILE* ref = fopen(std::string("/sys/devices/system/cpu/cpu" + std::to_string(number_cores) +
+                                  "/cpufreq/scaling_cur_freq")
+                          .c_str(),
+                      "r");
 
-    // find the number of cores
-    bool found_core = true;
-
-    while (found_core)
-    {
-      FILE* ref = fopen(std::string("/sys/devices/system/cpu/cpu" + std::to_string(
-                                      number_cores) + "/cpufreq/scaling_cur_freq").c_str(), "r");
-
-      if (ref == NULL)
-      {
-        found_core = false;
-      }
-      else
-      {
-        interested_core.emplace_back(number_cores);
-        ++number_cores;
-        fclose(ref);
-      }
+    if (ref == NULL) {
+      found_core = false;
+    } else {
+      interested_core.emplace_back(number_cores);
+      ++number_cores;
+      fclose(ref);
     }
-
-
-    // check the number of cores
-    assert( number_cores > 0 && "Error: unable to detect the frequency of any core");
   }
 
+  // check the number of cores
+  assert(number_cores > 0 && "Error: unable to detect the frequency of any core");
+}
 
-  void FrequencyMonitor::measure()
-  {
-    // init the measures
-    value_type value = 0, avg = 0;
+void FrequencyMonitor::measure() {
+  // init the measures
+  value_type value = 0, avg = 0;
 
+  // take the temperature for every sensor
+  for (const auto& cpuid : interested_core) {
+    // open the file
+    FILE* ref =
+        fopen(std::string("/sys/devices/system/cpu/cpu" + std::to_string(cpuid) + "/cpufreq/scaling_cur_freq")
+                  .c_str(),
+              "r");
 
-    // take the temperature for every sensor
-    for (const auto& cpuid : interested_core)
-    {
-      // open the file
-      FILE* ref = fopen(std::string("/sys/devices/system/cpu/cpu" + std::to_string(
-                                      cpuid) + "/cpufreq/scaling_cur_freq").c_str(), "r");
+    // check if the file is open
+    if (ref != NULL) {
+      // read the result
+      int result = ::fscanf(ref, "%u\n", &value);
 
-      // check if the file is open
-      if (ref != NULL)
-      {
-        // read the result
-        int result = ::fscanf(ref, "%u\n", &value);
+      // close the file
+      fclose(ref);
 
-        // close the file
-        fclose(ref);
+      // check about the readings
+      assert(result != EOF && "Error: the frequency monitor is unable to read the freqency of a core");
 
-        // check about the readings
-        assert( result != EOF && "Error: the frequency monitor is unable to read the freqency of a core");
-
-        // summ it
-        avg += value / interested_core.size();
-      }
+      // summ it
+      avg += value / interested_core.size();
     }
-
-    // push the new value
-    push(avg);
   }
 
+  // push the new value
+  push(avg);
+}
 
-
-  void FrequencyMonitor::cores(std::vector< unsigned int > cores)
-  {
-    // check if we are able to observe the selected cores
+void FrequencyMonitor::cores(std::vector<unsigned int> cores) {
+  // check if we are able to observe the selected cores
 #ifndef NDEBUG
 
-    // check if the new cores are valid
-    bool valid = true;
+  // check if the new cores are valid
+  bool valid = true;
 
-    // try to parse the file
-    for ( const auto& cpuid : cores )
-    {
-      FILE* ref = fopen(std::string("/sys/devices/system/cpu/cpu" + std::to_string(cpuid) + "/cpufreq/scaling_cur_freq").c_str(), "r");
+  // try to parse the file
+  for (const auto& cpuid : cores) {
+    FILE* ref =
+        fopen(std::string("/sys/devices/system/cpu/cpu" + std::to_string(cpuid) + "/cpufreq/scaling_cur_freq")
+                  .c_str(),
+              "r");
 
-      if (ref == NULL)
-      {
-        valid = false;
-        break;
-      }
-      else
-      {
-        fclose(ref);
-      }
+    if (ref == NULL) {
+      valid = false;
+      break;
+    } else {
+      fclose(ref);
     }
-
-
-    // check that every thing is ok
-    assert( valid && "Error: the frequency monitor is not able to read at least one core of the selected ones");
-#endif // NDEBUG
-
-    // update the set of interested cores
-    interested_core = std::move(cores);
   }
 
+  // check that every thing is ok
+  assert(valid && "Error: the frequency monitor is not able to read at least one core of the selected ones");
+#endif  // NDEBUG
+
+  // update the set of interested cores
+  interested_core = std::move(cores);
 }
+
+}  // namespace margot

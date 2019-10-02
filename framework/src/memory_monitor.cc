@@ -17,73 +17,57 @@
  * USA
  */
 
-
+#include <unistd.h>
 #include <cstdio>
 #include <cstring>
-#include <stdexcept>
 #include <memory>
-#include <unistd.h>
-
+#include <stdexcept>
 
 #include <margot/memory_monitor.hpp>
 
-namespace margot
-{
+namespace margot {
 
-  static const long page_size = sysconf(_SC_PAGE_SIZE) / 1024;
+static const long page_size = sysconf(_SC_PAGE_SIZE) / 1024;
 
-  MemoryMonitor::MemoryMonitor( const std::size_t window_size ): Monitor( window_size ) {}
+MemoryMonitor::MemoryMonitor(const std::size_t window_size) : Monitor(window_size) {}
 
+void MemoryMonitor::extractMemoryUsage() {
+  // get the monitor value
+  value_type memory_usage_kb;
+  std::shared_ptr<FILE> fp(fopen("/proc/self/statm", "r"), fclose);
+  int result = ::fscanf(fp.get(), "%*s %zu", &memory_usage_kb);
 
-
-  void MemoryMonitor::extractMemoryUsage()
-  {
-    // get the monitor value
-    value_type memory_usage_kb;
-    std::shared_ptr<FILE> fp(fopen("/proc/self/statm", "r"), fclose);
-    int result = ::fscanf(fp.get(), "%*s %zu", &memory_usage_kb);
-
-    // check if it's correct
-    if (result == EOF)
-    {
-      throw std::runtime_error("Error, can't get the memory measure");
-    }
-
-    // convert the measure to kylobyte
-    memory_usage_kb *= page_size;
-
-    // push the value
-    push(memory_usage_kb);
+  // check if it's correct
+  if (result == EOF) {
+    throw std::runtime_error("Error, can't get the memory measure");
   }
 
+  // convert the measure to kylobyte
+  memory_usage_kb *= page_size;
 
+  // push the value
+  push(memory_usage_kb);
+}
 
-  MemoryMonitor::value_type MemoryMonitor::extractVmPeakSize()
-  {
-    std::shared_ptr<FILE> fp(fopen("/proc/self/status", "r"), fclose);
-    value_type vmPeak_Kb = 0;
-    char buf[256];
+MemoryMonitor::value_type MemoryMonitor::extractVmPeakSize() {
+  std::shared_ptr<FILE> fp(fopen("/proc/self/status", "r"), fclose);
+  value_type vmPeak_Kb = 0;
+  char buf[256];
 
-    while (!feof(fp.get()))
-    {
-      if (fgets(buf, 256, fp.get()) == NULL)
-      {
-        throw std::runtime_error("Error, can't get the VmPeakSize");
-      }
-
-      if (::strncmp(buf, "VmPeak:", 7))
-      {
-        continue;
-      }
-
-      ::sscanf(buf, "%*s %lu", &vmPeak_Kb);
-      return vmPeak_Kb ;
+  while (!feof(fp.get())) {
+    if (fgets(buf, 256, fp.get()) == NULL) {
+      throw std::runtime_error("Error, can't get the VmPeakSize");
     }
 
+    if (::strncmp(buf, "VmPeak:", 7)) {
+      continue;
+    }
+
+    ::sscanf(buf, "%*s %lu", &vmPeak_Kb);
     return vmPeak_Kb;
   }
 
-
-
-
+  return vmPeak_Kb;
 }
+
+}  // namespace margot

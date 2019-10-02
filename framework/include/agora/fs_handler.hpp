@@ -20,55 +20,49 @@
 #ifndef MARGOT_AGORA_FS_HANDLER_HDR
 #define MARGOT_AGORA_FS_HANDLER_HDR
 
-
 #include <string>
 #include <vector>
 
 #include "agora/common_objects.hpp"
 
+namespace agora {
 
-namespace agora
-{
+class FsHandler {
+ public:
+  virtual void store_description(const application_description_t& description) = 0;
+  virtual application_description_t load_description(const std::string& application_name) = 0;
 
-  class FsHandler
-  {
-    public:
+  virtual void store_doe(const application_description_t& description, const doe_t& doe) = 0;
+  virtual doe_t load_doe(const std::string& application_name) = 0;
+  virtual void update_doe(const application_description_t& description, const std::string& values) = 0;
+  virtual void empty_doe_entries(const application_description_t& description) = 0;
 
-      virtual void store_description( const application_description_t& description ) = 0;
-      virtual application_description_t load_description( const std::string& application_name ) = 0;
+  virtual void store_model(const application_description_t& description, const model_t& model) = 0;
+  virtual model_t load_model(const application_description_t& description) = 0;
 
-      virtual void store_doe( const application_description_t& description, const doe_t& doe ) = 0;
-      virtual doe_t load_doe( const std::string& application_name ) = 0;
-      virtual void update_doe( const application_description_t& description, const std::string& values ) = 0;
-      virtual void empty_doe_entries( const application_description_t& description ) = 0;
+  virtual void create_trace_table(const application_description_t& description) = 0;
+  virtual void insert_trace_entry(const application_description_t& description,
+                                  const std::string& values) = 0;
 
-      virtual void store_model( const application_description_t& description, const model_t& model ) = 0;
-      virtual model_t load_model( const application_description_t& description ) = 0;
+  virtual void erase(const std::string& application_name) = 0;
 
-      virtual void create_trace_table( const application_description_t& description ) = 0;
-      virtual void insert_trace_entry( const application_description_t& description, const std::string& values ) = 0;
+  virtual bool support_concurrency(void) const = 0;
 
-      virtual void erase( const std::string& application_name ) = 0;
+  virtual std::string get_type(void) const = 0;
+  virtual std::string get_address(void) const = 0;
+  virtual std::string get_username(void) const = 0;
+  virtual std::string get_password(void) const = 0;
+  virtual std::string get_observation_name(const std::string& application_name) const = 0;
+  virtual std::string get_model_name(const std::string& application_name) const = 0;
+  virtual std::string get_knobs_name(const std::string& application_name) const = 0;
+  virtual std::string get_features_name(const std::string& application_name) const = 0;
+  virtual std::string get_metrics_name(const std::string& application_name) const = 0;
+  virtual std::string get_doe_name(const std::string& application_name) const = 0;
+  virtual std::string get_doe_info_name(const std::string& application_name) const = 0;
 
-      virtual bool support_concurrency( void ) const = 0;
+  virtual ~FsHandler(void) {}
+};
 
-      virtual std::string get_type( void ) const = 0;
-      virtual std::string get_address( void ) const = 0;
-      virtual std::string get_username( void ) const = 0;
-      virtual std::string get_password( void ) const = 0;
-      virtual std::string get_observation_name( const std::string& application_name ) const = 0;
-      virtual std::string get_model_name( const std::string& application_name ) const = 0;
-      virtual std::string get_knobs_name( const std::string& application_name ) const = 0;
-      virtual std::string get_features_name( const std::string& application_name ) const = 0;
-      virtual std::string get_metrics_name( const std::string& application_name ) const = 0;
-      virtual std::string get_doe_name( const std::string& application_name ) const = 0;
-      virtual std::string get_doe_info_name( const std::string& application_name ) const = 0;
+}  // namespace agora
 
-
-      virtual ~FsHandler( void ) {}
-  };
-
-
-}
-
-#endif // MARGOT_AGORA_FS_HANDLER_HDR
+#endif  // MARGOT_AGORA_FS_HANDLER_HDR
