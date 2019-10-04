@@ -20,16 +20,12 @@ set( TEST_CASE_FILES
 	${TEST_HEADER_PATH}/da_asrtm.hpp
 	)
 
-# include the required directories
-include_directories( ${CXXTEST_INCLUDES} )
-include_directories( ${TEST_HEADER_PATH} )
-
 
 # generate the test main file
 set( TEST_MAIN_FILE ${CMAKE_CURRENT_BINARY_DIR}/margot_test_runner.cpp )
 add_custom_command(
 	OUTPUT ${TEST_MAIN_FILE}
-	COMMAND ${CXXTEST_BIN} --error-printer -o ${TEST_MAIN_FILE} ${TEST_CASE_FILES}
+	COMMAND ${CXXTEST_TESTGEN_EXECUTABLE} --error-printer -o ${TEST_MAIN_FILE} ${TEST_CASE_FILES}
 	DEPENDS ${TEST_CASE_FILES}
 	)
 
@@ -37,10 +33,18 @@ add_custom_command(
 add_executable( ${MARGOT_TEST_EXE_NAME} ${TEST_MAIN_FILE} ${TEST_CASE_FILES} )
 
 
-# link the margot library
-target_link_libraries( ${MARGOT_TEST_EXE_NAME} ${MARGOT_LIB_NAME} )
-target_link_libraries( ${MARGOT_TEST_EXE_NAME} ${MARGOT_LINK_DEPENDENCIES} )
+# define its interface
+target_include_directories( ${MARGOT_TEST_EXE_NAME}
+    PRIVATE
+        $<BUILD_INTERFACE:${TEST_HEADER_PATH}>
+        $<BUILD_INTERFACE:${CXXTEST_INCLUDE_DIRS}>
+)
+
+# define the linker options
+target_link_libraries(${MARGOT_TEST_EXE_NAME} PRIVATE ${MARGOT_LIBRARY_NAME})
 
 
 # install the test binary
-install( TARGETS ${MARGOT_TEST_EXE_NAME} DESTINATION bin )
+install(TARGETS ${MARGOT_TEST_EXE_NAME}
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+)

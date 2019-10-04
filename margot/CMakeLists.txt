@@ -67,7 +67,7 @@ find_package( PahoMQTT REQUIRED )
 
 # conditional test according to the build options
 if ( WITH_TEST )
-	find_package( CXXTEST REQUIRED)
+	find_package( CxxTest REQUIRED)
 endif ( WITH_TEST )
 if ( GEN_DOC )
 	find_package( Doxygen REQUIRED)

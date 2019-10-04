@@ -20,23 +20,20 @@
 #ifndef MARGOT_VIRTUAL_CHANNEL_INTERFACE
 #define MARGOT_VIRTUAL_CHANNEL_INTERFACE
 
-#include <string>
 #include <memory>
+#include <string>
 
 namespace margot {
-
 
 struct remote_message {
   std::string topic;
   std::string payload;
 };
 
-using remote_message_ptr = std::unique_ptr< remote_message >;
-
+using remote_message_ptr = std::unique_ptr<remote_message>;
 
 class VirtualChannelInterface {
  public:
-
   // this call has blocking semantic. It quits if disconnected, returning a null object
   virtual remote_message_ptr recv_message() = 0;
 

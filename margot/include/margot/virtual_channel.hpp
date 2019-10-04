@@ -49,7 +49,7 @@ class VirtualChannel {
 
   inline void send_message(remote_message_ptr& output_message) {
     assert(channel && "Error: send on an empty channel");
-    channel->send_message(std::move(input_message));
+    channel->send_message(output_message);
   }
 
   inline void subscribe(const std::string& topic) {

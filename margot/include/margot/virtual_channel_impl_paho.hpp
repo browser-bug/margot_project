@@ -20,10 +20,10 @@
 #ifndef MARGOT_VIRTUAL_CHANNEL_IMPL_PAHO_HDR
 #define MARGOT_VIRTUAL_CHANNEL_IMPL_PAHO_HDR
 
-#include <mutex>
-#include <string>
 #include <condition_variable>
 #include <deque>
+#include <mutex>
+#include <string>
 
 extern "C" {
 #include "MQTTClient.h"
@@ -34,11 +34,7 @@ extern "C" {
 namespace margot {
 
 class PahoClient : public VirtualChannelInterface {
-
-  enum class connection_status_type {
-    DISCONNECTED,
-    CONNECTED
-  };
+  enum class connection_status_type { DISCONNECTED, CONNECTED };
 
   MQTTClient client;
   connection_status_type connection_status;
@@ -47,7 +43,7 @@ class PahoClient : public VirtualChannelInterface {
   std::string goodbye_topic;
   std::mutex queue_mutex;
   std::condition_variable recv_condition;
-  std::deque< remote_message_ptr > message_queue;
+  std::deque<remote_message_ptr> message_queue;
 
   // this function just send a message through MQTT, without locking
   int send(const std::string& topic, const std::string& payload);

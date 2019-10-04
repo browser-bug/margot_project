@@ -19,12 +19,12 @@
 
 #include <sys/syscall.h>  // i didn't tough that it was so difficult
 #include <unistd.h>       // to get the hostname
+#include <algorithm>
 #include <atomic>
 #include <cassert>
 #include <stdexcept>
 #include <string>
 #include <thread>
-#include <algorithm>
 #define gettid() syscall(SYS_gettid)  // glibc wrapper missing
 
 #include "margot/virtual_channel_impl_paho.hpp"
@@ -33,15 +33,13 @@ using namespace margot;
 
 #define MAX_HOSTNAME_LENGHT 256
 
-
 /******************************************************************
  *  CALLBACK FUNCTIONS CALLED BY THE MQTT FRAMEWORKS
  ******************************************************************/
 
 extern "C" {
 
-int recv_callback_function(void* context, char* topic_c_str, int topic_size,
-                           MQTTClient_message* message) {
+int recv_callback_function(void* context, char* topic_c_str, int topic_size, MQTTClient_message* message) {
   // get the payload and the topic name of the message
   std::string payload((char*)message->payload, message->payloadlen);
   std::string topic(topic_c_str, topic_size);
@@ -74,7 +72,6 @@ void delivered_callback_function(void* context, MQTTClient_deliveryToken deliver
   // since we are not willing to explictly deal with tokens, we don't do anything
 }
 }
-
 
 /******************************************************************
  *  ACTUAL IMPLEMENTATION OF THE CLIENT
@@ -185,7 +182,8 @@ PahoClient::PahoClient(const std::string& application_name, const std::string& b
         break;
 
       default:
-        error_cause = "Not reported in the documentation (usually no broker) errno=" + std::to_string(return_code);
+        error_cause =
+            "Not reported in the documentation (usually no broker) errno=" + std::to_string(return_code);
     }
     std::string warning_string = "MQTT client: unable to connect with broker \"" + broker_address + "\"";
 
@@ -203,12 +201,11 @@ PahoClient::~PahoClient(void) {
   disconnect();
 }
 
-
 int PahoClient::send(const std::string& topic, const std::string& payload) {
   // compose the message using paho facilities
-  MQTTClient_deliveryToken delivery_token = 0; // this would be the "id" of the token
+  MQTTClient_deliveryToken delivery_token = 0;  // this would be the "id" of the token
   MQTTClient_message message = MQTTClient_message_initializer;
-  message.payload = (void*) payload.c_str();
+  message.payload = (void*)payload.c_str();
   message.payloadlen = payload.size();
   message.qos = qos_level;
   message.retained = 0;  // change to 1 if we want messages to appear to new subcribers
@@ -235,7 +232,7 @@ void PahoClient::send_message(remote_message_ptr& output_message) {
   if (return_code != MQTTCLIENT_SUCCESS) {
     throw std::runtime_error("MQTT client: unable to send a message, errno=" + std::to_string(return_code));
   } else {
-    output_message.reset(); // free the memory of the message
+    output_message.reset();  // free the memory of the message
   }
 }
 
@@ -272,7 +269,7 @@ void PahoClient::disconnect(void) {
     if (connection_status == connection_status_type::CONNECTED) {
       send(goodbye_topic, client_id);
       const int disconnect_timeout_ms = 10000;
-      MQTTClient_disconnect(client, disconnect_timeout_ms); // don't know what to do if it fails anyhow
+      MQTTClient_disconnect(client, disconnect_timeout_ms);  // don't know what to do if it fails anyhow
       MQTTClient_destroy(&client);
       connection_status = connection_status_type::DISCONNECTED;
     }
@@ -282,7 +279,6 @@ void PahoClient::disconnect(void) {
 }
 
 std::string PahoClient::get_my_client_id(void) const { return client_id; }
-
 
 remote_message_ptr PahoClient::recv_message() {
   // try to get the message from the queue (spourious events might happens!)
@@ -302,11 +298,10 @@ remote_message_ptr PahoClient::recv_message() {
   }
 }
 
-
 void PahoClient::enqueue_message(const std::string& topic, const std::string& payload) {
   {
     std::unique_lock<std::mutex> lock(queue_mutex);
-    message_queue.emplace_front(remote_message_ptr( new remote_message{topic, payload}));
+    message_queue.emplace_front(remote_message_ptr(new remote_message{topic, payload}));
   }
   recv_condition.notify_one();
 }
