@@ -73,17 +73,18 @@ if ( GEN_DOC )
 	find_package( Doxygen REQUIRED)
 endif ( GEN_DOC )
 if ( WITH_COLLECTOR_MONITOR )
+	set_gentle_hint(COLLECTOR_ROOT_DIR)
 	find_package( COLLECTOR REQUIRED)
-	list( APPEND MARGOT_REQUIRED_INTERFACES Collector::Collector)
 endif ( WITH_COLLECTOR_MONITOR )
 if ( WITH_PAPI_MONITOR )
+	set_gentle_hint(PFM_ROOT_DIR)
 	find_package( PFM REQUIRED)
+	set_gentle_hint(PAPI_ROOT_DIR)
 	find_package( PAPI REQUIRED)
-	list( APPEND MARGOT_REQUIRED_INTERFACES Papi::Papi)
 endif( WITH_PAPI_MONITOR )
 if ( WITH_TEMPERATURE_MONITOR )
+	set_gentle_hint(SENSORS_ROOT_DIR)
 	find_package( SENSORS REQUIRED)
-	list( APPEND MARGOT_REQUIRED_INTERFACES Sensors::Sensors)
 endif( WITH_TEMPERATURE_MONITOR )
 
 
@@ -163,6 +164,7 @@ target_include_directories( ${MARGOT_LIBRARY_NAME}
         $<INSTALL_INTERFACE:include>
         $<BUILD_INTERFACE:${MARGOT_HDR_PATH}>
 )
+set_target_properties(${MARGOT_LIBRARY_NAME} PROPERTIES PUBLIC_HEADER "${MARGOT_HEADERS}" )
 
 # define the linker options
 target_link_libraries(${MARGOT_LIBRARY_NAME} PUBLIC
@@ -217,26 +219,32 @@ target_compile_options(${MARGOT_LIBRARY_NAME} PRIVATE $<$<CONFIG:RELEASE>: -marc
 #########################################################################
 
 include(GNUInstallDirs)
-install(TARGETS ${MARGOT_LIBRARY_NAME} EXPORT margot-finder
+install(TARGETS ${MARGOT_LIBRARY_NAME} EXPORT ${MARGOT_LIBRARY_NAME}Targets
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/margot
 )
-install(EXPORT margot-finder
-  FILE
-    FindMargot.cmake
-  NAMESPACE
-    margot::
-  DESTINATION
-    ${CMAKE_INSTALL_LIBDIR}/cmake
+include(CMakePackageConfigHelpers)
+write_basic_package_version_file(
+    ${MARGOT_LIBRARY_NAME}ConfigVersion.cmake
+    VERSION ${PACKAGE_VERSION}
+    COMPATIBILITY AnyNewerVersion
 )
-
+install(EXPORT ${MARGOT_LIBRARY_NAME}Targets
+    FILE ${MARGOT_LIBRARY_NAME}Targets.cmake
+    NAMESPACE margot::
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${MARGOT_LIBRARY_NAME}
+)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config/margotConfig.cmake.in ${MARGOT_LIBRARY_NAME}Config.cmake @ONLY)
+install(FILES "${CMAKE_CURRENT_BINARY_DIR}/${MARGOT_LIBRARY_NAME}Config.cmake"
+              "${CMAKE_CURRENT_BINARY_DIR}/${MARGOT_LIBRARY_NAME}ConfigVersion.cmake"
+        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${MARGOT_LIBRARY_NAME}
+        )
 
 
 #########################################################################
 #### Build additional stuff with the mARGOt autotuning framework
 #########################################################################
-
-#add_subdirectory( config )
 
 if ( WITH_TEST )
 	add_subdirectory( test )
