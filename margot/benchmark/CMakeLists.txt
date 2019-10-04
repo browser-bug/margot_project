@@ -1,38 +1,13 @@
 
-
-################################
-#### Compile flags
-################################
-
-# force the Release build if not already setted
-if(NOT CMAKE_BUILD_TYPE)
-  set(CMAKE_BUILD_TYPE Release)
-endif(NOT CMAKE_BUILD_TYPE)
-
-# setting common c++ flags
-set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x" )
-
-# setting debug flags
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall -g3 -O0")
-
-# setting release with debug info flags
-set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} -march=native -g3 -O2")
-
-# setting release flags
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -march=native -Ofast -funroll-loops -fprefetch-loop-arrays")
-
-
-
-################################
-#### Build section
-################################
+#########################################################################
+#### Define the mARGOt benchmark application target
+#########################################################################
 
 # define the name of the executable
 set( BENCHMARK_NAME "margot_benchmark")
 
 # set the source file of the application
-set( BENCHMARK_SRC ${CMAKE_CURRENT_SOURCE_DIR}/main.cc
-   )
+set( BENCHMARK_SRC ${CMAKE_CURRENT_SOURCE_DIR}/main.cc )
 
 
 # set the source file of the application
@@ -50,8 +25,24 @@ set( BENCHMARK_HDR
 # add the target
 add_executable( ${BENCHMARK_NAME} ${BENCHMARK_SRC} ${BENCHMARK_HDR} )
 
-# link the autotuner
-target_link_libraries( ${BENCHMARK_NAME} ${MARGOT_LIB_NAME} )
+# define its interface
+target_include_directories( ${BENCHMARK_NAME} PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
 
-# install command
-install(TARGETS ${BENCHMARK_NAME} DESTINATION bin )
+# define the linker options
+target_link_libraries( ${BENCHMARK_NAME} PRIVATE ${MARGOT_LIBRARY_NAME} )
+
+# install the test binary
+install(TARGETS ${BENCHMARK_NAME} RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} )
+
+
+
+#########################################################################
+#### Define the compiler options for this target
+#########################################################################
+
+target_compile_features( ${MARGOT_LIBRARY_NAME} PRIVATE cxx_std_11 )
+target_compile_options(${MARGOT_LIBRARY_NAME} PRIVATE -march=native -mtune=native -O3)
+
+
+
+

@@ -242,6 +242,10 @@ if ( WITH_TEST )
 	add_subdirectory( test )
 endif ( WITH_TEST )
 
+if ( WITH_BENCHMARK )
+	add_subdirectory( benchmark )
+endif ( WITH_BENCHMARK )
+
 if ( GEN_DOC )
 	add_subdirectory( doc )
 endif ( GEN_DOC )
