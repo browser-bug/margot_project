@@ -116,8 +116,8 @@ EOT
 # beautify the files
 clang-format -i -style=file $PROJECT_ROOT/margot/include/*/*.hpp
 clang-format -i -style=file $PROJECT_ROOT/margot/src/*.cc
-clang-format -i -style=file $PROJECT_ROOT/extra/benchmark/*.hpp
-clang-format -i -style=file $PROJECT_ROOT/extra/benchmark/*.cc
+clang-format -i -style=file $PROJECT_ROOT/margot/benchmark/*.hpp
+clang-format -i -style=file $PROJECT_ROOT/margot/test/test_cases/*.cc
 
 # remove the clang format file
 rm .clang-format
