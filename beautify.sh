@@ -118,6 +118,8 @@ clang-format -i -style=file $PROJECT_ROOT/margot/include/*/*.hpp
 clang-format -i -style=file $PROJECT_ROOT/margot/src/*.cc
 clang-format -i -style=file $PROJECT_ROOT/margot/benchmark/*.hpp
 clang-format -i -style=file $PROJECT_ROOT/margot/test/test_cases/*.cc
+clang-format -i -style=file $PROJECT_ROOT/heel/include/*/*.hpp
+clang-format -i -style=file $PROJECT_ROOT/heel/src/.cpp
 
 # remove the clang format file
 rm .clang-format
