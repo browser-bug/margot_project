@@ -2,69 +2,55 @@
 
 #include <cxxtest/TestSuite.h>
 
-#include <margot/operating_point.hpp>
-#include <margot/monitor.hpp>
 #include <margot/field_adaptor.hpp>
+#include <margot/monitor.hpp>
+#include <margot/operating_point.hpp>
 
-class FieldAdaptor : public CxxTest::TestSuite
-{
+class FieldAdaptor : public CxxTest::TestSuite {
+  using software_knob_geometry = margot::OperatingPointSegment<2, margot::Data<int>>;
+  using metrics_geometry = margot::OperatingPointSegment<2, margot::Distribution<float>>;
+  using MyOperatingPoint = margot::OperatingPoint<software_knob_geometry, metrics_geometry>;
+  using OperatingPointPtr = std::shared_ptr<MyOperatingPoint>;
 
-    using software_knob_geometry = margot::OperatingPointSegment< 2, margot::Data<int> >;
-    using metrics_geometry = margot::OperatingPointSegment< 2, margot::Distribution<float> >;
-    using MyOperatingPoint = margot::OperatingPoint< software_knob_geometry, metrics_geometry >;
-    using OperatingPointPtr = std::shared_ptr< MyOperatingPoint >;
+  OperatingPointPtr my_op;
 
-    OperatingPointPtr my_op;
+ public:
+  void setUp(void) {
+    my_op.reset(new MyOperatingPoint(
+        {{1, 2}, {margot::Distribution<float>(3, 0.1), margot::Distribution<float>(4, 0.1)}}));
+  }
 
-  public:
+  void test_creation(void) {
+    static constexpr float delta = 0.0001;
 
+    // create the monitor
+    margot::Monitor<float> monitor;
 
-    void setUp( void )
-    {
-      my_op.reset(new MyOperatingPoint(
-      {
-        {1, 2},
-        {margot::Distribution<float>(3, 0.1), margot::Distribution<float>(4, 0.1)}
-      }));
-    }
+    // create the field adaptor
+    std::shared_ptr<margot::FieldAdaptor<MyOperatingPoint, float>> interface;
+    interface.reset(new margot::OneSigmaAdaptor<MyOperatingPoint, margot::OperatingPointSegments::METRICS,
+                                                1,  // index of metric
+                                                1,  // inertia of the adaptor
+                                                float>(monitor));
 
+    // check the coefficient error (expected 4 +- 0.1)
+    monitor.push(4);
+    interface->evaluate_error(my_op);
+    TS_ASSERT_DELTA(interface->get_error_coefficient(), 1, delta);
 
-    void test_creation( void )
-    {
-      static constexpr float delta = 0.0001;
+    // check the coefficient error (expected 4 +- 0.1)
+    monitor.push(4.09);
+    interface->evaluate_error(my_op);
+    TS_ASSERT_DELTA(interface->get_error_coefficient(), 1, delta);
 
-      // create the monitor
-      margot::Monitor<float> monitor;
+    // check the coefficient error (expected 4 +- 0.1)
+    monitor.push(4.1);
+    interface->evaluate_error(my_op);
+    TS_ASSERT_DELTA(interface->get_error_coefficient(), 1, delta);
 
-      // create the field adaptor
-      std::shared_ptr<margot::FieldAdaptor<MyOperatingPoint, float>> interface;
-      interface.reset( new margot::OneSigmaAdaptor<MyOperatingPoint,
-                       margot::OperatingPointSegments::METRICS,
-                       1, // index of metric
-                       1, // inertia of the adaptor
-                       float>(monitor));
-
-      // check the coefficient error (expected 4 +- 0.1)
-      monitor.push(4);
-      interface->evaluate_error(my_op);
-      TS_ASSERT_DELTA(interface->get_error_coefficient(), 1, delta);
-
-      // check the coefficient error (expected 4 +- 0.1)
-      monitor.push(4.09);
-      interface->evaluate_error(my_op);
-      TS_ASSERT_DELTA(interface->get_error_coefficient(), 1, delta);
-
-      // check the coefficient error (expected 4 +- 0.1)
-      monitor.push(4.1);
-      interface->evaluate_error(my_op);
-      TS_ASSERT_DELTA(interface->get_error_coefficient(), 1, delta);
-
-      // check the coefficient error (expected 4 +- 0.1)
-      monitor.push(4.11);
-      interface->evaluate_error(my_op);
-      TS_ASSERT_DELTA(interface->get_error_coefficient(), 0.973236, delta);
-
-
-    }
-
+    // check the coefficient error (expected 4 +- 0.1)
+    monitor.push(4.11);
+    interface->evaluate_error(my_op);
+    TS_ASSERT_DELTA(interface->get_error_coefficient(), 0.973236, delta);
+  }
 };
