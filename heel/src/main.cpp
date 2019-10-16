@@ -1,10 +1,15 @@
 #include <iostream>
+#include <filesystem>
+#include <string>
 
+#include <heel/configuration_file.hpp>
 
-int main( int argc, char* argv[] ) {
+int main(int argc, char* argv[]) {
 
-	std::cout << "Hello world" << std::endl;
+  margot::heel::configuration_file c;
+  c.load(std::filesystem::path("prova.json"));
 
+  std::cout << c.to_string() << std::endl;
 
-	return EXIT_SUCCESS;
+  return EXIT_SUCCESS;
 }

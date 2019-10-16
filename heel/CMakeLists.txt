@@ -1,8 +1,8 @@
 # check the minimum version
-cmake_minimum_required( VERSION 3.4.3 ) # for the imported targets
+cmake_minimum_required( VERSION 3.9 ) # for the imported targets and lto
 
 # the project name
-project( mARGOt VERSION 3.0 LANGUAGES CXX)
+project( HEEL VERSION 3.0 LANGUAGES CXX)
 
 #########################################################################
 #### Change the default  options
@@ -23,15 +23,48 @@ endif()
 
 
 #########################################################################
-#### Look for required external libraries, according to the options
+#### Look for required external libraries
 #########################################################################
+
+set(Boost_USE_STATIC_LIBS ON)
+find_package(Boost REQUIRED COMPONENTS filesystem)
 
 
 #########################################################################
 #### Define the mARGOt heel library target
 #########################################################################
 
+# define the target name and paths
+set( HEEL_LIBRARY_NAME "heel")
+set( HEEL_HDR_PATH "${CMAKE_CURRENT_SOURCE_DIR}/include" )
+set( HEEL_SRC_PATH "${CMAKE_CURRENT_SOURCE_DIR}/src")
 
+# define the related headers and source files
+set( HEEL_LIBRARY_HEADERS
+	"${HEEL_HDR_PATH}/heel/configuration_file.hpp"
+	"${HEEL_HDR_PATH}/heel/parameters.hpp"
+)
+set( HEEL_LIBRARY_SOURCES
+	"${HEEL_SRC_PATH}/configuration_file.cpp"
+)
+
+# declare the target
+add_library( ${HEEL_LIBRARY_NAME} STATIC ${HEEL_LIBRARY_SOURCES} ${HEEL_LIBRARY_HEADERS} )
+add_library( margot::${HEEL_LIBRARY_NAME} ALIAS ${HEEL_LIBRARY_NAME} )
+
+# define its interface
+target_include_directories( ${HEEL_LIBRARY_NAME} PRIVATE ${HEEL_HDR_PATH} )
+set_target_properties( ${HEEL_LIBRARY_NAME} PROPERTIES PUBLIC_HEADER "${HEEL_LIBRARY_HEADERS}" )
+
+# set the executable dependencies
+target_link_libraries( ${HEEL_LIBRARY_NAME} PUBLIC Boost::filesystem )
+
+# define its compiler options
+target_compile_features( ${HEEL_LIBRARY_NAME} PRIVATE cxx_std_17 ) # for the filesystem component
+target_compile_options( ${HEEL_LIBRARY_NAME} PRIVATE "-Wall" )
+target_compile_options( ${HEEL_LIBRARY_NAME} PRIVATE $<$<CONFIG:DEBUG>: -g -O0 >)
+target_compile_options( ${HEEL_LIBRARY_NAME} PRIVATE $<$<CONFIG:RELWITHDEBINFO>: -march=native -mtune=native -g -O2 >)
+target_compile_options( ${HEEL_LIBRARY_NAME} PRIVATE $<$<CONFIG:RELEASE>: -march=native -mtune=native -O3 >)
 
 
 
@@ -39,23 +72,25 @@ endif()
 #### Define the mARGOt heel executable
 #########################################################################
 
-# define the target name and paths
+# define the target name
 set( HEEL_BINARY_NAME "margot_heel")
-set( HEEL_HDR_PATH "${CMAKE_CURRENT_SOURCE_DIR}/include" )
-set( HEEL_SRC_PATH "${CMAKE_CURRENT_SOURCE_DIR}/src")
 
 # define the related headers and source files
-set( HEEL_HEADERS
+set( HEEL_BINARY_HEADERS
 	)
-set( HEEL_SOURCES
+set( HEEL_BINARY_SOURCES
 	${HEEL_SRC_PATH}/main
 )
 
 # declare the target
-add_executable( ${HEEL_BINARY_NAME} ${HEEL_SOURCES} ${HEEL_HEADERS} )
+add_executable( ${HEEL_BINARY_NAME} ${HEEL_BINARY_SOURCES} ${HEEL_BINARY_HEADERS} )
+add_executable( margot::${HEEL_BINARY_NAME} ALIAS ${HEEL_BINARY_NAME} )
 
 # define its interface
 target_include_directories( ${HEEL_BINARY_NAME} PRIVATE ${HEEL_HDR_PATH} )
+
+# set the executable dependencies
+target_link_libraries( ${HEEL_BINARY_NAME} PUBLIC ${HEEL_LIBRARY_NAME} )
 
 
 # define its compiler options
@@ -64,6 +99,11 @@ target_compile_options( ${HEEL_BINARY_NAME} PRIVATE "-Wall" )
 target_compile_options( ${HEEL_BINARY_NAME} PRIVATE $<$<CONFIG:DEBUG>: -g -O0 >)
 target_compile_options( ${HEEL_BINARY_NAME} PRIVATE $<$<CONFIG:RELWITHDEBINFO>: -march=native -mtune=native -g -O2 >)
 target_compile_options( ${HEEL_BINARY_NAME} PRIVATE $<$<CONFIG:RELEASE>: -march=native -mtune=native -O3 >)
+include(CheckIPOSupported)
+check_ipo_supported(RESULT result)
+if(result)
+  set_target_properties( ${HEEL_BINARY_NAME} PROPERTIES INTERPROCEDURAL_OPTIMIZATION TRUE )
+endif()
 
 
 
@@ -72,5 +112,31 @@ target_compile_options( ${HEEL_BINARY_NAME} PRIVATE $<$<CONFIG:RELEASE>: -march=
 #### Define the install settings for all the stuff
 #########################################################################
 
+# copy library files
 include(GNUInstallDirs)
-install(TARGETS ${HEEL_BINARY_NAME} RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} )
+install(TARGETS ${HEEL_LIBRARY_NAME} ${HEEL_BINARY_NAME}
+		EXPORT ${HEEL_LIBRARY_NAME}Targets
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+        INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/heel
+        PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/heel
+)
+
+# generate the config files to find the library
+include(CMakePackageConfigHelpers)
+write_basic_package_version_file(
+    ${HEEL_LIBRARY_NAME}ConfigVersion.cmake
+    VERSION ${PACKAGE_VERSION}
+    COMPATIBILITY AnyNewerVersion
+)
+install(EXPORT ${HEEL_LIBRARY_NAME}Targets
+    FILE ${HEEL_LIBRARY_NAME}Targets.cmake
+    NAMESPACE margot::
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${HEEL_LIBRARY_NAME}
+)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config/heelConfig.cmake.in ${HEEL_LIBRARY_NAME}Config.cmake @ONLY)
+install(FILES "${CMAKE_CURRENT_BINARY_DIR}/${HEEL_LIBRARY_NAME}Config.cmake"
+              "${CMAKE_CURRENT_BINARY_DIR}/${HEEL_LIBRARY_NAME}ConfigVersion.cmake"
+        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${HEEL_LIBRARY_NAME}
+        )
