@@ -31,22 +31,20 @@
 #include <string>
 #include <type_traits>
 #include <utility>
-
-#include "margot/asrtm.hpp"
-#include "margot/data_features.hpp"
-#include "margot/debug.hpp"
-#include "margot/operating_point.hpp"
-
-#ifdef MARGOT_WITH_AGORA
 #include <algorithm>
 #include <chrono>
 #include <ctime>
 #include <map>
 #include <sstream>
 #include <thread>
+
+#include "margot/asrtm.hpp"
+#include "margot/data_features.hpp"
+#include "margot/debug.hpp"
+#include "margot/operating_point.hpp"
+
 #include "agora/paho_remote_implementation.hpp"
 #include "agora/virtual_channel.hpp"
-#endif  // MARGOT_WITH_AGORA
 
 namespace margot {
 
@@ -159,7 +157,6 @@ class DataAwareAsrtm {
     active_manager = managers.end();
   }
 
-#ifdef MARGOT_WITH_AGORA
 
   /**
    * @brief Default destructor
@@ -177,7 +174,6 @@ class DataAwareAsrtm {
     }
   }
 
-#endif  // MARGOT_WITH_AGORA
 
   /******************************************************************
    *  METHODS TO MANAGE THE FEATURE CLUSTERS
@@ -811,7 +807,6 @@ class DataAwareAsrtm {
    *  AGORA LOCAL APPLICATION HANDLER PUBLIC METHODS
    ******************************************************************/
 
-#ifdef MARGOT_WITH_AGORA
 
   /**
    * @brief Send an observation to the agora remote application handler
@@ -884,7 +879,6 @@ class DataAwareAsrtm {
     local_handler = std::thread(&type::local_application_handler<OpConverter>, this, description);
   }
 
-#endif  // MARGOT_WITH_AGORA
 
   /******************************************************************
    *  DEBUG METHODS
@@ -900,7 +894,6 @@ class DataAwareAsrtm {
    *  AGORA LOCAL APPLICATION HANDLER PRIVATE METHODS
    ******************************************************************/
 
-#ifdef MARGOT_WITH_AGORA
 
   /**
    * @brief The function executed by the agora local application handler
@@ -1046,7 +1039,6 @@ class DataAwareAsrtm {
     }
   }
 
-#endif  // MARGOT_WITH_AGORA
 
   /**
    * @brief The list of the Application-Specific RunTime Managers
@@ -1068,7 +1060,6 @@ class DataAwareAsrtm {
    */
   mutable std::mutex asrtm_mutex;
 
-#ifdef MARGOT_WITH_AGORA
 
   /**
    * @brief The handler of the local agora application handler
@@ -1085,7 +1076,6 @@ class DataAwareAsrtm {
    */
   std::string application_name;
 
-#endif  // MARGOT_WITH_AGORA
 };
 
 template <class Asrtm, typename T, FeatureDistanceType distance_type, FeatureComparison... cfs>

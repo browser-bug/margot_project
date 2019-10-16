@@ -29,6 +29,10 @@
 #include <mutex>
 #include <string>
 #include <vector>
+#include <chrono>
+#include <ctime>
+#include <sstream>
+#include <thread>
 
 #include "margot/debug.hpp"
 #include "margot/knowledge_adaptor.hpp"
@@ -38,14 +42,11 @@
 #include "margot/operating_point.hpp"
 #include "margot/state.hpp"
 
-#ifdef MARGOT_WITH_AGORA
-#include <chrono>
-#include <ctime>
-#include <sstream>
-#include <thread>
-#include "agora/paho_remote_implementation.hpp"
-#include "agora/virtual_channel.hpp"
-#endif  // MARGOT_WITH_AGORA
+
+
+#include "margot/paho_remote_implementation.hpp"
+#include "margot/virtual_channel.hpp"
+
 
 namespace margot {
 
@@ -201,7 +202,7 @@ class Asrtm {
    */
   Asrtm(void) : status(ApplicationStatus::UNDEFINED) { current_optimizer = application_optimizers.end(); }
 
-#ifdef MARGOT_WITH_AGORA
+
 
   /**
    * @brief Default destructor
@@ -218,7 +219,7 @@ class Asrtm {
       local_handler.join();
     }
   }
-#endif  // MARGOT_WITH_AGORA
+
 
   /**
    * @brief Copy constructor
@@ -891,7 +892,7 @@ class Asrtm {
    *  AGORA LOCAL APPLICATION HANDLER PUBLIC METHODS
    ******************************************************************/
 
-#ifdef MARGOT_WITH_AGORA
+
 
   /**
    * @brief Send an observation to the agora remote application handler
@@ -981,7 +982,7 @@ class Asrtm {
     local_handler = std::thread(&type::local_application_handler<OpConverter>, this, description);
   }
 
-#endif  // MARGOT_WITH_AGORA
+
 
   /******************************************************************
    *  DEBUG METHODS
@@ -1004,7 +1005,7 @@ class Asrtm {
    *  AGORA LOCAL APPLICATION HANDLER PRIVATE METHODS
    ******************************************************************/
 
-#ifdef MARGOT_WITH_AGORA
+
 
   /**
    * @brief Replace the current knowledge base with a single point
@@ -1172,7 +1173,7 @@ class Asrtm {
   template <class Asrtm, typename T, FeatureDistanceType distance_type, FeatureComparison... cfs>
   friend class DataAwareAsrtm;
 
-#endif  // MARGOT_WITH_AGORA
+
 
   /**
    * @brief The whole application knowledge
@@ -1219,7 +1220,7 @@ class Asrtm {
    */
   ApplicationStatus status;
 
-#ifdef MARGOT_WITH_AGORA
+
 
   /**
    * @brief The handler of the local agora application handler
@@ -1236,7 +1237,7 @@ class Asrtm {
    */
   std::string application_name;
 
-#endif  // MARGOT_WITH_AGORA
+
 };
 
 template <class OperatingPoint, class state_id_type, typename priority_type, typename error_coef_type>
