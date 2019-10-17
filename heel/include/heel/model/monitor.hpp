@@ -32,7 +32,7 @@ struct monitor_model {
   std::vector<struct parameter> stop_parameters;
 };
 
-monitor_model create_monitor(const std::string& monitor_type, const std::string& value_type);
+monitor_model create_monitor(const std::string& monitor_type);
 
 }  // namespace heel
 }  // namespace margot

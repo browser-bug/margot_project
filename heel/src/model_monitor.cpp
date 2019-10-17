@@ -1,6 +1,5 @@
 #include <cstddef>
 #include <map>
-#include <stdexcept>
 #include <string>
 
 #include <heel/model/monitor.hpp>
@@ -49,34 +48,26 @@ static const std::map<std::string, margot::heel::monitor_spec> known_monitors = 
       "start", "stop"}},
 };
 
-// this is a special name for holding the type name of a generic monitor
-static const std::string custom_monitor_type("custom");
-
-// this is a simple function that retrieves the information of the target monitor
-margot::heel::monitor_spec get_known_monitor_spec(const std::string& monitor_type) {
-  const auto found_element = known_monitors.find(monitor_type);
-  if (found_element == known_monitors.cend()) {
-    throw std::runtime_error(" monitor_model: unknown monitor type \"" + monitor_type + "\"");
-  }
-  return found_element->second;
+// this function generates a spec for a custom monitor, given the monitor type
+inline margot::heel::monitor_spec generate_spec(const std::string& monitor_type) {
+  return {"margot::Monitor<" + monitor_type + ">", "margot/monitor.hpp", monitor_type, "", "push"};
 }
 
-// this function requires additional information to fill the monitor spec
-margot::heel::monitor_spec get_generic_monitor_spec(const std::string& monitor_type,
-                                                    const std::string& value_type) {
-  return {"margot::Monitor<" + value_type + ">", "margot/monitor.hpp", value_type, "", "push"};
+// this is a simple function that retrieves the information of the target monitor by using information from
+// known monitors, or by generating a spec for the custom type
+margot::heel::monitor_spec get_monitor_spec(const std::string& monitor_type) {
+  const auto found_element = known_monitors.find(monitor_type);
+  return found_element != known_monitors.cend() ? found_element->second : generate_spec(monitor_type);
 }
 
 // this function initialize the monitor model with all the boring information about the monitor
 // implementation.
-margot::heel::monitor_model margot::heel::create_monitor(const std::string& monitor_type,
-                                                         const std::string& value_type) {
+margot::heel::monitor_model margot::heel::create_monitor(const std::string& monitor_type) {
   return {
-      "",  // we don't know the monitor name
-      monitor_type.compare(custom_monitor_type) != 0 ? get_known_monitor_spec(monitor_type)
-                                                     : get_generic_monitor_spec(monitor_type, value_type),
-      {},  // we don't know about the initialization parameters
-      {},  // neither about the start parameters
-      {}   // or the stop parameters
+      "",                              // we don't know the monitor name
+      get_monitor_spec(monitor_type),  // yeah, it's basically the only thing that we know
+      {},                              // we don't know about the initialization parameters
+      {},                              // neither about the start parameters
+      {}                               // or the stop parameters
   };
 }

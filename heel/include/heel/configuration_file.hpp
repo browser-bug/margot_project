@@ -20,6 +20,10 @@ class configuration_file {
   // I/O functions from std::string
   void load(const std::string &description);
   std::string to_string(void) const;
+
+  // functions to retrieve the internal representation of the configuration file
+  inline boost::property_tree::ptree &ptree(void) { return content; }
+  inline const boost::property_tree::ptree &ptree(void) const { return content; }
 };
 
 }  // namespace heel
