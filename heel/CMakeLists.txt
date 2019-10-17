@@ -41,11 +41,14 @@ set( HEEL_SRC_PATH "${CMAKE_CURRENT_SOURCE_DIR}/src")
 
 # define the related headers and source files
 set( HEEL_LIBRARY_HEADERS
+  "${HEEL_HDR_PATH}/heel/model/monitor.hpp"
+  "${HEEL_HDR_PATH}/heel/parser/monitor.hpp"
 	"${HEEL_HDR_PATH}/heel/configuration_file.hpp"
 	"${HEEL_HDR_PATH}/heel/parameters.hpp"
 )
 set( HEEL_LIBRARY_SOURCES
 	"${HEEL_SRC_PATH}/configuration_file.cpp"
+  "${HEEL_SRC_PATH}/model_monitor.cpp"
 )
 
 # declare the target
