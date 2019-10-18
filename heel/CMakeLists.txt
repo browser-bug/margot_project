@@ -41,6 +41,8 @@ set( HEEL_SRC_PATH "${CMAKE_CURRENT_SOURCE_DIR}/src")
 
 # define the related headers and source files
 set( HEEL_LIBRARY_HEADERS
+	"${HEEL_HDR_PATH}/heel/generator/description_verbose.hpp"
+	"${HEEL_HDR_PATH}/heel/generator/utils.hpp"
 	"${HEEL_HDR_PATH}/heel/model/monitor.hpp"
 	"${HEEL_HDR_PATH}/heel/parser/monitor.hpp"
 	"${HEEL_HDR_PATH}/heel/parser/parameter.hpp"
@@ -51,6 +53,7 @@ set( HEEL_LIBRARY_HEADERS
 )
 set( HEEL_LIBRARY_SOURCES
 	"${HEEL_SRC_PATH}/configuration_file.cpp"
+	"${HEEL_SRC_PATH}/generator_description_verbose.cpp"
 	"${HEEL_SRC_PATH}/model_monitor.cpp"
 	"${HEEL_SRC_PATH}/parser_monitor.cpp"
 	"${HEEL_SRC_PATH}/parser_parameter.cpp"
