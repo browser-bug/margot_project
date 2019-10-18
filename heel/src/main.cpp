@@ -18,11 +18,14 @@ int main(int argc, char* argv[]) {
   // get the root element of the configuration file
   const auto p = c.ptree();
 
-  // parse them
-  auto models{margot::heel::parse_metrics(p)};
-
-  // print them
-  for (const auto& model : models) {
+  // print information
+  for (const auto& model : margot::heel::parse_monitors(p)) {
+    std::cout << description_verbose(model).str() << std::endl;
+  }
+  for (const auto& model : margot::heel::parse_knobs(p)) {
+    std::cout << description_verbose(model).str() << std::endl;
+  }
+  for (const auto& model : margot::heel::parse_metrics(p)) {
     std::cout << description_verbose(model).str() << std::endl;
   }
 
