@@ -15,7 +15,6 @@ struct tag {
   inline static const std::string monitors(void) { return "monitors"; }
   inline static const std::string name(void) { return "name"; }
   inline static const std::string monitor_type(void) { return "type"; }
-  inline static const std::string value_type(void) { return "name"; }
   inline static const std::string log(void) { return "log"; }
   inline static const std::string constructor(void) { return "constructor"; }
   inline static const std::string start(void) { return "start"; }
