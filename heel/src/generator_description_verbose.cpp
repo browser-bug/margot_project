@@ -46,3 +46,16 @@ std::stringstream margot::heel::description_verbose(const margot::heel::monitor_
 
   return d;
 }
+
+std::stringstream margot::heel::description_verbose(const knob_model& model) {
+  std::stringstream d;
+  d << "Knob \"" << model.name << "\"" << std::endl;
+  d << "\tType: " << model.type << std::endl;
+  if (!model.values.empty()) {
+    d << "\tValues: [";
+    d << margot::heel::join(model.values.cbegin(), model.values.cend(), "; ",
+                            [](const std::string& value) { return value; });
+    d << "]" << std::endl;
+  }
+  return d;
+}

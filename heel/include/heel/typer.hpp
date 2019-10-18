@@ -7,6 +7,11 @@
 namespace margot {
 namespace heel {
 
+// this is an helper function that reverse the type aliasing for the current architecture (e.g.
+// "int32_t"->"int"), this is required to limit the extension of possibilities.
+std::string reverse_alias(const std::string& type_name);
+
+// this struct is used to convert a c-type to a string with its name
 template <typename T>
 struct typer {
   static const std::string get(void) { throw std::runtime_error(" typer : unknown numeric type"); }

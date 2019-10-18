@@ -23,6 +23,10 @@ inline void visit_optional(const std::string& tag_name, const boost::property_tr
   }
 }
 
+// this is an utility function that generates a list of values (as strings), starting from a range node
+std::vector<std::string> compute_range(const boost::property_tree::ptree& range_node,
+                                       const std::string& value_type);
+
 }  // namespace heel
 }  // namespace margot
 
