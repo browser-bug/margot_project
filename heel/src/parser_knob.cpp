@@ -1,5 +1,3 @@
-#include <array>
-#include <iostream>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -44,7 +42,7 @@ std::vector<margot::heel::knob_model> margot::heel::parse_knobs(const pt::ptree&
 margot::heel::knob_model parse_knob_model(const pt::ptree& knob_node) {
   // initialize the knob model
   margot::heel::knob_model model = {
-      knob_node.get<std::string>("name", ""), knob_node.get<std::string>("type", ""), {}};
+      knob_node.get<std::string>(tag::name(), ""), knob_node.get<std::string>(tag::knob_type(), ""), {}};
 
   // parse the list of values (if any) as an array of strings
   margot::heel::visit_optional(tag::values(), knob_node, [&model](const pt::ptree::value_type& p) {
