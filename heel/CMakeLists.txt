@@ -27,7 +27,7 @@ endif()
 #########################################################################
 
 set(Boost_USE_STATIC_LIBS ON)
-find_package(Boost REQUIRED COMPONENTS filesystem)
+find_package(Boost REQUIRED)
 
 
 #########################################################################
@@ -73,7 +73,7 @@ target_include_directories( ${HEEL_LIBRARY_NAME} PRIVATE ${HEEL_HDR_PATH} )
 set_target_properties( ${HEEL_LIBRARY_NAME} PROPERTIES PUBLIC_HEADER "${HEEL_LIBRARY_HEADERS}" )
 
 # set the executable dependencies
-target_link_libraries( ${HEEL_LIBRARY_NAME} PUBLIC Boost::filesystem )
+target_link_libraries( ${HEEL_LIBRARY_NAME} PUBLIC Boost::boost )
 
 # define its compiler options
 target_compile_features( ${HEEL_LIBRARY_NAME} PRIVATE cxx_std_17 ) # for the filesystem component
