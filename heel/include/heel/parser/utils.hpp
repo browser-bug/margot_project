@@ -23,6 +23,17 @@ inline void visit_optional(const std::string& tag_name, const boost::property_tr
   }
 }
 
+// this is an utility function that retrieves the value of a node as a string, if it exists. If the node does
+// not exist, it returns an empty string
+inline std::string get( const std::string& tag_name, const boost::property_tree::ptree& node) {
+	const boost::optional<const boost::property_tree::ptree&> child = node.get_child_optional(tag_name);
+	if (child) {
+		return child->get<std::string>("","");
+	} else {
+		return "";
+	}
+}
+
 // this is an utility function that generates a list of values (as strings), starting from a range node
 std::vector<std::string> compute_range(const boost::property_tree::ptree& range_node,
                                        const std::string& value_type);

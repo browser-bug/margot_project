@@ -45,7 +45,7 @@ std::vector<margot::heel::metric_model> margot::heel::parse_metrics(const pt::pt
 margot::heel::metric_model parse_metric_model(const pt::ptree& metric_node) {
   // the only component that could be a problem is the check if this metric is a distribution. Therefore, we
   // need to check against several ways of expressing yes
-  std::string is_dist_str = metric_node.get<std::string>(tag::distribution(), "");
+  std::string is_dist_str = margot::heel::get(tag::distribution(), metric_node);
   std::transform(is_dist_str.begin(), is_dist_str.end(), is_dist_str.begin(),
                  [](typename std::string::value_type c) { return std::tolower(c); });
   const bool is_distribution = ((is_dist_str.compare("yes") == 0) || (is_dist_str.compare("on") == 0) ||
@@ -54,6 +54,6 @@ margot::heel::metric_model parse_metric_model(const pt::ptree& metric_node) {
                                    : false;
 
   // create the model
-  return {metric_node.get<std::string>(tag::name(), ""), metric_node.get<std::string>(tag::metric_type(), ""),
-          is_distribution, metric_node.get<std::string>(tag::plugin(), "")};
+  return {margot::heel::get(tag::name(), metric_node), margot::heel::get(tag::metric_type(), metric_node),
+          is_distribution, margot::heel::get(tag::plugin(), metric_node)};
 }
