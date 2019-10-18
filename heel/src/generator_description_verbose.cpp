@@ -59,3 +59,15 @@ std::stringstream margot::heel::description_verbose(const knob_model& model) {
   }
   return d;
 }
+
+std::stringstream margot::heel::description_verbose(const metric_model& model) {
+  std::stringstream d;
+  d << "Metric \"" << model.name << "\"" << std::endl;
+  d << "\tType: " << model.type << std::endl;
+  d << "\tIs a distribution: " << (model.distribution ? std::string("true") : std::string("false"))
+    << std::endl;
+  if (!model.prediction_method.empty()) {
+    d << "\tPrediction method: " << model.prediction_method << std::endl;
+  }
+  return d;
+}
