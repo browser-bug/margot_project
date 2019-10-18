@@ -1,0 +1,43 @@
+{
+	"monitors":
+	[
+		{
+			"name": "my_custom_monitor",
+			"type": "float",
+			"log": [ "average" ],
+			"constructor": [ 10 ],
+			"stop": [ {"error": "float"} ]
+		},
+		{
+			"name": "my_time_monitor",
+			"type": "time",
+			"log": [ "average" ],
+			"constructor": [ "margot::TimeUnit::MICROSECONDS" ]
+		}
+	],
+
+
+	"knobs":
+	[
+		{
+			"name": "knob1",
+			"type": "int",
+			"values": [ 1, 3, 10, 20 ]
+		},
+		{
+			"name": "knob2",
+			"type": "float",
+			"range": [ 1.0, 2.0, 0.2 ]
+		}
+	],
+
+	"metrics":
+	[
+		{
+			"name": "metric1",
+			"type": "int",
+			"distribution": "yes",
+			"predict_with": "hth"
+		}
+	]
+}
