@@ -43,7 +43,7 @@ margot::heel::monitor_model parse_monitor_model(const pt::ptree& monitor_node) {
 
   // parse the output variables of a monitor (if any)
   margot::heel::visit_optional(tag::log(), monitor_node, [&model](const pt::ptree::value_type& p) {
-    model.requested_statistics.emplace_back(p.second.get<std::string>("",""));  // we just need its name
+    model.requested_statistics.emplace_back(p.second.get<std::string>("", ""));  // we just need its name
   });
 
   // parse the monitor constructor parameters (if any)
