@@ -7,11 +7,7 @@
 namespace margot {
 namespace heel {
 
-enum class distance_comparison_type {
-  LESS_OR_EQUAL,
-  GREATER_OR_EQUAL,
-  DONT_CARE
-};
+enum class distance_comparison_type { LESS_OR_EQUAL, GREATER_OR_EQUAL, DONT_CARE };
 
 struct feature_model {
   std::string name;
