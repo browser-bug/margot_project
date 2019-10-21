@@ -47,6 +47,7 @@ set( HEEL_LIBRARY_HEADERS
 	"${HEEL_HDR_PATH}/heel/model/knob.hpp"
 	"${HEEL_HDR_PATH}/heel/model/metric.hpp"
 	"${HEEL_HDR_PATH}/heel/model/monitor.hpp"
+	"${HEEL_HDR_PATH}/heel/model/parameter.hpp"
 	"${HEEL_HDR_PATH}/heel/parser/features.hpp"
 	"${HEEL_HDR_PATH}/heel/parser/knob.hpp"
 	"${HEEL_HDR_PATH}/heel/parser/metric.hpp"
@@ -54,7 +55,6 @@ set( HEEL_LIBRARY_HEADERS
 	"${HEEL_HDR_PATH}/heel/parser/parameter.hpp"
 	"${HEEL_HDR_PATH}/heel/parser/utils.hpp"
 	"${HEEL_HDR_PATH}/heel/configuration_file.hpp"
-	"${HEEL_HDR_PATH}/heel/parameters.hpp"
 	"${HEEL_HDR_PATH}/heel/typer.hpp"
 )
 set( HEEL_LIBRARY_SOURCES

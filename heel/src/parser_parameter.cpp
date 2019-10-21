@@ -3,7 +3,7 @@
 #include <boost/optional.hpp>
 #include <boost/property_tree/ptree.hpp>
 
-#include <heel/parameters.hpp>
+#include <heel/model/parameter.hpp>
 #include <heel/parser/parameter.hpp>
 
 namespace pt = boost::property_tree;

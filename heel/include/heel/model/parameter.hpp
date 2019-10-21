@@ -1,5 +1,5 @@
-#ifndef HEEL_PARAMETERS_HDR
-#define HEEL_PARAMETERS_HDR
+#ifndef HEEL_MODEL_PARAMETER_HDR
+#define HEEL_MODEL_PARAMETER_HDR
 
 #include <string>
 
@@ -22,4 +22,4 @@ struct parameter {
 }  // namespace heel
 }  // namespace margot
 
-#endif  // HEEL_PARAMETERS_HDR
+#endif  // HEEL_MODEL_PARAMETER_HDR

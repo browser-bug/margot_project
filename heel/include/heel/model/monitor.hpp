@@ -5,7 +5,7 @@
 #include <string>
 #include <vector>
 
-#include <heel/parameters.hpp>
+#include <heel/model/parameter.hpp>
 
 namespace margot {
 namespace heel {
