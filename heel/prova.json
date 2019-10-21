@@ -1,58 +1,116 @@
 {
-	"monitors":
+	"application": "bar",
+	"version": "4.0",
+	"blocks":
 	[
 		{
-			"name": "my_custom_monitor",
-			"type": "float",
-			"log": [ "average" ],
-			"constructor": [ 10 ],
-			"stop": [ {"error": "float"} ]
-		},
-		{
-			"name": "my_time_monitor",
-			"type": "time",
-			"log": [ "average" ],
-			"constructor": [ "margot::TimeUnit::MICROSECONDS" ]
-		}
-	],
+			"name": "foo",
+
+			"monitors":
+			[
+				{
+					"name": "my_custom_monitor",
+					"type": "float",
+					"log": [ "average" ],
+					"constructor": [ 10 ],
+					"stop": [ {"error": "float"} ]
+				},
+				{
+					"name": "my_time_monitor",
+					"type": "time",
+					"log": [ "average" ],
+					"constructor": [ "margot::TimeUnit::MICROSECONDS" ]
+				}
+			],
 
 
-	"knobs":
-	[
-		{
-			"name": "knob1",
-			"type": "int",
-			"values": [ 1, 3, 10, 20 ]
-		},
-		{
-			"name": "knob2",
-			"type": "float",
-			"range": [ 1.0, 2.0, 0.2 ]
-		}
-	],
+			"knobs":
+			[
+				{
+					"name": "knob1",
+					"type": "int",
+					"values": [ 1, 3, 10, 20 ]
+				},
+				{
+					"name": "knob2",
+					"type": "float",
+					"range": [ 1.0, 2.0, 0.2 ]
+				}
+			],
 
-	"metrics":
-	[
-		{
-			"name": "metric1",
-			"type": "int",
-			"distribution": "yes",
-			"predict_with": "hth"
-		}
-	],
+			"metrics":
+			[
+				{
+					"name": "metric1",
+					"type": "int",
+					"distribution": "yes",
+					"predict_with": "hth",
+					"observed_by": "my_custom_monitor"
+				}
+			],
 
-	"feature_distance":"euclidean",
-	"features":
-	[
-		{
-			"name": "bla_bla",
-			"type": "int",
-			"comparison": "LE"
-		},
-		{
-			"name": "feature2",
-			"type": "float",
-			"comparison": "-"
+			"feature_distance":"euclidean",
+			"features":
+			[
+				{
+					"name": "bla_bla",
+					"type": "int",
+					"comparison": "LE"
+				},
+				{
+					"name": "feature2",
+					"type": "float",
+					"comparison": "-"
+				}
+			],
+
+			"agora":
+			{
+				"connection":
+				{
+					"borker_url": "127.0.0.1:1883",
+					"broker_username": "margot",
+					"broker_password": "margot",
+					"broker_qos": 2,
+					"broker_ca": "",
+					"client_cert": "",
+					"client_key": ""
+				},
+				"dse":
+				{
+					"clustering": "kmeans",
+					"doe_plugin": "banane_volanti",
+					"doe_parameters":
+					{
+						"constraint": "knob1 + knob2 < 40",
+						"custom_param1": "bla"
+					}
+				}
+			},
+
+			"extra-functional_requirements":
+			[
+				{
+					"maximize":
+					{
+						"geometric_mean":
+						[
+							{"metric1": 4.0},
+							{"knob1": 1.0}
+						]
+					},
+					"subject_to":
+					[
+						{
+							"subject":"metric1",
+							"comparison": "gt",
+							"value": 5.0,
+							"confidence": 1.0,
+							"reactive_inertia": 2
+						}
+					]
+				}
+			]
 		}
 	]
 }
