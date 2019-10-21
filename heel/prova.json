@@ -39,5 +39,20 @@
 			"distribution": "yes",
 			"predict_with": "hth"
 		}
+	],
+
+	"feature_distance":"euclidean",
+	"features":
+	[
+		{
+			"name": "bla_bla",
+			"type": "int",
+			"comparison": "LE"
+		},
+		{
+			"name": "feature2",
+			"type": "float",
+			"comparison": "-"
+		}
 	]
 }
