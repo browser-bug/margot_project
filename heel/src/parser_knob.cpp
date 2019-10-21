@@ -41,7 +41,11 @@ std::vector<margot::heel::knob_model> margot::heel::parse_knobs(const pt::ptree&
 // this is the main function that actually parse a knob
 margot::heel::knob_model parse_knob_model(const pt::ptree& knob_node) {
   // initialize the knob model
-  margot::heel::knob_model model = { margot::heel::get(tag::name(), knob_node), margot::heel::get(tag::knob_type(), knob_node), {}};
+  margot::heel::knob_model model = {
+      margot::heel::get(tag::name(), knob_node), margot::heel::get(tag::knob_type(), knob_node), {}};
+  if (model.type.rfind("std::", 0) == 0) {  // remove any std:: prefix from the type
+    model.type.erase(0, 5);
+  }
 
   // parse the list of values (if any) as an array of strings
   margot::heel::visit_optional(tag::values(), knob_node, [&model](const pt::ptree::value_type& p) {

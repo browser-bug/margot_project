@@ -53,7 +53,14 @@ margot::heel::metric_model parse_metric_model(const pt::ptree& metric_node) {
                                    ? true
                                    : false;
 
+  // get the type of the metric and remove the std:: prefix, since it generates some problem with the c
+  // interface that we are going to generate
+  std::string metric_type = margot::heel::get(tag::metric_type(), metric_node)
+      : if (metric_type.rfind("std::", 0) == 0) {  // remove any std:: prefix from the type
+    metric_type.erase(0, 5);
+  }
+
   // create the model
-  return {margot::heel::get(tag::name(), metric_node), margot::heel::get(tag::metric_type(), metric_node),
-          is_distribution, margot::heel::get(tag::plugin(), metric_node)};
+  return {margot::heel::get(tag::name(), metric_node), metric_type, is_distribution,
+          margot::heel::get(tag::plugin(), metric_node)};
 }
