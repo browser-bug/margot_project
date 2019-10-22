@@ -19,6 +19,12 @@ struct parameter {
   std::string value_type;  // e.g. int, long unsigned int, double, etc.
 };
 
+// this class represents a more simple parameter on the <key>:<value> form
+struct pair_property {
+  std::string key;
+  std::string value;
+};
+
 }  // namespace heel
 }  // namespace margot
 

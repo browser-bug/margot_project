@@ -2,6 +2,9 @@
 #define HEEL_MODEL_METRIC_HDR
 
 #include <string>
+#include <vector>
+
+#include <heel/model/parameter.hpp>
 
 namespace margot {
 namespace heel {
@@ -10,7 +13,9 @@ struct metric_model {
   std::string name;
   std::string type;
   bool distribution;
-  std::string prediction_method;
+  std::string prediction_plugin;
+  std::string monitor_name;
+  std::vector<pair_property> prediction_parameters;
 };
 
 }  // namespace heel

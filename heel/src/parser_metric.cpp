@@ -18,8 +18,10 @@ struct tag {
   inline static const std::string metrics(void) { return "metrics"; }
   inline static const std::string name(void) { return "name"; }
   inline static const std::string metric_type(void) { return "type"; }
-  inline static const std::string plugin(void) { return "predict_with"; }
   inline static const std::string distribution(void) { return "distribution"; }
+  inline static const std::string plugin(void) { return "prediction_plugin"; }
+  inline static const std::string parameters(void) { return "prediction_parameters"; }
+  inline static const std::string monitor(void) { return "observed_by"; }
 };
 
 // forward declaration of the function that actually parse a metric description
@@ -60,7 +62,20 @@ margot::heel::metric_model parse_metric_model(const pt::ptree& metric_node) {
     metric_type.erase(0, 5);
   }
 
+  // create a default metric model
+  margot::heel::metric_model model = {margot::heel::get(tag::name(), metric_node),
+                                      metric_type,
+                                      is_distribution,
+                                      margot::heel::get(tag::plugin(), metric_node),
+                                      margot::heel::get(tag::monitor(), metric_node),
+                                      {}};
+
+  // parse the parameters for the plugin that will predict its value (if using agora)
+  margot::heel::visit_optional(tag::parameters(), metric_node, [&model](const pt::ptree::value_type& p) {
+    model.prediction_parameters.emplace_back(
+        margot::heel::pair_property{p.first, p.second.get<std::string>("", "")});
+  });
+
   // create the model
-  return {margot::heel::get(tag::name(), metric_node), metric_type, is_distribution,
-          margot::heel::get(tag::plugin(), metric_node)};
+  return model;
 }

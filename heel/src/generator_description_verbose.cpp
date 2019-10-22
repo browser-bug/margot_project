@@ -65,8 +65,15 @@ std::stringstream margot::heel::description_verbose(const metric_model& model) {
   d << "\tType: " << model.type << std::endl;
   d << "\tIs a distribution: " << (model.distribution ? std::string("true") : std::string("false"))
     << std::endl;
-  if (!model.prediction_method.empty()) {
-    d << "\tPrediction method: " << model.prediction_method << std::endl;
+  if (!model.monitor_name.empty()) {
+    d << "\tObserved by monitor \"" << model.monitor_name << "\"" << std::endl;
+  }
+  if (!model.prediction_plugin.empty()) {
+    d << "\tPrediction plugin: " << model.prediction_plugin << std::endl;
+    d << "\t           params: [";
+    d << margot::heel::join(model.prediction_parameters.cbegin(), model.prediction_parameters.cend(), ", ",
+                            [](const margot::heel::pair_property& p) { return p.key + "=" + p.value; })
+      << "]" << std::endl;
   }
   return d;
 }

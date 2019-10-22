@@ -44,7 +44,12 @@
 					"name": "metric1",
 					"type": "int",
 					"distribution": "yes",
-					"predict_with": "hth",
+					"prediction_plugin": "hth",
+					"prediction_parameters":
+					{
+						"param1": "fsdf",
+						"param2": "sdfsf"
+					},
 					"observed_by": "my_custom_monitor"
 				}
 			],

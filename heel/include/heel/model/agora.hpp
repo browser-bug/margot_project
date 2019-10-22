@@ -4,13 +4,10 @@
 #include <string>
 #include <vector>
 
+#include <heel/model/parameter.hpp>
+
 namespace margot {
 namespace heel {
-
-struct pair_property {
-  std::string key;
-  std::string value;
-};
 
 struct agora_model {
   bool enabled;
