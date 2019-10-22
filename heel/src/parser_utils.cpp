@@ -66,6 +66,8 @@ std::vector<std::string> margot::heel::compute_range(const boost::property_tree:
     return generate<double>(min, max, step);
   } else if (type.compare("long double") == 0) {
     return generate<long double>(min, max, step);
+  } else {
+    throw std::runtime_error(" error_range: unabale to generate a range for type \"" + value_type + "\"");
   }
   return {};
 }
