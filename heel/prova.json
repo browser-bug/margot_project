@@ -66,25 +66,24 @@
 
 			"agora":
 			{
-				"connection":
+				"borker_url": "127.0.0.1:1883",
+				"broker_username": "margot",
+				"broker_password": "margot",
+				"broker_qos": 2,
+				"broker_ca": "",
+				"client_cert": "",
+				"client_key": "",
+				"clustering_plugin": "kmeans",
+				"clustering_parameters":
 				{
-					"borker_url": "127.0.0.1:1883",
-					"broker_username": "margot",
-					"broker_password": "margot",
-					"broker_qos": 2,
-					"broker_ca": "",
-					"client_cert": "",
-					"client_key": ""
+					"algorithm": "kmeans",
+					"number_centroids": 5
 				},
-				"dse":
+				"doe_plugin": "banane_volanti",
+				"doe_parameters":
 				{
-					"clustering": "kmeans",
-					"doe_plugin": "banane_volanti",
-					"doe_parameters":
-					{
-						"constraint": "knob1 + knob2 < 40",
-						"custom_param1": "bla"
-					}
+					"constraint": "knob1 + knob2 < 40",
+					"custom_param1": "bla"
 				}
 			},
 

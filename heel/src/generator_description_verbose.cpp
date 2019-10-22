@@ -2,7 +2,6 @@
 
 #include <heel/generator/description_verbose.hpp>
 #include <heel/generator/utils.hpp>
-#include <heel/model/monitor.hpp>
 
 std::stringstream margot::heel::description_verbose(const margot::heel::monitor_model& model) {
   // declare the stream that will hold the monitor synthetic description
@@ -81,5 +80,30 @@ std::stringstream margot::heel::description_verbose(const features_model& model)
            model.features.cbegin(), model.features.cend(), "\", \"",
            [](const margot::heel::feature_model& model) { return model.name + "::" + model.type; })
     << "\"" << std::endl;
+  return d;
+}
+
+std::stringstream margot::heel::description_verbose(const agora_model& model) {
+  std::stringstream d;
+  if (model.enabled) {
+    d << "Relying on \"agora\" to obtain the application knowledge" << std::endl;
+    d << "\tConnection url: \"" << model.url << "\"" << std::endl;
+    d << "\t           username: \"" << model.username << "\"" << std::endl;
+    d << "\t           password: \"" << model.password << "\"" << std::endl;
+    d << "\t           qos: \"" << model.qos << "\"" << std::endl;
+    d << "\t           broker_ca: \"" << model.broker_ca << "\"" << std::endl;
+    d << "\t           client_cert: \"" << model.client_cert << "\"" << std::endl;
+    d << "\t           client_key: \"" << model.client_key << "\"" << std::endl;
+    d << "\tClustering plugin:\"" << model.clustering_plugin << "\"" << std::endl;
+    d << "\t           params: [";
+    d << margot::heel::join(model.clustering_parameters.cbegin(), model.clustering_parameters.cend(), ", ",
+                            [](const margot::heel::pair_property& p) { return p.key + "=" + p.value; })
+      << "]" << std::endl;
+    d << "\tDoe        plugin:\"" << model.doe_plugin << "\"" << std::endl;
+    d << "\t           params: [";
+    d << margot::heel::join(model.doe_parameters.cbegin(), model.doe_parameters.cend(), ", ",
+                            [](const margot::heel::pair_property& p) { return p.key + "=" + p.value; })
+      << "]" << std::endl;
+  }
   return d;
 }

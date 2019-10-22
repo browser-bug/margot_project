@@ -4,6 +4,7 @@
 #include <boost/property_tree/ptree.hpp>
 
 #include <heel/model/block.hpp>
+#include <heel/parser/agora.hpp>
 #include <heel/parser/block.hpp>
 #include <heel/parser/features.hpp>
 #include <heel/parser/knob.hpp>
@@ -34,9 +35,7 @@ std::vector<margot::heel::block_model> margot::heel::parse_blocks(
 }
 
 margot::heel::block_model parse_block_model(const pt::ptree& block_node) {
-  return {
-      margot::heel::get(tag::name(), block_node), margot::heel::parse_monitors(block_node),
-      margot::heel::parse_knobs(block_node),      margot::heel::parse_metrics(block_node),
-      margot::heel::parse_features(block_node),
-  };
+  return {margot::heel::get(tag::name(), block_node), margot::heel::parse_monitors(block_node),
+          margot::heel::parse_knobs(block_node),      margot::heel::parse_metrics(block_node),
+          margot::heel::parse_features(block_node),   margot::heel::parse_agora(block_node)};
 }

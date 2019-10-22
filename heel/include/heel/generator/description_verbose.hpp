@@ -3,6 +3,7 @@
 
 #include <sstream>
 
+#include <heel/model/agora.hpp>
 #include <heel/model/features.hpp>
 #include <heel/model/knob.hpp>
 #include <heel/model/metric.hpp>
@@ -15,6 +16,7 @@ std::stringstream description_verbose(const monitor_model& model);
 std::stringstream description_verbose(const knob_model& model);
 std::stringstream description_verbose(const metric_model& model);
 std::stringstream description_verbose(const features_model& model);
+std::stringstream description_verbose(const agora_model& model);
 
 }  // namespace heel
 }  // namespace margot

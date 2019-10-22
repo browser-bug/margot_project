@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 
+#include <heel/model/agora.hpp>
 #include <heel/model/features.hpp>
 #include <heel/model/knob.hpp>
 #include <heel/model/metric.hpp>
@@ -18,6 +19,7 @@ struct block_model {
   std::vector<knob_model> knobs;
   std::vector<metric_model> metrics;
   features_model features;
+  agora_model agora;
 };
 
 }  // namespace heel
