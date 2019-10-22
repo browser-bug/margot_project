@@ -51,6 +51,7 @@ set( HEEL_LIBRARY_HEADERS
 	"${HEEL_HDR_PATH}/heel/model/metric.hpp"
 	"${HEEL_HDR_PATH}/heel/model/monitor.hpp"
 	"${HEEL_HDR_PATH}/heel/model/parameter.hpp"
+	"${HEEL_HDR_PATH}/heel/model/state.hpp"
 	"${HEEL_HDR_PATH}/heel/parser/agora.hpp"
 	"${HEEL_HDR_PATH}/heel/parser/application.hpp"
 	"${HEEL_HDR_PATH}/heel/parser/block.hpp"
@@ -59,6 +60,7 @@ set( HEEL_LIBRARY_HEADERS
 	"${HEEL_HDR_PATH}/heel/parser/metric.hpp"
 	"${HEEL_HDR_PATH}/heel/parser/monitor.hpp"
 	"${HEEL_HDR_PATH}/heel/parser/parameter.hpp"
+	"${HEEL_HDR_PATH}/heel/parser/state.hpp"
 	"${HEEL_HDR_PATH}/heel/parser/utils.hpp"
 	"${HEEL_HDR_PATH}/heel/configuration_file.hpp"
 	"${HEEL_HDR_PATH}/heel/json_parser.hpp"
@@ -77,6 +79,7 @@ set( HEEL_LIBRARY_SOURCES
 	"${HEEL_SRC_PATH}/parser_metric.cpp"
 	"${HEEL_SRC_PATH}/parser_monitor.cpp"
 	"${HEEL_SRC_PATH}/parser_parameter.cpp"
+	"${HEEL_SRC_PATH}/parser_state.cpp"
 	"${HEEL_SRC_PATH}/parser_utils.cpp"
 	"${HEEL_SRC_PATH}/typer.cpp"
 )
@@ -172,7 +175,7 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config/heelConfig.cmake.in ${HEEL_LIB
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/${HEEL_LIBRARY_NAME}Config.cmake"
               "${CMAKE_CURRENT_BINARY_DIR}/${HEEL_LIBRARY_NAME}ConfigVersion.cmake"
         DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${HEEL_LIBRARY_NAME}
-        )        )
+        )
 
 #########################################################################
 #### Print a summary of the build configuration
@@ -186,3 +189,4 @@ message ( STATUS "Build directory.................: ${PROJECT_BINARY_DIR}" )
 message ( STATUS "Install prefix..................: ${CMAKE_INSTALL_PREFIX}" )
 message ( STATUS "Build type......................: ${CMAKE_BUILD_TYPE}")
 message ( STATUS "//===-----------------------===//" )
+message ( STATUS "" )

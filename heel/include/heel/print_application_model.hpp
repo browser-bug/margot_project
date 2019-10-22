@@ -45,6 +45,9 @@ void print_application_model(const application_model& model, std::basic_ostream<
     if (block.agora.enabled) {
       formatter(margot::heel::description_verbose(block.agora));
     }
+    for (const auto& state : block.states) {
+      formatter(margot::heel::description_verbose(state));
+    }
   }
   out << "//" << std::endl;
   out << "//========================================================================//" << std::endl;

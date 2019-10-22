@@ -114,3 +114,52 @@ std::stringstream margot::heel::description_verbose(const agora_model& model) {
   }
   return d;
 }
+
+std::stringstream margot::heel::description_verbose(const state_model& model) {
+  std::stringstream d;
+  d << "Extra-functional requirements \"" << model.name << "\"" << std::endl;
+  d << "\t";
+  if (model.direction == margot::heel::rank_direction::MINIMIZE) {
+    d << "minimize ";
+  } else {
+    d << "maximize ";
+  }
+  if (model.combination == margot::heel::rank_type::SIMPLE) {
+    d << "(";
+  } else if (model.combination == margot::heel::rank_type::GEOMETRIC) {
+    d << " gemetric_avg(";
+  } else if (model.combination == margot::heel::rank_type::LINEAR) {
+    d << " linear_avg(";
+  }
+  d << margot::heel::join(
+           model.rank_fields.cbegin(), model.rank_fields.cend(), ", ",
+           [](const margot::heel::rank_field_model& p) { return p.field_name + "::" + p.coefficient; })
+    << ")" << std::endl;
+  if (!model.constraints.empty()) {
+    d << "\t subject to:" << std::endl;
+    for (const auto& c : model.constraints) {
+      d << "\t  " << c.field_name << " ";
+      if (c.cfun == margot::heel::goal_comparison::LESS_OR_EQUAL) {
+        d << "<=";
+      } else if (c.cfun == margot::heel::goal_comparison::GREATER_OR_EQUAL) {
+        d << ">=";
+      } else if (c.cfun == margot::heel::goal_comparison::LESS) {
+        d << "<";
+      } else if (c.cfun == margot::heel::goal_comparison::GREATER) {
+        d << ">";
+      } else {
+        d << "UNK";
+      }
+      d << " " << c.value;
+      if (!c.confidence.empty()) {
+        d << " with confidence " << c.confidence;
+      }
+      if (c.inertia > 0) {
+        d << " [REACTIVE INERTIA " << c.inertia << ']';
+      }
+      d << std::endl;
+    }
+  }
+
+  return d;
+}

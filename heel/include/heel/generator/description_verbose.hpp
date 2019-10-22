@@ -8,6 +8,7 @@
 #include <heel/model/knob.hpp>
 #include <heel/model/metric.hpp>
 #include <heel/model/monitor.hpp>
+#include <heel/model/state.hpp>
 
 namespace margot {
 namespace heel {
@@ -17,6 +18,7 @@ std::stringstream description_verbose(const knob_model& model);
 std::stringstream description_verbose(const metric_model& model);
 std::stringstream description_verbose(const features_model& model);
 std::stringstream description_verbose(const agora_model& model);
+std::stringstream description_verbose(const state_model& model);
 
 }  // namespace heel
 }  // namespace margot

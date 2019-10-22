@@ -9,6 +9,7 @@
 #include <heel/model/knob.hpp>
 #include <heel/model/metric.hpp>
 #include <heel/model/monitor.hpp>
+#include <heel/model/state.hpp>
 
 namespace margot {
 namespace heel {
@@ -20,6 +21,7 @@ struct block_model {
   std::vector<metric_model> metrics;
   features_model features;
   agora_model agora;
+  std::vector<state_model> states;
 };
 
 }  // namespace heel
