@@ -30,11 +30,11 @@ margot::heel::features_model margot::heel::parse_features(const pt::ptree& block
   margot::heel::features_model model;
   model.distance_type = margot::heel::get(tag::feature_distance(), block_node);
   margot::heel::visit_optional(tag::features(), block_node, [&model](const pt::ptree::value_type& p) {
-    model.features.emplace_back(parse_feature_model(p.second));
+    model.fields.emplace_back(parse_feature_model(p.second));
   });
 
   // the list might be full of feature models, but it is better to sort them according to the feature's name
-  std::sort(model.features.begin(), model.features.end(),
+  std::sort(model.fields.begin(), model.fields.end(),
             [](const margot::heel::feature_model& a, const margot::heel::feature_model& b) {
               return a.name < b.name;
             });

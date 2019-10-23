@@ -17,7 +17,7 @@ struct feature_model {
 
 struct features_model {
   std::string distance_type;
-  std::vector<feature_model> features;
+  std::vector<feature_model> fields;
 };
 
 }  // namespace heel

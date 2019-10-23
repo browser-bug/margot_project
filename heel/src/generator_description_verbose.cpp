@@ -82,9 +82,9 @@ std::stringstream margot::heel::description_verbose(const features_model& model)
   std::stringstream d;
   d << "Using features" << std::endl;
   d << "\tDistance type: " << model.distance_type << std::endl;
-  d << "\tFeatures: \""
+  d << "\tFields: \""
     << margot::heel::join(
-           model.features.cbegin(), model.features.cend(), "\", \"",
+           model.fields.cbegin(), model.fields.cend(), "\", \"",
            [](const margot::heel::feature_model& model) { return model.name + "::" + model.type; })
     << "\"" << std::endl;
   return d;
