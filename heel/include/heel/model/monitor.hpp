@@ -19,7 +19,7 @@ struct monitor_spec {
 };
 
 struct monitor_model {
-  std::string cpp_identifier;  // aka the monitor name
+  std::string name;
   monitor_spec spec;
 
   // NOTE: by convention the name of the statistic must be the same of the related method in the margot

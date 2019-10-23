@@ -8,7 +8,7 @@ std::stringstream margot::heel::description_verbose(const margot::heel::monitor_
   std::stringstream d;
 
   // provide the most boring information regarding its class
-  d << "Monitor \"" << model.cpp_identifier << "\"" << std::endl;
+  d << "Monitor \"" << model.name << "\"" << std::endl;
   d << "\tClass name: " << model.spec.class_name << std::endl;
   d << "\tHeader path: " << model.spec.header_path << std::endl;
   d << "\tValue type: " << model.spec.value_type << std::endl;

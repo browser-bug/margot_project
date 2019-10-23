@@ -39,7 +39,7 @@ margot::heel::monitor_model parse_monitor_model(const pt::ptree& monitor_node) {
   // initialize the model of this new monitor
   margot::heel::monitor_model model =
       margot::heel::create_monitor(margot::heel::get(tag::monitor_type(), monitor_node));
-  model.cpp_identifier = margot::heel::get(tag::name(), monitor_node);
+  model.name = margot::heel::get(tag::name(), monitor_node);
 
   // parse the output variables of a monitor (if any)
   margot::heel::visit_optional(tag::log(), monitor_node, [&model](const pt::ptree::value_type& p) {
