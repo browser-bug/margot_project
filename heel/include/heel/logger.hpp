@@ -44,6 +44,11 @@ inline void warning(const T &... arguments) {
   std::cout << line_formatter{}.format("WARNING", arguments...);
 }
 
+template <class... T>
+inline void error(const T &... arguments) {
+  std::cout << line_formatter{}.format("  ERROR", arguments...);
+}
+
 }  // namespace heel
 }  // namespace margot
 
