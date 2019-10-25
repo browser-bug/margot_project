@@ -1,5 +1,7 @@
 #include <algorithm>
+#include <cstdint>
 #include <iterator>
+#include <stdexcept>
 #include <string>
 
 #include <heel/logger.hpp>
@@ -7,39 +9,71 @@
 #include <heel/model/block.hpp>
 #include <heel/model/validate.hpp>
 
-// utility function that sets the content of a string, if it is empty
-inline void set_default(std::string& string, const std::string& default_value, const std::string& what) {
+// utility functions used in the validation process
+inline void set_name(std::string& string, const std::string& what, const std::size_t counter) {
   if (string.empty()) {
-    string = default_value;
-    margot::heel::warning("Setting the ", what, " to \"", default_value, "\" since no ", what,
-                          " was provided");
+    string = what + "_" + std::to_string(counter + 1);
+    const std::string element_name = [&what, &counter](void) {
+      if (counter == 0) {
+        return "1st " + what;
+      } else if (counter == 1) {
+        return "2nd " + what;
+      } else if (counter == 2) {
+        return "3rd " + what;
+      } else {
+        return std::to_string(counter + 1) + "th " + what;
+      }
+    }();
+    margot::heel::warning("Setting the ", element_name, " name to \"", string, "\" since none was provided");
   }
 }
-
-// forward-declaration of the functions that validates the application
 template <class model_type>
-inline void enforce_uniqueness(std::vector<model_type>& container, const std::string& what);
+inline void set_name(std::vector<model_type>& container, const std::string& what);
+template <class model_type>
+inline void check_uniqueness(std::vector<model_type>& container, const std::string& what);
 
+// this is the main function that validates the whole application model
 void margot::heel::validate(application_model& model) {
   // check if we need to set the application name and version
-  set_default(model.name, "foo", "application name");
-  set_default(model.version, "1.0", "application version");
+  if (model.name.empty()) {
+    model.name = "foo";
+    margot::heel::warning("Setting the application name to \"", model.name, "\" since non was provided");
+  }
+  if (model.version.empty()) {
+    model.version = "1.0";
+    margot::heel::warning("Setting the application version to \"", model.version,
+                          "\" since non was provided");
+  }
 
   // enforce the uniqueness of the block's names
-  enforce_uniqueness(model.blocks, "block");
+  check_uniqueness(model.blocks, "block");
 
   // since each block of the application is indipendent, the validation happens at block level
   std::for_each(model.blocks.begin(), model.blocks.end(), [](margot::heel::block_model& block) {
     // to perform cross-cheks in a proper way, ne need to enforce name uniqueness of sub sections
-    enforce_uniqueness(block.monitors, "monitor");
-    enforce_uniqueness(block.knobs, "knob");
-    enforce_uniqueness(block.features.fields, "feature");
-    enforce_uniqueness(block.monitors, "monitor");
+    check_uniqueness(block.monitors, "monitor");
+    check_uniqueness(block.knobs, "knob");
+    check_uniqueness(block.features.fields, "feature");
+    check_uniqueness(block.monitors, "monitor");
+    check_uniqueness(block.states, "state");
+
+    // now we need to make sure that there is no metric with the same name as a knob
+    std::for_each(block.knobs.begin(), block.knobs.end(), [&block](const knob_model& knob) {
+      if (std::any_of(block.metrics.begin(), block.metrics.end(),
+                      [&knob](const metric_model& metric) { return metric.name.compare(knob.name) == 0; })) {
+        margot::heel::error("Ambiguous name \"", knob.name, "\" in block \"", block.name,
+                            "\": metrics and knobs can't have the same name");
+        throw std::runtime_error("validation error: ambiguous naming");
+      }
+    });
   });
 }
 
 template <class model_type>
-inline void enforce_uniqueness(std::vector<model_type>& container, const std::string& what) {
+inline void check_uniqueness(std::vector<model_type>& container, const std::string& what) {
+  // at first we set all the elements with a default unique name, according to what they are
+  set_name(container, what);
+
   // moves all the elements with the same name at the end of the container
   const auto last_unique =
       std::unique(container.begin(), container.end(),
@@ -48,11 +82,18 @@ inline void enforce_uniqueness(std::vector<model_type>& container, const std::st
   // if the last unique is not equal to end, it means that we have duplicates, print as warning the elements
   // that we are going to remove and let's do it
   if (last_unique != container.end()) {
-    margot::heel::warning("Found ", std::distance(last_unique, container.end()), " ", what,
-                          "(s) with non-unique names:");
+    margot::heel::error("Found ", std::distance(last_unique, container.end()), " ", what,
+                        "(s) with non-unique names:");
     std::for_each(last_unique, container.end(), [&what](const model_type& model) {
-      margot::heel::warning("\tRemoving duplicated ", what, " \"", model.name, "\"");
+      margot::heel::warning("\tFound duplicated ", what, " \"", model.name, "\"");
     });
-    container.erase(last_unique, container.end());
+    throw std::runtime_error("validation error: " + what + "s names must be unique");
   }
+}
+
+template <class model_type>
+inline void set_name(std::vector<model_type>& container, const std::string& what) {
+  std::size_t counter = 0;
+  std::for_each(container.begin(), container.end(),
+                [&what, &counter](model_type& model) { set_name(model.name, what, counter++); });
 }
