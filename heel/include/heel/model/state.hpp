@@ -8,9 +8,9 @@
 namespace margot {
 namespace heel {
 
-enum class goal_comparison { LESS_OR_EQUAL, GREATER_OR_EQUAL, LESS, GREATER };
-enum class rank_direction { MINIMIZE, MAXIMIZE };
-enum class rank_type { SIMPLE, GEOMETRIC, LINEAR };
+enum class goal_comparison { LESS_OR_EQUAL, GREATER_OR_EQUAL, LESS, GREATER, UNKNOWN };
+enum class rank_direction { MINIMIZE, MAXIMIZE, UNKNOWN };
+enum class rank_type { SIMPLE, GEOMETRIC, LINEAR, UNKNOWN };
 
 struct constraint_model {
   std::string field_name;
