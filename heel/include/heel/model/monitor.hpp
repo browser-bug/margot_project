@@ -10,17 +10,9 @@
 namespace margot {
 namespace heel {
 
-struct monitor_spec {
-  std::string class_name;
-  std::string header_path;
-  std::string value_type;
-  std::string start_method_name;
-  std::string stop_method_name;
-};
-
 struct monitor_model {
   std::string name;
-  monitor_spec spec;
+  std::string type;
 
   // NOTE: by convention the name of the statistic must be the same of the related method in the margot
   // statistical provider class
@@ -31,8 +23,6 @@ struct monitor_model {
   std::vector<struct parameter> start_parameters;
   std::vector<struct parameter> stop_parameters;
 };
-
-monitor_model create_monitor(const std::string& monitor_type);
 
 }  // namespace heel
 }  // namespace margot

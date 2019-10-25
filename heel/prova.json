@@ -12,8 +12,7 @@
 					"name": "my_custom_monitor",
 					"type": "float",
 					"log": [ "average" ],
-					"constructor": [ 10 ],
-					"stop": [ {"error": "float"} ]
+					"constructor": [ 10 ]
 				},
 				{
 					"name": "my_time_monitor",

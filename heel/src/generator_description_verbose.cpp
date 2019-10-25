@@ -9,9 +9,7 @@ std::stringstream margot::heel::description_verbose(const margot::heel::monitor_
 
   // provide the most boring information regarding its class
   d << "Monitor \"" << model.name << "\"" << std::endl;
-  d << "\tClass name: " << model.spec.class_name << std::endl;
-  d << "\tHeader path: " << model.spec.header_path << std::endl;
-  d << "\tValue type: " << model.spec.value_type << std::endl;
+  d << "\tType: " << model.type << std::endl;
 
   // provide the information about the logged measures
   if (!model.requested_statistics.empty()) {
@@ -28,16 +26,16 @@ std::stringstream margot::heel::description_verbose(const margot::heel::monitor_
   d << ")" << std::endl;
 
   // provide the information about the start method (if any)
-  if (!model.spec.start_method_name.empty()) {
-    d << "\tStart: " << model.spec.start_method_name << "(";
+  if (!model.start_parameters.empty()) {
+    d << "\tStart(";
     d << margot::heel::join(model.start_parameters.cbegin(), model.start_parameters.cend(), ", ",
                             [](const margot::heel::parameter& parameter) { return parameter.content; });
     d << ")" << std::endl;
   }
 
   // provide the information about the start method (if any)
-  if (!model.spec.stop_method_name.empty()) {
-    d << "\tStop: " << model.spec.stop_method_name << "(";
+  if (!model.stop_parameters.empty()) {
+    d << "\tStop(";
     d << margot::heel::join(model.stop_parameters.cbegin(), model.stop_parameters.cend(), ", ",
                             [](const margot::heel::parameter& parameter) { return parameter.content; });
     d << ")" << std::endl;
