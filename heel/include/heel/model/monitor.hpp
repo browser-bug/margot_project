@@ -10,6 +10,19 @@
 namespace margot {
 namespace heel {
 
+// this struct holds information about the monitor types and usage
+struct monitor_spec {
+  std::string class_name;
+  std::string header_name;
+  std::string value_type;
+  std::string start_method_name;
+  std::string stop_method_name;
+  std::vector<struct parameter> default_param_initialization;
+  std::vector<struct parameter> default_param_start;
+  std::vector<struct parameter> default_param_stop;
+};
+
+// this is the actual monitor model, with all the parameters
 struct monitor_model {
   std::string name;
   std::string type;
@@ -23,6 +36,9 @@ struct monitor_model {
   std::vector<struct parameter> start_parameters;
   std::vector<struct parameter> stop_parameters;
 };
+
+// this function validates a monitor model; i.e. it checks if there are missing or wrong information
+void validate(monitor_model& model);
 
 }  // namespace heel
 }  // namespace margot

@@ -14,7 +14,7 @@ std::string reverse_alias(const std::string& type_name);
 // this struct is used to convert a c-type to a string with its name
 template <typename T>
 struct typer {
-  static const std::string get(void) { throw std::runtime_error(" typer : unknown numeric type"); }
+  static const std::string get(void) { return ""; }
 };
 
 template <>

@@ -7,6 +7,7 @@
 #include <heel/logger.hpp>
 #include <heel/model/application.hpp>
 #include <heel/model/block.hpp>
+#include <heel/model/monitor.hpp>
 #include <heel/model/validate.hpp>
 
 // utility functions used in the validation process
@@ -66,6 +67,10 @@ void margot::heel::validate(application_model& model) {
         throw std::runtime_error("validation error: ambiguous naming");
       }
     });
+
+    // now we need to check and fill all the information related to the monitors
+    std::for_each(block.monitors.begin(), block.monitors.end(),
+                  [](monitor_model& monitor) { margot::heel::validate(monitor); });
   });
 }
 

@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <string>
 #include <vector>
 
@@ -47,6 +48,10 @@ margot::heel::monitor_model parse_monitor_model(const pt::ptree& monitor_node) {
   // parse the output variables of a monitor (if any)
   margot::heel::visit_optional(tag::log(), monitor_node, [&model](const pt::ptree::value_type& p) {
     model.requested_statistics.emplace_back(p.second.get<std::string>("", ""));  // we just need its name
+    // make its name lowercase
+    std::transform(model.requested_statistics.back().begin(), model.requested_statistics.back().end(),
+                   model.requested_statistics.back().begin(),
+                   [](unsigned char c) { return std::tolower(c); });
   });
 
   // parse the monitor constructor parameters (if any)
