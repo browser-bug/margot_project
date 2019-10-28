@@ -38,12 +38,12 @@ void margot::heel::validate(application_model& model) {
   // check if we need to set the application name and version
   if (model.name.empty()) {
     model.name = "foo";
-    margot::heel::warning("Setting the application name to \"", model.name, "\" since non was provided");
+    margot::heel::warning("Setting the application name to \"", model.name, "\" since none was provided");
   }
   if (model.version.empty()) {
     model.version = "1.0";
     margot::heel::warning("Setting the application version to \"", model.version,
-                          "\" since non was provided");
+                          "\" since none was provided");
   }
 
   // enforce the uniqueness of the block's names
@@ -55,7 +55,7 @@ void margot::heel::validate(application_model& model) {
     check_uniqueness(block.monitors, "monitor");
     check_uniqueness(block.knobs, "knob");
     check_uniqueness(block.features.fields, "feature");
-    check_uniqueness(block.monitors, "monitor");
+    check_uniqueness(block.metrics, "metric");
     check_uniqueness(block.states, "state");
 
     // now we need to make sure that there is no metric with the same name as a knob
