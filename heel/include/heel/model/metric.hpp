@@ -18,6 +18,9 @@ struct metric_model {
   std::vector<pair_property> prediction_parameters;
 };
 
+// this function validates a metric model to enforce a correct configuration of the application
+void validate(metric_model& model);
+
 }  // namespace heel
 }  // namespace margot
 
