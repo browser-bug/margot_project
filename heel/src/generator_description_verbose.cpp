@@ -79,7 +79,7 @@ std::stringstream margot::heel::description_verbose(const metric_model& model) {
 std::stringstream margot::heel::description_verbose(const features_model& model) {
   std::stringstream d;
   d << "Using features" << std::endl;
-  d << "\tDistance type: " << model.distance_type << std::endl;
+  d << "\tDistance type: " << margot::heel::to_str(model.distance_type) << std::endl;
   d << "\tFields: \""
     << margot::heel::join(
            model.fields.cbegin(), model.fields.cend(), "\", \"",

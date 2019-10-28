@@ -63,7 +63,7 @@
 				},
 				{
 					"name": "feature2",
-					"type": "float",
+					"type": "int",
 					"comparison": "-"
 				}
 			],

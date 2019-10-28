@@ -7,6 +7,7 @@
 #include <heel/logger.hpp>
 #include <heel/model/application.hpp>
 #include <heel/model/block.hpp>
+#include <heel/model/features.hpp>
 #include <heel/model/knob.hpp>
 #include <heel/model/metric.hpp>
 #include <heel/model/monitor.hpp>
@@ -77,6 +78,7 @@ void margot::heel::validate(application_model& model) {
                   [](knob_model& knob) { margot::heel::validate(knob); });
     std::for_each(block.metrics.begin(), block.metrics.end(),
                   [](metric_model& metric) { margot::heel::validate(metric); });
+    margot::heel::validate(block.features);
 
     // now we need to be sure that if a metric is observed by a monitor, the monitor exists
     std::for_each(block.metrics.cbegin(), block.metrics.cend(), [&block](const metric_model& metric) {

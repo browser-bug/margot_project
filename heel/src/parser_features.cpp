@@ -1,10 +1,12 @@
 #include <algorithm>
+#include <stdexcept>
 #include <string>
 #include <vector>
 
 #include <boost/optional.hpp>
 #include <boost/property_tree/ptree.hpp>
 
+#include <heel/logger.hpp>
 #include <heel/model/features.hpp>
 #include <heel/parser/features.hpp>
 #include <heel/parser/utils.hpp>
@@ -28,7 +30,24 @@ margot::heel::feature_model parse_feature_model(const pt::ptree& feature_node);
 // to compute the distance between feature clusters
 margot::heel::features_model margot::heel::parse_features(const pt::ptree& block_node) {
   margot::heel::features_model model;
-  model.distance_type = margot::heel::get(tag::feature_distance(), block_node);
+
+  // set the feature distance type (if any)
+  std::string distance_type_str = margot::heel::get(tag::feature_distance(), block_node);
+  std::transform(distance_type_str.begin(), distance_type_str.end(), distance_type_str.begin(),
+                 [](unsigned char c) { return std::tolower(c); });
+  if (distance_type_str.empty()) {
+    model.distance_type = margot::heel::features_distance_type::NONE;
+  } else if (distance_type_str.compare("euclidean") == 0) {
+    model.distance_type = margot::heel::features_distance_type::EUCLIDEAN;
+  } else if (distance_type_str.compare("normalized") == 0) {
+    model.distance_type = margot::heel::features_distance_type::NORMALIZED;
+  } else {
+    margot::heel::error("Unknown features distance \"", distance_type_str,
+                        "\", should be \"euclidean\" or \"normalized\"");
+    throw std::runtime_error("features parser: unknown distance");
+  }
+
+  // now we need to parse the fields of the features (if any)
   margot::heel::visit_optional(tag::features(), block_node, [&model](const pt::ptree::value_type& p) {
     model.fields.emplace_back(parse_feature_model(p.second));
   });
@@ -54,6 +73,9 @@ margot::heel::feature_model parse_feature_model(const pt::ptree& feature_node) {
     comparison_type = margot::heel::distance_comparison_type::LESS_OR_EQUAL;
   } else if (comparison_type_str.compare("ge") == 0) {
     comparison_type = margot::heel::distance_comparison_type::GREATER_OR_EQUAL;
+  } else if ((!comparison_type_str.empty()) && (comparison_type_str.compare("-") != 0)) {
+    margot::heel::error("Unknown coparison type \"", comparison_type_str, "\"");
+    throw std::runtime_error("features parser: unknown comparison type");
   }
 
   // construct the model
