@@ -13,6 +13,9 @@ struct knob_model {
   std::vector<std::string> values;
 };
 
+// this function validates a knob model to enforce a correct configuration of the application
+void validate(knob_model& model);
+
 }  // namespace heel
 }  // namespace margot
 

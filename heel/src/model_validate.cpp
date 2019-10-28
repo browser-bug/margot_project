@@ -7,6 +7,7 @@
 #include <heel/logger.hpp>
 #include <heel/model/application.hpp>
 #include <heel/model/block.hpp>
+#include <heel/model/knob.hpp>
 #include <heel/model/monitor.hpp>
 #include <heel/model/validate.hpp>
 
@@ -71,6 +72,10 @@ void margot::heel::validate(application_model& model) {
     // now we need to check and fill all the information related to the monitors
     std::for_each(block.monitors.begin(), block.monitors.end(),
                   [](monitor_model& monitor) { margot::heel::validate(monitor); });
+
+    // now we need to check if the knob models are ok
+    std::for_each(block.knobs.begin(), block.knobs.end(),
+                  [](knob_model& knob) { margot::heel::validate(knob); });
   });
 }
 
