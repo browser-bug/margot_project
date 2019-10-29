@@ -5,8 +5,8 @@
 #include <sstream>
 #include <string>
 
-#include <heel/generator/description_verbose.hpp>
-#include <heel/model/application.hpp>
+#include <heel/generator_description_verbose.hpp>
+#include <heel/model_application.hpp>
 
 namespace margot {
 namespace heel {

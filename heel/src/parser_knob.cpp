@@ -4,9 +4,9 @@
 #include <boost/optional.hpp>
 #include <boost/property_tree/ptree.hpp>
 
-#include <heel/model/knob.hpp>
-#include <heel/parser/knob.hpp>
-#include <heel/parser/utils.hpp>
+#include <heel/model_knob.hpp>
+#include <heel/parser_knob.hpp>
+#include <heel/parser_utils.hpp>
 
 namespace pt = boost::property_tree;
 

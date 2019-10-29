@@ -7,9 +7,9 @@
 #include <boost/property_tree/ptree.hpp>
 
 #include <heel/logger.hpp>
-#include <heel/model/state.hpp>
-#include <heel/parser/state.hpp>
-#include <heel/parser/utils.hpp>
+#include <heel/model_state.hpp>
+#include <heel/parser_state.hpp>
+#include <heel/parser_utils.hpp>
 
 namespace pt = boost::property_tree;
 

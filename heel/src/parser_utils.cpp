@@ -7,7 +7,7 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/property_tree/ptree.hpp>
 
-#include "heel/parser/utils.hpp"
+#include "heel/parser_utils.hpp"
 #include "heel/typer.hpp"
 
 // utility function that generates a sequence of values for a given type

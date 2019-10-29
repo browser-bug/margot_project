@@ -2,7 +2,7 @@
 #include <vector>
 
 #include <heel/logger.hpp>
-#include <heel/model/knob.hpp>
+#include <heel/model_knob.hpp>
 
 void margot::heel::validate(knob_model& model) {
   // check if the knob has a type

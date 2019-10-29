@@ -3,10 +3,10 @@
 
 #include <boost/property_tree/ptree.hpp>
 
-#include <heel/model/application.hpp>
-#include <heel/parser/application.hpp>
-#include <heel/parser/block.hpp>
-#include <heel/parser/utils.hpp>
+#include <heel/model_application.hpp>
+#include <heel/parser_application.hpp>
+#include <heel/parser_block.hpp>
+#include <heel/parser_utils.hpp>
 
 namespace pt = boost::property_tree;
 

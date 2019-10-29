@@ -5,7 +5,7 @@
 
 #include <boost/property_tree/ptree.hpp>
 
-#include <heel/model/monitor.hpp>
+#include <heel/model_monitor.hpp>
 
 namespace margot {
 namespace heel {

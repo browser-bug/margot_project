@@ -4,10 +4,10 @@
 
 #include <boost/property_tree/ptree.hpp>
 
-#include <heel/model/monitor.hpp>
-#include <heel/parser/monitor.hpp>
-#include <heel/parser/parameter.hpp>
-#include <heel/parser/utils.hpp>
+#include <heel/model_monitor.hpp>
+#include <heel/parser_monitor.hpp>
+#include <heel/parser_parameter.hpp>
+#include <heel/parser_utils.hpp>
 
 namespace pt = boost::property_tree;
 

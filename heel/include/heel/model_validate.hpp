@@ -1,7 +1,7 @@
 #ifndef HEEL_MODEL_VALIDATION_HDR
 #define HEEL_MODEL_VALIDATION_HDR
 
-#include <heel/model/application.hpp>
+#include <heel/model_application.hpp>
 
 namespace margot {
 namespace heel {

@@ -2,8 +2,8 @@
 #define HEEL_JSON_PARSER_HDR
 
 #include <heel/configuration_file.hpp>
-#include <heel/model/application.hpp>
-#include <heel/parser/application.hpp>
+#include <heel/model_application.hpp>
+#include <heel/parser_application.hpp>
 
 namespace margot {
 namespace heel {

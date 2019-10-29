@@ -2,7 +2,7 @@
 #include <stdexcept>
 
 #include <heel/logger.hpp>
-#include <heel/model/features.hpp>
+#include <heel/model_features.hpp>
 
 void margot::heel::validate(features_model& model) {
   // the validation of this model depends if there are features or not

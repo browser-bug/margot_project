@@ -3,7 +3,7 @@
 
 #include <boost/property_tree/ptree.hpp>
 
-#include <heel/model/parameter.hpp>
+#include <heel/model_parameter.hpp>
 
 namespace margot {
 namespace heel {

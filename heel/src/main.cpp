@@ -4,8 +4,8 @@
 
 #include <heel/configuration_file.hpp>
 #include <heel/json_parser.hpp>
-#include <heel/model/application.hpp>
-#include <heel/model/validate.hpp>
+#include <heel/model_application.hpp>
+#include <heel/model_validate.hpp>
 #include <heel/print_application_model.hpp>
 
 int main(int argc, char* argv[]) {

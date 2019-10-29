@@ -5,7 +5,7 @@
 
 #include <boost/property_tree/ptree.hpp>
 
-#include <heel/model/knob.hpp>
+#include <heel/model_knob.hpp>
 
 namespace margot {
 namespace heel {

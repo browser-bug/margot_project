@@ -3,9 +3,9 @@
 #include <boost/optional.hpp>
 #include <boost/property_tree/ptree.hpp>
 
-#include <heel/model/agora.hpp>
-#include <heel/parser/agora.hpp>
-#include <heel/parser/utils.hpp>
+#include <heel/model_agora.hpp>
+#include <heel/parser_agora.hpp>
+#include <heel/parser_utils.hpp>
 
 namespace pt = boost::property_tree;
 

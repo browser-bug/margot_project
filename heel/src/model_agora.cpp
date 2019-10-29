@@ -3,7 +3,7 @@
 #include <vector>
 
 #include <heel/logger.hpp>
-#include <heel/model/agora.hpp>
+#include <heel/model_agora.hpp>
 
 void margot::heel::validate(margot::heel::agora_model& model, const std::vector<metric_model>& metrics,
                             const std::vector<knob_model>& knobs) {

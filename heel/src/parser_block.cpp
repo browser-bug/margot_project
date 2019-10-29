@@ -3,14 +3,14 @@
 
 #include <boost/property_tree/ptree.hpp>
 
-#include <heel/parser/agora.hpp>
-#include <heel/parser/block.hpp>
-#include <heel/parser/features.hpp>
-#include <heel/parser/knob.hpp>
-#include <heel/parser/metric.hpp>
-#include <heel/parser/monitor.hpp>
-#include <heel/parser/state.hpp>
-#include <heel/parser/utils.hpp>
+#include <heel/parser_agora.hpp>
+#include <heel/parser_block.hpp>
+#include <heel/parser_features.hpp>
+#include <heel/parser_knob.hpp>
+#include <heel/parser_metric.hpp>
+#include <heel/parser_monitor.hpp>
+#include <heel/parser_state.hpp>
+#include <heel/parser_utils.hpp>
 
 namespace pt = boost::property_tree;
 

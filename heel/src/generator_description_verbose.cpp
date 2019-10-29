@@ -1,7 +1,7 @@
 #include <sstream>
 
-#include <heel/generator/description_verbose.hpp>
-#include <heel/generator/utils.hpp>
+#include <heel/generator_description_verbose.hpp>
+#include <heel/generator_utils.hpp>
 
 std::stringstream margot::heel::description_verbose(const margot::heel::monitor_model& model) {
   // declare the stream that will hold the monitor synthetic description

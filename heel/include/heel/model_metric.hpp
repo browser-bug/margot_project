@@ -4,8 +4,8 @@
 #include <string>
 #include <vector>
 
-#include <heel/model/monitor.hpp>
-#include <heel/model/parameter.hpp>
+#include <heel/model_monitor.hpp>
+#include <heel/model_parameter.hpp>
 
 namespace margot {
 namespace heel {

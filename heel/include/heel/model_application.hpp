@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-#include <heel/model/block.hpp>
+#include <heel/model_block.hpp>
 
 namespace margot {
 namespace heel {

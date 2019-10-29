@@ -4,7 +4,7 @@
 #include <vector>
 
 #include <heel/logger.hpp>
-#include <heel/model/monitor.hpp>
+#include <heel/model_monitor.hpp>
 #include <heel/typer.hpp>
 
 // helper function that generates a spec for a custom monitor

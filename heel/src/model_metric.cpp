@@ -3,8 +3,8 @@
 #include <vector>
 
 #include <heel/logger.hpp>
-#include <heel/model/metric.hpp>
-#include <heel/model/monitor.hpp>
+#include <heel/model_metric.hpp>
+#include <heel/model_monitor.hpp>
 
 void margot::heel::validate(metric_model& model, const std::vector<monitor_model>& monitors) {
   // perform checks on the metric type

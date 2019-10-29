@@ -4,12 +4,12 @@
 #include <string>
 #include <vector>
 
-#include <heel/model/agora.hpp>
-#include <heel/model/features.hpp>
-#include <heel/model/knob.hpp>
-#include <heel/model/metric.hpp>
-#include <heel/model/monitor.hpp>
-#include <heel/model/state.hpp>
+#include <heel/model_agora.hpp>
+#include <heel/model_features.hpp>
+#include <heel/model_knob.hpp>
+#include <heel/model_metric.hpp>
+#include <heel/model_monitor.hpp>
+#include <heel/model_state.hpp>
 
 namespace margot {
 namespace heel {

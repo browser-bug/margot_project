@@ -4,9 +4,9 @@
 #include <string>
 #include <vector>
 
-#include <heel/model/knob.hpp>
-#include <heel/model/metric.hpp>
-#include <heel/model/parameter.hpp>
+#include <heel/model_knob.hpp>
+#include <heel/model_metric.hpp>
+#include <heel/model_parameter.hpp>
 
 namespace margot {
 namespace heel {

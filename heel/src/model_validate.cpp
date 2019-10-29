@@ -5,15 +5,15 @@
 #include <string>
 
 #include <heel/logger.hpp>
-#include <heel/model/agora.hpp>
-#include <heel/model/application.hpp>
-#include <heel/model/block.hpp>
-#include <heel/model/features.hpp>
-#include <heel/model/knob.hpp>
-#include <heel/model/metric.hpp>
-#include <heel/model/monitor.hpp>
-#include <heel/model/state.hpp>
-#include <heel/model/validate.hpp>
+#include <heel/model_agora.hpp>
+#include <heel/model_application.hpp>
+#include <heel/model_block.hpp>
+#include <heel/model_features.hpp>
+#include <heel/model_knob.hpp>
+#include <heel/model_metric.hpp>
+#include <heel/model_monitor.hpp>
+#include <heel/model_state.hpp>
+#include <heel/model_validate.hpp>
 
 // utility functions used in the validation process
 inline void set_name(std::string& string, const std::string& what, const std::size_t counter) {

@@ -2,8 +2,8 @@
 
 #include <boost/property_tree/ptree.hpp>
 
-#include <heel/model/parameter.hpp>
-#include <heel/parser/parameter.hpp>
+#include <heel/model_parameter.hpp>
+#include <heel/parser_parameter.hpp>
 
 namespace pt = boost::property_tree;
 
