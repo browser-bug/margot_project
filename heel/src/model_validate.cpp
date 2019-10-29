@@ -82,13 +82,15 @@ void margot::heel::validate(application_model& model) {
 
     // now we need to be sure that if a metric is observed by a monitor, the monitor exists
     std::for_each(block.metrics.cbegin(), block.metrics.cend(), [&block](const metric_model& metric) {
-      if (!std::any_of(block.monitors.cbegin(), block.monitors.cend(),
-                       [&metric](const monitor_model& monitor) {
-                         return metric.monitor_name.compare(monitor.name) == 0;
-                       })) {
-        margot::heel::error("The metric \"", metric.name, "\" is observed by the non-existent monitor \"",
-                            metric.monitor_name, "\"");
-        throw std::runtime_error("validation error: non-existent monitor");
+      if (!metric.monitor_name.empty()) {
+        if (!std::any_of(block.monitors.cbegin(), block.monitors.cend(),
+                         [&metric](const monitor_model& monitor) {
+                           return metric.monitor_name.compare(monitor.name) == 0;
+                         })) {
+          margot::heel::error("The metric \"", metric.name, "\" is observed by the non-existent monitor \"",
+                              metric.monitor_name, "\"");
+          throw std::runtime_error("validation error: non-existent monitor");
+        }
       }
     });
   });
