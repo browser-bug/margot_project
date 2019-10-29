@@ -24,6 +24,9 @@ struct agora_model {
   std::vector<pair_property> clustering_parameters;
 };
 
+// this function validates an agora model to enforce a correct configuration of the application
+void validate(agora_model& model);
+
 }  // namespace heel
 }  // namespace margot
 

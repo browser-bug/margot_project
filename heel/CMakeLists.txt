@@ -72,6 +72,7 @@ set( HEEL_LIBRARY_HEADERS
 set( HEEL_LIBRARY_SOURCES
 	"${HEEL_SRC_PATH}/configuration_file.cpp"
 	"${HEEL_SRC_PATH}/generator_description_verbose.cpp"
+	"${HEEL_SRC_PATH}/model_agora.cpp"
 	"${HEEL_SRC_PATH}/model_features.cpp"
 	"${HEEL_SRC_PATH}/model_knob.cpp"
 	"${HEEL_SRC_PATH}/model_metric.cpp"
