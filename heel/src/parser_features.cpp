@@ -1,9 +1,7 @@
 #include <algorithm>
 #include <stdexcept>
 #include <string>
-#include <vector>
 
-#include <boost/optional.hpp>
 #include <boost/property_tree/ptree.hpp>
 
 #include <heel/logger.hpp>

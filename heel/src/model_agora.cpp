@@ -1,6 +1,6 @@
-#include <stdexcept>
-#include <string>
 #include <algorithm>
+#include <stdexcept>
+#include <vector>
 
 #include <heel/logger.hpp>
 #include <heel/model/agora.hpp>

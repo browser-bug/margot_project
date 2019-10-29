@@ -1,6 +1,5 @@
 #include <string>
 
-#include <boost/optional.hpp>
 #include <boost/property_tree/ptree.hpp>
 
 #include <heel/model/parameter.hpp>

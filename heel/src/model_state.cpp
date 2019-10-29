@@ -1,5 +1,4 @@
 #include <algorithm>
-#include <cstddef>
 #include <stdexcept>
 #include <string>
 #include <vector>

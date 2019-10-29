@@ -4,7 +4,6 @@
 #include <boost/property_tree/ptree.hpp>
 
 #include <heel/model/application.hpp>
-#include <heel/model/block.hpp>
 #include <heel/parser/application.hpp>
 #include <heel/parser/block.hpp>
 #include <heel/parser/utils.hpp>
