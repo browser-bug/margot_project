@@ -1,9 +1,11 @@
+#include <stdexcept>
 #include <string>
 #include <vector>
 
 #include <boost/lexical_cast.hpp>
 #include <boost/property_tree/ptree.hpp>
 
+#include <heel/logger.hpp>
 #include <heel/model/state.hpp>
 #include <heel/parser/state.hpp>
 #include <heel/parser/utils.hpp>
@@ -44,8 +46,8 @@ std::vector<margot::heel::state_model> margot::heel::parse_states(
 margot::heel::state_model parse_state_model(const pt::ptree& state_node) {
   // declare the default state model
   margot::heel::state_model model = {margot::heel::get(tag::name(), state_node),
-                                     margot::heel::rank_direction::UNKNOWN,
-                                     margot::heel::rank_type::UNKNOWN,
+                                     margot::heel::rank_direction::NONE,
+                                     margot::heel::rank_type::NONE,
                                      {},
                                      {}};
 
@@ -70,7 +72,7 @@ margot::heel::state_model parse_state_model(const pt::ptree& state_node) {
     }
 
     // check if we need to combine different fields, or we can use directly a single entry
-    if ((model.rank_fields.size() < 2) && (model.combination != margot::heel::rank_type::UNKNOWN)) {
+    if ((model.rank_fields.size() < 2) && (model.combination != margot::heel::rank_type::NONE)) {
       model.combination = margot::heel::rank_type::SIMPLE;
     }
   };
@@ -101,7 +103,7 @@ margot::heel::constraint_model parse_constraint_model(const pt::ptree& constrain
   std::string comparison_fun_str = margot::heel::get(tag::comparison(), constraint_node);
   std::transform(comparison_fun_str.begin(), comparison_fun_str.end(), comparison_fun_str.begin(),
                  [](typename std::string::value_type c) { return std::tolower(c); });
-  margot::heel::goal_comparison cfun = margot::heel::goal_comparison::UNKNOWN;
+  margot::heel::goal_comparison cfun = margot::heel::goal_comparison::LESS;
   if (comparison_fun_str.compare("lt") == 0) {
     cfun = margot::heel::goal_comparison::LESS;
   } else if (comparison_fun_str.compare("ge") == 0) {
@@ -110,6 +112,10 @@ margot::heel::constraint_model parse_constraint_model(const pt::ptree& constrain
     cfun = margot::heel::goal_comparison::GREATER;
   } else if (comparison_fun_str.compare("le") == 0) {
     cfun = margot::heel::goal_comparison::LESS_OR_EQUAL;
+  } else {
+    margot::heel::error("Unable to understand the comparison function \"", comparison_fun_str,
+                        "\", it must be one of \"lt\", \"le\", \"gt\", or \"ge\"");
+    throw std::runtime_error("state parser: unknown comparison function");
   }
 
   // get the reactive inertia as a string, to figure out later if we really need to react

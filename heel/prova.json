@@ -109,7 +109,7 @@
 							"subject":"metric1",
 							"comparison": "lt",
 							"value": 5.0,
-							"confidence": 1.0,
+							"confidence": 1,
 							"reactive_inertia": 2
 						}
 					]

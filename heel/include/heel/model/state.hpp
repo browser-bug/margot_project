@@ -5,12 +5,15 @@
 #include <string>
 #include <vector>
 
+#include <heel/model/knob.hpp>
+#include <heel/model/metric.hpp>
+
 namespace margot {
 namespace heel {
 
-enum class goal_comparison { LESS_OR_EQUAL, GREATER_OR_EQUAL, LESS, GREATER, UNKNOWN };
-enum class rank_direction { MINIMIZE, MAXIMIZE, UNKNOWN };
-enum class rank_type { SIMPLE, GEOMETRIC, LINEAR, UNKNOWN };
+enum class goal_comparison { LESS_OR_EQUAL, GREATER_OR_EQUAL, LESS, GREATER };
+enum class rank_direction { MINIMIZE, MAXIMIZE, NONE };
+enum class rank_type { SIMPLE, GEOMETRIC, LINEAR, NONE };
 
 struct constraint_model {
   std::string field_name;
@@ -32,6 +35,10 @@ struct state_model {
   std::vector<rank_field_model> rank_fields;
   std::vector<constraint_model> constraints;
 };
+
+// this function validates a state model to enforce a correct configuration of the application
+void validate(state_model& model, const std::vector<metric_model>& metrics,
+              const std::vector<knob_model>& knobs);
 
 }  // namespace heel
 }  // namespace margot

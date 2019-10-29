@@ -77,6 +77,7 @@ set( HEEL_LIBRARY_SOURCES
 	"${HEEL_SRC_PATH}/model_knob.cpp"
 	"${HEEL_SRC_PATH}/model_metric.cpp"
 	"${HEEL_SRC_PATH}/model_monitor.cpp"
+	"${HEEL_SRC_PATH}/model_state.cpp"
 	"${HEEL_SRC_PATH}/model_validate.cpp"
 	"${HEEL_SRC_PATH}/parser_agora.cpp"
 	"${HEEL_SRC_PATH}/parser_application.cpp"

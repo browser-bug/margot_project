@@ -12,6 +12,7 @@
 #include <heel/model/knob.hpp>
 #include <heel/model/metric.hpp>
 #include <heel/model/monitor.hpp>
+#include <heel/model/state.hpp>
 #include <heel/model/validate.hpp>
 
 // utility functions used in the validation process
@@ -81,6 +82,9 @@ void margot::heel::validate(application_model& model) {
                   [](metric_model& metric) { margot::heel::validate(metric); });
     margot::heel::validate(block.features);
     margot::heel::validate(block.agora);
+    std::for_each(block.states.begin(), block.states.end(), [&block](state_model& state) {
+      margot::heel::validate(state, block.metrics, block.knobs);
+    });
 
     // now we need to be sure that if a metric is observed by a monitor, the monitor exists
     std::for_each(block.metrics.cbegin(), block.metrics.cend(), [&block](const metric_model& metric) {
