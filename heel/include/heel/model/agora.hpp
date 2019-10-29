@@ -4,6 +4,8 @@
 #include <string>
 #include <vector>
 
+#include <heel/model/knob.hpp>
+#include <heel/model/metric.hpp>
 #include <heel/model/parameter.hpp>
 
 namespace margot {
@@ -25,7 +27,8 @@ struct agora_model {
 };
 
 // this function validates an agora model to enforce a correct configuration of the application
-void validate(agora_model& model);
+void validate(agora_model& model, const std::vector<metric_model>& metrics,
+              const std::vector<knob_model>& knobs);
 
 }  // namespace heel
 }  // namespace margot

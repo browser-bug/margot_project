@@ -79,59 +79,12 @@ void margot::heel::validate(application_model& model) {
     std::for_each(block.knobs.begin(), block.knobs.end(),
                   [](knob_model& knob) { margot::heel::validate(knob); });
     std::for_each(block.metrics.begin(), block.metrics.end(),
-                  [](metric_model& metric) { margot::heel::validate(metric); });
+                  [&block](metric_model& metric) { margot::heel::validate(metric, block.monitors); });
     margot::heel::validate(block.features);
-    margot::heel::validate(block.agora);
+    margot::heel::validate(block.agora, block.metrics, block.knobs);
     std::for_each(block.states.begin(), block.states.end(), [&block](state_model& state) {
       margot::heel::validate(state, block.metrics, block.knobs);
     });
-
-    // now we need to be sure that if a metric is observed by a monitor, the monitor exists
-    std::for_each(block.metrics.cbegin(), block.metrics.cend(), [&block](const metric_model& metric) {
-      if (!metric.monitor_name.empty()) {
-        if (!std::any_of(block.monitors.cbegin(), block.monitors.cend(),
-                         [&metric](const monitor_model& monitor) {
-                           return metric.monitor_name.compare(monitor.name) == 0;
-                         })) {
-          margot::heel::error("The metric \"", metric.name, "\" is observed by the non-existent monitor \"",
-                              metric.monitor_name, "\"");
-          throw std::runtime_error("validation error: non-existent monitor");
-        }
-      }
-    });
-
-    // if agora is enabled, we need to perform additional checks, to make sure that the configuration file is
-    // consistent and to avoid to fail at runtime
-    if (block.agora.enabled) {
-      // first of all, there should be at least one metric to observe at runtime
-      if (block.metrics.empty()) {
-        margot::heel::error("Using Agora is meaningful if there is at least one metric");
-        throw std::runtime_error("validation error: no metric to predict");
-      }
-
-      // then, we need to make sure that all the metrics are observed at runtime
-      if (std::any_of(block.metrics.begin(), block.metrics.end(),
-                      [](const metric_model& metric) { return metric.monitor_name.empty(); })) {
-        margot::heel::error(
-            "At least one metric is not observed by a monitor at runtime, unable to use Agora to derive the "
-            "application knowledge");
-        throw std::runtime_error("validation error: metric not observed");
-      }
-
-      // then, we need to ensure that all the metrics specify a plugin to generate the application knoledge
-      if (std::any_of(block.metrics.begin(), block.metrics.end(),
-                      [](const metric_model& metric) { return metric.prediction_plugin.empty(); })) {
-        margot::heel::error("At least one metric has no plugin to predict its performance");
-        throw std::runtime_error("validation error: metric not predicted");
-      }
-
-      // finally, we need to ensure that all the knobs have a non-empty range of values
-      if (std::any_of(block.knobs.begin(), block.knobs.end(),
-                      [](const knob_model& knob) { return knob.values.empty(); })) {
-        margot::heel::error("At least one knob has no range of values, it is impossible to explore");
-        throw std::runtime_error("validation error: unknown knob range");
-      }
-    }
   });
 }
 

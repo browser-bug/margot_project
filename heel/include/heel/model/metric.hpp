@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 
+#include <heel/model/monitor.hpp>
 #include <heel/model/parameter.hpp>
 
 namespace margot {
@@ -19,7 +20,7 @@ struct metric_model {
 };
 
 // this function validates a metric model to enforce a correct configuration of the application
-void validate(metric_model& model);
+void validate(metric_model& model, const std::vector<monitor_model>& monitors);
 
 }  // namespace heel
 }  // namespace margot
