@@ -27,7 +27,7 @@ endif()
 #########################################################################
 
 set(Boost_USE_STATIC_LIBS ON)
-find_package(Boost REQUIRED)
+find_package(Boost REQUIRED COMPONENTS program_options)
 
 
 #########################################################################
@@ -93,7 +93,7 @@ set( HEEL_LIBRARY_SOURCES
 )
 
 # declare the target
-add_library( ${HEEL_LIBRARY_NAME} STATIC ${HEEL_LIBRARY_SOURCES} ${HEEL_LIBRARY_HEADERS} )
+add_library( ${HEEL_LIBRARY_NAME} SHARED ${HEEL_LIBRARY_SOURCES} ${HEEL_LIBRARY_HEADERS} )
 add_library( margot::${HEEL_LIBRARY_NAME} ALIAS ${HEEL_LIBRARY_NAME} )
 
 # define its interface
@@ -101,7 +101,7 @@ target_include_directories( ${HEEL_LIBRARY_NAME} PRIVATE ${HEEL_HDR_PATH} )
 set_target_properties( ${HEEL_LIBRARY_NAME} PROPERTIES PUBLIC_HEADER "${HEEL_LIBRARY_HEADERS}" )
 
 # set the executable dependencies
-target_link_libraries( ${HEEL_LIBRARY_NAME} PUBLIC Boost::boost )
+target_link_libraries( ${HEEL_LIBRARY_NAME} PUBLIC Boost::boost Boost::program_options )
 
 # define its compiler options
 target_compile_features( ${HEEL_LIBRARY_NAME} PRIVATE cxx_std_17 ) # for the filesystem component

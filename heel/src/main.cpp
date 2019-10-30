@@ -1,6 +1,10 @@
 #include <filesystem>
 #include <iostream>
-#include <string>
+#include <vector>
+#include <iostream>
+
+#include <boost/program_options.hpp>
+namespace po = boost::program_options;
 
 #include <heel/configuration_file.hpp>
 #include <heel/json_parser.hpp>
@@ -9,17 +13,45 @@
 #include <heel/print_application_model.hpp>
 
 int main(int argc, char* argv[]) {
-  // load the configuration file
+  // define the program options to describe where the source files will be generated
+  std::filesystem::path path_conf_file;
+  std::filesystem::path path_workspace(".");
+  po::options_description desc("Allowed options");
+  // clang-format off
+  desc.add_options()
+     ("help,h", "prints this message")
+     ("configuration_file,c", po::value<std::filesystem::path>(&path_conf_file)->required(),
+      "mARGOt configuration file path")
+     ("workspace,w", po::value<std::filesystem::path>(&path_workspace)->default_value(path_workspace),
+      "output folder path")
+  ;
+  // clang-format on
+  po::positional_options_description p;
+  p.add("op_files", -1);
+
+  // parse the program options
+  po::variables_map vm;
+  po::store(po::command_line_parser(argc, argv).options(desc).positional(p).run(), vm);
+  if (vm.count("help") > 0) {
+    std::cout << "This application generates the high-level interface of the mARGOt" << std::endl;
+    std::cout << "dynamic autotuning framework. Moreover, it prints in the standard" << std::endl;
+    std::cout << "output the list of generated files." << std::endl << std::endl;
+    std::cout << "Usage: " << argv[0] << " [options] [path_op_list]*" << std::endl;
+    std::cout << desc << std::endl;
+    return EXIT_SUCCESS;
+  }
+  po::notify(vm);
+  const auto op_list_files = !vm["op_files"].empty()
+                                 ? vm["op_files"].as<std::vector<std::filesystem::path> >()
+                                 : std::vector<std::filesystem::path>();
+
+  // load, parse, and validate the margot model from the configuration file
   margot::heel::configuration_file c;
-  c.load(std::filesystem::path("../prova.json"));
-
-  // parse the configuration file to generate the application model
+  c.load(path_conf_file);
   margot::heel::application_model model = margot::heel::parse_json(c);
-
-  // validate and post-process the model
   margot::heel::validate(model);
 
-  // print the information about the application model (on the standard output)
+  // now it is time to produce some output...
   margot::heel::print_application_model(model, std::cout);
   return EXIT_SUCCESS;
 }
