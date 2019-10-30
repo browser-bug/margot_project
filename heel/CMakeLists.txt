@@ -117,7 +117,7 @@ target_compile_options( ${HEEL_LIBRARY_NAME} PRIVATE $<$<CONFIG:RELEASE>: -march
 #########################################################################
 
 # define the target name
-set( HEEL_BINARY_NAME "margot_heel")
+set( HEEL_BINARY_NAME "heel_generator")
 
 # define the related headers and source files
 set( HEEL_BINARY_HEADERS
