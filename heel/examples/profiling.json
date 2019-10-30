@@ -1,0 +1,26 @@
+{
+	"application": "bar",
+	"version": "4.0",
+	"blocks":
+	[
+		{
+			"name": "foo",
+
+			"monitors":
+			[
+				{
+					"name": "error_monitor",
+					"type": "float",
+					"log": [ "average" ],
+					"stop": [ {"error":"float"} ]
+				},
+				{
+					"name": "time_monitor",
+					"type": "time",
+					"log": [ "average" ],
+					"constructor": [ "margot::TimeUnit::MICROSECONDS", 1 ]
+				}
+			]
+		}
+	]
+}
