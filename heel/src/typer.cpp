@@ -1,4 +1,6 @@
 #include <cstdint>
+#include <map>
+#include <optional>
 #include <string>
 
 #include <heel/typer.hpp>
@@ -63,4 +65,52 @@ std::string margot::heel::reverse_alias(const std::string& type_name) {
     return margot::heel::typer<uintptr_t>::get();
   } else
     return type_name;
+}
+
+// this is a map that contains the promotions of ctypes
+static const std::map<std::string, int> ctype_promotions_signed = {
+    {"short int", 0},
+    {"int", 1},
+    {"long int", 2},
+    {"long long int", 3},
+};
+static const std::map<std::string, int> ctype_promotions_unsigned = {
+    {"unsigned short int", 0},
+    {"unsigned int", 1},
+    {"unsigned long int", 2},
+    {"unsigned long long int", 3},
+};
+static const std::map<std::string, int> ctype_promotions_fp = {
+    {"float", 0}, {"double", 1}, {"long double", 2}};
+
+std::optional<bool> margot::heel::type_sorter(const std::string& a, const std::string& b) {
+  // remove the type alias to limit the number of options
+  const auto unaliased_a = margot::heel::reverse_alias(a);
+  const auto unaliased_b = margot::heel::reverse_alias(b);
+
+  // declare a lambda that compares two type only if they belong to the same set
+  const auto check_lambda = [&unaliased_a,
+                             &unaliased_b](const std::map<std::string, int>& map) -> std::optional<bool> {
+    const auto a_it = map.find(unaliased_a);
+    const auto b_it = map.find(unaliased_b);
+    if ((a_it != map.cend()) && (b_it != map.cend())) {
+      return a_it->second < b_it->second;
+    }
+    return {};
+  };
+
+  // perform the comparisons
+  const auto res_signed = check_lambda(ctype_promotions_signed);
+  if (res_signed) {
+    return *res_signed;
+  }
+  const auto res_unsigned = check_lambda(ctype_promotions_unsigned);
+  if (res_unsigned) {
+    return *res_unsigned;
+  }
+  const auto res_fp = check_lambda(ctype_promotions_fp);
+  if (res_fp) {
+    return *res_fp;
+  }
+  return {};
 }

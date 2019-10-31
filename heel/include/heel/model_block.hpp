@@ -18,7 +18,9 @@ struct block_model {
   std::string name;
   std::vector<monitor_model> monitors;
   std::vector<knob_model> knobs;
+  std::string knobs_segment_type;
   std::vector<metric_model> metrics;
+  std::string metrics_segment_type;
   features_model features;
   agora_model agora;
   std::vector<state_model> states;
