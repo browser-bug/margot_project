@@ -1,0 +1,37 @@
+{
+	"foo":
+	[
+		{
+			"features":
+			{
+				"resolution": 34
+			},
+			"knobs":
+			{
+				"threads": 3,
+				"algorithm": "one"
+			},
+			"metrics":
+			{
+				"throughput": [23.0, 2.0],
+				"quality": 32
+			}
+		},
+		{
+			"features":
+			{
+				"resolution": 34
+			},
+			"knobs":
+			{
+				"threads": 4,
+				"algorithm": "two"
+			},
+			"metrics":
+			{
+				"throughput": [2.0, 0.5],
+				"quality": 100
+			}
+		}
+	]
+}
