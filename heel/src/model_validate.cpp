@@ -126,7 +126,7 @@ void margot::heel::validate(application_model& model) {
 
     // now we need to enforce the constistency of the Operating Point geometry: either we have knobs and
     // metrics, or we don't have any of them;
-    if ((knob_types.empty() && !metric_types.empty()) || (!knob_types.empty() && metric_types.empty())) {
+    if ((block.knobs.empty() && !block.metrics.empty()) || (!block.knobs.empty() && block.metrics.empty())) {
       margot::heel::error("The block \"", block.name, "\" is partially managed, knobs or metrics missing");
       throw std::runtime_error("model vlidation: block partially defined");
     }
