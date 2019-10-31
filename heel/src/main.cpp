@@ -1,10 +1,11 @@
 #include <filesystem>
 #include <iostream>
 #include <vector>
-#include <iostream>
 
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
+
+#include <heel/generator_cpp_application_geometry_hdr.hpp>
 
 #include <heel/configuration_file.hpp>
 #include <heel/json_parser.hpp>
@@ -52,6 +53,6 @@ int main(int argc, char* argv[]) {
   margot::heel::validate(model);
 
   // now it is time to produce some output...
-  margot::heel::print_application_model(model, std::cout);
+  std::cout << margot::heel::application_geometry_hpp_content(model).content.str() << std::endl;
   return EXIT_SUCCESS;
 }

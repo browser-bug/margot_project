@@ -2,7 +2,9 @@
 #define HEEL_GENERATOR_UTILS_HDR
 
 #include <numeric>
+#include <sstream>
 #include <string>
+#include <vector>
 
 namespace margot {
 namespace heel {
@@ -21,6 +23,12 @@ inline std::string join(const iterator_type& begin, const iterator_type& end, co
                                                    return partial_result + separator + functor(new_element);
                                                  });
 }
+
+// this struct represents a piece of content in cpp source/header file, plus all the headers that it requires
+struct cpp_source_content {
+  std::stringstream content;
+  std::vector<std::string> required_headers;
+};
 
 }  // namespace heel
 }  // namespace margot
