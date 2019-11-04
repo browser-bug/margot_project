@@ -116,6 +116,11 @@ class DataAwareAsrtm {
   using Feature = std::array<T, sizeof...(cfs)>;
 
   /**
+   * @brief Explicit definition of a container of Operating Points
+   */
+  using operating_point_container_type = std::map<Feature, typename Asrtm::operating_point_container_type>;
+
+  /**
    * @brief Explicit definition to an Operating Point pointer
    */
   using OperatingPointPtr = typename Knowledge<OperatingPoint>::OperatingPointPtr;
@@ -812,24 +817,10 @@ class DataAwareAsrtm {
    *
    * @see Asrtm
    */
-  inline void send_observation(const std::string& measures) {
+  inline void send_observation(const std::string& message) {
     std::lock_guard<std::mutex> lock(asrtm_mutex);
-
-    // get the timestamp of now
-    auto now = std::chrono::system_clock::now();
-
-    // convert the measure in seconds since epoch and
-    // nanosec since second
-    const auto sec_since_now = std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch());
-    const auto almost_epoch = now - sec_since_now;
-    const auto ns_since_sec =
-        std::chrono::duration_cast<std::chrono::nanoseconds>(almost_epoch.time_since_epoch());
-
-    // send the message
-    margot::remote_message_ptr output_message(new margot::remote_message{
-        {"margot/" + application_name + "/observation"},
-        std::to_string(sec_since_now.count()) + "," + std::to_string(ns_since_sec.count()) + " " +
-            remote.get_my_client_id() + " " + measures});
+    margot::remote_message_ptr output_message(
+        new margot::remote_message{{"margot/" + application_name + "/observation"}, message});
     remote.send_message(output_message);
   }
 
@@ -942,7 +933,9 @@ class DataAwareAsrtm {
       // handle the single configurations coming from the server
       if (message_topic.compare("/explore") == 0) {
         // build the op
-        const auto op = get_op(new_incoming_message->payload);
+        const auto ops = get_op(new_incoming_message->payload);
+        assert(!ops.empty() && "Error: received an empty Operating Points container");
+        assert(!ops.begin()->second.empty() && "Error: received an empty Operating Points container");
 
         // lock the asrtm data structure
         std::lock_guard<std::mutex> lock(asrtm_mutex);
@@ -952,7 +945,7 @@ class DataAwareAsrtm {
 
         // set the knowledge base for all the data features
         for (auto& asrtm_pair : managers) {
-          asrtm_pair.second.set_sinlgle_point(op);
+          asrtm_pair.second.set_sinlgle_point(ops.begin()->second);
         }
       } else if (message_topic.compare("/info") == 0)  // handle the info message
       {
@@ -961,71 +954,24 @@ class DataAwareAsrtm {
         remote.send_message(info_message);
       } else if (message_topic.compare("/model") == 0)  // handle the final model coming from the server
       {
-        // prepare the data structures to have a model
-        std::map<std::string, std::vector<OperatingPoint> > model;
-        std::stringstream model_stream(new_incoming_message->payload);
-        constexpr char line_delimiter = '@';
-        std::string op_string;
+        // get all the Operating Points of the model
+        operating_point_container_type model = get_op(new_incoming_message->payload);
 
-        // parse all the Operating Point from the model
-        while (std::getline(model_stream, op_string, line_delimiter)) {
-          // parse the data structure
-          std::string knobs;
-          std::string features;
-          std::string metrics;
-          std::stringstream op_stream(op_string);
-          op_stream >> knobs;
-          op_stream >> features;
-          op_stream >> metrics;
-
-          // find the related elements in the map
-          auto map_it = model.find(features);
-
-          if (map_it == model.end()) {
-            // create the model
-            const auto return_pair = model.emplace(features, std::vector<OperatingPoint>{});
-            map_it = return_pair.first;
-          }
-
-          // insert the related op
-          map_it->second.emplace_back(get_op(knobs, metrics));
-        }
-
-        // now we need to modify the da-asrtm structure
+        // get a clone of the actual manager, to avoid to loose any information about the problem
         std::lock_guard<std::mutex> lock(asrtm_mutex);
-
-        // make sure that there is an active feature cluster
         assert(!managers.empty() && "Error: unable to set the model without AS-RTM");
-
-        // get a clone of the manager
         auto reference_manager = managers.begin()->second.create_sibling();
-
-        // clear all the previous managers
-        managers.clear();
+        managers.clear();  // we need to start from an empty set of input features cluster
 
         // set the new nowledge
-        for (auto&& model_pair : model) {
-          Feature this_model_feature;
-
-          // parse the feature of this string
-          std::stringstream feature_stream(model_pair.first);
-          std::string feature_element;
-          std::size_t counter = 0;
-
-          while (std::getline(feature_stream, feature_element, ',')) {
-            std::istringstream(feature_element) >> this_model_feature[counter++];
-          }
-
-          // emplace the new element
-          managers.emplace_back(this_model_feature, reference_manager.create_sibling());
-
-          // set the knowledge base
-          managers.back().second.set_model(std::move(model_pair.second));
+        for (auto& model_pair : model) {
+          managers.emplace_back(model_pair.first, reference_manager.create_sibling());
+          managers.back().second.set_model(model_pair.second);
         }
 
-        // set the current manager as the first one
+        // set the current manager as the first one, it will be chosen the correct one the next time
+        // that we set the current input feature
         active_manager = managers.begin();
-
       } else if (message_topic.compare("/welcome") == 0)  // handle the case where a new agora handler appears
       {
         // send a welcome message to restore the communication
