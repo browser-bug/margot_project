@@ -15,8 +15,8 @@ margot::heel::cpp_source_content margot::heel::application_geometry_hpp_content(
   margot::heel::cpp_source_content c;
 
   // generate the content for each block managed by margot, within its namespace
+  c.content << std::endl << "namespace margot {" << std::endl;
   std::for_each(app.blocks.begin(), app.blocks.end(), [&c](const block_model& block) {
-    c.content << std::endl << "namespace margot {" << std::endl;
     c.content << std::endl << "namespace " << block.name << " {" << std::endl << std::endl;
 
     // generate the enums for the metrics and for the knobs
