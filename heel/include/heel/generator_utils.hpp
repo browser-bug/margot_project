@@ -21,7 +21,7 @@ inline std::string join(const iterator_type& begin, const iterator_type& end, co
                          [&separator, &functor](const std::string& partial_result,
                                                 const typename iterator_type::value_type& new_element) {
                            return partial_result + separator + functor(new_element);
-                         })
+                         });
 }
 
 // this struct represents a piece of content in cpp source/header file, plus all the headers that it requires
