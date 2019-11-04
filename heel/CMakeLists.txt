@@ -43,6 +43,7 @@ set( HEEL_SRC_PATH "${CMAKE_CURRENT_SOURCE_DIR}/src")
 set( HEEL_LIBRARY_HEADERS
 	"${HEEL_HDR_PATH}/heel/generator_description_verbose.hpp"
 	"${HEEL_HDR_PATH}/heel/generator_cpp_application_geometry_hdr.hpp"
+	"${HEEL_HDR_PATH}/heel/generator_cpp_application_geometry_src.hpp"
 	"${HEEL_HDR_PATH}/heel/generator_source_file.hpp"
 	"${HEEL_HDR_PATH}/heel/generator_utils.hpp"
 	"${HEEL_HDR_PATH}/heel/model_agora.hpp"
@@ -79,6 +80,7 @@ set( HEEL_LIBRARY_SOURCES
 	"${HEEL_SRC_PATH}/configuration_file.cpp"
 	"${HEEL_SRC_PATH}/generator_description_verbose.cpp"
 	"${HEEL_SRC_PATH}/generator_cpp_application_geometry_hdr.cpp"
+	"${HEEL_SRC_PATH}/generator_cpp_application_geometry_src.cpp"
 	"${HEEL_SRC_PATH}/model_agora.cpp"
 	"${HEEL_SRC_PATH}/model_features.cpp"
 	"${HEEL_SRC_PATH}/model_knob.cpp"

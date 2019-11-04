@@ -8,6 +8,7 @@ namespace po = boost::program_options;
 
 #include <heel/configuration_file.hpp>
 #include <heel/generator_cpp_application_geometry_hdr.hpp>
+#include <heel/generator_cpp_application_geometry_src.hpp>
 #include <heel/generator_source_file.hpp>
 #include <heel/json_parser.hpp>
 #include <heel/model_application.hpp>
@@ -61,7 +62,11 @@ int main(int argc, char* argv[]) {
   });
 
   // now it is time to produce some output...
-  margot::heel::source_file_generator g("prova.hpp", margot::heel::application_geometry_hpp_content(model));
-  g.write_header(path_conf_file);
+  margot::heel::source_file_generator application_geometry_hdr(
+      "application_geometry.hpp", margot::heel::application_geometry_hpp_content(model));
+  application_geometry_hdr.write_header(path_conf_file);
+  margot::heel::source_file_generator application_geometry_src(
+      "application_geometry.cpp", margot::heel::application_geometry_cpp_content(model));
+  application_geometry_src.write_source(path_conf_file);
   return EXIT_SUCCESS;
 }
