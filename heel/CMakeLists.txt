@@ -67,6 +67,8 @@ set( HEEL_LIBRARY_HEADERS
 	"${HEEL_HDR_PATH}/heel/parser_state.hpp"
 	"${HEEL_HDR_PATH}/heel/parser_utils.hpp"
 	"${HEEL_HDR_PATH}/heel/configuration_file.hpp"
+	"${HEEL_HDR_PATH}/heel/cpp_enum_conversion.hpp"
+	"${HEEL_HDR_PATH}/heel/cpp_interface_conversion.hpp"
 	"${HEEL_HDR_PATH}/heel/json_parser.hpp"
 	"${HEEL_HDR_PATH}/heel/logger.hpp"
 	"${HEEL_HDR_PATH}/heel/print_application_model.hpp"
