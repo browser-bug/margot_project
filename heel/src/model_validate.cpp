@@ -90,7 +90,7 @@ void margot::heel::validate(application_model& model) {
 
     // now, we have to do the difficult part: figure out which is the the most suitable type to hold all the
     // knobs and the one for the metrics.
-    std::vector<std::string> knob_types, metric_types;
+    std::vector<std::string> knob_types, metric_types, feature_types;
     std::for_each(block.knobs.begin(), block.knobs.end(), [&knob_types](const knob_model& knob) {
       if (knob.type.compare("string") != 0) {
         knob_types.emplace_back(knob.type);
@@ -98,6 +98,9 @@ void margot::heel::validate(application_model& model) {
     });
     std::for_each(block.metrics.begin(), block.metrics.end(),
                   [&metric_types](const metric_model& metric) { metric_types.emplace_back(metric.type); });
+    std::for_each(
+        block.features.fields.begin(), block.features.fields.end(),
+        [&feature_types](const feature_model& feature) { feature_types.emplace_back(feature.type); });
     if (knob_types.empty()) {  // if we have only string knobs, we can use int as enum types
       knob_types.emplace_back("int");
     }
@@ -121,8 +124,19 @@ void margot::heel::validate(application_model& model) {
       }
       return *result;
     });
+    std::sort(feature_types.begin(), feature_types.end(), [](const std::string& a, const std::string& b) {
+      const auto result = margot::heel::type_sorter(a, b);
+      if (!result) {
+        margot::heel::error(
+            "Unable to deal with features of type \"", a, "\" and \"", b,
+            "\", select a type which belong to the same category, i.e. signed, unsigned, and floating point");
+        throw std::runtime_error("model vlidation: mismatch between features type");
+      }
+      return *result;
+    });
     block.knobs_segment_type = !knob_types.empty() ? knob_types.back() : std::string();
     block.metrics_segment_type = !metric_types.empty() ? metric_types.back() : std::string();
+    block.features.features_type = !feature_types.empty() ? feature_types.back() : std::string();
 
     // now we need to enforce the constistency of the Operating Point geometry: either we have knobs and
     // metrics, or we don't have any of them;

@@ -18,6 +18,7 @@ struct feature_model {
 
 struct features_model {
   features_distance_type distance_type;
+  std::string features_type;
   std::vector<feature_model> fields;
 };
 
