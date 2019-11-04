@@ -17,6 +17,7 @@ margot::heel::cpp_source_content margot::heel::application_geometry_hpp_content(
 
   // generate the content for each block managed by margot, within its namespace
   std::for_each(app.blocks.begin(), app.blocks.end(), [&c](const block_model& block) {
+    c.content << std::endl << "namespace margot {" << std::endl;
     c.content << std::endl << "namespace " << block.name << " {" << std::endl << std::endl;
 
     // generate the enums for the metrics and for the knobs
@@ -104,7 +105,8 @@ margot::heel::cpp_source_content margot::heel::application_geometry_hpp_content(
                                         [](const feature_model& field) {
                                           return margot::heel::cpp_enum::get(field.comparison);
                                         })
-                  << ">;" << std::endl << std::endl;
+                  << ">;" << std::endl
+                  << std::endl;
       }
     }
 
@@ -129,8 +131,9 @@ margot::heel::cpp_source_content margot::heel::application_geometry_hpp_content(
       c.content << "};" << std::endl << std::endl;
     }
 
-    c.content << "} // namespace " << block.name << std::endl;
+    c.content << "} // namespace " << block.name << std::endl << std::endl;
   });
+  c.content << "} // namespace margot" << std::endl << std::endl;
 
   return c;
 }
