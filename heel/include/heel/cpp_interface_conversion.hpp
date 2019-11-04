@@ -19,15 +19,19 @@ struct cpp_parameters {
                                       const std::vector<metric_model>& metrics) {
     std::string result;
     if (!fields.empty()) {
-      result = margot::heel::join(fields.begin(), fields.end(), ", ",
-                                  [](const feature_model& field) { return field.type + " " + field.name; });
+      result = margot::heel::join(fields.begin(), fields.end(), ", ", [](const feature_model& field) {
+        return "const " + field.type + " " + field.name;
+      });
       result += ", ";
     }
-    result += margot::heel::join(knobs.begin(), knobs.end(), ", ",
-                                 [](const knob_model& knob) { return knob.type + " " + knob.name; });
+    result += margot::heel::join(knobs.begin(), knobs.end(), ", ", [](const knob_model& knob) {
+      return knob.type.compare("string") == 0 ? std::string("const std::string& ") + knob.name
+                                              : "const " + knob.type + " " + knob.name;
+    });
     result += ", ";
-    result += margot::heel::join(metrics.begin(), metrics.end(), ", ",
-                                 [](const metric_model& metric) { return metric.type + " " + metric.name; });
+    result += margot::heel::join(metrics.begin(), metrics.end(), ", ", [](const metric_model& metric) {
+      return "const " + metric.type + " " + metric.name;
+    });
     return result;
   }
 };
