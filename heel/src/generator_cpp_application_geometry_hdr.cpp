@@ -1,6 +1,5 @@
 #include <algorithm>
 #include <cstdint>
-#include <sstream>
 
 #include <heel/cpp_enum_conversion.hpp>
 #include <heel/cpp_interface_conversion.hpp>
