@@ -46,7 +46,7 @@ inline void warning(const T &... arguments) {
 
 template <class... T>
 inline void error(const T &... arguments) {
-  std::cout << line_formatter{}.format("  ERROR", arguments...);
+  std::cerr << line_formatter{}.format("  ERROR", arguments...);
 }
 
 }  // namespace heel
