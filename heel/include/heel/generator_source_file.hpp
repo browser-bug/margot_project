@@ -17,47 +17,54 @@ namespace heel {
 
 class source_file_generator {
   std::ofstream file_handler;
-  std::string source_content;
   std::vector<std::string> required_headers;
-  std::string include_guard_def;
+  const std::filesystem::path file_path;
+  const std::string source_content;
 
  public:
   template <class... component_type>
-  source_file_generator(const std::filesystem::path file_path, const component_type&... components) {
-    // get the information on the content
+  source_file_generator(const std::filesystem::path file_path, const component_type&... components)
+      : file_path(file_path), source_content(fill(components...)) {}
+
+  ~source_file_generator(void) {}
+
+  void write_header(const std::filesystem::path& configuration_filepath = "") {
+    // compose the include guard unique definition
+    std::string filename = file_path.stem();
+    std::transform(filename.begin(), filename.end(), filename.begin(),
+                   [](typename std::string::value_type c) { return std::toupper(c); });
+    const std::string include_guard_def = "MARGOT_" + filename + "_HDR";
+
+    // write the preamble of the file
+    open();
+    file_handler << "#ifndef " << include_guard_def << std::endl;
+    file_handler << "#define " << include_guard_def << std::endl << std::endl;
+    internal_write(configuration_filepath);
+    file_handler << "#endif // " << include_guard_def << std::endl << std::endl;
+    close();
+  }
+
+  inline void write_source(const std::filesystem::path& configuration_filepath = "") {
+    open();
+    internal_write(configuration_filepath);
+    close();
+  }
+
+ private:
+  void open(void) {
     file_handler.open(file_path);
     if (!file_handler.good()) {
       margot::heel::error("Unable to write the file \"", file_path, "\"");
       throw std::runtime_error("source gen: unable to write on file");
     }
-    source_content = fill(components...);
-
-    // compose the include guard unique definition
-    std::string filename = file_path.stem();
-    std::transform(filename.begin(), filename.end(), filename.begin(),
-                   [](typename std::string::value_type c) { return std::toupper(c); });
-    include_guard_def = "MARGOT_" + filename + "_HDR";
   }
 
-  ~source_file_generator(void) {
+  void close(void) {
     if (file_handler.is_open()) {
       file_handler.close();
     }
   }
 
-  inline void write_header(const std::filesystem::path& configuration_filepath = "") {
-    // write the preamble of the file
-    file_handler << "#ifndef " << include_guard_def << std::endl;
-    file_handler << "#define " << include_guard_def << std::endl << std::endl;
-    internal_write(configuration_filepath);
-    file_handler << "#endif // " << include_guard_def << std::endl << std::endl;
-  }
-
-  inline void write_source(const std::filesystem::path& configuration_filepath = "") {
-    internal_write(configuration_filepath);
-  }
-
- private:
   void internal_write(const std::filesystem::path& configuration_filepath) {
     // print the warning about auto-generated files
     file_handler << "// WARNING:" << std::endl;
