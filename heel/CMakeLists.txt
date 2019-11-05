@@ -75,6 +75,7 @@ set( HEEL_LIBRARY_HEADERS
 	"${HEEL_HDR_PATH}/heel/logger.hpp"
 	"${HEEL_HDR_PATH}/heel/print_application_model.hpp"
 	"${HEEL_HDR_PATH}/heel/typer.hpp"
+	"${HEEL_HDR_PATH}/heel/workspace.hpp"
 )
 set( HEEL_LIBRARY_SOURCES
 	"${HEEL_SRC_PATH}/configuration_file.cpp"
@@ -100,6 +101,7 @@ set( HEEL_LIBRARY_SOURCES
 	"${HEEL_SRC_PATH}/parser_state.cpp"
 	"${HEEL_SRC_PATH}/parser_utils.cpp"
 	"${HEEL_SRC_PATH}/typer.cpp"
+	"${HEEL_SRC_PATH}/workspace.cpp"
 )
 
 # declare the target

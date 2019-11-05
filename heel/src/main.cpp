@@ -6,18 +6,12 @@
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
 
-#include <heel/configuration_file.hpp>
-#include <heel/generator_cpp_application_geometry_hdr.hpp>
-#include <heel/generator_cpp_application_geometry_src.hpp>
-#include <heel/generator_source_file.hpp>
-#include <heel/json_parser.hpp>
-#include <heel/model_application.hpp>
-#include <heel/model_validate.hpp>
+#include <heel/workspace.hpp>
 
 int main(int argc, char* argv[]) {
   // define the program options to describe where the source files will be generated
   std::filesystem::path path_conf_file;
-  std::filesystem::path path_workspace(".");
+  std::filesystem::path path_workspace = std::filesystem::current_path();
   po::options_description desc("Allowed options");
   // clang-format off
   desc.add_options()
@@ -25,7 +19,7 @@ int main(int argc, char* argv[]) {
      ("configuration_file,c", po::value<std::filesystem::path>(&path_conf_file)->required(),
       "mARGOt configuration file path")
      ("workspace,w", po::value<std::filesystem::path>(&path_workspace)->default_value(path_workspace),
-      "output folder path")
+      "output folder path (cwd as default)")
      ("op_files,o", po::value<std::vector<std::filesystem::path>>(),
       "operating points file path")
   ;
@@ -45,9 +39,26 @@ int main(int argc, char* argv[]) {
     return EXIT_SUCCESS;
   }
   po::notify(vm);
-  const auto op_list_files = !vm["op_files"].empty() ? vm["op_files"].as<std::vector<std::filesystem::path>>()
-                                                     : std::vector<std::filesystem::path>();
+  auto op_list_files = !vm["op_files"].empty() ? vm["op_files"].as<std::vector<std::filesystem::path>>()
+                                               : std::vector<std::filesystem::path>();
 
+  // now we need to post-process the configuration paths to make sure to work with absolute paths. So, if we
+  // have relative paths, we need to rebase them with respect to the current working directory
+  const auto rebase_path = [](std::filesystem::path& p) {
+    p = p.has_root_path() ? p : std::filesystem::current_path() / p;
+  };
+  rebase_path(path_workspace);
+  rebase_path(path_conf_file);
+  std::for_each(op_list_files.begin(), op_list_files.end(),
+                [&rebase_path](std::filesystem::path& p) { rebase_path(p); });
+
+  // create and initialize the workspace
+  margot::heel::workspace driver(path_workspace, path_conf_file, op_list_files);
+
+  // generate the high-level adaptive interface for the application
+  driver.generate_adaptive_interface();
+
+  /*
   // load, parse, and validate the margot model from the configuration file
   margot::heel::configuration_file c;
   c.load(path_conf_file);
@@ -67,6 +78,6 @@ int main(int argc, char* argv[]) {
   application_geometry_hdr.write_header(path_conf_file);
   margot::heel::source_file_generator application_geometry_src(
       "application_geometry.cpp", margot::heel::application_geometry_cpp_content(model));
-  application_geometry_src.write_source(path_conf_file);
+  application_geometry_src.write_source(path_conf_file);*/
   return EXIT_SUCCESS;
 }
