@@ -19,6 +19,12 @@ void margot::heel::validate(metric_model& model, const std::vector<monitor_model
     throw std::runtime_error("metric model: unsupported type");
   }
 
+  // check if the name is a valid c/c++ identifier
+  if (!margot::heel::is_valid_identifier(model.name)) {
+    margot::heel::error("The metric name \"", model.name, "\" is not a valid c/c++ identifier");
+    throw std::runtime_error("metric model: unsupported name");
+  }
+
   // make sure that if plugin parameters exist, there should be also a plugin name
   if ((!model.prediction_parameters.empty()) && (model.prediction_plugin.empty())) {
     margot::heel::error("The metric \"", model.name, "\" defines plugin parameters, but no plugin");

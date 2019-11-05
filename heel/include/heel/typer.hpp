@@ -22,6 +22,9 @@ std::string sanitize_type(const std::string& type_name);
 // different categories (i.e. signed, unsigned and floating point), it return a "null" value
 std::optional<bool> type_sorter(const std::string& a, const std::string& b);
 
+// this is an helper function that checks whether a name is a valid c/c++ identifier
+bool is_valid_identifier(const std::string& name);
+
 // this struct is used to convert a c-type to a string with its name
 template <typename T>
 struct typer {

@@ -53,11 +53,23 @@ void margot::heel::validate(application_model& model) {
                           "\" since none was provided");
   }
 
+  // check if the application name is a valid c/c++ identifier
+  if (!margot::heel::is_valid_identifier(model.name)) {
+    margot::heel::error("The application name \"", model.name, "\" is not a valid c/c++ identifier");
+    throw std::runtime_error("application model: unsupported name");
+  }
+
   // enforce the uniqueness of the block's names
   check_uniqueness(model.blocks, "block");
 
   // since each block of the application is indipendent, the validation happens at block level
   std::for_each(model.blocks.begin(), model.blocks.end(), [](margot::heel::block_model& block) {
+    // check if the block name is a valid c/c++ identifier
+    if (!margot::heel::is_valid_identifier(block.name)) {
+      margot::heel::error("The block name \"", block.name, "\" is not a valid c/c++ identifier");
+      throw std::runtime_error("block model: unsupported name");
+    }
+
     // to perform cross-cheks in a proper way, ne need to enforce name uniqueness of sub sections
     check_uniqueness(block.monitors, "monitor");
     check_uniqueness(block.knobs, "knob");

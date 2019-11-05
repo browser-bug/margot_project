@@ -218,4 +218,10 @@ void margot::heel::validate(monitor_model& model) {
                     throw std::runtime_error("Unknown log statistic");
                   }
                 });
+
+  // check if the name is a valid c/c++ identifier
+  if (!margot::heel::is_valid_identifier(model.name)) {
+    margot::heel::error("The monitor name \"", model.name, "\" is not a valid c/c++ identifier");
+    throw std::runtime_error("monitor model: unsupported name");
+  }
 }

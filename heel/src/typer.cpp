@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <cctype>
 #include <cstdint>
+#include <iterator>
 #include <map>
 #include <optional>
 #include <stdexcept>
@@ -10,6 +11,17 @@
 
 #include <heel/logger.hpp>
 #include <heel/typer.hpp>
+
+bool margot::heel::is_valid_identifier(const std::string& name) {
+  if (name.empty()) return false;
+  if (!((std::isalpha(name[0]) || (name[0] == static_cast<std::string::value_type>('_'))))) return false;
+  if (std::any_of(std::next(name.begin()), name.end(), [](const std::string::value_type c) {
+        return !(std::isalnum(c) || c == static_cast<std::string::value_type>('_'));
+      })) {
+    return false;
+  }
+  return true;
+}
 
 // i know that this is ugly, but there is no other way
 std::string margot::heel::sanitize_type(const std::string& type_name) {

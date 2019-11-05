@@ -18,12 +18,17 @@ void margot::heel::validate(features_model& model) {
       throw std::runtime_error("features model: duplicated features");
     }
 
-    // to avoid any ambiguity between types, we need to sanitize them
+    // now we can check each field of the features, if the type is supported and if the name is a valid c/c++
+    // identifier
     std::for_each(model.fields.begin(), model.fields.end(), [](feature_model& field) {
       field.type = margot::heel::sanitize_type(field.type);
       if (field.type.compare("string") == 0) {
         margot::heel::error("The feature \"", field.name, "\" has a string type, this is not supported");
         throw std::runtime_error("features model: unsupported type");
+      }
+      if (!margot::heel::is_valid_identifier(field.name)) {
+        margot::heel::error("The feature name \"", field.name, "\" is not a valid c/c++ identifier");
+        throw std::runtime_error("features model: unsupported name");
       }
     });
   } else {
