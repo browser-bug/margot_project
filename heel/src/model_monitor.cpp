@@ -3,15 +3,23 @@
 #include <stdexcept>
 #include <vector>
 
+#include <boost/algorithm/string.hpp>
+
 #include <heel/logger.hpp>
 #include <heel/model_monitor.hpp>
 #include <heel/typer.hpp>
 
 // helper function that generates a spec for a custom monitor
-inline margot::heel::monitor_spec get_custom_spec(const std::string& monitor_type) {
-  return {"margot::Monitor<" + monitor_type + ">",
+inline margot::heel::monitor_spec gen_custom_spec(const std::string& monitor_type) {
+  // get the type of a monitor
+  const std::string real_type = margot::heel::sanitize_type(monitor_type);
+  if (real_type.compare("string") == 0) {
+    margot::heel::error("Unable to generate a monitor of strings");
+    throw std::runtime_error("custom monitor: unsupported type");
+  }
+  return {"margot::Monitor<" + real_type + ">",
           "margot/monitor.hpp",
-          monitor_type,
+          real_type,
           "",
           "push",
           {{margot::heel::parameter_types::IMMEDIATE, "1", "size_t"}},
@@ -23,7 +31,7 @@ inline margot::heel::monitor_spec get_custom_spec(const std::string& monitor_typ
 // NOTE: the actual value type of each monitor should be taken directly from its class... However, since
 //       we can't avoid a manual update of this map, it makes no sense to bring mARGOt as dependency just
 //       for this reason, it will raise too much the complexity of the building system
-static const std::map<std::string, margot::heel::monitor_spec> known_monitors = {
+static std::map<std::string, margot::heel::monitor_spec> known_monitors = {
     {"collector",
      {"margot::CollectorMonitor",
       "margot/collector_monitor.hpp",
@@ -143,18 +151,7 @@ static const std::map<std::string, margot::heel::monitor_spec> known_monitors = 
       {{margot::heel::parameter_types::IMMEDIATE, "margot::TimeUnit::MICROSECONDS", "margot::TimeUnit"},
        {margot::heel::parameter_types::IMMEDIATE, "1", "size_t"}},
       {},
-      {}}},
-    {"short int", get_custom_spec("short int")},
-    {"unsigned short int", get_custom_spec("unsigned short int")},
-    {"int", get_custom_spec("int")},
-    {"unsigned int", get_custom_spec("unsigned int")},
-    {"long int", get_custom_spec("long int")},
-    {"unsigned long int", get_custom_spec("unsigned long int")},
-    {"long long int", get_custom_spec("long long int")},
-    {"unsigned long long int", get_custom_spec("unsigned long long int")},
-    {"float", get_custom_spec("float")},
-    {"double", get_custom_spec("double")},
-    {"long double", get_custom_spec("long double")}};
+      {}}}};
 
 static const std::vector<std::string> available_statistics = {"average", "standard_deviation", "max", "min"};
 
@@ -166,10 +163,18 @@ void margot::heel::validate(monitor_model& model) {
   }
 
   // make sure that we support the given monitor type
-  const auto monitor_spec_it = known_monitors.find(reverse_alias(model.type));
+  boost::trim(model.type);
+  auto monitor_spec_it = known_monitors.find(model.type);
   if (monitor_spec_it == known_monitors.cend()) {
-    margot::heel::error("Unknown type \"", model.type, "\" for monitor \"", model.name, "\"");
-    throw std::runtime_error("monitor model: unknown monitor type");
+    // if reach this statement, is not a known monitor, but we could generate the spec on the fly if it is a
+    // numeric type (i.e. custom monitor)
+    try {
+      const auto res = known_monitors.emplace(model.type, gen_custom_spec(model.type));
+      monitor_spec_it = res.first;
+    } catch (const std::runtime_error& e) {
+      margot::heel::error("Unknown type \"", model.type, "\" for monitor \"", model.name, "\"");
+      throw e;
+    }
   }
 
   // now we need to consider all the parameters in the monitor and combine them with the ones in the

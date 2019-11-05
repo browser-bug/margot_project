@@ -5,6 +5,7 @@
 #include <heel/logger.hpp>
 #include <heel/model_metric.hpp>
 #include <heel/model_monitor.hpp>
+#include <heel/typer.hpp>
 
 void margot::heel::validate(metric_model& model, const std::vector<monitor_model>& monitors) {
   // perform checks on the metric type
@@ -12,6 +13,7 @@ void margot::heel::validate(metric_model& model, const std::vector<monitor_model
     margot::heel::error("The metric \"", model.name, "\" must have a type");
     throw std::runtime_error("metric model: metric without a type");
   }
+  model.type = margot::heel::sanitize_type(model.type);
   if (model.type.compare("string") == 0) {
     margot::heel::error("The type string for the metric \"", model.name, "\" is not supported");
     throw std::runtime_error("metric model: unsupported type");

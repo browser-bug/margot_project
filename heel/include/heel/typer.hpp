@@ -8,9 +8,15 @@
 namespace margot {
 namespace heel {
 
-// this is an helper function that reverse the type aliasing for the current architecture (e.g.
-// "int32_t"->"int"), this is required to limit the extension of possibilities.
-std::string reverse_alias(const std::string& type_name);
+// this is an helper function that sanitize the input from the user regarding the type of a parameter, since
+// the language ha a loose definition of fundamental types. In particular, it will:
+//  - remove leading and trailing space
+//  - remove the "std::" prefix (if any)
+//  - convert the integer part to the aliased ones (e.g. "int" -> "int32_t")
+//  - check if the type is supported, i.e. integers, floating points, and string. If it doesn't an exception
+//  is thrown
+// the sanitized input is the return value
+std::string sanitize_type(const std::string& type_name);
 
 // this is an helper function that returns true if the type a is "smaller" than b. If the two types belong to
 // different categories (i.e. signed, unsigned and floating point), it return a "null" value
@@ -23,43 +29,43 @@ struct typer {
 };
 
 template <>
-struct typer<short int> {
-  static const std::string get(void) { return "short int"; }
+struct typer<int8_t> {
+  static const std::string get(void) { return "int8_t"; }
 };
 
 template <>
-struct typer<unsigned short int> {
-  static const std::string get(void) { return "unsigned short int"; }
+struct typer<uint8_t> {
+  static const std::string get(void) { return "uint8_t"; }
 };
 
 template <>
-struct typer<int> {
-  static const std::string get(void) { return "int"; }
+struct typer<int16_t> {
+  static const std::string get(void) { return "int16_t"; }
 };
 
 template <>
-struct typer<unsigned int> {
-  static const std::string get(void) { return "unsigned int"; }
+struct typer<uint16_t> {
+  static const std::string get(void) { return "uint16_t"; }
 };
 
 template <>
-struct typer<long int> {
-  static const std::string get(void) { return "long int"; }
+struct typer<int32_t> {
+  static const std::string get(void) { return "int32_t"; }
 };
 
 template <>
-struct typer<unsigned long int> {
-  static const std::string get(void) { return "unsigned long int"; }
+struct typer<uint32_t> {
+  static const std::string get(void) { return "uint32_t"; }
 };
 
 template <>
-struct typer<long long int> {
-  static const std::string get(void) { return "long long int"; }
+struct typer<int64_t> {
+  static const std::string get(void) { return "int64_t"; }
 };
 
 template <>
-struct typer<unsigned long long int> {
-  static const std::string get(void) { return "unsigned long long int"; }
+struct typer<uint64_t> {
+  static const std::string get(void) { return "uint64_t"; }
 };
 
 template <>

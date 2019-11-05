@@ -102,7 +102,7 @@ void margot::heel::validate(application_model& model) {
         block.features.fields.begin(), block.features.fields.end(),
         [&feature_types](const feature_model& feature) { feature_types.emplace_back(feature.type); });
     if (knob_types.empty()) {  // if we have only string knobs, we can use int as enum types
-      knob_types.emplace_back("int");
+      knob_types.emplace_back(margot::heel::typer<int>::get());
     }
     std::sort(knob_types.begin(), knob_types.end(), [](const std::string& a, const std::string& b) {
       const auto result = margot::heel::type_sorter(a, b);
@@ -110,7 +110,7 @@ void margot::heel::validate(application_model& model) {
         margot::heel::error(
             "Unable to deal with knobs of type \"", a, "\" and \"", b,
             "\", select a type which belong to the same category, i.e. signed, unsigned, and floating point");
-        throw std::runtime_error("model vlidation: mismatch between knobs type");
+        throw std::runtime_error("model validation: mismatch between knobs type");
       }
       return *result;
     });
@@ -120,7 +120,7 @@ void margot::heel::validate(application_model& model) {
         margot::heel::error(
             "Unable to deal with metrics of type \"", a, "\" and \"", b,
             "\", select a type which belong to the same category, i.e. signed, unsigned, and floating point");
-        throw std::runtime_error("model vlidation: mismatch between metrics type");
+        throw std::runtime_error("model validation: mismatch between metrics type");
       }
       return *result;
     });
@@ -130,7 +130,7 @@ void margot::heel::validate(application_model& model) {
         margot::heel::error(
             "Unable to deal with features of type \"", a, "\" and \"", b,
             "\", select a type which belong to the same category, i.e. signed, unsigned, and floating point");
-        throw std::runtime_error("model vlidation: mismatch between features type");
+        throw std::runtime_error("model validation: mismatch between features type");
       }
       return *result;
     });
@@ -142,7 +142,7 @@ void margot::heel::validate(application_model& model) {
     // metrics, or we don't have any of them;
     if ((block.knobs.empty() && !block.metrics.empty()) || (!block.knobs.empty() && block.metrics.empty())) {
       margot::heel::error("The block \"", block.name, "\" is partially managed, knobs or metrics missing");
-      throw std::runtime_error("model vlidation: block partially defined");
+      throw std::runtime_error("model validation: block partially defined");
     }
   });
 }
@@ -163,7 +163,7 @@ inline void check_uniqueness(std::vector<model_type>& container, const std::stri
     margot::heel::error("Found ", std::distance(last_unique, container.end()), " ", what,
                         "(s) with non-unique names:");
     std::for_each(last_unique, container.end(), [&what](const model_type& model) {
-      margot::heel::warning("\tFound duplicated ", what, " \"", model.name, "\"");
+      margot::heel::error("\tFound duplicated ", what, " \"", model.name, "\"");
     });
     throw std::runtime_error("validation error: " + what + "s names must be unique");
   }

@@ -3,6 +3,7 @@
 
 #include <heel/logger.hpp>
 #include <heel/model_knob.hpp>
+#include <heel/typer.hpp>
 
 void margot::heel::validate(knob_model& model) {
   // check if the knob has a type
@@ -10,6 +11,9 @@ void margot::heel::validate(knob_model& model) {
     margot::heel::error("The knob \"", model.name, "\" must have a type");
     throw std::runtime_error("knob model: knob without a type");
   }
+
+  // sanitize the knob type
+  model.type = sanitize_type(model.type);
 
   // check if the type is a string, we must also have range of values, since we can use them to construct
   // translator to map a string to an integer

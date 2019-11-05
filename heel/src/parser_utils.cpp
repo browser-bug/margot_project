@@ -43,23 +43,23 @@ std::vector<std::string> margot::heel::compute_range(const boost::property_tree:
   const std::string step = range_values.size() >= 3 ? range_values[2] : "1";  // default step is 1
 
   // now it begins the nightmare of generating the values according to the type of the knob
-  const std::string type = margot::heel::reverse_alias(value_type);
-  if (type.compare("short int") == 0) {
-    return generate<short int>(min, max, step);
-  } else if (type.compare("unsigned short int") == 0) {
-    return generate<unsigned short int>(min, max, step);
-  } else if (type.compare("int") == 0) {
-    return generate<int>(min, max, step);
-  } else if (type.compare("unsigned int") == 0) {
-    return generate<unsigned int>(min, max, step);
-  } else if (type.compare("long int") == 0) {
-    return generate<long int>(min, max, step);
-  } else if (type.compare("unsigned long int") == 0) {
-    return generate<unsigned long int>(min, max, step);
-  } else if (type.compare("long long int") == 0) {
-    return generate<long long int>(min, max, step);
-  } else if (type.compare("unsigned long long int") == 0) {
-    return generate<unsigned long long int>(min, max, step);
+  const std::string type = margot::heel::sanitize_type(value_type);
+  if (type.compare("int8_t") == 0) {
+    return generate<int8_t>(min, max, step);
+  } else if (type.compare("uint8_t") == 0) {
+    return generate<uint8_t>(min, max, step);
+  } else if (type.compare("int16_t") == 0) {
+    return generate<int16_t>(min, max, step);
+  } else if (type.compare("uint16_t") == 0) {
+    return generate<uint16_t>(min, max, step);
+  } else if (type.compare("int32_t") == 0) {
+    return generate<int32_t>(min, max, step);
+  } else if (type.compare("uint32_t") == 0) {
+    return generate<uint32_t>(min, max, step);
+  } else if (type.compare("int64_t") == 0) {
+    return generate<int64_t>(min, max, step);
+  } else if (type.compare("uint64_t") == 0) {
+    return generate<uint64_t>(min, max, step);
   } else if (type.compare("float") == 0) {
     return generate<float>(min, max, step);
   } else if (type.compare("double") == 0) {
