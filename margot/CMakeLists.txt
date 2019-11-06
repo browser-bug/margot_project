@@ -36,7 +36,7 @@ endif()
 list (APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
 
 # get the path where the dependencies could be installed using the scripts
-execute_process( COMMAND /bin/bash ${PROJECT_SOURCE_DIR}/../scripts/get_deps_path.sh
+execute_process( COMMAND /bin/bash ${PROJECT_SOURCE_DIR}/../scripts/get_install_path.sh
                  OUTPUT_VARIABLE EXPECTED_DEPS_ROOT
                  ERROR_VARIABLE EXPECTED_DEPS_ROOT_ERROR )
 
