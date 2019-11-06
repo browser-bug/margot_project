@@ -64,35 +64,32 @@ margot::heel::operating_point_value parse_op_field(const std::string& tag_name,
   return result;
 }
 
-void margot::heel::parse_operating_points(const boost::property_tree::ptree& op_node,
-                                          application_model& application) {
-  // for this parser we take the opposite approach with respect to the others: we parse the configuration
-  // using the application model. Therefore, we also validate the read information in the process
-  std::for_each(application.blocks.begin(), application.blocks.end(), [&op_node](block_model& block) {
-    // we assume that the file is about this block, so we start processing it as such
-    margot::heel::visit_optional(block.name, op_node, [&block](const pt::ptree::value_type& p) {
-      // declare the Operating Point model
-      margot::heel::operating_point_model op;
+std::vector<margot::heel::operating_point_model> margot::heel::parse_operating_points(
+    const boost::property_tree::ptree& op_node, const block_model& block) {
+  // we assume that the file is about the given name, let's start parsing them
+  std::vector<margot::heel::operating_point_model> result;
+  margot::heel::visit_optional(block.name, op_node, [&result, &block](const pt::ptree::value_type& p) {
+    // declare the Operating Point model
+    margot::heel::operating_point_model op;
 
-      // parse all the features
-      std::for_each(
-          block.features.fields.begin(), block.features.fields.end(),
-          [&p, &op](const feature_model& feature) {
-            op.features.emplace_back(parse_op_field(tag::features() + "." + feature.name, p.second));
-          });
+    // parse all the features
+    std::for_each(block.features.fields.begin(), block.features.fields.end(),
+                  [&p, &op](const feature_model& feature) {
+                    op.features.emplace_back(parse_op_field(tag::features() + "." + feature.name, p.second));
+                  });
 
-      // parse all the knobs
-      std::for_each(block.knobs.begin(), block.knobs.end(), [&p, &op](const knob_model& knob) {
-        op.knobs.emplace_back(parse_op_field(tag::knobs() + "." + knob.name, p.second));
-      });
-
-      // parse all the metrics
-      std::for_each(block.metrics.begin(), block.metrics.end(), [&p, &op](const metric_model& metric) {
-        op.metrics.emplace_back(parse_op_field(tag::metrics() + "." + metric.name, p.second));
-      });
-
-      // append the operating point to the block
-      block.ops.emplace_back(op);
+    // parse all the knobs
+    std::for_each(block.knobs.begin(), block.knobs.end(), [&p, &op](const knob_model& knob) {
+      op.knobs.emplace_back(parse_op_field(tag::knobs() + "." + knob.name, p.second));
     });
+
+    // parse all the metrics
+    std::for_each(block.metrics.begin(), block.metrics.end(), [&p, &op](const metric_model& metric) {
+      op.metrics.emplace_back(parse_op_field(tag::metrics() + "." + metric.name, p.second));
+    });
+
+    // append the operating point to the block
+    result.emplace_back(op);
   });
+  return result;
 }

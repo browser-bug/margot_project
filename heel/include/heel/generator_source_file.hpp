@@ -54,7 +54,7 @@ class source_file_generator {
   void open(void) {
     file_handler.open(file_path);
     if (!file_handler.good()) {
-      margot::heel::error("Unable to write the file \"", file_path, "\"");
+      margot::heel::error("Unable to write the file ", file_path);
       throw std::runtime_error("source gen: unable to write on file");
     }
   }

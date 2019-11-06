@@ -57,27 +57,5 @@ int main(int argc, char* argv[]) {
 
   // generate the high-level adaptive interface for the application
   driver.generate_adaptive_interface();
-
-  /*
-  // load, parse, and validate the margot model from the configuration file
-  margot::heel::configuration_file c;
-  c.load(path_conf_file);
-  margot::heel::application_model model = margot::heel::parse_json(c);
-  margot::heel::validate(model);
-
-  // do the same for the Operating Point lists (if any)
-  std::for_each(op_list_files.begin(), op_list_files.end(), [&model](const std::filesystem::path& p) {
-    margot::heel::configuration_file c;
-    c.load(p);
-    margot::heel::parse_json(c, model);
-  });
-
-  // now it is time to produce some output...
-  margot::heel::source_file_generator application_geometry_hdr(
-      "application_geometry.hpp", margot::heel::application_geometry_hpp_content(model));
-  application_geometry_hdr.write_header(path_conf_file);
-  margot::heel::source_file_generator application_geometry_src(
-      "application_geometry.cpp", margot::heel::application_geometry_cpp_content(model));
-  application_geometry_src.write_source(path_conf_file);*/
   return EXIT_SUCCESS;
 }

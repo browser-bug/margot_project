@@ -1,8 +1,11 @@
 #ifndef HEEL_JSON_PARSER_HDR
 #define HEEL_JSON_PARSER_HDR
 
+#include <vector>
+
 #include <heel/configuration_file.hpp>
 #include <heel/model_application.hpp>
+#include <heel/model_block.hpp>
 #include <heel/parser_application.hpp>
 #include <heel/parser_operating_point.hpp>
 
@@ -13,8 +16,9 @@ inline application_model parse_json(const configuration_file& conf_file) {
   return parse_application(conf_file.ptree());
 }
 
-inline void parse_json(const configuration_file& conf_file, application_model& application) {
-  parse_operating_points(conf_file.ptree(), application);
+inline std::vector<operating_point_model> parse_json(const configuration_file& conf_file,
+                                                     const block_model& block) {
+  return parse_operating_points(conf_file.ptree(), block);
 }
 
 }  // namespace heel
