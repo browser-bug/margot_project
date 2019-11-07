@@ -1,7 +1,8 @@
 include(CMakeFindDependencyMacro)
 
 # Get the path to the cust find packages
-list(APPEND CMAKE_MODULE_PATH "@CMAKE_INSTALL_PREFIX@/@MARGOT_FINDERS_INSTALL_PATH@")
+include(GNUInstallDirs)
+list(APPEND CMAKE_MODULE_PATH "@CMAKE_INSTALL_PREFIX@/@CMAKE_INSTALL_LIBDIR@/cmake/margot")
 
 # Get the configuration of the mARGOt build
 set(WITH_COLLECTOR_MONITOR @WITH_COLLECTOR_MONITOR@)

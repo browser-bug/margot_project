@@ -2,7 +2,7 @@
 cmake_minimum_required( VERSION 3.4.3 ) # for the imported targets
 
 # the project name
-project( mARGOt VERSION 3.0 LANGUAGES CXX)
+project( core VERSION 3.0 LANGUAGES CXX)
 
 
 #########################################################################
@@ -19,42 +19,13 @@ option( WITH_TEMPERATURE_MONITOR "Build the temperature monitor" OFF)
 
 
 #########################################################################
-#### Change the default  options
-#########################################################################
-
-# get the path where the dependencies could be installed using the scripts
-execute_process( COMMAND /bin/bash ${PROJECT_SOURCE_DIR}/../scripts/get_install_path.sh
-                 OUTPUT_VARIABLE EXPECTED_DEPS_ROOT
-                 ERROR_VARIABLE EXPECTED_DEPS_ROOT_ERROR )
-
-# check if something went wrong with the previous command (non empty error message)
-if ( NOT "${EXPECTED_DEPS_ROOT_ERROR}" STREQUAL "" )
-    message( FATAL_ERROR "Unable to read from the enviroment file etc/path.env")
-    message( STATUS "Standard error: ${EXPECTED_DEPS_ROOT_ERROR}")
-endif ( NOT "${EXPECTED_DEPS_ROOT_ERROR}" STREQUAL "" )
-
-# this is a common rule
-if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
-	message( STATUS "Setting the install path to '${EXPECTED_DEPS_ROOT}' as none was specified ")
-    set ( CMAKE_INSTALL_PREFIX "${EXPECTED_DEPS_ROOT}" CACHE PATH "default install path" FORCE )
-endif()
-
-# set the default build type if not specified explicitely by the user
-set(MARGOT_DEFAULT_BUILD_TYPE "Release")
-if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
-  message(STATUS "Setting build type to '${MARGOT_DEFAULT_BUILD_TYPE}' as none was specified")
-  set(CMAKE_BUILD_TYPE "${MARGOT_DEFAULT_BUILD_TYPE}" CACHE STRING "The type of build" FORCE)
-  set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release" "RelWithDebInfo")
-endif()
-
-
-#########################################################################
 #### Look for required external libraries, according to the options
 #########################################################################
 
 # add the path to the custom finders in the mARGOt repository
-set( MARGOT_CUSTOM_FINDERS_PATH "${PROJECT_SOURCE_DIR}/cmake")
+set( MARGOT_CUSTOM_FINDERS_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 list (APPEND CMAKE_MODULE_PATH "${MARGOT_CUSTOM_FINDERS_PATH}")
+message(STATUS "${CMAKE_INSTALL_PREFIX}")
 
 # define a macro to try to use the internal built version fo stuff (if not alredy set)
 macro( set_gentle_hint TARGET_ROOT_VARIABLE )
@@ -62,7 +33,7 @@ macro( set_gentle_hint TARGET_ROOT_VARIABLE )
 		if (DEFINED ENV{${TARGET_ROOT_VARIABLE}})
 			set( ${TARGET_ROOT_VARIABLE} "$ENV{${TARGET_ROOT_VARIABLE}}" )
 		else ()
-			set( ${TARGET_ROOT_VARIABLE} "${EXPECTED_DEPS_ROOT}" )
+			set( ${TARGET_ROOT_VARIABLE} "${CMAKE_INSTALL_PREFIX}" )
 		endif ()
 	endif()
 endmacro(set_gentle_hint)
@@ -104,7 +75,7 @@ endif( WITH_TEMPERATURE_MONITOR )
 #########################################################################
 
 # define the library name and paths
-set( MARGOT_LIBRARY_NAME "margot")
+set( MARGOT_LIBRARY_NAME "margot_core")
 set( MARGOT_HDR_PATH "${CMAKE_CURRENT_SOURCE_DIR}/include" )
 set( MARGOT_SRC_PATH "${CMAKE_CURRENT_SOURCE_DIR}/src")
 
@@ -221,33 +192,32 @@ target_compile_options(${MARGOT_LIBRARY_NAME} PRIVATE $<$<CONFIG:RELEASE>: -marc
 #########################################################################
 
 include(GNUInstallDirs)
-install(TARGETS ${MARGOT_LIBRARY_NAME} EXPORT ${MARGOT_LIBRARY_NAME}Targets
+install(TARGETS ${MARGOT_LIBRARY_NAME}
+	EXPORT ${MARGOT_LIBRARY_NAME}Targets
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
     PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/margot
 )
 include(CMakePackageConfigHelpers)
 write_basic_package_version_file(
     ${MARGOT_LIBRARY_NAME}ConfigVersion.cmake
     VERSION ${PACKAGE_VERSION}
-    COMPATIBILITY AnyNewerVersion
+    COMPATIBILITY ExactVersion
 )
 install(EXPORT ${MARGOT_LIBRARY_NAME}Targets
     FILE ${MARGOT_LIBRARY_NAME}Targets.cmake
     NAMESPACE margot::
-    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${MARGOT_LIBRARY_NAME}
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/margot
 )
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/${MARGOT_LIBRARY_NAME}Config.cmake"
               "${CMAKE_CURRENT_BINARY_DIR}/${MARGOT_LIBRARY_NAME}ConfigVersion.cmake"
-        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${MARGOT_LIBRARY_NAME}
+        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/margot
         )
-set(MARGOT_FINDERS_INSTALL_PATH "${CMAKE_INSTALL_LIBDIR}/cmake")
 install(FILES "${MARGOT_CUSTOM_FINDERS_PATH}/FindCOLLECTOR.cmake"
 	          "${MARGOT_CUSTOM_FINDERS_PATH}/FindPahoMQTT.cmake"
 	          "${MARGOT_CUSTOM_FINDERS_PATH}/FindPAPI.cmake"
 	          "${MARGOT_CUSTOM_FINDERS_PATH}/FindPFM.cmake"
 	          "${MARGOT_CUSTOM_FINDERS_PATH}/FindSENSORS.cmake"
-	    DESTINATION "${MARGOT_FINDERS_INSTALL_PATH}"
+	    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/margot
 	    )
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config/margotConfig.cmake.in ${MARGOT_LIBRARY_NAME}Config.cmake @ONLY)
 
@@ -273,17 +243,17 @@ endif ( GEN_DOC )
 #########################################################################
 
 message ( STATUS "" )
-message ( STATUS "//===-----------------------===//" )
-message ( STATUS "//        CONFIG STATUS        //" )
-message ( STATUS "//===-----------------------===//" )
-message ( STATUS "Build directory.................: ${PROJECT_BINARY_DIR}" )
-message ( STATUS "Install prefix..................: ${CMAKE_INSTALL_PREFIX}" )
-message ( STATUS "Build type......................: ${CMAKE_BUILD_TYPE}")
-message ( STATUS "Static library..................: ${LIB_STATIC} (CMake option LIB_STATIC)" )
-message ( STATUS "Build test application..........: ${WITH_TEST} (CMake option WITH_TEST)" )
-message ( STATUS "Build benchmark application.....: ${WITH_BENCHMARK} (CMake option WITH_BENCHMARK)" )
-message ( STATUS "Generate Doxygen documentation..: ${GEN_DOC} (CMake option GEN_DOC)" )
-message ( STATUS "With PAPI monitors..............: ${WITH_PAPI_MONITOR} (CMake option WITH_PAPI_MONITOR)" )
-message ( STATUS "With temperature monitors.......: ${WITH_TEMPERATURE_MONITOR} (CMake option WITH_TEMPERATURE_MONITOR)")
-message ( STATUS "//===-----------------------===//" )
+message ( STATUS "//===------------------------===//" )
+message ( STATUS "//     MARGOT CONFIG STATUS     //" )
+message ( STATUS "//===------------------------===//" )
+message ( STATUS "Build directory..................: ${PROJECT_BINARY_DIR}" )
+message ( STATUS "Install prefix...................: ${CMAKE_INSTALL_PREFIX}" )
+message ( STATUS "Build type.......................: ${CMAKE_BUILD_TYPE}")
+message ( STATUS "Static library...................: ${LIB_STATIC} (CMake option LIB_STATIC)" )
+message ( STATUS "Build test application...........: ${WITH_TEST} (CMake option WITH_TEST)" )
+message ( STATUS "Build benchmark application......: ${WITH_BENCHMARK} (CMake option WITH_BENCHMARK)" )
+message ( STATUS "Generate Doxygen documentation...: ${GEN_DOC} (CMake option GEN_DOC)" )
+message ( STATUS "With PAPI monitors...............: ${WITH_PAPI_MONITOR} (CMake option WITH_PAPI_MONITOR)" )
+message ( STATUS "With temperature monitors........: ${WITH_TEMPERATURE_MONITOR} (CMake option WITH_TEMPERATURE_MONITOR)")
+message ( STATUS "//===------------------------===//" )
 message ( STATUS "" )

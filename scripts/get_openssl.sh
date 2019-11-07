@@ -20,10 +20,17 @@ fi
 # load all the paths for margot
 source $GIT_REPO_ROOT/etc/path.env
 
+# post-process the install directory to have an absolute path
+case $INSTALL_PATH in
+  /*) : ;;
+  ~*) : ;;
+  *) INSTALL_PATH=$GIT_REPO_ROOT/$INSTALL_PATH
+esac
+
 # compose the path to the source code of the dependency
-DEPENDENCY_SRC=$DEPS_SRC_PATH/$DEPENDENCY_NAME
+DEPENDENCY_SRC=$GIT_REPO_ROOT/extern/$DEPENDENCY_NAME
 DEPENDENCY_BUILD_PATH=$DEPENDENCY_SRC/build
-DEPENDENCY_INSTALL_PATH=$DEPS_INSTALL_PATH
+DEPENDENCY_INSTALL_PATH=$INSTALL_PATH
 
 # define the path for the stdout and stderr files for logging
 STDOUT_FILE=$PWD/stdout.txt
