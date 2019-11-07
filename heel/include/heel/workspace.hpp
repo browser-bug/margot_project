@@ -22,8 +22,7 @@ class workspace {
   // these are the path of the configuration files used to create the application model. We need to keep track
   // of them to write in the source file the path of the configuration file that has generated the interface,
   // for clarity reasons
-  std::filesystem::path application_config;
-  std::vector<std::filesystem::path> ops_config;
+  std::vector<std::filesystem::path> path_configuration_files;
 
  public:
   // in the workspace we perform all the parsing of the configuration files and the model validation
