@@ -25,7 +25,6 @@ option( WITH_TEMPERATURE_MONITOR "Build the temperature monitor" OFF)
 # add the path to the custom finders in the mARGOt repository
 set( MARGOT_CUSTOM_FINDERS_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 list (APPEND CMAKE_MODULE_PATH "${MARGOT_CUSTOM_FINDERS_PATH}")
-message(STATUS "${CMAKE_INSTALL_PREFIX}")
 
 # define a macro to try to use the internal built version fo stuff (if not alredy set)
 macro( set_gentle_hint TARGET_ROOT_VARIABLE )
