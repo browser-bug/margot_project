@@ -18,6 +18,10 @@ else :
 fi
 
 # load all the paths for margot
+if [ ! -f $GIT_REPO_ROOT/etc/path.env ]; then
+	>&2 echo "Error: please, run cmake before using this script"
+	exit -1
+fi
 source $GIT_REPO_ROOT/etc/path.env
 
 # post-process the install directory to have an absolute path

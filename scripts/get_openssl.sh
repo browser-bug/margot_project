@@ -18,6 +18,10 @@ else :
 fi
 
 # load all the paths for margot
+if [ ! -f $GIT_REPO_ROOT/etc/path.env ]; then
+	>&2 echo "Error: please, run cmake before using this script"
+	exit -1
+fi
 source $GIT_REPO_ROOT/etc/path.env
 
 # post-process the install directory to have an absolute path
@@ -36,7 +40,7 @@ DEPENDENCY_INSTALL_PATH=$INSTALL_PATH
 STDOUT_FILE=$PWD/stdout.txt
 STDERR_FILE=$PWD/stderr.txt
 
-# retrieveing the source code of the dependency
+# retrieving the source code of the dependency
 if [ ! -d $DEPENDENCY_SRC ]; then
 	echo "Cloning the $DEPENDENCY_NAME framework..."
 	git clone git://git.openssl.org/openssl.git $DEPENDENCY_SRC > $STDOUT_FILE 2> $STDERR_FILE
