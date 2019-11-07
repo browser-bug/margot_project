@@ -201,17 +201,3 @@ install(FILES "${CMAKE_CURRENT_BINARY_DIR}/${HEEL_BINARY_NAME}Config.cmake"
               "${CMAKE_CURRENT_BINARY_DIR}/${HEEL_BINARY_NAME}ConfigVersion.cmake"
         DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/margot
         )
-
-#########################################################################
-#### Print a summary of the build configuration
-#########################################################################
-
-message ( STATUS "" )
-message ( STATUS "//===------------------------===//" )
-message ( STATUS "//      HEEL CONFIG STATUS      //" )
-message ( STATUS "//===------------------------===//" )
-message ( STATUS "Build directory..................: ${PROJECT_BINARY_DIR}" )
-message ( STATUS "Install prefix...................: ${CMAKE_INSTALL_PREFIX}" )
-message ( STATUS "Build type.......................: ${CMAKE_BUILD_TYPE}")
-message ( STATUS "//===------------------------===//" )
-message ( STATUS "" )

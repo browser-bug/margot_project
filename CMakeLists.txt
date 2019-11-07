@@ -45,3 +45,18 @@ if (WITH_AGORA)
 	add_subdirectory( agora )
 endif (WITH_AGORA)
 
+
+#########################################################################
+#### Write a summary with the build information
+#########################################################################
+
+message ( STATUS "" )
+message ( STATUS "//===------------------------===//" )
+message ( STATUS "//     MARGOT CONFIG STATUS     //" )
+message ( STATUS "//===------------------------===//" )
+message ( STATUS "Build directory..................: ${PROJECT_BINARY_DIR}" )
+message ( STATUS "Install prefix...................: ${CMAKE_INSTALL_PREFIX}" )
+message ( STATUS "Build type.......................: ${CMAKE_BUILD_TYPE}")
+message ( STATUS "With remote application handler..: ${WITH_AGORA} (CMake option WITH_AGORA)" )
+message ( STATUS "//===------------------------===//" )
+message ( STATUS "" )
