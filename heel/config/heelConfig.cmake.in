@@ -4,7 +4,44 @@ include(CMakeFindDependencyMacro)
 set(Boost_USE_STATIC_LIBS @Boost_USE_STATIC_LIBS@)
 set(Boost_USE_MULTITHREADED @Boost_USE_MULTITHREADED@)
 set(Boost_USE_STATIC_RUNTIME @Boost_USE_STATIC_RUNTIME@)
-find_dependency(Boost REQUIRED COMPENENT program_options)
+find_dependency(Boost REQUIRED COMPONENTS program_options)
 
 # Add the targets file
 include("${CMAKE_CURRENT_LIST_DIR}/@HEEL_LIBRARY_NAME@Targets.cmake")
+
+
+# Define the CMake function that generates the high-level interface for
+# the application, to be used when compiling the application
+# The expected parameter is the margot configuration file. If the user
+# would like to provide the application knowledge as a list of Operating
+# Points, he/she can append them when calling the function
+function(heel_gen_application_interface MARGOT_CONFIG_FILE )
+
+	# check if we actually have the margot configuration file
+	if ("${ARGC}" EQUAL "0")
+		message(FATAL_ERROR "Unable to generate the application interface without configuration files")
+		message(STATUS "Function usage:")
+		message(STATUS "heel_gen_application_interface( <PATH_MARGOT_CONFIG_FILE> [<PATH_OP_LIST>]*")
+	endif ("${ARGC}" EQUAL "0")
+
+	# ok now we can execute the command
+	include(GNUInstallDirs)
+	set(HEEL_GENERATOR_PATH @CMAKE_INSTALL_PREFIX@/@CMAKE_INSTALL_BINDIR@/@HEEL_BINARY_NAME@)
+	set(ADAPTIVE_INTERFACE_PATH "${CMAKE_BINARY_DIR}/adaptive_interface")
+	message(STATUS "Generating the application adaptive interface in '${ADAPTIVE_INTERFACE_PATH}'")
+	message(STATUS "${HEEL_GENERATOR_PATH} -w ${ADAPTIVE_INTERFACE_PATH} -c ${MARGOT_CONFIG_FILE} ${ARGN}")
+	execute_process(COMMAND ${HEEL_GENERATOR_PATH} -w ${ADAPTIVE_INTERFACE_PATH} -c ${MARGOT_CONFIG_FILE} ${ARGN}
+					RESULT_VARIABLE HEEL_RETURNCODE
+	                ERROR_VARIABLE HEEL_STDERR
+	                )
+
+	# check if everything worked as expected
+	if (NOT "${HEEL_RETURNCODE}" EQUAL "0")
+		message(FATAL_ERROR "Unable to generate the application interface: \n ${HEEL_STDERR}")
+	endif(NOT "${HEEL_RETURNCODE}" EQUAL "0")
+
+
+	# ok at this point we can include the interface file, that will contain all the required information
+	add_subdirectory(${ADAPTIVE_INTERFACE_PATH})
+
+endfunction(heel_gen_application_interface)

@@ -22,19 +22,6 @@ option( WITH_TEMPERATURE_MONITOR "Build the temperature monitor" OFF)
 #### Change the default  options
 #########################################################################
 
-# this is a common rule
-if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
-    set ( CMAKE_INSTALL_PREFIX "${PROJECT_SOURCE_DIR}" CACHE PATH "default install path" FORCE )
-endif()
-
-
-#########################################################################
-#### Look for required external libraries, according to the options
-#########################################################################
-
-# add the path to the custom finders in the mARGOt repository
-list (APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
-
 # get the path where the dependencies could be installed using the scripts
 execute_process( COMMAND /bin/bash ${PROJECT_SOURCE_DIR}/../scripts/get_install_path.sh
                  OUTPUT_VARIABLE EXPECTED_DEPS_ROOT
@@ -45,6 +32,29 @@ if ( NOT "${EXPECTED_DEPS_ROOT_ERROR}" STREQUAL "" )
     message( FATAL_ERROR "Unable to read from the enviroment file etc/path.env")
     message( STATUS "Standard error: ${EXPECTED_DEPS_ROOT_ERROR}")
 endif ( NOT "${EXPECTED_DEPS_ROOT_ERROR}" STREQUAL "" )
+
+# this is a common rule
+if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+	message( STATUS "Setting the install path to '${EXPECTED_DEPS_ROOT}' as none was specified ")
+    set ( CMAKE_INSTALL_PREFIX "${EXPECTED_DEPS_ROOT}" CACHE PATH "default install path" FORCE )
+endif()
+
+# set the default build type if not specified explicitely by the user
+set(MARGOT_DEFAULT_BUILD_TYPE "Release")
+if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+  message(STATUS "Setting build type to '${MARGOT_DEFAULT_BUILD_TYPE}' as none was specified")
+  set(CMAKE_BUILD_TYPE "${MARGOT_DEFAULT_BUILD_TYPE}" CACHE STRING "The type of build" FORCE)
+  set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release" "RelWithDebInfo")
+endif()
+
+
+#########################################################################
+#### Look for required external libraries, according to the options
+#########################################################################
+
+# add the path to the custom finders in the mARGOt repository
+set( MARGOT_CUSTOM_FINDERS_PATH "${PROJECT_SOURCE_DIR}/cmake")
+list (APPEND CMAKE_MODULE_PATH "${MARGOT_CUSTOM_FINDERS_PATH}")
 
 # define a macro to try to use the internal built version fo stuff (if not alredy set)
 macro( set_gentle_hint TARGET_ROOT_VARIABLE )
@@ -198,15 +208,6 @@ target_compile_features( ${MARGOT_LIBRARY_NAME} PRIVATE cxx_std_11 )
 # turn on compiler warings regardless of the build type
 target_compile_options(${MARGOT_LIBRARY_NAME} PRIVATE "-Wall")
 
-# set the default build type if not specified explicitely by the user
-set(MARGOT_DEFAULT_BUILD_TYPE "Release")
-if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
-  message(STATUS "Setting build type to '${MARGOT_DEFAULT_BUILD_TYPE}' as none was specified")
-  set(CMAKE_BUILD_TYPE "${MARGOT_DEFAULT_BUILD_TYPE}" CACHE STRING "The type of build" FORCE)
-  set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release" "RelWithDebInfo")
-endif()
-
-
 # now we can define compiler options for each build target
 target_compile_options(${MARGOT_LIBRARY_NAME} PRIVATE $<$<CONFIG:DEBUG>: -g -O0 >)
 target_compile_options(${MARGOT_LIBRARY_NAME} PRIVATE $<$<CONFIG:RELWITHDEBINFO>: -march=native -mtune=native -g -O2 >)
@@ -235,12 +236,19 @@ install(EXPORT ${MARGOT_LIBRARY_NAME}Targets
     NAMESPACE margot::
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${MARGOT_LIBRARY_NAME}
 )
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config/margotConfig.cmake.in ${MARGOT_LIBRARY_NAME}Config.cmake @ONLY)
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/${MARGOT_LIBRARY_NAME}Config.cmake"
               "${CMAKE_CURRENT_BINARY_DIR}/${MARGOT_LIBRARY_NAME}ConfigVersion.cmake"
         DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${MARGOT_LIBRARY_NAME}
         )
-
+set(MARGOT_FINDERS_INSTALL_PATH "${CMAKE_INSTALL_LIBDIR}/cmake")
+install(FILES "${MARGOT_CUSTOM_FINDERS_PATH}/FindCOLLECTOR.cmake"
+	          "${MARGOT_CUSTOM_FINDERS_PATH}/FindPahoMQTT.cmake"
+	          "${MARGOT_CUSTOM_FINDERS_PATH}/FindPAPI.cmake"
+	          "${MARGOT_CUSTOM_FINDERS_PATH}/FindPFM.cmake"
+	          "${MARGOT_CUSTOM_FINDERS_PATH}/FindSENSORS.cmake"
+	    DESTINATION "${MARGOT_FINDERS_INSTALL_PATH}"
+	    )
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config/margotConfig.cmake.in ${MARGOT_LIBRARY_NAME}Config.cmake @ONLY)
 
 #########################################################################
 #### Build additional stuff with the mARGOt autotuning framework

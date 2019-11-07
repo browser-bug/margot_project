@@ -8,18 +8,34 @@ project( HEEL VERSION 3.0 LANGUAGES CXX)
 #### Change the default  options
 #########################################################################
 
+# get the path where the dependencies could be installed using the scripts
+execute_process( COMMAND /bin/bash ${PROJECT_SOURCE_DIR}/../scripts/get_install_path.sh
+                 OUTPUT_VARIABLE EXPECTED_DEPS_ROOT
+                 ERROR_VARIABLE EXPECTED_DEPS_ROOT_ERROR )
+
+# check if something went wrong with the previous command (non empty error message)
+if ( NOT "${EXPECTED_DEPS_ROOT_ERROR}" STREQUAL "" )
+    message( FATAL_ERROR "Unable to read from the enviroment file etc/path.env")
+    message( STATUS "Standard error: ${EXPECTED_DEPS_ROOT_ERROR}")
+endif ( NOT "${EXPECTED_DEPS_ROOT_ERROR}" STREQUAL "" )
+
 # this is a common rule
 if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
-    set ( CMAKE_INSTALL_PREFIX "${PROJECT_SOURCE_DIR}" CACHE PATH "default install path" FORCE )
+	message( STATUS "Setting the install path to '${EXPECTED_DEPS_ROOT}' as none was specified ")
+    set ( CMAKE_INSTALL_PREFIX "${EXPECTED_DEPS_ROOT}" CACHE PATH "default install path" FORCE )
 endif()
 
 # set the default build type if not specified explicitely by the user
-set(HELL_DEFAULT_BUILD_TYPE "Release")
+set(MARGOT_DEFAULT_BUILD_TYPE "Release")
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
-  message(STATUS "Setting build type to '${HELL_DEFAULT_BUILD_TYPE}' as none was specified")
-  set(CMAKE_BUILD_TYPE "${HELL_DEFAULT_BUILD_TYPE}" CACHE STRING "The type of build" FORCE)
+  message(STATUS "Setting build type to '${MARGOT_DEFAULT_BUILD_TYPE}' as none was specified")
+  set(CMAKE_BUILD_TYPE "${MARGOT_DEFAULT_BUILD_TYPE}" CACHE STRING "The type of build" FORCE)
   set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release" "RelWithDebInfo")
 endif()
+
+# set the instal directory on the rpath
+include(GNUInstallDirs)
+set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}")
 
 
 #########################################################################
@@ -148,6 +164,9 @@ target_include_directories( ${HEEL_BINARY_NAME} PRIVATE ${HEEL_HDR_PATH} )
 # set the executable dependencies
 target_link_libraries( ${HEEL_BINARY_NAME} PUBLIC ${HEEL_LIBRARY_NAME} )
 
+# set the runtime library path for executing it anywhere
+set_target_properties(${HEEL_BINARY_NAME} PROPERTIES INSTALL_RPATH_USE_LINK_PATH TRUE)
+
 
 # define its compiler options
 target_compile_features( ${HEEL_BINARY_NAME} PRIVATE cxx_std_17 ) # for the filesystem component
@@ -169,7 +188,6 @@ endif()
 #########################################################################
 
 # copy library files
-include(GNUInstallDirs)
 install(TARGETS ${HEEL_LIBRARY_NAME} ${HEEL_BINARY_NAME}
 		EXPORT ${HEEL_LIBRARY_NAME}Targets
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
