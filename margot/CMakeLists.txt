@@ -167,6 +167,7 @@ if ( LIB_STATIC )
 else ( LIB_STATIC )
 	add_library( ${MARGOT_LIBRARY_NAME} SHARED ${MARGOT_SOURCES} )
 endif ( LIB_STATIC )
+add_library(margot::${MARGOT_LIBRARY_NAME} ALIAS ${MARGOT_LIBRARY_NAME})
 
 # define its interface
 target_include_directories( ${MARGOT_LIBRARY_NAME}

@@ -57,6 +57,7 @@ set( HEEL_SRC_PATH "${CMAKE_CURRENT_SOURCE_DIR}/src")
 
 # define the related headers and source files
 set( HEEL_LIBRARY_HEADERS
+	"${HEEL_HDR_PATH}/heel/generator_cmake.hpp"
 	"${HEEL_HDR_PATH}/heel/generator_description_verbose.hpp"
 	"${HEEL_HDR_PATH}/heel/generator_cpp_application_geometry_hdr.hpp"
 	"${HEEL_HDR_PATH}/heel/generator_cpp_application_geometry_src.hpp"
@@ -95,6 +96,7 @@ set( HEEL_LIBRARY_HEADERS
 )
 set( HEEL_LIBRARY_SOURCES
 	"${HEEL_SRC_PATH}/configuration_file.cpp"
+	"${HEEL_SRC_PATH}/generator_cmake.cpp"
 	"${HEEL_SRC_PATH}/generator_description_verbose.cpp"
 	"${HEEL_SRC_PATH}/generator_cpp_application_geometry_hdr.cpp"
 	"${HEEL_SRC_PATH}/generator_cpp_application_geometry_src.cpp"

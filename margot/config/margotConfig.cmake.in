@@ -30,4 +30,4 @@ if ( WITH_TEMPERATURE_MONITOR )
 endif( WITH_TEMPERATURE_MONITOR )
 
 # Add the targets file
-include("${CMAKE_CURRENT_LIST_DIR}/MyLibTargets.cmake")
+include("${CMAKE_CURRENT_LIST_DIR}/@MARGOT_LIBRARY_NAME@Targets.cmake")

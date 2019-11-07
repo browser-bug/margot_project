@@ -4,7 +4,7 @@ include(CMakeFindDependencyMacro)
 set(Boost_USE_STATIC_LIBS @Boost_USE_STATIC_LIBS@)
 set(Boost_USE_MULTITHREADED @Boost_USE_MULTITHREADED@)
 set(Boost_USE_STATIC_RUNTIME @Boost_USE_STATIC_RUNTIME@)
-find_dependency(Boost REQUIRED COMPONENTS program_options)
+find_dependency(Boost REQUIRED)
 
 # Add the targets file
 include("${CMAKE_CURRENT_LIST_DIR}/@HEEL_LIBRARY_NAME@Targets.cmake")
@@ -41,6 +41,7 @@ function(heel_gen_application_interface MARGOT_CONFIG_FILE )
 
 
 	# ok at this point we can include the interface file, that will contain all the required information
+	set(MARGOT_CMAKE_INSTALL_PATH "@CMAKE_INSTALL_PREFIX@/@CMAKE_INSTALL_LIBDIR@/cmake/margot")
 	add_subdirectory(${ADAPTIVE_INTERFACE_PATH})
 
 endfunction(heel_gen_application_interface)
