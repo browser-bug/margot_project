@@ -89,6 +89,6 @@ target_compile_options(${MARGOT_HEEL_INTERFACE_NAME} PRIVATE $<$<CONFIG:RELEASE>
 
 add_custom_command(OUTPUT ${MARGOT_HI_HEADERS} ${MARGOT_HI_SOURCES}
 	               COMMAND $<TARGET_FILE:margot::margot_heel_generator> -w ${CMAKE_CURRENT_SOURCE_DIR} -c ${MARGOT_CONFIG_PATH} ${MARGOT_OPS_PATH}
-	               DEPENDS ${MARGOT_CONFIG_PATH} ${MARGOT_OPS_PATH}
+	               DEPENDS $<TARGET_FILE:margot::margot_heel_generator> ${MARGOT_CONFIG_PATH} ${MARGOT_OPS_PATH}
 	               COMMENT "Generating the margot high-level interface source files"
 	              )
