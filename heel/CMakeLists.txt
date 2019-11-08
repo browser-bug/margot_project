@@ -151,7 +151,8 @@ endif()
 # The expected parameter is the margot configuration file. If the user
 # would like to provide the application knowledge as a list of Operating
 # Points, he/she can append them when calling the function
-set(DEFAULT_MARGOT_HEEL_INTERFACE_CMAKE_PATH "${CMAKE_CURRENT_BINARY_DIR}/margot_heel_interface.cmake")
+set(DEFAULT_MARGOT_HEEL_INTERFACE_CMAKE_PATH "${CMAKE_CURRENT_BINARY_DIR}/margot_heel_interface.cmake"
+	CACHE INTERNAL "")
 function(margot_heel_generate_interface MARGOT_CONFIG_FILE )
 
        # check if we actually have the margot configuration file
