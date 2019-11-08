@@ -18,7 +18,7 @@ if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
 	message( STATUS "Setting the install path to '${MARGOT_DEFAULT_INSTALL_PREFIX}' as none was specified ")
     set ( CMAKE_INSTALL_PREFIX "${MARGOT_DEFAULT_INSTALL_PREFIX}" CACHE PATH "default install path" FORCE )
 endif()
-file(WRITE ${CMAKE_SOURCE_DIR}/etc/path.env "INSTALL_PATH=${CMAKE_INSTALL_PREFIX}")
+file(WRITE ${CMAKE_CURRENT_SOURCE_DIR}/etc/path.env "INSTALL_PATH=${CMAKE_INSTALL_PREFIX}")
 
 # set the default build type if not specified explicitely by the user
 set(MARGOT_DEFAULT_BUILD_TYPE "Release")
