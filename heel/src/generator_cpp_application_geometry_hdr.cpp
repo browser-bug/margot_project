@@ -99,6 +99,7 @@ margot::heel::cpp_source_content margot::heel::application_geometry_hpp_content(
         c.required_headers.emplace_back("margot/da_asrtm.hpp");
         c.required_headers.emplace_back("margot/enums.hpp");
         c.content << "using manager_type = margot::DataAwareAsrtm<margot::Asrtm<operating_point_type>,"
+                  << block.features.features_type << ","
                   << margot::heel::cpp_enum::get(block.features.distance_type) << ","
                   << margot::heel::join(block.features.fields.begin(), block.features.fields.end(), ",",
                                         [](const feature_model& field) {

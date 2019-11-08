@@ -19,7 +19,7 @@ function(margot_heel_generate_interface MARGOT_CONFIG_FILE )
        # ok now we can execute the command
        include(GNUInstallDirs)
        set(HEEL_GENERATOR_PATH @CMAKE_INSTALL_PREFIX@/@CMAKE_INSTALL_BINDIR@/@HEEL_BINARY_NAME@)
-       set(ADAPTIVE_INTERFACE_PATH "${CMAKE_BINARY_DIR}/adaptive_interface")
+       set(ADAPTIVE_INTERFACE_PATH "${CMAKE_BINARY_DIR}/margot_heel_interface")
        message(STATUS "Generating the application adaptive interface in '${ADAPTIVE_INTERFACE_PATH}'")
        execute_process(COMMAND ${HEEL_GENERATOR_PATH} -w ${ADAPTIVE_INTERFACE_PATH} -c ${MARGOT_CONFIG_FILE} ${ARGN}
                                        RESULT_VARIABLE HEEL_RETURNCODE

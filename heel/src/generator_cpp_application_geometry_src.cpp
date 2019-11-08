@@ -49,8 +49,8 @@ margot::heel::cpp_source_content margot::heel::application_geometry_cpp_content(
                 << std::endl;
       c.content << "\t                                 const auto dev_elem_it = std::next(avg_elem_it);"
                 << std::endl;
-      c.content << "\t                                 return metrics_type(first_elem_it->second.get<"
-                << block.metrics_segment_type << ">(\"\"), second_elem_it->second.get<"
+      c.content << "\t                                 return metrics_type(avg_elem_it->second.get<"
+                << block.metrics_segment_type << ">(\"\"), dev_elem_it->second.get<"
                 << block.metrics_segment_type << ">(\"\"));};" << std::endl;
 
       // now we can parse the property tree
@@ -59,7 +59,7 @@ margot::heel::cpp_source_content margot::heel::application_geometry_cpp_content(
 
       // how to build the Operating Points list depends if we have features or not
       if (block.features.fields.empty()) {
-        c.content << "\t\tresult.emplace_back({";
+        c.content << "\t\tresult.emplace_back(operating_point_type(";
       } else {
         c.content << "\t\tresult[{"
                   << margot::heel::join(block.features.fields.begin(), block.features.fields.end(), ", ",
@@ -67,7 +67,7 @@ margot::heel::cpp_source_content margot::heel::application_geometry_cpp_content(
                                           return "node_pair.second.get<" + block.features.features_type +
                                                  ">(\"features." + field.name + "\")";
                                         })
-                  << "}].emplace_back({";
+                  << "}].emplace_back(operating_point_type(";
       }
       c.content << "{"
                 << margot::heel::join(block.knobs.begin(), block.knobs.end(), ", ",
@@ -87,7 +87,7 @@ margot::heel::cpp_source_content margot::heel::application_geometry_cpp_content(
                                                  "\"), static_cast<" + block.metrics_segment_type + ">(0))";
                                         }
                                       })
-                << "}});" << std::endl;
+                << "}));" << std::endl;
 
       c.content << "\t}" << std::endl;
       c.content << "\treturn result;" << std::endl;
@@ -96,7 +96,7 @@ margot::heel::cpp_source_content margot::heel::application_geometry_cpp_content(
       // generate the function that generate the string representation of an Operating Point list
       c.content << "std::string operating_point_parser::operator()("
                 << margot::heel::cpp_parameters::signature(block.features.fields, block.knobs, block.metrics)
-                << ") {" << std::endl;
+                << ") const {" << std::endl;
       c.content << "\treturn \"{\\\"" << block.name << "\\\":[{";
       if (!block.features.fields.empty()) {
         c.content << "\\\"features\\\":{"
