@@ -4,7 +4,6 @@
 #include <vector>
 
 #include <heel/configuration_file.hpp>
-#include <heel/generator_cmake.hpp>
 #include <heel/generator_cpp_application_geometry_hdr.hpp>
 #include <heel/generator_cpp_application_geometry_src.hpp>
 #include <heel/generator_source_file.hpp>
@@ -69,5 +68,4 @@ void margot::heel::workspace::generate_adaptive_interface(void) {
                 [this](margot::heel::source_file_generator& g) { g.write_header(path_configuration_files); });
   std::for_each(sources.begin(), sources.end(),
                 [this](margot::heel::source_file_generator& g) { g.write_source(path_configuration_files); });
-  margot::heel::generate_cmakelists(project_root / "CMakeLists.txt", hdr_path, headers, sources);
 }

@@ -1,0 +1,94 @@
+# check the minimum version
+cmake_minimum_required( VERSION 3.4.3 ) # for the imported targets
+
+# the project name
+project( margot_heel_interface VERSION 3.0 LANGUAGES CXX)
+
+
+#########################################################################
+#### Look for required external libraries, according to the options
+#########################################################################
+
+# now we need to understand if we need to load the margot core and heel
+# generator, i.e. whether the user called us from an install directory
+# or from a upper directory
+if (NOT TARGET margot::margot_core)
+	set(margot_core_DIR "${MARGOT_FINDERS_PATH}")
+	find_package(margot_core REQUIRED)
+endif (NOT TARGET margot::margot_core)
+if (NOT TARGET margot::margot_heel_generator)
+	set(margot_heel_generator_DIR "${MARGOT_FINDERS_PATH}")
+	find_package(margot_heel_generator REQUIRED)
+endif (NOT TARGET margot::margot_heel_generator)
+
+
+# and we need also boost for the Operating Points parser. We actually need
+# boost only if we use agora, but at this point we can't tell the content
+# of the high-level interface, so we need to assume that we need it
+find_package(Boost REQUIRED)
+
+# the same goes for pthread and the support thread that communicates with
+# the remote application handler
+find_package(Threads REQUIRED )
+
+
+#########################################################################
+#### Define the mARGOt framework target
+#########################################################################
+
+# define the library name and paths
+set( MARGOT_HEEL_INTERFACE_NAME "margot_heel_interface")
+set( MARGOT_HI_HDR_PATH "${CMAKE_CURRENT_SOURCE_DIR}/include" )
+set( MARGOT_HI_SRC_PATH "${CMAKE_CURRENT_SOURCE_DIR}/src")
+
+
+# set the headers and source files of the mARGOt library
+set( MARGOT_HI_HEADERS
+	"${MARGOT_HI_HDR_PATH}/margot/application_geometry.hpp"
+	)
+set( MARGOT_HI_SOURCES
+	"${MARGOT_HI_SRC_PATH}/application_geometry.cpp"
+)
+
+# add the target
+add_library( ${MARGOT_HEEL_INTERFACE_NAME} STATIC ${MARGOT_HI_HEADERS} ${MARGOT_HI_SOURCES} )
+add_library(margot::${MARGOT_HEEL_INTERFACE_NAME} ALIAS ${MARGOT_HEEL_INTERFACE_NAME})
+
+# define its interface
+target_include_directories( ${MARGOT_HEEL_INTERFACE_NAME}
+    PUBLIC
+        $<INSTALL_INTERFACE:include>
+        $<BUILD_INTERFACE:${MARGOT_HI_HDR_PATH}>
+)
+set_property(SOURCE ${MARGOT_HI_HEADERS} ${MARGOT_HI_SOURCES} PROPERTY GENERATED  )
+
+# define the linker options
+target_link_libraries(${MARGOT_HEEL_INTERFACE_NAME} PUBLIC Boost::boost Threads::Threads margot::margot_core)
+
+
+#########################################################################
+#### Setting the compiler options according to the build type
+#########################################################################
+
+# to compile the application we need at least C++11
+target_compile_features( ${MARGOT_HEEL_INTERFACE_NAME} PRIVATE cxx_std_11 )
+
+# turn on compiler warings regardless of the build type
+target_compile_options(${MARGOT_HEEL_INTERFACE_NAME} PRIVATE "-Wall")
+
+# now we can define compiler options for each build target
+target_compile_options(${MARGOT_HEEL_INTERFACE_NAME} PRIVATE $<$<CONFIG:DEBUG>: -g -O0 >)
+target_compile_options(${MARGOT_HEEL_INTERFACE_NAME} PRIVATE $<$<CONFIG:RELWITHDEBINFO>: -march=native -mtune=native -g -O2 >)
+target_compile_options(${MARGOT_HEEL_INTERFACE_NAME} PRIVATE $<$<CONFIG:RELEASE>: -march=native -mtune=native -O3 >)
+
+
+
+#########################################################################
+#### Add the command that actually generates the high-level interface
+#########################################################################
+
+add_custom_command(OUTPUT ${MARGOT_HI_HEADERS} ${MARGOT_HI_SOURCES}
+	               COMMAND $<TARGET_FILE:margot::margot_heel_generator> -w ${CMAKE_CURRENT_SOURCE_DIR} -c ${MARGOT_CONFIG_PATH} ${MARGOT_OPS_PATH}
+	               DEPENDS ${MARGOT_CONFIG_PATH} ${MARGOT_OPS_PATH}
+	               COMMENT "Generating the margot high-level interface source files"
+	              )

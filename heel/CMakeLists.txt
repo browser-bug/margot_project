@@ -23,7 +23,6 @@ set( HEEL_SRC_PATH "${CMAKE_CURRENT_SOURCE_DIR}/src")
 
 # define the related headers and source files
 set( HEEL_LIBRARY_HEADERS
-	"${HEEL_HDR_PATH}/heel/generator_cmake.hpp"
 	"${HEEL_HDR_PATH}/heel/generator_description_verbose.hpp"
 	"${HEEL_HDR_PATH}/heel/generator_cpp_application_geometry_hdr.hpp"
 	"${HEEL_HDR_PATH}/heel/generator_cpp_application_geometry_src.hpp"
@@ -62,7 +61,6 @@ set( HEEL_LIBRARY_HEADERS
 )
 set( HEEL_LIBRARY_SOURCES
 	"${HEEL_SRC_PATH}/configuration_file.cpp"
-	"${HEEL_SRC_PATH}/generator_cmake.cpp"
 	"${HEEL_SRC_PATH}/generator_description_verbose.cpp"
 	"${HEEL_SRC_PATH}/generator_cpp_application_geometry_hdr.cpp"
 	"${HEEL_SRC_PATH}/generator_cpp_application_geometry_src.cpp"
@@ -148,6 +146,33 @@ if(result)
   set_target_properties( ${HEEL_BINARY_NAME} PROPERTIES INTERPROCEDURAL_OPTIMIZATION TRUE )
 endif()
 
+# Define the CMake function that generates the high-level interface for
+# the application, to be used when compiling the application
+# The expected parameter is the margot configuration file. If the user
+# would like to provide the application knowledge as a list of Operating
+# Points, he/she can append them when calling the function
+set(DEFAULT_MARGOT_HEEL_INTERFACE_CMAKE_PATH "${CMAKE_CURRENT_BINARY_DIR}/margot_heel_interface.cmake")
+function(margot_heel_generate_interface MARGOT_CONFIG_FILE )
+
+       # check if we actually have the margot configuration file
+       if ("${ARGC}" EQUAL "0")
+               message(FATAL_ERROR "Unable to generate the application interface without configuration files")
+               message(STATUS "Function usage:")
+               message(STATUS "margot_heel_generate_interface( <PATH_MARGOT_CONFIG_FILE> [<PATH_OP_LIST>]*")
+       endif ("${ARGC}" EQUAL "0")
+
+
+       # now we have to create and customize the CMake project for the interface
+       include(GNUInstallDirs)
+       set(MARGOT_CONFIG_PATH "${MARGOT_CONFIG_FILE}")
+       set(MARGOT_OPS_PATH "${ARGN}")
+       configure_file("${DEFAULT_MARGOT_HEEL_INTERFACE_CMAKE_PATH}"
+                      "${CMAKE_CURRENT_BINARY_DIR}/margot_heel_interface/CMakeLists.txt" COPYONLY)
+
+       # finally, we had that project
+       add_subdirectory( ${CMAKE_CURRENT_BINARY_DIR}/margot_heel_interface )
+
+endfunction(margot_heel_generate_interface)
 
 
 
@@ -201,3 +226,9 @@ install(FILES "${CMAKE_CURRENT_BINARY_DIR}/${HEEL_BINARY_NAME}Config.cmake"
               "${CMAKE_CURRENT_BINARY_DIR}/${HEEL_BINARY_NAME}ConfigVersion.cmake"
         DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/margot
         )
+
+# configure the cmake file for the high-level interface
+configure_file("${CMAKE_CURRENT_SOURCE_DIR}/config/margot_heel_interface.cmake.in"
+	           "${DEFAULT_MARGOT_HEEL_INTERFACE_CMAKE_PATH}" @ONLY)
+install(FILES "${DEFAULT_MARGOT_HEEL_INTERFACE_CMAKE_PATH}"
+	    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/margot)

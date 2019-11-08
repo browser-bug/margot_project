@@ -7,6 +7,8 @@
 # The expected parameter is the margot configuration file. If the user
 # would like to provide the application knowledge as a list of Operating
 # Points, he/she can append them when calling the function
+set(DEFAULT_MARGOT_HEEL_INTERFACE_CMAKE_PATH "${CMAKE_CURRENT_LIST_DIR}/margot_heel_interface.cmake")
+set(MARGOT_FINDERS_PATH "${CMAKE_CURRENT_LIST_DIR}")
 function(margot_heel_generate_interface MARGOT_CONFIG_FILE )
 
        # check if we actually have the margot configuration file
@@ -16,24 +18,14 @@ function(margot_heel_generate_interface MARGOT_CONFIG_FILE )
                message(STATUS "margot_heel_generate_interface( <PATH_MARGOT_CONFIG_FILE> [<PATH_OP_LIST>]*")
        endif ("${ARGC}" EQUAL "0")
 
-       # ok now we can execute the command
-       include(GNUInstallDirs)
-       set(HEEL_GENERATOR_PATH @CMAKE_INSTALL_PREFIX@/@CMAKE_INSTALL_BINDIR@/@HEEL_BINARY_NAME@)
-       set(ADAPTIVE_INTERFACE_PATH "${CMAKE_BINARY_DIR}/margot_heel_interface")
-       message(STATUS "Generating the application adaptive interface in '${ADAPTIVE_INTERFACE_PATH}'")
-       execute_process(COMMAND ${HEEL_GENERATOR_PATH} -w ${ADAPTIVE_INTERFACE_PATH} -c ${MARGOT_CONFIG_FILE} ${ARGN}
-                                       RESULT_VARIABLE HEEL_RETURNCODE
-                       ERROR_VARIABLE HEEL_STDERR
-                       )
 
-       # check if everything worked as expected
-       if (NOT "${HEEL_RETURNCODE}" EQUAL "0")
-               message(FATAL_ERROR "Unable to generate the application interface: \n ${HEEL_STDERR}")
-       endif(NOT "${HEEL_RETURNCODE}" EQUAL "0")
+       # now we have to create and customize the CMake project for the interface
+       set(MARGOT_CONFIG_PATH "${MARGOT_CONFIG_FILE}")
+       set(MARGOT_OPS_PATH "${ARGN}")
+       configure_file("${DEFAULT_MARGOT_HEEL_INTERFACE_CMAKE_PATH}"
+                      "${CMAKE_CURRENT_BINARY_DIR}/margot_heel_interface/CMakeLists.txt" COPYONLY)
 
-
-       # ok at this point we can include the interface file, that will contain all the required information
-       set(MARGOT_CMAKE_INSTALL_PATH "@CMAKE_INSTALL_PREFIX@/@CMAKE_INSTALL_LIBDIR@/cmake/margot")
-       add_subdirectory(${ADAPTIVE_INTERFACE_PATH})
+       # finally, we had that project
+       add_subdirectory( ${CMAKE_CURRENT_BINARY_DIR}/margot_heel_interface )
 
 endfunction(margot_heel_generate_interface)
