@@ -57,7 +57,7 @@ margot::heel::cpp_source_content margot::heel::managers_hdr_content(application_
 
     // define the struct that contains the knobs of the block
     c.content << "\tstruct knobs_type {" << std::endl;
-    std::for_each(block.knobs.begin(), block.knobs.end(), [&c](const knob_model& knob){
+    std::for_each(block.knobs.begin(), block.knobs.end(), [&c](const knob_model& knob) {
       c.content << "\t\t";
       if (knob.type.rfind("string") == 0) {
         c.required_headers.emplace_back("string");
