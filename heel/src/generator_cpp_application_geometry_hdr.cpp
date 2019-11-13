@@ -17,7 +17,7 @@ margot::heel::cpp_source_content margot::heel::application_geometry_hpp_content(
   // generate the content for each block managed by margot, within its namespace
   c.content << std::endl << "namespace margot {" << std::endl;
   std::for_each(app.blocks.begin(), app.blocks.end(), [&c](const block_model& block) {
-    c.content << std::endl << "namespace " << block.name << " {" << std::endl << std::endl;
+    c.content << std::endl << "namespace " << block.name << "_utils {" << std::endl << std::endl;
 
     // generate the enums for the metrics and for the knobs
     c.required_headers.emplace_back("cstdint");
@@ -131,7 +131,7 @@ margot::heel::cpp_source_content margot::heel::application_geometry_hpp_content(
       c.content << "};" << std::endl << std::endl;
     }
 
-    c.content << "} // namespace " << block.name << std::endl << std::endl;
+    c.content << "} // namespace " << block.name << "_utils" << std::endl << std::endl;
   });
   c.content << "} // namespace margot" << std::endl << std::endl;
 
