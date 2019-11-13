@@ -7,6 +7,7 @@
 #include <heel/generator_cpp_application_geometry_hdr.hpp>
 #include <heel/generator_cpp_application_geometry_src.hpp>
 #include <heel/generator_cpp_managers_hdr.hpp>
+#include <heel/generator_cpp_managers_src.hpp>
 #include <heel/generator_source_file.hpp>
 #include <heel/json_parser.hpp>
 #include <heel/logger.hpp>
@@ -60,7 +61,8 @@ void margot::heel::workspace::generate_adaptive_interface(void) {
 
   // generate the content of the source files of the high level interface
   std::vector<margot::heel::source_file_generator> sources = {
-      {src_path / "application_geometry.cpp", margot::heel::application_geometry_cpp_content(model)}};
+      {src_path / "application_geometry.cpp", margot::heel::application_geometry_cpp_content(model)},
+      {src_path / "managers_definition.cpp", margot::heel::managers_cpp_content(model)}};
 
   // everything has been parsed and validated. The content of the interface has been generated. The only thing
   // left is to actually write the interface on the given path
