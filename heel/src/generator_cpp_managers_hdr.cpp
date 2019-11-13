@@ -38,20 +38,43 @@ margot::heel::cpp_source_content margot::heel::managers_hdr_content(application_
     c.content << "\tstruct goals_type {" << std::endl;
     std::for_each(block.states.begin(), block.states.end(), [&c, &block](const state_model& state) {
       std::size_t counter = 0;
-      std::for_each(state.constraints.begin(), state.constraints.end(),
-                    [&c, &block, &state, &counter](const constraint_model& constraint) {
-                      c.required_headers.emplace_back("margot/goal.hpp");
-                      c.content << "\t\tmargot::Goal<";
-                      if (constraint.kind == margot::heel::constraint_subject_kind::METRIC) {
-                        c.content << block.metrics_segment_type;
-                      } else if (constraint.kind == margot::heel::constraint_subject_kind::KNOB) {
-                        c.content << block.knobs_segment_type;
-                      } else {
-                        margot::heel::error("Unknown type of goal, this looks like an internal error");
-                        throw std::runtime_error("manager generators: unknown constraint type");
-                      }
-                      c.content << "> " << state.name << "_constraint_" << counter++ << ";" << std::endl;
-                    });
+      std::for_each(
+          state.constraints.begin(), state.constraints.end(),
+          [&c, &block, &state, &counter](const constraint_model& constraint) {
+            c.required_headers.emplace_back("margot/goal.hpp");
+            c.content << "\t\tmargot::Goal<";
+            switch (constraint.kind) {
+              case margot::heel::constraint_subject_kind::METRIC:
+                c.content << block.metrics_segment_type;
+                break;
+              case margot::heel::constraint_subject_kind::KNOB:
+                c.content << block.knobs_segment_type;
+                break;
+              default:
+                margot::heel::error("Unknown constraint kind, this looks like an internal error");
+                throw std::runtime_error("manager generators: unknown constraint kind");
+            }
+            c.content << ',';
+            switch (constraint.cfun) {
+              case margot::heel::goal_comparison::LESS_OR_EQUAL:
+                c.content << "margot::ComparisonFunctions::LESS_OR_EQUAL";
+                break;
+              case margot::heel::goal_comparison::GREATER_OR_EQUAL:
+                c.content << "margot::ComparisonFunctions::GREATER_OR_EQUAL";
+                break;
+              case margot::heel::goal_comparison::GREATER:
+                c.content << "margot::ComparisonFunctions::GREATER";
+                break;
+              case margot::heel::goal_comparison::LESS:
+                c.content << "margot::ComparisonFunctions::LESS";
+                break;
+              default:
+                margot::heel::error(
+                    "Unknown constraint comparison function, this looks like an internal error");
+                throw std::runtime_error("manager generators: unknown constraint comparison function");
+            }
+            c.content << "> " << state.name << "_constraint_" << counter++ << ";" << std::endl;
+          });
     });
     c.content << "\t};" << std::endl << std::endl;
 
