@@ -123,8 +123,10 @@ margot::heel::constraint_model parse_constraint_model(const pt::ptree& constrain
   const std::string inertia_str = margot::heel::get(tag::reactive_inertia(), constraint_node);
 
   // reached this point, we can compose the model
-  return {margot::heel::get(tag::subject(), constraint_node), cfun,
+  return {margot::heel::get(tag::subject(), constraint_node),
+          cfun,
           margot::heel::get(tag::value(), constraint_node),
+          margot::heel::constraint_subject_kind::UNKNOWN,
           margot::heel::get(tag::confidence(), constraint_node),
           !inertia_str.empty() ? boost::lexical_cast<std::size_t>(inertia_str) : 0};
 }
