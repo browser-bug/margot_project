@@ -40,6 +40,9 @@ struct monitor_model {
 // this function validates a monitor model; i.e. it checks if there are missing or wrong information
 void validate(monitor_model& model);
 
+// this function retrieves a copy of the spec of a known monitor
+const monitor_spec& get_monitor_cpp_spec(monitor_model& monitor);
+
 }  // namespace heel
 }  // namespace margot
 

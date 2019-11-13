@@ -155,26 +155,29 @@ static std::map<std::string, margot::heel::monitor_spec> known_monitors = {
 
 static const std::vector<std::string> available_statistics = {"average", "standard_deviation", "max", "min"};
 
+const margot::heel::monitor_spec& margot::heel::get_monitor_cpp_spec(monitor_model& monitor) {
+  // make sure that we support the given monitor type
+  boost::trim(monitor.type);
+  auto monitor_spec_it = known_monitors.find(monitor.type);
+  if (monitor_spec_it == known_monitors.cend()) {
+    // if reach this statement, is not a known monitor, but we could generate the spec on the fly if it is a
+    // numeric type (i.e. custom monitor)
+    try {
+      const auto res = known_monitors.emplace(monitor.type, gen_custom_spec(monitor.type));
+      monitor_spec_it = res.first;
+    } catch (const std::runtime_error& e) {
+      margot::heel::error("Unknown type \"", monitor.type, "\" for monitor \"", monitor.name, "\"");
+      throw e;
+    }
+  }
+  return monitor_spec_it->second;
+}
+
 void margot::heel::validate(monitor_model& model) {
   // check if the monitor has a type
   if (model.type.empty()) {
     margot::heel::error("The monitor \"", model.name, "\" must have a type");
     throw std::runtime_error("monitor model: monitor without a type");
-  }
-
-  // make sure that we support the given monitor type
-  boost::trim(model.type);
-  auto monitor_spec_it = known_monitors.find(model.type);
-  if (monitor_spec_it == known_monitors.cend()) {
-    // if reach this statement, is not a known monitor, but we could generate the spec on the fly if it is a
-    // numeric type (i.e. custom monitor)
-    try {
-      const auto res = known_monitors.emplace(model.type, gen_custom_spec(model.type));
-      monitor_spec_it = res.first;
-    } catch (const std::runtime_error& e) {
-      margot::heel::error("Unknown type \"", model.type, "\" for monitor \"", model.name, "\"");
-      throw e;
-    }
   }
 
   // now we need to consider all the parameters in the monitor and combine them with the ones in the
@@ -201,10 +204,10 @@ void margot::heel::validate(monitor_model& model) {
   };
 
   // now we can check all the parameters of the monitor
-  check_parameters(monitor_spec_it->second.default_param_initialization, model.initialization_parameters,
-                   "initialization");
-  check_parameters(monitor_spec_it->second.default_param_start, model.start_parameters, "start");
-  check_parameters(monitor_spec_it->second.default_param_stop, model.stop_parameters, "stop");
+  const auto spec = margot::heel::get_monitor_cpp_spec(model);
+  check_parameters(spec.default_param_initialization, model.initialization_parameters, "initialization");
+  check_parameters(spec.default_param_start, model.start_parameters, "start");
+  check_parameters(spec.default_param_stop, model.stop_parameters, "stop");
 
   // now we need to check if the requested statistic to log is ok
   std::for_each(model.requested_statistics.begin(), model.requested_statistics.end(),
