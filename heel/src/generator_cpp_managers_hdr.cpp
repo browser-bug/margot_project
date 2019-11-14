@@ -2,12 +2,17 @@
 #include <cstdint>
 #include <string>
 
+#include <heel/cpp_enum_conversion.hpp>
 #include <heel/cpp_interface_conversion.hpp>
+#include <heel/cpp_utils.hpp>
 #include <heel/generator_cpp_managers_hdr.hpp>
+#include <heel/generator_description_verbose.hpp>
 #include <heel/generator_utils.hpp>
 #include <heel/logger.hpp>
 #include <heel/model_application.hpp>
 #include <heel/model_block.hpp>
+#include <heel/model_knob.hpp>
+#include <heel/model_metric.hpp>
 #include <heel/model_monitor.hpp>
 #include <heel/model_state.hpp>
 
@@ -21,6 +26,38 @@ margot::heel::cpp_source_content margot::heel::managers_hdr_content(application_
   // generate the content for each block managed by margot, within its namespace
   c.content << std::endl << "namespace margot {" << std::endl;
   std::for_each(app.blocks.begin(), app.blocks.end(), [&c](block_model& block) {
+    // print the description of the application model as comment before generating the source code of the
+    // class. In this way, the user can have an idea to what has been generated in the code
+    c.content << "// ------------------===={ Block \"" << block.name << "\" model }====------------------"
+              << std::endl;
+    const auto print_desc = [&c](std::stringstream stream) {
+      for (std::string line; std::getline(stream, line); /* internally handled */) {
+        c.content << "//    " << line << std::endl;
+      }
+      c.content << "//" << std::endl;
+    };
+    std::for_each(block.monitors.begin(), block.monitors.end(), [&print_desc](const monitor_model& monitor) {
+      print_desc(margot::heel::description_verbose(monitor));
+    });
+    std::for_each(block.metrics.begin(), block.metrics.end(), [&print_desc](const metric_model& metric) {
+      print_desc(margot::heel::description_verbose(metric));
+    });
+    std::for_each(block.knobs.begin(), block.knobs.end(), [&print_desc](const knob_model& knob) {
+      print_desc(margot::heel::description_verbose(knob));
+    });
+    if (!block.features.fields.empty()) {
+      print_desc(margot::heel::description_verbose(block.features));
+    }
+    if (block.agora.enabled) {
+      print_desc(margot::heel::description_verbose(block.agora));
+    }
+    std::for_each(block.states.begin(), block.states.end(), [&print_desc](const state_model& state) {
+      print_desc(margot::heel::description_verbose(state));
+    });
+    c.content << "// ------------------=============" << std::string(block.name.size(), '=')
+              << "=============------------------" << std::endl;
+
+    // now we can generate the code for the actual class that handles the application
     c.content << "class " << block.name << " {" << std::endl;
     c.content << "public:" << std::endl;
 
@@ -38,43 +75,25 @@ margot::heel::cpp_source_content margot::heel::managers_hdr_content(application_
     c.content << "\tstruct goals_type {" << std::endl;
     std::for_each(block.states.begin(), block.states.end(), [&c, &block](const state_model& state) {
       std::size_t counter = 0;
-      std::for_each(
-          state.constraints.begin(), state.constraints.end(),
-          [&c, &block, &state, &counter](const constraint_model& constraint) {
-            c.required_headers.emplace_back("margot/goal.hpp");
-            c.content << "\t\tmargot::Goal<";
-            switch (constraint.kind) {
-              case margot::heel::constraint_subject_kind::METRIC:
-                c.content << block.metrics_segment_type;
-                break;
-              case margot::heel::constraint_subject_kind::KNOB:
-                c.content << block.knobs_segment_type;
-                break;
-              default:
-                margot::heel::error("Unknown constraint kind, this looks like an internal error");
-                throw std::runtime_error("manager generators: unknown constraint kind");
-            }
-            c.content << ',';
-            switch (constraint.cfun) {
-              case margot::heel::goal_comparison::LESS_OR_EQUAL:
-                c.content << "margot::ComparisonFunctions::LESS_OR_EQUAL";
-                break;
-              case margot::heel::goal_comparison::GREATER_OR_EQUAL:
-                c.content << "margot::ComparisonFunctions::GREATER_OR_EQUAL";
-                break;
-              case margot::heel::goal_comparison::GREATER:
-                c.content << "margot::ComparisonFunctions::GREATER";
-                break;
-              case margot::heel::goal_comparison::LESS:
-                c.content << "margot::ComparisonFunctions::LESS";
-                break;
-              default:
-                margot::heel::error(
-                    "Unknown constraint comparison function, this looks like an internal error");
-                throw std::runtime_error("manager generators: unknown constraint comparison function");
-            }
-            c.content << "> " << state.name << "_constraint_" << counter++ << ";" << std::endl;
-          });
+      std::for_each(state.constraints.begin(), state.constraints.end(),
+                    [&c, &block, &state, &counter](const constraint_model& constraint) {
+                      c.required_headers.emplace_back("margot/goal.hpp");
+                      c.content << "\t\tmargot::Goal<";
+                      switch (constraint.kind) {
+                        case margot::heel::subject_kind::METRIC:
+                          c.content << block.metrics_segment_type;
+                          break;
+                        case margot::heel::subject_kind::KNOB:
+                          c.content << block.knobs_segment_type;
+                          break;
+                        default:
+                          margot::heel::error("Unknown constraint kind, this looks like an internal error");
+                          throw std::runtime_error("manager generators: unknown constraint kind");
+                      }
+                      c.content << ',' << margot::heel::cpp_enum::get(constraint.cfun) << "> "
+                                << margot::heel::generate_goal_identifier(state.name, counter) << ';'
+                                << std::endl;
+                    });
     });
     c.content << "\t};" << std::endl << std::endl;
 
@@ -108,8 +127,7 @@ margot::heel::cpp_source_content margot::heel::managers_hdr_content(application_
 
     // now we define the actual destructor and constructor as private, to implement the singleton pattern
     c.content << "private:" << std::endl;
-    c.content << "\t" << block.name << "(void);" << std::endl;
-    c.content << "\t~" << block.name << "(void);" << std::endl << std::endl;
+    c.content << "\t" << block.name << "(void);" << std::endl << std::endl;
 
     c.content << "}; // end class " << block.name << std::endl << std::endl;
   });

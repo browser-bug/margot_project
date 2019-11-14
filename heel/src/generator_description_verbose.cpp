@@ -133,12 +133,12 @@ std::stringstream margot::heel::description_verbose(const state_model& model) {
   }
   d << margot::heel::join(
            model.rank_fields.cbegin(), model.rank_fields.cend(), ", ",
-           [](const margot::heel::rank_field_model& p) { return p.field_name + "::" + p.coefficient; })
+           [](const margot::heel::rank_field_model& p) { return p.name + "::" + p.coefficient; })
     << ")" << std::endl;
   if (!model.constraints.empty()) {
     d << "\t subject to:" << std::endl;
     for (const auto& c : model.constraints) {
-      d << "\t  " << c.field_name << " ";
+      d << "\t  " << c.name << " ";
       if (c.cfun == margot::heel::goal_comparison::LESS_OR_EQUAL) {
         d << "<=";
       } else if (c.cfun == margot::heel::goal_comparison::GREATER_OR_EQUAL) {

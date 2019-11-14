@@ -55,6 +55,8 @@ set( HEEL_LIBRARY_HEADERS
 	"${HEEL_HDR_PATH}/heel/configuration_file.hpp"
 	"${HEEL_HDR_PATH}/heel/cpp_enum_conversion.hpp"
 	"${HEEL_HDR_PATH}/heel/cpp_interface_conversion.hpp"
+	"${HEEL_HDR_PATH}/heel/cpp_state_emitter.hpp"
+	"${HEEL_HDR_PATH}/heel/cpp_utils.hpp"
 	"${HEEL_HDR_PATH}/heel/json_parser.hpp"
 	"${HEEL_HDR_PATH}/heel/logger.hpp"
 	"${HEEL_HDR_PATH}/heel/print_application_model.hpp"
@@ -63,11 +65,13 @@ set( HEEL_LIBRARY_HEADERS
 )
 set( HEEL_LIBRARY_SOURCES
 	"${HEEL_SRC_PATH}/configuration_file.cpp"
+	"${HEEL_SRC_PATH}/cpp_state_emitter.cpp"
 	"${HEEL_SRC_PATH}/generator_description_verbose.cpp"
 	"${HEEL_SRC_PATH}/generator_cpp_application_geometry_hdr.cpp"
 	"${HEEL_SRC_PATH}/generator_cpp_application_geometry_src.cpp"
 	"${HEEL_SRC_PATH}/generator_cpp_managers_hdr.cpp"
 	"${HEEL_SRC_PATH}/generator_cpp_managers_src.cpp"
+	"${HEEL_SRC_PATH}/generator_utils.cpp"
 	"${HEEL_SRC_PATH}/model_agora.cpp"
 	"${HEEL_SRC_PATH}/model_features.cpp"
 	"${HEEL_SRC_PATH}/model_knob.cpp"

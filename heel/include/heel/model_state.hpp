@@ -14,19 +14,20 @@ namespace heel {
 enum class goal_comparison { LESS_OR_EQUAL, GREATER_OR_EQUAL, LESS, GREATER };
 enum class rank_direction { MINIMIZE, MAXIMIZE, NONE };
 enum class rank_type { SIMPLE, GEOMETRIC, LINEAR, NONE };
-enum class constraint_subject_kind { METRIC, KNOB, UNKNOWN };
+enum class subject_kind { METRIC, KNOB, UNKNOWN };
 
 struct constraint_model {
-  std::string field_name;
+  std::string name;
   goal_comparison cfun;
   std::string value;
-  constraint_subject_kind kind;
+  subject_kind kind;
   std::string confidence;
   std::size_t inertia;  // zero means no reaction
 };
 
 struct rank_field_model {
-  std::string field_name;
+  std::string name;
+  subject_kind kind;
   std::string coefficient;
 };
 

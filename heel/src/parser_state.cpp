@@ -56,16 +56,16 @@ margot::heel::state_model parse_state_model(const pt::ptree& state_node) {
   const auto extract_fields = [&model](const pt::ptree& rank_node) {
     // parse all the fields of the rank, assuming that it is a geometric mean
     margot::heel::visit_optional(tag::geometric_mean(), rank_node, [&model](const pt::ptree::value_type& p) {
-      model.rank_fields.emplace_back(
-          margot::heel::rank_field_model{p.first, p.second.get<std::string>("", "")});
+      model.rank_fields.emplace_back(margot::heel::rank_field_model{
+          p.first, margot::heel::subject_kind::UNKNOWN, p.second.get<std::string>("", "")});
     });
     if (!model.rank_fields.empty()) {
       model.combination = margot::heel::rank_type::GEOMETRIC;
     } else {
       // we didn't find any rank field, we need to try with the linear combination
       margot::heel::visit_optional(tag::linear_mean(), rank_node, [&model](const pt::ptree::value_type& p) {
-        model.rank_fields.emplace_back(
-            margot::heel::rank_field_model{p.first, p.second.get<std::string>("", "")});
+        model.rank_fields.emplace_back(margot::heel::rank_field_model{
+            p.first, margot::heel::subject_kind::UNKNOWN, p.second.get<std::string>("", "")});
       });
       if (!model.rank_fields.empty()) {
         model.combination = margot::heel::rank_type::LINEAR;
@@ -126,7 +126,7 @@ margot::heel::constraint_model parse_constraint_model(const pt::ptree& constrain
   return {margot::heel::get(tag::subject(), constraint_node),
           cfun,
           margot::heel::get(tag::value(), constraint_node),
-          margot::heel::constraint_subject_kind::UNKNOWN,
+          margot::heel::subject_kind::UNKNOWN,
           margot::heel::get(tag::confidence(), constraint_node),
           !inertia_str.empty() ? boost::lexical_cast<std::size_t>(inertia_str) : 0};
 }

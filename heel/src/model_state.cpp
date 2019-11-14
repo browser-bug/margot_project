@@ -35,12 +35,12 @@ void margot::heel::validate(state_model& model, const std::vector<metric_model>&
 
   // now, we have to unsure that the coefficient of each fild of the rank is set
   std::for_each(model.rank_fields.begin(), model.rank_fields.end(), [&model](rank_field_model& field) {
-    if (field.field_name.empty()) {
+    if (field.name.empty()) {
       margot::heel::error("Empty field name in the rank definition for state \"", model.name, "\"");
       throw std::runtime_error("state model: empty rank field");
     }
     if (field.coefficient.empty()) {
-      margot::heel::warning("Automatically set \"1\" to coefficient of field \"", field.field_name,
+      margot::heel::warning("Automatically set \"1\" to coefficient of field \"", field.name,
                             "\" in state \"", model.name, "\"");
       field.coefficient = "1";
     }
@@ -48,12 +48,12 @@ void margot::heel::validate(state_model& model, const std::vector<metric_model>&
 
   // next, we need to validate all the information on the constraint models of a state
   std::for_each(model.constraints.begin(), model.constraints.end(), [&model](constraint_model& constraint) {
-    if (constraint.field_name.empty()) {
+    if (constraint.name.empty()) {
       margot::heel::error("Empty field name in a constraint for state \"", model.name, "\"");
       throw std::runtime_error("state model: empty constraint field");
     }
     if (constraint.value.empty()) {
-      margot::heel::error("The constraint on \"", constraint.field_name, "\" in state \"", model.name,
+      margot::heel::error("The constraint on \"", constraint.name, "\" in state \"", model.name,
                           "\" has no goal value");
       throw std::runtime_error("state model: no goal value");
     }
@@ -63,18 +63,17 @@ void margot::heel::validate(state_model& model, const std::vector<metric_model>&
   });
 
   // to ease the cross-checks we define a lambda to check if a field exists
-  const auto is_a_metric = [&metrics](const std::string& field_name) {
-    if (std::any_of(metrics.begin(), metrics.end(), [&field_name](const metric_model& metric) {
-          return metric.name.compare(field_name) == 0;
-        })) {
+  const auto is_a_metric = [&metrics](const std::string& name) {
+    if (std::any_of(metrics.begin(), metrics.end(),
+                    [&name](const metric_model& metric) { return metric.name.compare(name) == 0; })) {
       return true;
     } else {
       return false;
     }
   };
-  const auto is_a_knob = [&knobs](const std::string& field_name) {
+  const auto is_a_knob = [&knobs](const std::string& name) {
     if (std::any_of(knobs.begin(), knobs.end(),
-                    [&field_name](const knob_model& knob) { return knob.name.compare(field_name) == 0; })) {
+                    [&name](const knob_model& knob) { return knob.name.compare(name) == 0; })) {
       return true;
     } else {
       return false;
@@ -83,20 +82,24 @@ void margot::heel::validate(state_model& model, const std::vector<metric_model>&
 
   // the first cross-checks aim at enforcing that a field in a rank or constraint is known
   std::for_each(model.rank_fields.begin(), model.rank_fields.end(),
-                [&is_a_metric, &is_a_knob](const rank_field_model& r) {
-                  if (!(!is_a_knob(r.field_name)) && (!is_a_metric(r.field_name))) {
-                    margot::heel::error("The rank field \"", r.field_name, "\" is not metric nor a knob");
+                [&is_a_metric, &is_a_knob](rank_field_model& r) {
+                  if (is_a_knob(r.name)) {
+                    r.kind = margot::heel::subject_kind::KNOB;
+                  } else if (is_a_metric(r.name)) {
+                    r.kind = margot::heel::subject_kind::METRIC;
+                  } else {
+                    margot::heel::error("The rank field \"", r.name, "\" is not metric nor a knob");
                     throw std::runtime_error("state model: unknown rank field");
                   }
                 });
   std::for_each(
       model.constraints.begin(), model.constraints.end(), [&is_a_metric, &is_a_knob](constraint_model& c) {
-        if (is_a_knob(c.field_name)) {
-          c.kind = margot::heel::constraint_subject_kind::KNOB;
-        } else if (is_a_metric(c.field_name)) {
-          c.kind = margot::heel::constraint_subject_kind::METRIC;
+        if (is_a_knob(c.name)) {
+          c.kind = margot::heel::subject_kind::KNOB;
+        } else if (is_a_metric(c.name)) {
+          c.kind = margot::heel::subject_kind::METRIC;
         } else {
-          margot::heel::error("The constraint on field \"", c.field_name, "\" is not on a metric nor a nob");
+          margot::heel::error("The constraint on field \"", c.name, "\" is not on a metric nor a nob");
           throw std::runtime_error("state model: unknown constraint field");
         }
       });
@@ -105,9 +108,9 @@ void margot::heel::validate(state_model& model, const std::vector<metric_model>&
   std::for_each(model.constraints.begin(), model.constraints.end(), [&metrics](const constraint_model& c) {
     if (c.inertia > 0) {
       if (std::none_of(metrics.begin(), metrics.end(), [&c](const metric_model& metric) {
-            return (metric.name.compare(c.field_name) == 0) && (!metric.monitor_name.empty());
+            return (metric.name.compare(c.name) == 0) && (!metric.monitor_name.empty());
           })) {
-        margot::heel::error("The constraint on \"", c.field_name,
+        margot::heel::error("The constraint on \"", c.name,
                             "\" is reactive, but there are no observation at runtime on that field");
       }
     }
