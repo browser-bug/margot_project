@@ -46,6 +46,7 @@ set( MARGOT_HI_SRC_PATH "${CMAKE_CURRENT_SOURCE_DIR}/src")
 set( MARGOT_HI_HEADERS
 	"${MARGOT_HI_HDR_PATH}/margot/application_geometry.hpp"
 	"${MARGOT_HI_HDR_PATH}/margot/managers_definition.hpp"
+	"${MARGOT_HI_HDR_PATH}/margot/application_knowledge.hpp"
 	)
 set( MARGOT_HI_SOURCES
 	"${MARGOT_HI_SRC_PATH}/application_geometry.cpp"
