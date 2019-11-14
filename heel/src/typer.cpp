@@ -104,7 +104,7 @@ std::string margot::heel::sanitize_type(const std::string& type_name) {
     return margot::heel::typer<unsigned long int>::get();
   } else if ((t.compare("unsigned long long int") == 0) || (t.compare("unsigned long long") == 0) ||
              (t.compare("long long unsigned int") == 0) || (t.compare("long long unsigned") == 0) ||
-             (t.compare("long  unsigned long") == 0) || (t.compare("long  unsigned long int") == 0)) {
+             (t.compare("long unsigned long") == 0) || (t.compare("long unsigned long int") == 0)) {
     return margot::heel::typer<unsigned long long int>::get();
   } else if (t.compare("uint_fast8_t") == 0) {
     return margot::heel::typer<uint_fast8_t>::get();
