@@ -60,6 +60,10 @@ margot::heel::cpp_source_content margot::heel::managers_cpp_content(margot::heel
     // now it is time to define the body of the constructor
     c.content << "{" << std::endl;
 
+    // before defining the extra-functional requirements, we should add the application knowledge
+    c.required_headers.emplace_back("margot/application_knowledge.hpp");
+    c.content << "\tmargot::add_" << block.name << "_application_knowledge();" << std::endl;
+
     // it's time to create and define all the states of agora for this block
     std::for_each(block.states.begin(), block.states.end(), [&c, &block](const state_model& state) {
       margot::heel::append(c, margot::heel::generate_cpp_content(state, block.name), "\t");

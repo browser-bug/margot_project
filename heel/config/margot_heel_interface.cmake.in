@@ -51,6 +51,7 @@ set( MARGOT_HI_HEADERS
 set( MARGOT_HI_SOURCES
 	"${MARGOT_HI_SRC_PATH}/application_geometry.cpp"
 	"${MARGOT_HI_SRC_PATH}/managers_definition.cpp"
+	"${MARGOT_HI_SRC_PATH}/application_knowledge.cpp"
 )
 
 # add the target
