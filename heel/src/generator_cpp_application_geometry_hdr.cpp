@@ -21,14 +21,14 @@ margot::heel::cpp_source_content margot::heel::application_geometry_hpp_content(
 
     // generate the enums for the metrics and for the knobs
     c.required_headers.emplace_back("cstdint");
-    c.content << "enum class knob: size_t {" << std::endl;
+    c.content << "enum class knob: std::size_t {" << std::endl;
     size_t counter = 0;
     std::for_each(block.knobs.begin(), block.knobs.end(), [&c, &counter](const knob_model& knob) {
       c.content << '\t' << knob.name << " = " << counter++ << ',' << std::endl;
     });
     c.content << "};" << std::endl;
     counter = 0;
-    c.content << std::endl << "enum class metric: size_t {" << std::endl;
+    c.content << std::endl << "enum class metric: std::size_t {" << std::endl;
     std::for_each(block.metrics.begin(), block.metrics.end(), [&c, &counter](const metric_model& metric) {
       c.content << '\t' << metric.name << " = " << counter++ << ',' << std::endl;
     });

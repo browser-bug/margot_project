@@ -110,7 +110,9 @@ margot::heel::cpp_source_content margot::heel::managers_hdr_content(application_
     c.content << "\t};" << std::endl << std::endl;
 
     // declare the content of the struct
-    c.content << "\tmargot::" << block.name << "_utils::manager_type manager;" << std::endl;
+    if (!block.knobs.empty()) {
+      c.content << "\tmargot::" << block.name << "_utils::manager_type manager;" << std::endl;
+    }
     c.content << "\tmonitors_type monitors;" << std::endl;
     c.content << "\tgoals_type goals;" << std::endl;
     c.content << "\tknobs_type knobs;" << std::endl << std::endl;

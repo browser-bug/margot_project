@@ -34,87 +34,91 @@ margot::heel::cpp_source_content margot::heel::knowledge_cpp_content(margot::hee
 
     // define the signature of the function that adds the application knowledge (and feature clusters) to the
     // manager (if any)
-    c.content << "void margot::add_application_knowledge(" << block.name << "_utils::manager_type& manager) {"
-              << std::endl;
+    if (!block.knobs.empty()) {
+      c.content << "void margot::add_application_knowledge(" << block.name
+                << "_utils::manager_type& manager) {" << std::endl;
 
-    // check if we have to generate a fake cluster, to be able to define the extra-functional requirements
-    const bool is_with_features = !block.features.fields.empty();
-    const bool is_with_knowledge = !block.ops.empty();
-    if (is_with_features && !is_with_knowledge) {
-      const std::string fake_cluster =
-          margot::heel::join(block.features.fields.begin(), block.features.fields.end(), ",",
-                             [](const feature_model&) { return "1"; });
-      c.content << "\tmanager.add_feature_cluster({{" << fake_cluster << "}});" << std::endl;
-      c.content << "\tmanager.select_feature_cluster({{" << fake_cluster << "}});" << std::endl;
-    } else if (is_with_knowledge) {
-      // if we reach this statement it means that we have to generate the code that adds clusters (if any) and
-      // Operating Point to the block manager.
-      c.content << "\tauto& manager = margot::" << block.name << "::interface().manager;" << std::endl;
-      std::string current_cluster = "";
-      bool first_iteration = true;
-      std::for_each(block.ops.begin(), block.ops.end(), [&](const operating_point_model& op) {
-        // check what we need to generate (beside the operating point)
-        const bool is_feature_cluster_different = str(op.features).compare(current_cluster) != 0;
-        const bool need_to_generate_change_cluster = is_with_features && is_feature_cluster_different;
-        const bool need_to_generate_add_op_begin = first_iteration || is_feature_cluster_different;
-        const bool need_to_generate_add_op_end =
-            is_feature_cluster_different && is_with_features && !first_iteration;
-        first_iteration = false;
+      // check if we have to generate a fake cluster, to be able to define the extra-functional requirements
+      const bool is_with_features = !block.features.fields.empty();
+      const bool is_with_knowledge = !block.ops.empty();
+      if (is_with_features && !is_with_knowledge) {
+        const std::string fake_cluster =
+            margot::heel::join(block.features.fields.begin(), block.features.fields.end(), ",",
+                               [](const feature_model&) { return "1"; });
+        c.content << "\tmanager.add_feature_cluster({{" << fake_cluster << "}});" << std::endl;
+        c.content << "\tmanager.select_feature_cluster({{" << fake_cluster << "}});" << std::endl;
+      } else if (is_with_knowledge) {
+        // if we reach this statement it means that we have to generate the code that adds clusters (if any)
+        // and Operating Point to the block manager.
+        c.content << "\tauto& manager = margot::" << block.name << "::interface().manager;" << std::endl;
+        std::string current_cluster = "";
+        bool first_iteration = true;
+        std::for_each(block.ops.begin(), block.ops.end(), [&](const operating_point_model& op) {
+          // check what we need to generate (beside the operating point)
+          const bool is_feature_cluster_different = str(op.features).compare(current_cluster) != 0;
+          const bool need_to_generate_change_cluster = is_with_features && is_feature_cluster_different;
+          const bool need_to_generate_add_op_begin = first_iteration || is_feature_cluster_different;
+          const bool need_to_generate_add_op_end =
+              is_feature_cluster_different && is_with_features && !first_iteration;
+          first_iteration = false;
 
-        // check if we need to update the current cluster of features
-        if (is_feature_cluster_different) {
-          current_cluster = str(op.features);
-        }
+          // check if we need to update the current cluster of features
+          if (is_feature_cluster_different) {
+            current_cluster = str(op.features);
+          }
 
-        // emit the cpp code according to the decision logic
-        if (need_to_generate_add_op_end) {
-          c.content << "\t});" << std::endl;
-        }
-        if (need_to_generate_change_cluster) {
-          c.content << "\tmanager.add_feature_cluster({{" << current_cluster << "}});" << std::endl;
-          c.content << "\tmanager.select_feature_cluster({{" << current_cluster << "}});" << std::endl;
-        }
-        if (need_to_generate_add_op_begin) {
-          c.content << "\tmanager.add_operating_points({" << std::endl;
-        }
+          // emit the cpp code according to the decision logic
+          if (need_to_generate_add_op_end) {
+            c.content << "\t});" << std::endl;
+          }
+          if (need_to_generate_change_cluster) {
+            c.content << "\tmanager.add_feature_cluster({{" << current_cluster << "}});" << std::endl;
+            c.content << "\tmanager.select_feature_cluster({{" << current_cluster << "}});" << std::endl;
+          }
+          if (need_to_generate_add_op_begin) {
+            c.content << "\tmanager.add_operating_points({" << std::endl;
+          }
 
-        // now we can generate the operating point code
-        c.content << "\t\t{ // new operating point" << std::endl;
-        c.content << "\t\t\t{ // software knobs " << std::endl;
-        std::size_t counter = 0;
-        c.content << margot::heel::join(block.knobs.begin(), block.knobs.end(), ", ",
-                                        [&](const knob_model& knob) {
-                                          const auto t = counter++;
-                                          return knob.type.compare("string") != 0
-                                                     ? op.knobs[t].mean
-                                                     : "margot::" + block.name + "_utils::knob_" + knob.name +
-                                                           "_to_val(\"" + op.knobs[t].mean + "\")";
-                                        })
-                  << std::endl;
-        c.content << "\t\t\t}," << std::endl;
-        c.content << "\t\t\t{ // extra-functional properties " << std::endl;
-        counter = 0;
-        c.content << margot::heel::join(
-                         block.metrics.begin(), block.metrics.end(), ", ",
-                         [&](const metric_model& metric) {
-                           const auto t = counter++;
-                           const std::string stdv = metric.distribution && !metric_is_distribution
-                                                        ? std::string("0")
-                                                        : op.metrics[t].standard_deviation;
-                           return metric_is_distribution ? "margot::" + block.name + "_utils::metrics_type(" +
-                                                               op.metrics[t].mean + "," + stdv + ")"
-                                                         : op.metrics[t].mean;
-                         })
-                  << std::endl;
-        c.content << "\t\t\t}" << std::endl;
-        c.content << "\t\t}," << std::endl;
-      });
+          // now we can generate the operating point code
+          c.content << "\t\t{ // new operating point" << std::endl;
+          c.content << "\t\t\t{ // software knobs " << std::endl;
+          std::size_t counter = 0;
+          c.content << margot::heel::join(block.knobs.begin(), block.knobs.end(), ", ",
+                                          [&](const knob_model& knob) {
+                                            const auto t = counter++;
+                                            return knob.type.compare("string") != 0
+                                                       ? op.knobs[t].mean
+                                                       : "margot::" + block.name + "_utils::knob_" +
+                                                             knob.name + "_to_val(\"" + op.knobs[t].mean +
+                                                             "\")";
+                                          })
+                    << std::endl;
+          c.content << "\t\t\t}," << std::endl;
+          c.content << "\t\t\t{ // extra-functional properties " << std::endl;
+          counter = 0;
+          c.content << margot::heel::join(block.metrics.begin(), block.metrics.end(), ", ",
+                                          [&](const metric_model& metric) {
+                                            const auto t = counter++;
+                                            const std::string stdv =
+                                                metric.distribution && !metric_is_distribution
+                                                    ? std::string("0")
+                                                    : op.metrics[t].standard_deviation;
+                                            return metric_is_distribution
+                                                       ? "margot::" + block.name + "_utils::metrics_type(" +
+                                                             op.metrics[t].mean + "," + stdv + ")"
+                                                       : op.metrics[t].mean;
+                                          })
+                    << std::endl;
+          c.content << "\t\t\t}" << std::endl;
+          c.content << "\t\t}," << std::endl;
+        });
 
-      // now we can close the add operating point function
-      c.content << "\t});" << std::endl << std::endl << std::endl;
+        // now we can close the add operating point function
+        c.content << "\t});" << std::endl << std::endl << std::endl;
+      }
+
+      c.content << "}" << std::endl;
     }
-
-    c.content << "}" << std::endl;
   });
   return c;
 }
