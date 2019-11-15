@@ -33,7 +33,8 @@ margot::heel::cpp_source_content margot::heel::knowledge_cpp_content(margot::hee
 
     // define the signature of the function that adds the application knowledge (and feature clusters) to the
     // manager (if any)
-    c.content << "void margot::add_" << block.name << "_application_knowledge(void) {" << std::endl;
+    c.content << "void margot::add_application_knowledge(" << block.name << "_utils::manager_type& manager) {"
+              << std::endl;
 
     // check if we have to generate a fake cluster, to be able to define the extra-functional requirements
     const bool is_with_features = !block.features.fields.empty();
@@ -42,7 +43,6 @@ margot::heel::cpp_source_content margot::heel::knowledge_cpp_content(margot::hee
       const std::string fake_cluster =
           margot::heel::join(block.features.fields.begin(), block.features.fields.end(), ",",
                              [](const feature_model&) { return "1"; });
-      c.content << "\tauto& manager = margot::" << block.name << "::interface().manager;" << std::endl;
       c.content << "\tmanager.add_feature_cluster({{" << fake_cluster << "}});" << std::endl;
       c.content << "\tmanager.select_feature_cluster({{" << fake_cluster << "}});" << std::endl;
     } else if (is_with_knowledge) {
