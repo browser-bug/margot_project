@@ -25,6 +25,7 @@ margot::heel::workspace::workspace(const std::filesystem::path& root_path,
   margot::heel::configuration_file c;
   c.load(margot_config_path);
   model = margot::heel::parse_json(c);
+  description = c.to_string();
   margot::heel::validate(model);
 
   // now we need to check, for each block, if we have operating points. If so, agora must be disabled
@@ -65,7 +66,7 @@ void margot::heel::workspace::generate_adaptive_interface(void) {
   // generate the content of the source files of the high level interface
   std::vector<margot::heel::source_file_generator> sources = {
       {src_path / "application_geometry.cpp", margot::heel::application_geometry_cpp_content(model)},
-      {src_path / "managers_definition.cpp", margot::heel::managers_cpp_content(model)},
+      {src_path / "managers_definition.cpp", margot::heel::managers_cpp_content(model, description)},
       {src_path / "application_knowledge.cpp", margot::heel::knowledge_cpp_content(model)}};
 
   // everything has been parsed and validated. The content of the interface has been generated. The only thing
