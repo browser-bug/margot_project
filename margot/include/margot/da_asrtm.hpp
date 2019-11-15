@@ -945,7 +945,7 @@ class DataAwareAsrtm {
 
         // set the knowledge base for all the data features
         for (auto& asrtm_pair : managers) {
-          asrtm_pair.second.set_sinlgle_point(ops.begin()->second);
+          asrtm_pair.second.set_sinlgle_point(ops.begin()->second.front());
         }
       } else if (message_topic.compare("/info") == 0)  // handle the info message
       {
