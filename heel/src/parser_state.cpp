@@ -3,7 +3,6 @@
 #include <string>
 #include <vector>
 
-#include <boost/lexical_cast.hpp>
 #include <boost/property_tree/ptree.hpp>
 
 #include <heel/logger.hpp>
@@ -26,7 +25,6 @@ struct tag {
   inline static const std::string comparison(void) { return "comparison"; }
   inline static const std::string value(void) { return "value"; }
   inline static const std::string confidence(void) { return "confidence"; }
-  inline static const std::string reactive_inertia(void) { return "reactive_inertia"; }
 };
 
 // forward declaration of the functions that parse a portion of a state
@@ -119,14 +117,8 @@ margot::heel::constraint_model parse_constraint_model(const pt::ptree& constrain
     throw std::runtime_error("state parser: unknown comparison function");
   }
 
-  // get the reactive inertia as a string, to figure out later if we really need to react
-  const std::string inertia_str = margot::heel::get(tag::reactive_inertia(), constraint_node);
-
   // reached this point, we can compose the model
-  return {margot::heel::get(tag::subject(), constraint_node),
-          cfun,
-          margot::heel::get(tag::value(), constraint_node),
-          margot::heel::subject_kind::UNKNOWN,
-          margot::heel::get(tag::confidence(), constraint_node),
-          !inertia_str.empty() ? boost::lexical_cast<std::size_t>(inertia_str) : 0};
+  return {margot::heel::get(tag::subject(), constraint_node), cfun,
+          margot::heel::get(tag::value(), constraint_node), margot::heel::subject_kind::UNKNOWN,
+          margot::heel::get(tag::confidence(), constraint_node)};
 }

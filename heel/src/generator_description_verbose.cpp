@@ -64,8 +64,12 @@ std::stringstream margot::heel::description_verbose(const metric_model& model) {
   d << "\tIs a distribution: " << (model.distribution ? std::string("true") : std::string("false"))
     << std::endl;
   if (!model.monitor_name.empty()) {
-    d << "\tObserved by monitor \"" << model.monitor_name << "\"" << std::endl;
+    d << "\tObserved by monitor \"" << model.monitor_name << "\"";
   }
+  if (model.inertia > 0) {
+    d << " [REACTIVE INERTIA " << model.inertia << ']';
+  }
+  d << std::endl;
   if (!model.prediction_plugin.empty()) {
     d << "\tPrediction plugin: " << model.prediction_plugin << std::endl;
     d << "\t           params: [";
@@ -153,9 +157,6 @@ std::stringstream margot::heel::description_verbose(const state_model& model) {
       d << " " << c.value;
       if (!c.confidence.empty()) {
         d << " with confidence " << c.confidence;
-      }
-      if (c.inertia > 0) {
-        d << " [REACTIVE INERTIA " << c.inertia << ']';
       }
       d << std::endl;
     }

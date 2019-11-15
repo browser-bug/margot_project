@@ -47,7 +47,8 @@
 						"param1": "value1",
 						"param2": "value2"
 					},
-					"observed_by": "throughput_monitor"
+					"observed_by": "throughput_monitor",
+					"reactive_inertia": 5
 				},
 				{
 					"name": "quality",
@@ -111,8 +112,7 @@
 							"subject":"throughput",
 							"comparison": "ge",
 							"value": 25.0,
-							"confidence": 3,
-							"reactive_inertia": 5
+							"confidence": 3
 						}
 					]
 				}

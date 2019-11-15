@@ -1,7 +1,9 @@
 #include <algorithm>
+#include <cstdint>
 #include <string>
 #include <vector>
 
+#include <boost/lexical_cast.hpp>
 #include <boost/optional.hpp>
 #include <boost/property_tree/ptree.hpp>
 
@@ -20,6 +22,7 @@ struct tag {
   inline static const std::string plugin(void) { return "prediction_plugin"; }
   inline static const std::string parameters(void) { return "prediction_parameters"; }
   inline static const std::string monitor(void) { return "observed_by"; }
+  inline static const std::string reactive_inertia(void) { return "reactive_inertia"; }
 };
 
 // forward declaration of the function that actually parse a metric description
@@ -60,13 +63,17 @@ margot::heel::metric_model parse_metric_model(const pt::ptree& metric_node) {
     metric_type.erase(0, 5);
   }
 
+  // get the reactive inertia as a string, to figure out later if we really need to react
+  const std::string inertia_str = margot::heel::get(tag::reactive_inertia(), metric_node);
+
   // create a default metric model
-  margot::heel::metric_model model = {margot::heel::get(tag::name(), metric_node),
-                                      metric_type,
-                                      is_distribution,
-                                      margot::heel::get(tag::plugin(), metric_node),
-                                      margot::heel::get(tag::monitor(), metric_node),
-                                      {}};
+  margot::heel::metric_model model = {
+      margot::heel::get(tag::name(), metric_node),
+      metric_type,
+      is_distribution,
+      margot::heel::get(tag::plugin(), metric_node),
+      margot::heel::get(tag::monitor(), metric_node),
+      !inertia_str.empty() ? boost::lexical_cast<std::size_t>(inertia_str) : 0};
 
   // parse the parameters for the plugin that will predict its value (if using agora)
   margot::heel::visit_optional(tag::parameters(), metric_node, [&model](const pt::ptree::value_type& p) {

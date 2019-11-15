@@ -1,6 +1,7 @@
 #ifndef HEEL_MODEL_METRIC_HDR
 #define HEEL_MODEL_METRIC_HDR
 
+#include <cstdint>
 #include <string>
 #include <vector>
 
@@ -16,6 +17,7 @@ struct metric_model {
   bool distribution;
   std::string prediction_plugin;
   std::string monitor_name;
+  std::size_t inertia;  // zero means no reaction
   std::vector<pair_property> prediction_parameters;
 };
 

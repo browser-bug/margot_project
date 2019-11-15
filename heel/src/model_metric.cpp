@@ -41,4 +41,10 @@ void margot::heel::validate(metric_model& model, const std::vector<monitor_model
       throw std::runtime_error("metric model: non-existent monitor");
     }
   }
+
+  // finally, we need to be sure that if we react with runtime observation, it must be observed by a monitor
+  if (model.inertia > 0 && model.monitor_name.empty()) {
+    margot::heel::error("The metric \"", model.name, "\" can't react without a monitor\"");
+    throw std::runtime_error("metric model: unable to active the reaction mechanism");
+  }
 }

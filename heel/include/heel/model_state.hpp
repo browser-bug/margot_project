@@ -22,7 +22,6 @@ struct constraint_model {
   std::string value;
   subject_kind kind;
   std::string confidence;
-  std::size_t inertia;  // zero means no reaction
 };
 
 struct rank_field_model {

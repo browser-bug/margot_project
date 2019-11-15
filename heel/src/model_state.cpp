@@ -103,16 +103,4 @@ void margot::heel::validate(state_model& model, const std::vector<metric_model>&
           throw std::runtime_error("state model: unknown constraint field");
         }
       });
-
-  // finally, we need to ensure that if we want to react against a metric, it has to be observed at runtime
-  std::for_each(model.constraints.begin(), model.constraints.end(), [&metrics](const constraint_model& c) {
-    if (c.inertia > 0) {
-      if (std::none_of(metrics.begin(), metrics.end(), [&c](const metric_model& metric) {
-            return (metric.name.compare(c.name) == 0) && (!metric.monitor_name.empty());
-          })) {
-        margot::heel::error("The constraint on \"", c.name,
-                            "\" is reactive, but there are no observation at runtime on that field");
-      }
-    }
-  });
 }
