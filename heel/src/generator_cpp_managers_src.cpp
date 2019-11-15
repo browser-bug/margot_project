@@ -3,12 +3,14 @@
 
 #include <heel/cpp_enum_conversion.hpp>
 #include <heel/cpp_state_emitter.hpp>
+#include <heel/cpp_utils.hpp>
 #include <heel/generator_cpp_managers_src.hpp>
 #include <heel/generator_utils.hpp>
 #include <heel/logger.hpp>
 #include <heel/model_application.hpp>
 #include <heel/model_block.hpp>
 #include <heel/model_monitor.hpp>
+#include <heel/model_state.hpp>
 
 margot::heel::cpp_source_content margot::heel::managers_cpp_content(margot::heel::application_model& app) {
   margot::heel::cpp_source_content c;
@@ -63,6 +65,15 @@ margot::heel::cpp_source_content margot::heel::managers_cpp_content(margot::heel
     // before defining the extra-functional requirements, we should add the application knowledge
     c.required_headers.emplace_back("margot/application_knowledge.hpp");
     c.content << "\tmargot::add_application_knowledge(manager);" << std::endl;
+
+    // maybe we need to add an information provider for a metric
+    std::for_each(block.metrics.begin(), block.metrics.end(), [&c, &block](const metric_model& metric) {
+      if (metric.inertia > 0) {
+        c.content << "\tmanager.add_runtime_knowledge<margot::OperatingPointSegments::METRICS,"
+                  << generate_field_getter(margot::heel::subject_kind::METRIC, metric.name, block.name) << ','
+                  << metric.inertia << ">(monitors." << metric.monitor_name << ");" << std::endl;
+      }
+    });
 
     // it's time to create and define all the states of agora for this block
     std::for_each(block.states.begin(), block.states.end(), [&c, &block](const state_model& state) {
