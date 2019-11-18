@@ -50,7 +50,6 @@ margot::heel::cpp_source_content margot::heel::knowledge_cpp_content(margot::hee
       } else if (is_with_knowledge) {
         // if we reach this statement it means that we have to generate the code that adds clusters (if any)
         // and Operating Point to the block manager.
-        c.content << "\tauto& manager = margot::" << block.name << "::interface().manager;" << std::endl;
         std::string current_cluster = "";
         bool first_iteration = true;
         std::for_each(block.ops.begin(), block.ops.end(), [&](const operating_point_model& op) {
@@ -76,12 +75,13 @@ margot::heel::cpp_source_content margot::heel::knowledge_cpp_content(margot::hee
             c.content << "\tmanager.select_feature_cluster({{" << current_cluster << "}});" << std::endl;
           }
           if (need_to_generate_add_op_begin) {
-            c.content << "\tmanager.add_operating_points({" << std::endl;
+            c.content << "\tmanager.add_operating_points(std::vector<margot::" << block.name
+                      << "_utils::operating_point_type>({" << std::endl;
           }
 
           // now we can generate the operating point code
           c.content << "\t\t{ // new operating point" << std::endl;
-          c.content << "\t\t\t{ // software knobs " << std::endl;
+          c.content << "\t\t\t{ // software knobs " << std::endl << "\t\t\t\t";
           std::size_t counter = 0;
           c.content << margot::heel::join(block.knobs.begin(), block.knobs.end(), ", ",
                                           [&](const knob_model& knob) {
@@ -94,13 +94,13 @@ margot::heel::cpp_source_content margot::heel::knowledge_cpp_content(margot::hee
                                           })
                     << std::endl;
           c.content << "\t\t\t}," << std::endl;
-          c.content << "\t\t\t{ // extra-functional properties " << std::endl;
+          c.content << "\t\t\t{ // extra-functional properties " << std::endl << "\t\t\t\t";
           counter = 0;
           c.content << margot::heel::join(block.metrics.begin(), block.metrics.end(), ", ",
                                           [&](const metric_model& metric) {
                                             const auto t = counter++;
                                             const std::string stdv =
-                                                metric.distribution && !metric_is_distribution
+                                                !metric.distribution && metric_is_distribution
                                                     ? std::string("0")
                                                     : op.metrics[t].standard_deviation;
                                             return metric_is_distribution
@@ -114,7 +114,7 @@ margot::heel::cpp_source_content margot::heel::knowledge_cpp_content(margot::hee
         });
 
         // now we can close the add operating point function
-        c.content << "\t});" << std::endl << std::endl << std::endl;
+        c.content << "\t}));" << std::endl << std::endl << std::endl;
       }
 
       c.content << "}" << std::endl;
