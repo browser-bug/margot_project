@@ -10,6 +10,7 @@
 #include <heel/generator_cpp_knowledge_src.hpp>
 #include <heel/generator_cpp_managers_hdr.hpp>
 #include <heel/generator_cpp_managers_src.hpp>
+#include <heel/generator_cpp_margot_hdr.hpp>
 #include <heel/generator_source_file.hpp>
 #include <heel/json_parser.hpp>
 #include <heel/logger.hpp>
@@ -61,7 +62,8 @@ void margot::heel::workspace::generate_adaptive_interface(void) {
       {hdr_path / "margot" / "application_geometry.hpp",
        margot::heel::application_geometry_hpp_content(model)},
       {hdr_path / "margot" / "managers_definition.hpp", margot::heel::managers_hpp_content(model)},
-      {hdr_path / "margot" / "application_knowledge.hpp", margot::heel::knowledge_hpp_content(model)}};
+      {hdr_path / "margot" / "application_knowledge.hpp", margot::heel::knowledge_hpp_content(model)},
+      {hdr_path / "margot" / "margot.hpp", margot::heel::margot_hpp_content(model)}};
 
   // generate the content of the source files of the high level interface
   std::vector<margot::heel::source_file_generator> sources = {

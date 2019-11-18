@@ -43,6 +43,9 @@ void validate(monitor_model& model);
 // this function retrieves a copy of the spec of a known monitor
 const monitor_spec& get_monitor_cpp_spec(monitor_model& monitor);
 
+// this function tells if this is a custom monitor
+bool is_custom_monitor(const monitor_model& monitor);
+
 }  // namespace heel
 }  // namespace margot
 

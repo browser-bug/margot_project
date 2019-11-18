@@ -228,3 +228,7 @@ void margot::heel::validate(monitor_model& model) {
     throw std::runtime_error("monitor model: unsupported name");
   }
 }
+
+bool margot::heel::is_custom_monitor(const margot::heel::monitor_model& monitor) {
+  return known_monitors.at(monitor.type).stop_method_name.compare("push") == 0;
+}
