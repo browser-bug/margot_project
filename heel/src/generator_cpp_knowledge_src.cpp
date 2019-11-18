@@ -35,8 +35,8 @@ margot::heel::cpp_source_content margot::heel::knowledge_cpp_content(margot::hee
     // define the signature of the function that adds the application knowledge (and feature clusters) to the
     // manager (if any)
     if (!block.knobs.empty()) {
-      c.content << "void margot::add_application_knowledge(" << block.name
-                << "_utils::manager_type& manager) {" << std::endl;
+      c.content << "void margot::add_application_knowledge(margot::" << block.name
+                << "::manager_type& manager) {" << std::endl;
 
       // check if we have to generate a fake cluster, to be able to define the extra-functional requirements
       const bool is_with_features = !block.features.fields.empty();
@@ -76,7 +76,7 @@ margot::heel::cpp_source_content margot::heel::knowledge_cpp_content(margot::hee
           }
           if (need_to_generate_add_op_begin) {
             c.content << "\tmanager.add_operating_points(std::vector<margot::" << block.name
-                      << "_utils::operating_point_type>({" << std::endl;
+                      << "::operating_point_type>({" << std::endl;
           }
 
           // now we can generate the operating point code
@@ -88,26 +88,24 @@ margot::heel::cpp_source_content margot::heel::knowledge_cpp_content(margot::hee
                                             const auto t = counter++;
                                             return knob.type.compare("string") != 0
                                                        ? op.knobs[t].mean
-                                                       : "margot::" + block.name + "_utils::knob_" +
-                                                             knob.name + "_to_val(\"" + op.knobs[t].mean +
-                                                             "\")";
+                                                       : "margot::" + block.name + "::knob_" + knob.name +
+                                                             "_to_val(\"" + op.knobs[t].mean + "\")";
                                           })
                     << std::endl;
           c.content << "\t\t\t}," << std::endl;
           c.content << "\t\t\t{ // extra-functional properties " << std::endl << "\t\t\t\t";
           counter = 0;
-          c.content << margot::heel::join(block.metrics.begin(), block.metrics.end(), ", ",
-                                          [&](const metric_model& metric) {
-                                            const auto t = counter++;
-                                            const std::string stdv =
-                                                !metric.distribution && metric_is_distribution
-                                                    ? std::string("0")
-                                                    : op.metrics[t].standard_deviation;
-                                            return metric_is_distribution
-                                                       ? "margot::" + block.name + "_utils::metrics_type(" +
-                                                             op.metrics[t].mean + "," + stdv + ")"
-                                                       : op.metrics[t].mean;
-                                          })
+          c.content << margot::heel::join(
+                           block.metrics.begin(), block.metrics.end(), ", ",
+                           [&](const metric_model& metric) {
+                             const auto t = counter++;
+                             const std::string stdv = !metric.distribution && metric_is_distribution
+                                                          ? std::string("0")
+                                                          : op.metrics[t].standard_deviation;
+                             return metric_is_distribution ? "margot::" + block.name + "::metrics_type(" +
+                                                                 op.metrics[t].mean + "," + stdv + ")"
+                                                           : op.metrics[t].mean;
+                           })
                     << std::endl;
           c.content << "\t\t\t}" << std::endl;
           c.content << "\t\t}," << std::endl;

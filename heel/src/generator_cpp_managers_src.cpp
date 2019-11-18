@@ -25,7 +25,7 @@ margot::heel::cpp_source_content margot::heel::managers_cpp_content(margot::heel
   // generate the content of the required functions for each block
   std::for_each(app.blocks.begin(), app.blocks.end(), [&](const margot::heel::block_model& block) {
     // -------- generate the constructor of the class
-    c.content << "margot::" << block.name << "::" << block.name << "(void):";
+    c.content << "margot::" << block.name << "::data::data(void):";
     // the monitors and goals are initialized with the initializer list. However, we initialize here only the
     // monitors that have all the initialization parameters "immediate".
     c.content << "monitors({"
@@ -97,12 +97,11 @@ margot::heel::cpp_source_content margot::heel::managers_cpp_content(margot::heel
         std::string stripped;
         std::unique_copy(escaped.begin(), escaped.end(), std::back_insert_iterator<std::string>(stripped),
                          [](const char a, const char b) { return std::isspace(a) && std::isspace(b); });
-        c.content << "\tmanager.start_support_thread<margot::" << block.name
-                  << "_utils::operating_point_parser>(\"" << app.name << '/' << app.version << '/'
-                  << block.name << "\",\"" << block.agora.url << "\",\"" << block.agora.username << "\",\""
-                  << block.agora.password << "\"," << block.agora.qos << ",\"" << stripped << "\",\""
-                  << block.agora.broker_ca << "\",\"" << block.agora.client_cert << "\",\""
-                  << block.agora.client_key << "\");" << std::endl;
+        c.content << "\tmanager.start_support_thread<margot::" << block.name << "::operating_point_parser>(\""
+                  << app.name << '/' << app.version << '/' << block.name << "\",\"" << block.agora.url
+                  << "\",\"" << block.agora.username << "\",\"" << block.agora.password << "\","
+                  << block.agora.qos << ",\"" << stripped << "\",\"" << block.agora.broker_ca << "\",\""
+                  << block.agora.client_cert << "\",\"" << block.agora.client_key << "\");" << std::endl;
       }
     }
     c.content << "}" << std::endl << std::endl;

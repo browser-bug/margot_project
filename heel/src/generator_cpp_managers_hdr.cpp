@@ -24,10 +24,11 @@ margot::heel::cpp_source_content margot::heel::managers_hpp_content(application_
   c.required_headers.emplace_back("margot/application_geometry.hpp");
 
   // generate the content for each block managed by margot, within its namespace
-  c.content << std::endl << "namespace margot {" << std::endl;
+  c.content << std::endl << "namespace margot {" << std::endl << std::endl;
   std::for_each(app.blocks.begin(), app.blocks.end(), [&c](block_model& block) {
     // print the description of the application model as comment before generating the source code of the
     // class. In this way, the user can have an idea to what has been generated in the code
+    c.content << "namespace " << block.name << " {" << std::endl;
     c.content << "// ------------------===={ Block \"" << block.name << "\" model }====------------------"
               << std::endl;
     const auto print_desc = [&c](std::stringstream stream) {
@@ -58,7 +59,7 @@ margot::heel::cpp_source_content margot::heel::managers_hpp_content(application_
               << "=============------------------" << std::endl;
 
     // now we can generate the code for the actual class that handles the application
-    c.content << "class " << block.name << " {" << std::endl;
+    c.content << "class data {" << std::endl;
     c.content << "public:" << std::endl;
 
     // define the struct that contains the monitors (and append the related headers)
@@ -111,27 +112,28 @@ margot::heel::cpp_source_content margot::heel::managers_hpp_content(application_
 
     // declare the content of the struct
     if (!block.knobs.empty()) {
-      c.content << "\tmargot::" << block.name << "_utils::manager_type manager;" << std::endl;
+      c.content << "\tmargot::" << block.name << "::manager_type manager;" << std::endl;
     }
     c.content << "\tmonitors_type monitors;" << std::endl;
     c.content << "\tgoals_type goals;" << std::endl;
     c.content << "\tknobs_type knobs;" << std::endl << std::endl;
 
     // declare the constructor e destructor of the struct that are deleted
-    c.content << "\t" << block.name << "(const " << block.name << "&) = delete;" << std::endl;
-    c.content << "\t" << block.name << "(" << block.name << "&&) = delete;" << std::endl << std::endl;
+    c.content << "\tdata(const data&) = delete;" << std::endl;
+    c.content << "\tdata(data&&) = delete;" << std::endl << std::endl;
 
     // declare the function that retrieves the only object that should exist
-    c.content << "\tinline static " << block.name << "& get_instance(void) {" << std::endl;
-    c.content << "\t\tstatic " << block.name << " instance;" << std::endl;
+    c.content << "\tinline static data& get_instance(void) {" << std::endl;
+    c.content << "\t\tstatic data instance;" << std::endl;
     c.content << "\t\treturn instance;" << std::endl;
     c.content << "\t}" << std::endl;
 
     // now we define the actual destructor and constructor as private, to implement the singleton pattern
     c.content << "private:" << std::endl;
-    c.content << "\t" << block.name << "(void);" << std::endl << std::endl;
+    c.content << "\tdata(void);" << std::endl << std::endl;
 
-    c.content << "}; // end class " << block.name << std::endl << std::endl;
+    c.content << "}; // end class " << block.name << std::endl;
+    c.content << "} // namespace " << block.name << std::endl << std::endl;
   });
   c.content << "} // namespace margot" << std::endl << std::endl;
 
