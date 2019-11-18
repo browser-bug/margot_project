@@ -3,7 +3,7 @@
 #include <string>
 
 #include <heel/cpp_enum_conversion.hpp>
-#include <heel/cpp_interface_conversion.hpp>
+#include <heel/cpp_parser_gen.hpp>
 #include <heel/cpp_utils.hpp>
 #include <heel/generator_cpp_managers_hdr.hpp>
 #include <heel/generator_description_verbose.hpp>

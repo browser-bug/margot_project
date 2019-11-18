@@ -56,7 +56,7 @@ set( HEEL_LIBRARY_HEADERS
 	"${HEEL_HDR_PATH}/heel/parser_utils.hpp"
 	"${HEEL_HDR_PATH}/heel/configuration_file.hpp"
 	"${HEEL_HDR_PATH}/heel/cpp_enum_conversion.hpp"
-	"${HEEL_HDR_PATH}/heel/cpp_interface_conversion.hpp"
+	"${HEEL_HDR_PATH}/heel/cpp_parser_gen.hpp"
 	"${HEEL_HDR_PATH}/heel/cpp_state_emitter.hpp"
 	"${HEEL_HDR_PATH}/heel/cpp_utils.hpp"
 	"${HEEL_HDR_PATH}/heel/json_parser.hpp"

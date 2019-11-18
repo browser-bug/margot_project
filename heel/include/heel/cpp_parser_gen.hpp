@@ -1,5 +1,5 @@
-#ifndef HEEL_CPP_INTERFACE_CONVERSION_HDR
-#define HEEL_CPP_INTERFACE_CONVERSION_HDR
+#ifndef HEEL_CPP_PARSER_GEN_HDR
+#define HEEL_CPP_PARSER_GEN_HDR
 
 #include <string>
 #include <vector>
@@ -39,4 +39,4 @@ struct cpp_parser_gen {
 }  // namespace heel
 }  // namespace margot
 
-#endif  // HEEL_CPP_INTERFACE_CONVERSION_HDR
+#endif  // HEEL_CPP_PARSER_GEN_HDR

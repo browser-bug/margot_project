@@ -2,7 +2,7 @@
 #include <cstdint>
 
 #include <heel/cpp_enum_conversion.hpp>
-#include <heel/cpp_interface_conversion.hpp>
+#include <heel/cpp_parser_gen.hpp>
 #include <heel/generator_cpp_application_geometry_src.hpp>
 #include <heel/generator_utils.hpp>
 #include <heel/logger.hpp>
