@@ -13,7 +13,7 @@ namespace margot {
 namespace heel {
 
 // this is an helper struct to write the declaration of input/output parameters
-struct cpp_parameters {
+struct cpp_parser_gen {
   inline static std::string signature(const std::vector<feature_model>& fields,
                                       const std::vector<knob_model>& knobs,
                                       const std::vector<metric_model>& metrics) {

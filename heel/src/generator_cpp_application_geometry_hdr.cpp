@@ -126,7 +126,7 @@ margot::heel::cpp_source_content margot::heel::application_geometry_hpp_content(
       c.content << "\toperating_point_container_type operator()(const std::string& description_str) const;"
                 << std::endl;
       c.content << "\tstd::string operator()("
-                << margot::heel::cpp_parameters::signature(block.features.fields, block.knobs, block.metrics)
+                << margot::heel::cpp_parser_gen::signature(block.features.fields, block.knobs, block.metrics)
                 << ") const;" << std::endl;
       c.content << "};" << std::endl << std::endl;
     }

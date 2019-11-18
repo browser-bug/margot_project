@@ -9,7 +9,7 @@ namespace heel {
 
 // this function generates the header which define the function that will provide the application knowledge
 // (if an Operating Point list is provided).
-cpp_source_content knowledge_hdr_content(application_model& app);
+cpp_source_content knowledge_hpp_content(application_model& app);
 
 }  // namespace heel
 }  // namespace margot

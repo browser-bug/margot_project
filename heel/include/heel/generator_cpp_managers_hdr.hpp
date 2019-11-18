@@ -8,7 +8,7 @@ namespace margot {
 namespace heel {
 
 // this function generates the struct that defines the high-level interface, including the monitors and goals.
-cpp_source_content managers_hdr_content(application_model& app);
+cpp_source_content managers_hpp_content(application_model& app);
 
 }  // namespace heel
 }  // namespace margot

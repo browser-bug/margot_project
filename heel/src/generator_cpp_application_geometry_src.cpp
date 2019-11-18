@@ -95,7 +95,7 @@ margot::heel::cpp_source_content margot::heel::application_geometry_cpp_content(
 
       // generate the function that generate the string representation of an Operating Point list
       c.content << "std::string operating_point_parser::operator()("
-                << margot::heel::cpp_parameters::signature(block.features.fields, block.knobs, block.metrics)
+                << margot::heel::cpp_parser_gen::signature(block.features.fields, block.knobs, block.metrics)
                 << ") const {" << std::endl;
       c.content << "\treturn \"{\\\"" << block.name << "\\\":[{";
       if (!block.features.fields.empty()) {

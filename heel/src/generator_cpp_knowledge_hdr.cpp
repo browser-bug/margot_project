@@ -4,7 +4,7 @@
 #include <heel/generator_utils.hpp>
 #include <heel/model_application.hpp>
 
-margot::heel::cpp_source_content margot::heel::knowledge_hdr_content(margot::heel::application_model& app) {
+margot::heel::cpp_source_content margot::heel::knowledge_hpp_content(margot::heel::application_model& app) {
   margot::heel::cpp_source_content c;
   c.required_headers.emplace_back("margot/application_geometry.hpp");
   c.content << "namespace margot {" << std::endl;

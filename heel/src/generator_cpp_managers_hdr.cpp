@@ -16,7 +16,7 @@
 #include <heel/model_monitor.hpp>
 #include <heel/model_state.hpp>
 
-margot::heel::cpp_source_content margot::heel::managers_hdr_content(application_model& app) {
+margot::heel::cpp_source_content margot::heel::managers_hpp_content(application_model& app) {
   margot::heel::cpp_source_content c;
 
   // append by default the cstdint and the application geometry header
@@ -122,7 +122,7 @@ margot::heel::cpp_source_content margot::heel::managers_hdr_content(application_
     c.content << "\t" << block.name << "(" << block.name << "&&) = delete;" << std::endl << std::endl;
 
     // declare the function that retrieves the only object that should exist
-    c.content << "\tinline static " << block.name << "& interface(void) {" << std::endl;
+    c.content << "\tinline static " << block.name << "& get_instance(void) {" << std::endl;
     c.content << "\t\tstatic " << block.name << " instance;" << std::endl;
     c.content << "\t\treturn instance;" << std::endl;
     c.content << "\t}" << std::endl;
