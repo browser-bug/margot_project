@@ -158,17 +158,21 @@ static const std::vector<std::string> available_statistics = {"average", "standa
 const margot::heel::monitor_spec& margot::heel::get_monitor_cpp_spec(monitor_model& monitor) {
   // make sure that we support the given monitor type
   boost::trim(monitor.type);
-  auto monitor_spec_it = known_monitors.find(monitor.type);
+  try {
+    return get_monitor_cpp_spec(monitor.type);
+  } catch (const std::runtime_error& e) {
+    margot::heel::error("Unknown type \"", monitor.type, "\" for monitor \"", monitor.name, "\"");
+    throw e;
+  }
+}
+
+const margot::heel::monitor_spec& margot::heel::get_monitor_cpp_spec(const std::string& monitor_type) {
+  auto monitor_spec_it = known_monitors.find(monitor_type);
   if (monitor_spec_it == known_monitors.cend()) {
     // if reach this statement, is not a known monitor, but we could generate the spec on the fly if it is a
     // numeric type (i.e. custom monitor)
-    try {
-      const auto res = known_monitors.emplace(monitor.type, gen_custom_spec(monitor.type));
-      monitor_spec_it = res.first;
-    } catch (const std::runtime_error& e) {
-      margot::heel::error("Unknown type \"", monitor.type, "\" for monitor \"", monitor.name, "\"");
-      throw e;
-    }
+    const auto res = known_monitors.emplace(monitor_type, gen_custom_spec(monitor_type));
+    monitor_spec_it = res.first;
   }
   return monitor_spec_it->second;
 }
