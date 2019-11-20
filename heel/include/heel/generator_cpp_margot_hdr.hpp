@@ -7,7 +7,7 @@
 namespace margot {
 namespace heel {
 
-// this function generates the struct that defines the high-level functions
+// this function generates the actual high-level interface
 cpp_source_content margot_hpp_content(const application_model& app);
 
 }  // namespace heel
