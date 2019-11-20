@@ -1,6 +1,7 @@
 #ifndef HEEL_GENERATOR_UTILS_HDR
 #define HEEL_GENERATOR_UTILS_HDR
 
+#include <cstdint>
 #include <numeric>
 #include <sstream>
 #include <string>
@@ -33,8 +34,8 @@ struct cpp_source_content {
 };
 
 // this function appends a cpp source content to another one, with the possibility to specify a prefix
-void append(cpp_source_content& destination, const cpp_source_content& source,
-            const std::string& prefix = "");
+void append(cpp_source_content& destination, const cpp_source_content& source, const std::string& prefix = "",
+            const std::size_t min_line_merge = 0);
 
 }  // namespace heel
 }  // namespace margot
