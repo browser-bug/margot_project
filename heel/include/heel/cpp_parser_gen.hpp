@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 
+#include <heel/cpp_utils.hpp>
 #include <heel/generator_utils.hpp>
 #include <heel/model_features.hpp>
 #include <heel/model_knob.hpp>
@@ -31,6 +32,24 @@ struct cpp_parser_gen {
     result += ", ";
     result += margot::heel::join(metrics.begin(), metrics.end(), ", ", [](const metric_model& metric) {
       return "const " + metric.type + " " + metric.name;
+    });
+    return result;
+  }
+
+  inline static std::string usage(const std::vector<feature_model>& fields,
+                                  const std::vector<knob_model>& knobs,
+                                  const std::vector<metric_model>& metrics) {
+    std::string result;
+    if (!fields.empty()) {
+      result = margot::heel::join(fields.begin(), fields.end(), ", ",
+                                  [](const feature_model& field) { return "c.features." + field.name; });
+      result += ", ";
+    }
+    result += margot::heel::join(knobs.begin(), knobs.end(), ", ",
+                                 [](const knob_model& knob) { return "c.knobs." + knob.name; });
+    result += ", ";
+    result += margot::heel::join(metrics.begin(), metrics.end(), ", ", [](const metric_model& metric) {
+      return "c.monitors." + metric.monitor_name + ".last()";
     });
     return result;
   }
