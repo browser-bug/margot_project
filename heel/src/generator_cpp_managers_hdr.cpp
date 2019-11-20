@@ -110,13 +110,22 @@ margot::heel::cpp_source_content margot::heel::managers_hpp_content(application_
     });
     c.content << "\t};" << std::endl << std::endl;
 
+    // define the struct that containst the features of the block
+    c.content << "\tstruct features_type {" << std::endl;
+    std::for_each(block.features.fields.begin(), block.features.fields.end(),
+                  [&c](const feature_model& feature) {
+                    c.content << "\t\t" << feature.type << " " << feature.name << ";" << std::endl;
+                  });
+    c.content << "\t};" << std::endl << std::endl;
+
     // declare the content of the struct
     if (!block.knobs.empty()) {
       c.content << "\tmargot::" << block.name << "::manager_type manager;" << std::endl;
     }
     c.content << "\tmonitors_type monitors;" << std::endl;
     c.content << "\tgoals_type goals;" << std::endl;
-    c.content << "\tknobs_type knobs;" << std::endl << std::endl;
+    c.content << "\tknobs_type knobs;" << std::endl;
+    c.content << "\tfeatures_type features;" << std::endl << std::endl;
 
     // declare the constructor e destructor of the struct that are deleted
     c.content << "\tdata(const data&) = delete;" << std::endl;
