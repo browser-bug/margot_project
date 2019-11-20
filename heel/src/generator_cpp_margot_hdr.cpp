@@ -35,7 +35,7 @@ margot::heel::cpp_source_content margot::heel::margot_hpp_content(
               << ");" << std::endl;
     c.content << "void log(void);" << std::endl;
     c.content << "inline margot::" << block.name << "::data& context(void) {" << std::endl;
-    c.content << "\treturn margot::" << block.name << "::data::get_reference();" << std::endl;
+    c.content << "\treturn margot::" << block.name << "::data::get_instance();" << std::endl;
     c.content << "}" << std::endl;
     c.content << "} // namespace " << block.name << std::endl;
   });
