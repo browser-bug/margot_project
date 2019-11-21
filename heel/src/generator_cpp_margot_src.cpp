@@ -21,9 +21,11 @@ margot::heel::cpp_source_content global_init_content(const margot::heel::applica
   // input variable in the constructor. On the other hand, it enforces the initializations of all the
   // managers.
   std::for_each(app.blocks.begin(), app.blocks.end(), [&c](const margot::heel::block_model& block) {
+    c.required_headers.emplace_back("mutex");
     bool need_to_regenerate_information_providers = false;
-    c.content << "{" << std::endl;  // we use the block scope to avoid name clashing
+    c.content << "{" << std::endl;  // we use the block scope to avoid name clashing and to lock it
     c.content << "\tauto& c = margot::" << block.name << "::context();" << std::endl;
+    c.content << "\tconst std::lock_guard<std::mutex> lock(c.contex_mux);" << std::endl;
 
     // initialize the monitors that requires a variable in the constructor
     std::for_each(
@@ -71,7 +73,9 @@ margot::heel::cpp_source_content global_init_content(const margot::heel::applica
 
 margot::heel::cpp_source_content update_content(const margot::heel::block_model& block) {
   margot::heel::cpp_source_content c;
+  c.required_headers.emplace_back("mutex");
   c.content << "auto& c = margot::" << block.name << "::context();" << std::endl;
+  c.content << "const std::lock_guard<std::mutex> lock(c.contex_mux);" << std::endl;
   c.content << "bool conf_changed = false;" << std::endl;
   if (!block.features.fields.empty()) {
     std::for_each(block.features.fields.begin(), block.features.fields.end(),
@@ -111,6 +115,7 @@ margot::heel::cpp_source_content update_content(const margot::heel::block_model&
 margot::heel::cpp_source_content start_monitor_content(const margot::heel::block_model& block) {
   margot::heel::cpp_source_content c;
   c.content << "auto& c = margot::" << block.name << "::context();" << std::endl;
+  c.content << "const std::lock_guard<std::mutex> lock(c.contex_mux);" << std::endl;
   std::for_each(
       block.monitors.begin(), block.monitors.end(), [&c](const margot::heel::monitor_model& monitor) {
         const auto& spec = margot::heel::get_monitor_cpp_spec(monitor.type);
@@ -126,7 +131,9 @@ margot::heel::cpp_source_content start_monitor_content(const margot::heel::block
 
 margot::heel::cpp_source_content stop_monitor_content(const margot::heel::block_model& block) {
   margot::heel::cpp_source_content c;
+  c.required_headers.emplace_back("mutex");
   c.content << "auto& c = margot::" << block.name << "::context();" << std::endl;
+  c.content << "const std::lock_guard<std::mutex> lock(c.contex_mux);" << std::endl;
   std::for_each(
       block.monitors.begin(), block.monitors.end(), [&c](const margot::heel::monitor_model& monitor) {
         const auto& spec = margot::heel::get_monitor_cpp_spec(monitor.type);
@@ -144,7 +151,9 @@ margot::heel::cpp_source_content stop_monitor_content(const margot::heel::block_
 
 margot::heel::cpp_source_content push_monitor_content(const margot::heel::block_model& block) {
   margot::heel::cpp_source_content c;
+  c.required_headers.emplace_back("mutex");
   c.content << "auto& c = margot::" << block.name << "::context();" << std::endl;
+  c.content << "const std::lock_guard<std::mutex> lock(c.contex_mux);" << std::endl;
   std::for_each(
       block.monitors.begin(), block.monitors.end(), [&c](const margot::heel::monitor_model& monitor) {
         const auto& spec = margot::heel::get_monitor_cpp_spec(monitor.type);
@@ -189,7 +198,7 @@ margot::heel::cpp_source_content margot::heel::margot_cpp_content(
 
   // generate the content of the global init function
   c.content << "void init(" << margot::heel::cpp_init_gen::signature(app) << ") {" << std::endl;
-  margot::heel::append(c, global_init_content(app), "\t", 4);
+  margot::heel::append(c, global_init_content(app), "\t");
   c.content << "}" << std::endl;
 
   // loop over each block to generate the block-specific functions

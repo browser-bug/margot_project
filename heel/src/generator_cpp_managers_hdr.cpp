@@ -22,6 +22,7 @@ margot::heel::cpp_source_content margot::heel::managers_hpp_content(application_
   // append by default the cstdint and the application geometry header
   c.required_headers.emplace_back("cstdint");
   c.required_headers.emplace_back("margot/application_geometry.hpp");
+  c.required_headers.emplace_back("mutex");
 
   // generate the content for each block managed by margot, within its namespace
   c.content << std::endl << "namespace margot {" << std::endl << std::endl;
@@ -125,7 +126,8 @@ margot::heel::cpp_source_content margot::heel::managers_hpp_content(application_
     c.content << "\tmonitors_type monitors;" << std::endl;
     c.content << "\tgoals_type goals;" << std::endl;
     c.content << "\tknobs_type knobs;" << std::endl;
-    c.content << "\tfeatures_type features;" << std::endl << std::endl;
+    c.content << "\tfeatures_type features;" << std::endl;
+    c.content << "\tstd::mutex contex_mux;" << std::endl << std::endl;
 
     // declare the constructor e destructor of the struct that are deleted
     c.content << "\tdata(const data&) = delete;" << std::endl;
