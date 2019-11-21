@@ -14,16 +14,10 @@
 #include <heel/model_metric.hpp>
 #include <heel/model_operating_point.hpp>
 #include <heel/parser_operating_point.hpp>
+#include <heel/parser_tags.hpp>
 #include <heel/parser_utils.hpp>
 
 namespace pt = boost::property_tree;
-
-// this struct is used to store the actual values of a tag
-struct tag {
-  inline static const std::string features(void) { return "features"; }
-  inline static const std::string knobs(void) { return "knobs"; }
-  inline static const std::string metrics(void) { return "metrics"; }
-};
 
 // helper function that retrieves a value from a field of an Operating Point. It complains if it is invalid or
 // empty. It basically parse and validates the Operating Point.
@@ -75,17 +69,18 @@ std::vector<margot::heel::operating_point_model> margot::heel::parse_operating_p
     // parse all the features
     std::for_each(block.features.fields.begin(), block.features.fields.end(),
                   [&p, &op](const feature_model& feature) {
-                    op.features.emplace_back(parse_op_field(tag::features() + "." + feature.name, p.second));
+                    op.features.emplace_back(
+                        parse_op_field(margot::heel::tag::features() + "." + feature.name, p.second));
                   });
 
     // parse all the knobs
     std::for_each(block.knobs.begin(), block.knobs.end(), [&p, &op](const knob_model& knob) {
-      op.knobs.emplace_back(parse_op_field(tag::knobs() + "." + knob.name, p.second));
+      op.knobs.emplace_back(parse_op_field(margot::heel::tag::knobs() + "." + knob.name, p.second));
     });
 
     // parse all the metrics
     std::for_each(block.metrics.begin(), block.metrics.end(), [&p, &op](const metric_model& metric) {
-      op.metrics.emplace_back(parse_op_field(tag::metrics() + "." + metric.name, p.second));
+      op.metrics.emplace_back(parse_op_field(margot::heel::tag::metrics() + "." + metric.name, p.second));
     });
 
     // append the operating point to the block

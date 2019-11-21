@@ -7,18 +7,10 @@
 #include <heel/logger.hpp>
 #include <heel/model_features.hpp>
 #include <heel/parser_features.hpp>
+#include <heel/parser_tags.hpp>
 #include <heel/parser_utils.hpp>
 
 namespace pt = boost::property_tree;
-
-// this struct is used to store the actual values of a tag
-struct tag {
-  inline static const std::string features(void) { return "features"; }
-  inline static const std::string feature_distance(void) { return "feature_distance"; }
-  inline static const std::string name(void) { return "name"; }
-  inline static const std::string feature_type(void) { return "type"; }
-  inline static const std::string comparison(void) { return "comparison"; }
-};
 
 // forward declaration of the function that actually parse a feature description
 margot::heel::feature_model parse_feature_model(const pt::ptree& feature_node);
@@ -30,7 +22,7 @@ margot::heel::features_model margot::heel::parse_features(const pt::ptree& block
   margot::heel::features_model model;
 
   // set the feature distance type (if any)
-  std::string distance_type_str = margot::heel::get(tag::feature_distance(), block_node);
+  std::string distance_type_str = margot::heel::get(margot::heel::tag::feature_distance(), block_node);
   std::transform(distance_type_str.begin(), distance_type_str.end(), distance_type_str.begin(),
                  [](unsigned char c) { return std::tolower(c); });
   if (distance_type_str.empty()) {
@@ -46,9 +38,9 @@ margot::heel::features_model margot::heel::parse_features(const pt::ptree& block
   }
 
   // now we need to parse the fields of the features (if any)
-  margot::heel::visit_optional(tag::features(), block_node, [&model](const pt::ptree::value_type& p) {
-    model.fields.emplace_back(parse_feature_model(p.second));
-  });
+  margot::heel::visit_optional(
+      margot::heel::tag::features(), block_node,
+      [&model](const pt::ptree::value_type& p) { model.fields.emplace_back(parse_feature_model(p.second)); });
 
   // the list might be full of feature models, but it is better to sort them according to the feature's name
   std::sort(model.fields.begin(), model.fields.end(),
@@ -61,7 +53,7 @@ margot::heel::features_model margot::heel::parse_features(const pt::ptree& block
 // this is the main function that actually parse a feature
 margot::heel::feature_model parse_feature_model(const pt::ptree& feature_node) {
   // fetch the comparison type as string (lowercase)
-  std::string comparison_type_str = margot::heel::get(tag::comparison(), feature_node);
+  std::string comparison_type_str = margot::heel::get(margot::heel::tag::comparison(), feature_node);
   std::transform(comparison_type_str.begin(), comparison_type_str.end(), comparison_type_str.begin(),
                  [](typename std::string::value_type c) { return std::tolower(c); });
 
@@ -77,6 +69,6 @@ margot::heel::feature_model parse_feature_model(const pt::ptree& feature_node) {
   }
 
   // construct the model
-  return {margot::heel::get(tag::name(), feature_node), margot::heel::get(tag::feature_type(), feature_node),
-          comparison_type};
+  return {margot::heel::get(margot::heel::tag::name(), feature_node),
+          margot::heel::get(margot::heel::tag::type(), feature_node), comparison_type};
 }

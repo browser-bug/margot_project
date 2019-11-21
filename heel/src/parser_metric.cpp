@@ -9,21 +9,10 @@
 
 #include <heel/model_metric.hpp>
 #include <heel/parser_metric.hpp>
+#include <heel/parser_tags.hpp>
 #include <heel/parser_utils.hpp>
 
 namespace pt = boost::property_tree;
-
-// this struct is used to store the actual values of a tag
-struct tag {
-  inline static const std::string metrics(void) { return "metrics"; }
-  inline static const std::string name(void) { return "name"; }
-  inline static const std::string metric_type(void) { return "type"; }
-  inline static const std::string distribution(void) { return "distribution"; }
-  inline static const std::string plugin(void) { return "prediction_plugin"; }
-  inline static const std::string parameters(void) { return "prediction_parameters"; }
-  inline static const std::string monitor(void) { return "observed_by"; }
-  inline static const std::string reactive_inertia(void) { return "reactive_inertia"; }
-};
 
 // forward declaration of the function that actually parse a metric description
 margot::heel::metric_model parse_metric_model(const pt::ptree& metric_node);
@@ -32,9 +21,9 @@ margot::heel::metric_model parse_metric_model(const pt::ptree& metric_node);
 // to parse it, appending the new metric to the result vector
 std::vector<margot::heel::metric_model> margot::heel::parse_metrics(const pt::ptree& block_node) {
   std::vector<margot::heel::metric_model> result;
-  margot::heel::visit_optional(tag::metrics(), block_node, [&result](const pt::ptree::value_type& p) {
-    result.emplace_back(parse_metric_model(p.second));
-  });
+  margot::heel::visit_optional(
+      margot::heel::tag::metrics(), block_node,
+      [&result](const pt::ptree::value_type& p) { result.emplace_back(parse_metric_model(p.second)); });
 
   // the list might be full of metric models, but it is better to sort them according to the metric's name
   std::sort(result.begin(), result.end(),
@@ -48,7 +37,7 @@ std::vector<margot::heel::metric_model> margot::heel::parse_metrics(const pt::pt
 margot::heel::metric_model parse_metric_model(const pt::ptree& metric_node) {
   // the only component that could be a problem is the check if this metric is a distribution. Therefore, we
   // need to check against several ways of expressing yes
-  std::string is_dist_str = margot::heel::get(tag::distribution(), metric_node);
+  std::string is_dist_str = margot::heel::get(margot::heel::tag::distribution(), metric_node);
   std::transform(is_dist_str.begin(), is_dist_str.end(), is_dist_str.begin(),
                  [](typename std::string::value_type c) { return std::tolower(c); });
   const bool is_distribution = ((is_dist_str.compare("yes") == 0) || (is_dist_str.compare("on") == 0) ||
@@ -58,28 +47,29 @@ margot::heel::metric_model parse_metric_model(const pt::ptree& metric_node) {
 
   // get the type of the metric and remove the std:: prefix, since it generates some problem with the c
   // interface that we are going to generate
-  std::string metric_type = margot::heel::get(tag::metric_type(), metric_node);
+  std::string metric_type = margot::heel::get(margot::heel::tag::type(), metric_node);
   if (metric_type.rfind("std::", 0) == 0) {  // remove any std:: prefix from the type
     metric_type.erase(0, 5);
   }
 
   // get the reactive inertia as a string, to figure out later if we really need to react
-  const std::string inertia_str = margot::heel::get(tag::reactive_inertia(), metric_node);
+  const std::string inertia_str = margot::heel::get(margot::heel::tag::reactive_inertia(), metric_node);
 
   // create a default metric model
   margot::heel::metric_model model = {
-      margot::heel::get(tag::name(), metric_node),
+      margot::heel::get(margot::heel::tag::name(), metric_node),
       metric_type,
       is_distribution,
-      margot::heel::get(tag::plugin(), metric_node),
-      margot::heel::get(tag::monitor(), metric_node),
+      margot::heel::get(margot::heel::tag::prediction_plugin(), metric_node),
+      margot::heel::get(margot::heel::tag::observed_by(), metric_node),
       !inertia_str.empty() ? boost::lexical_cast<std::size_t>(inertia_str) : 0};
 
   // parse the parameters for the plugin that will predict its value (if using agora)
-  margot::heel::visit_optional(tag::parameters(), metric_node, [&model](const pt::ptree::value_type& p) {
-    model.prediction_parameters.emplace_back(
-        margot::heel::pair_property{p.first, p.second.get<std::string>("", "")});
-  });
+  margot::heel::visit_optional(margot::heel::tag::prediction_params(), metric_node,
+                               [&model](const pt::ptree::value_type& p) {
+                                 model.prediction_parameters.emplace_back(
+                                     margot::heel::pair_property{p.first, p.second.get<std::string>("", "")});
+                               });
 
   // create the model
   return model;
