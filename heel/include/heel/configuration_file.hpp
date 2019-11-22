@@ -14,12 +14,12 @@ class configuration_file {
 
  public:
   // I/O functions from file
-  void load(const std::filesystem::path &file_path);
-  void store(const std::filesystem::path &where) const;
+  void load_json(const std::filesystem::path &file_path);
+  void store_json(const std::filesystem::path &where) const;
 
   // I/O functions from std::string
-  void load(const std::string &description);
-  std::string to_string(void) const;
+  void load_json(const std::string &description);
+  std::string to_json_string(void) const;
 
   // functions to retrieve the internal representation of the configuration file
   inline boost::property_tree::ptree &ptree(void) { return content; }

@@ -6,20 +6,20 @@
 
 #include <heel/configuration_file.hpp>
 
-void margot::heel::configuration_file::load(const std::filesystem::path &file_path) {
+void margot::heel::configuration_file::load_json(const std::filesystem::path &file_path) {
   boost::property_tree::read_json(static_cast<std::string>(file_path), content);
 }
 
-void margot::heel::configuration_file::load(const std::string &description) {
+void margot::heel::configuration_file::load_json(const std::string &description) {
   std::stringstream content_stream(description);
   boost::property_tree::read_json(content_stream, content);
 }
 
-void margot::heel::configuration_file::store(const std::filesystem::path &where) const {
+void margot::heel::configuration_file::store_json(const std::filesystem::path &where) const {
   boost::property_tree::write_json(static_cast<std::string>(where), content);
 }
 
-std::string margot::heel::configuration_file::to_string(void) const {
+std::string margot::heel::configuration_file::to_json_string(void) const {
   std::stringstream content_stream;
   boost::property_tree::write_json(content_stream, content);
   return content_stream.str();

@@ -25,9 +25,9 @@ margot::heel::workspace::workspace(const std::filesystem::path& root_path,
     : project_root(root_path), path_configuration_files(ops_config_path) {
   // we start by parsing and validating the application model
   margot::heel::configuration_file c;
-  c.load(margot_config_path);
+  c.load_json(margot_config_path);
   model = margot::heel::parse(c);
-  description = c.to_string();
+  description = c.to_json_string();
   margot::heel::validate(model);
 
   // now we need to check, for each block, if we have operating points. If so, agora must be disabled
@@ -35,7 +35,7 @@ margot::heel::workspace::workspace(const std::filesystem::path& root_path,
     // at this point we append all the points from the Operating Points list
     std::for_each(ops_config_path.begin(), ops_config_path.end(), [&block](const std::filesystem::path& p) {
       margot::heel::configuration_file op_config_file;
-      op_config_file.load(p);
+      op_config_file.load_json(p);
       auto new_ops(margot::heel::parse(op_config_file, block));
       block.ops.insert(block.ops.end(), new_ops.begin(), new_ops.end());
     });
