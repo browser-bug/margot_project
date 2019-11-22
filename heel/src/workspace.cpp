@@ -13,10 +13,10 @@
 #include <heel/generator_cpp_margot_hdr.hpp>
 #include <heel/generator_cpp_margot_src.hpp>
 #include <heel/generator_source_file.hpp>
-#include <heel/json_parser.hpp>
 #include <heel/logger.hpp>
 #include <heel/model_application.hpp>
 #include <heel/model_validate.hpp>
+#include <heel/parser.hpp>
 #include <heel/workspace.hpp>
 
 margot::heel::workspace::workspace(const std::filesystem::path& root_path,
@@ -26,7 +26,7 @@ margot::heel::workspace::workspace(const std::filesystem::path& root_path,
   // we start by parsing and validating the application model
   margot::heel::configuration_file c;
   c.load(margot_config_path);
-  model = margot::heel::parse_json(c);
+  model = margot::heel::parse(c);
   description = c.to_string();
   margot::heel::validate(model);
 
@@ -36,7 +36,7 @@ margot::heel::workspace::workspace(const std::filesystem::path& root_path,
     std::for_each(ops_config_path.begin(), ops_config_path.end(), [&block](const std::filesystem::path& p) {
       margot::heel::configuration_file op_config_file;
       op_config_file.load(p);
-      auto new_ops(margot::heel::parse_json(op_config_file, block));
+      auto new_ops(margot::heel::parse(op_config_file, block));
       block.ops.insert(block.ops.end(), new_ops.begin(), new_ops.end());
     });
 

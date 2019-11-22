@@ -66,7 +66,7 @@ set( HEEL_LIBRARY_HEADERS
 	"${HEEL_HDR_PATH}/heel/cpp_stop_monitor_gen.hpp"
 	"${HEEL_HDR_PATH}/heel/cpp_update_gen.hpp"
 	"${HEEL_HDR_PATH}/heel/cpp_utils.hpp"
-	"${HEEL_HDR_PATH}/heel/json_parser.hpp"
+	"${HEEL_HDR_PATH}/heel/parser.hpp"
 	"${HEEL_HDR_PATH}/heel/logger.hpp"
 	"${HEEL_HDR_PATH}/heel/print_application_model.hpp"
 	"${HEEL_HDR_PATH}/heel/typer.hpp"

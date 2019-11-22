@@ -1,5 +1,5 @@
-#ifndef HEEL_JSON_PARSER_HDR
-#define HEEL_JSON_PARSER_HDR
+#ifndef HEEL_PARSER_HDR
+#define HEEL_PARSER_HDR
 
 #include <vector>
 
@@ -12,16 +12,16 @@
 namespace margot {
 namespace heel {
 
-inline application_model parse_json(const configuration_file& conf_file) {
+inline application_model parse(const configuration_file& conf_file) {
   return parse_application(conf_file.ptree());
 }
 
-inline std::vector<operating_point_model> parse_json(const configuration_file& conf_file,
-                                                     const block_model& block) {
+inline std::vector<operating_point_model> parse(const configuration_file& conf_file,
+                                                const block_model& block) {
   return parse_operating_points(conf_file.ptree(), block);
 }
 
 }  // namespace heel
 }  // namespace margot
 
-#endif  // HEEL_JSON_PARSER_HDR
+#endif  // HEEL_PARSER_HDR
