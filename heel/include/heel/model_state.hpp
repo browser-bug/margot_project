@@ -42,6 +42,22 @@ struct state_model {
 void validate(state_model& model, const std::vector<metric_model>& metrics,
               const std::vector<knob_model>& knobs);
 
+// utility function that translates a comparison function to a string
+inline std::string to_str(const margot::heel::goal_comparison combination) {
+  switch (combination) {
+    case margot::heel::goal_comparison::LESS_OR_EQUAL:
+      return "le";
+    case margot::heel::goal_comparison::GREATER_OR_EQUAL:
+      return "ge";
+    case margot::heel::goal_comparison::LESS:
+      return "lt";
+    case margot::heel::goal_comparison::GREATER:
+      return "gt";
+    default:
+      return "defensive programming:  unknown distance type";
+  };
+}
+
 }  // namespace heel
 }  // namespace margot
 

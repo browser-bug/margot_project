@@ -92,17 +92,22 @@ margot::heel::constraint_model parse_constraint_model(const pt::ptree& constrain
   std::transform(comparison_fun_str.begin(), comparison_fun_str.end(), comparison_fun_str.begin(),
                  [](typename std::string::value_type c) { return std::tolower(c); });
   margot::heel::goal_comparison cfun = margot::heel::goal_comparison::LESS;
-  if (comparison_fun_str.compare("lt") == 0) {
+  if (comparison_fun_str.compare(margot::heel::to_str(margot::heel::goal_comparison::LESS)) == 0) {
     cfun = margot::heel::goal_comparison::LESS;
-  } else if (comparison_fun_str.compare("ge") == 0) {
+  } else if (comparison_fun_str.compare(
+                 margot::heel::to_str(margot::heel::goal_comparison::GREATER_OR_EQUAL)) == 0) {
     cfun = margot::heel::goal_comparison::GREATER_OR_EQUAL;
-  } else if (comparison_fun_str.compare("gt") == 0) {
+  } else if (comparison_fun_str.compare(margot::heel::to_str(margot::heel::goal_comparison::GREATER)) == 0) {
     cfun = margot::heel::goal_comparison::GREATER;
-  } else if (comparison_fun_str.compare("le") == 0) {
+  } else if (comparison_fun_str.compare(margot::heel::to_str(margot::heel::goal_comparison::LESS_OR_EQUAL)) ==
+             0) {
     cfun = margot::heel::goal_comparison::LESS_OR_EQUAL;
   } else {
     margot::heel::error("Unable to understand the comparison function \"", comparison_fun_str,
-                        "\", it must be one of \"lt\", \"le\", \"gt\", or \"ge\"");
+                        "\", it must be one of \"", margot::heel::to_str(margot::heel::goal_comparison::LESS),
+                        "\", \"", margot::heel::to_str(margot::heel::goal_comparison::GREATER_OR_EQUAL),
+                        "\", \"", margot::heel::to_str(margot::heel::goal_comparison::GREATER), "\", or \"",
+                        margot::heel::to_str(margot::heel::goal_comparison::LESS_OR_EQUAL), "\"");
     throw std::runtime_error("state parser: unknown comparison function");
   }
 

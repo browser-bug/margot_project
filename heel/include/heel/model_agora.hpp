@@ -24,6 +24,7 @@ struct agora_model {
   std::string clustering_plugin;
   std::vector<pair_property> doe_parameters;
   std::vector<pair_property> clustering_parameters;
+  inline bool empty(void) const { return !enabled; }
 };
 
 // this function validates an agora model to enforce a correct configuration of the application

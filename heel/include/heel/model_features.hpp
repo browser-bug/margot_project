@@ -20,19 +20,35 @@ struct features_model {
   features_distance_type distance_type;
   std::string features_type;
   std::vector<feature_model> fields;
+  inline bool empty(void) const { return fields.empty(); }
 };
 
 // helper function to translate a feature_distance_type to a string
 inline std::string to_str(const margot::heel::features_distance_type type) {
-  if (type == margot::heel::features_distance_type::EUCLIDEAN) {
-    return "euclidean";
-  } else if (type == margot::heel::features_distance_type::NORMALIZED) {
-    return "normalized";
-  } else if (type == margot::heel::features_distance_type::NONE) {
-    return "none";
-  } else {
-    return "defensive programming: unknwon feature type";
-  }
+  switch (type) {
+    case margot::heel::features_distance_type::EUCLIDEAN:
+      return "euclidean";
+    case margot::heel::features_distance_type::NORMALIZED:
+      return "normalized";
+    case margot::heel::features_distance_type::NONE:
+      return "none";
+    default:
+      return "defensive programming:  unknown distance type";
+  };
+}
+
+// helper function to translate a distance_compare_type to a string
+inline std::string to_str(const margot::heel::distance_comparison_type type) {
+  switch (type) {
+    case margot::heel::distance_comparison_type::LESS_OR_EQUAL:
+      return "le";
+    case margot::heel::distance_comparison_type::GREATER_OR_EQUAL:
+      return "ge";
+    case margot::heel::distance_comparison_type::DONT_CARE:
+      return "-";
+    default:
+      return "defensive programming:  unknown comparison type";
+  };
 }
 
 // this function validates a features model to enforce a correct configuration of the application

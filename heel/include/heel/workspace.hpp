@@ -17,9 +17,8 @@ class workspace {
   // this represents the path to the root output directory
   std::filesystem::path project_root;
 
-  // this is the whole model of the application that we need to manage (and its description)
+  // this is the whole model of the application that we need to manage
   application_model model;
-  std::string description;
 
   // these are the path of the configuration files used to create the application model. We need to keep track
   // of them to write in the source file the path of the configuration file that has generated the interface,

@@ -23,6 +23,17 @@ set( HEEL_SRC_PATH "${CMAKE_CURRENT_SOURCE_DIR}/src")
 
 # define the related headers and source files
 set( HEEL_LIBRARY_HEADERS
+	"${HEEL_HDR_PATH}/heel/composer.hpp"
+	"${HEEL_HDR_PATH}/heel/composer_agora.hpp"
+	"${HEEL_HDR_PATH}/heel/composer_application.hpp"
+	"${HEEL_HDR_PATH}/heel/composer_block.hpp"
+	"${HEEL_HDR_PATH}/heel/composer_feature_fields.hpp"
+	"${HEEL_HDR_PATH}/heel/composer_knob.hpp"
+	"${HEEL_HDR_PATH}/heel/composer_metric.hpp"
+	"${HEEL_HDR_PATH}/heel/composer_monitor.hpp"
+	"${HEEL_HDR_PATH}/heel/composer_parameter.hpp"
+	"${HEEL_HDR_PATH}/heel/composer_state.hpp"
+	"${HEEL_HDR_PATH}/heel/composer_utils.hpp"
 	"${HEEL_HDR_PATH}/heel/generator_description_verbose.hpp"
 	"${HEEL_HDR_PATH}/heel/generator_cpp_application_geometry_hdr.hpp"
 	"${HEEL_HDR_PATH}/heel/generator_cpp_application_geometry_src.hpp"
@@ -73,6 +84,15 @@ set( HEEL_LIBRARY_HEADERS
 	"${HEEL_HDR_PATH}/heel/workspace.hpp"
 )
 set( HEEL_LIBRARY_SOURCES
+	"${HEEL_SRC_PATH}/composer_agora.cpp"
+	"${HEEL_SRC_PATH}/composer_application.cpp"
+	"${HEEL_SRC_PATH}/composer_block.cpp"
+	"${HEEL_SRC_PATH}/composer_feature_fields.cpp"
+	"${HEEL_SRC_PATH}/composer_knob.cpp"
+	"${HEEL_SRC_PATH}/composer_metric.cpp"
+	"${HEEL_SRC_PATH}/composer_monitor.cpp"
+	"${HEEL_SRC_PATH}/composer_parameter.cpp"
+	"${HEEL_SRC_PATH}/composer_state.cpp"
 	"${HEEL_SRC_PATH}/configuration_file.cpp"
 	"${HEEL_SRC_PATH}/cpp_state_emitter.cpp"
 	"${HEEL_SRC_PATH}/generator_description_verbose.cpp"

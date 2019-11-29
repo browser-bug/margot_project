@@ -27,9 +27,11 @@ margot::heel::features_model margot::heel::parse_features(const pt::ptree& block
                  [](unsigned char c) { return std::tolower(c); });
   if (distance_type_str.empty()) {
     model.distance_type = margot::heel::features_distance_type::NONE;
-  } else if (distance_type_str.compare("euclidean") == 0) {
+  } else if (distance_type_str.compare(
+                 margot::heel::to_str(margot::heel::features_distance_type::EUCLIDEAN)) == 0) {
     model.distance_type = margot::heel::features_distance_type::EUCLIDEAN;
-  } else if (distance_type_str.compare("normalized") == 0) {
+  } else if (distance_type_str.compare(
+                 margot::heel::to_str(margot::heel::features_distance_type::NORMALIZED)) == 0) {
     model.distance_type = margot::heel::features_distance_type::NORMALIZED;
   } else {
     margot::heel::error("Unknown features distance \"", distance_type_str,
@@ -59,11 +61,15 @@ margot::heel::feature_model parse_feature_model(const pt::ptree& feature_node) {
 
   // parse the content to convert to an enum
   margot::heel::distance_comparison_type comparison_type = margot::heel::distance_comparison_type::DONT_CARE;
-  if (comparison_type_str.compare("le") == 0) {
+  if (comparison_type_str.compare(
+          margot::heel::to_str(margot::heel::distance_comparison_type::LESS_OR_EQUAL)) == 0) {
     comparison_type = margot::heel::distance_comparison_type::LESS_OR_EQUAL;
-  } else if (comparison_type_str.compare("ge") == 0) {
+  } else if (comparison_type_str.compare(
+                 margot::heel::to_str(margot::heel::distance_comparison_type::GREATER_OR_EQUAL)) == 0) {
     comparison_type = margot::heel::distance_comparison_type::GREATER_OR_EQUAL;
-  } else if ((!comparison_type_str.empty()) && (comparison_type_str.compare("-") != 0)) {
+  } else if ((!comparison_type_str.empty()) &&
+             (comparison_type_str.compare(
+                  margot::heel::to_str(margot::heel::distance_comparison_type::DONT_CARE)) != 0)) {
     margot::heel::error("Unknown coparison type \"", comparison_type_str, "\"");
     throw std::runtime_error("features parser: unknown comparison type");
   }
