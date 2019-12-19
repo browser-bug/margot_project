@@ -50,7 +50,7 @@ margot::heel::cpp_source_content margot::heel::managers_hpp_content(application_
     if (!block.features.fields.empty()) {
       print_desc(margot::heel::description_verbose(block.features));
     }
-    if (block.agora.enabled) {
+    if (!block.agora.empty()) {
       print_desc(margot::heel::description_verbose(block.agora));
     }
     std::for_each(block.states.begin(), block.states.end(), [&print_desc](const state_model& state) {
@@ -127,7 +127,7 @@ margot::heel::cpp_source_content margot::heel::managers_hpp_content(application_
     c.content << "\tgoals_type goals;" << std::endl;
     c.content << "\tknobs_type knobs;" << std::endl;
     c.content << "\tfeatures_type features;" << std::endl;
-    c.content << "\tstd::mutex contex_mux;" << std::endl << std::endl;
+    c.content << "\tstd::mutex context_mux;" << std::endl << std::endl;
 
     // declare the constructor e destructor of the struct that are deleted
     c.content << "\tdata(const data&) = delete;" << std::endl;

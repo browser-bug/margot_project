@@ -12,7 +12,6 @@ namespace margot {
 namespace heel {
 
 struct agora_model {
-  bool enabled;
   std::string url;
   std::string username;
   std::string password;
@@ -24,7 +23,7 @@ struct agora_model {
   std::string clustering_plugin;
   std::vector<pair_property> doe_parameters;
   std::vector<pair_property> clustering_parameters;
-  inline bool empty(void) const { return !enabled; }
+  inline bool empty(void) const { return url.empty(); }
 };
 
 // this function validates an agora model to enforce a correct configuration of the application

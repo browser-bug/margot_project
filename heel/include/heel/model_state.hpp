@@ -54,7 +54,7 @@ inline std::string to_str(const margot::heel::goal_comparison combination) {
     case margot::heel::goal_comparison::GREATER:
       return "gt";
     default:
-      return "defensive programming:  unknown distance type";
+      return "defensive programming: unknown distance type";
   };
 }
 

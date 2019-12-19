@@ -20,7 +20,7 @@ margot::heel::cpp_source_content margot::heel::application_geometry_cpp_content(
     c.content << std::endl << "namespace " << block.name << " {" << std::endl << std::endl;
 
     // the parser struct is generated only if we need agora
-    if (block.agora.enabled) {
+    if (!block.agora.empty()) {
       c.required_headers.emplace_back("sstream");
       c.required_headers.emplace_back("string");
       c.required_headers.emplace_back("iterator");

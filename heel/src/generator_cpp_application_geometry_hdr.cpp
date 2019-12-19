@@ -112,7 +112,7 @@ margot::heel::cpp_source_content margot::heel::application_geometry_hpp_content(
 
     // if agora is enabled, we need to define the struct that parses and generates a list of Operating
     // Points (the validation is already done, so if we have agora, we need to have knobs and metrics)
-    if (block.agora.enabled) {
+    if (!block.agora.empty()) {
       // at this stage we need to work with strings
       c.required_headers.emplace_back("string");
 

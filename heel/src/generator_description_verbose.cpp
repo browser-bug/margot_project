@@ -82,7 +82,7 @@ std::stringstream margot::heel::description_verbose(const metric_model& model) {
 
 std::stringstream margot::heel::description_verbose(const features_model& model) {
   std::stringstream d;
-  if (!model.fields.empty()) {
+  if (!model.empty()) {
     d << "Using features" << std::endl;
     d << "\tDistance type: " << margot::heel::to_str(model.distance_type) << std::endl;
     d << "\tFields: \""
@@ -96,7 +96,7 @@ std::stringstream margot::heel::description_verbose(const features_model& model)
 
 std::stringstream margot::heel::description_verbose(const agora_model& model) {
   std::stringstream d;
-  if (model.enabled) {
+  if (!model.empty()) {
     d << "Relying on \"agora\" to obtain the application knowledge" << std::endl;
     d << "\tConnection url: \"" << model.url << "\"" << std::endl;
     d << "\t           username: \"" << model.username << "\"" << std::endl;

@@ -85,7 +85,7 @@ margot::heel::cpp_source_content margot::heel::managers_cpp_content(margot::heel
       });
 
       // if agora is enabled, we need to start the local thread that communicates the remote handler
-      if (block.agora.enabled) {
+      if (!block.agora.empty()) {
         c.required_headers.emplace_back("margot/application_geometry.hpp");
         // before generating the command, we need to pre-process the application description
         const std::string escaped = margot::heel::join(app_description.begin(), app_description.end(), "",

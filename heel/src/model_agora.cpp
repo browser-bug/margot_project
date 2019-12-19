@@ -8,7 +8,7 @@
 void margot::heel::validate(margot::heel::agora_model& model, const std::vector<metric_model>& metrics,
                             const std::vector<knob_model>& knobs) {
   // the validation of this model is useful only if agora is enabled in the configuration file
-  if (model.enabled) {
+  if (!model.empty()) {
     // at first check if the user provided at least a broker url and a qos
     if (model.url.empty()) {
       margot::heel::error("To use Agora it is required the url of the MQTT broker");
