@@ -8,7 +8,7 @@
 
 void margot::heel::compose(boost::property_tree::ptree& root_node, const application_model& app) {
   // insert the basic information about the application
-  root_node.put(margot::heel::tag::application(), app.name);
+  root_node.put(margot::heel::tag::name(), app.name);
   root_node.put(margot::heel::tag::version(), app.name);
 
   // add the list of blocks

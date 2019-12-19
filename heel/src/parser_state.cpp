@@ -11,108 +11,69 @@
 #include <heel/parser_tags.hpp>
 #include <heel/parser_utils.hpp>
 
-namespace pt = boost::property_tree;
+void margot::heel::parse(state_model& state, const boost::property_tree::ptree& state_node) {
+  // parse the immediate information from the state
+  margot::heel::parse_element(state.name, state_node, margot::heel::tag::name());
+  margot::heel::parse_list(state.constraints, state_node, margot::heel::tag::constraints());
+  state.direction = margot::heel::rank_direction::NONE;
+  state.combination = margot::heel::rank_type::NONE;
 
-// forward declaration of the functions that parse a portion of a state
-margot::heel::state_model parse_state_model(const pt::ptree& block_node);
-margot::heel::constraint_model parse_constraint_model(const pt::ptree& constraint_node);
-
-// this function basically iterates over the states defined in the file and call the appropriate function
-// to parse it, appending the new state to the result vector.
-std::vector<margot::heel::state_model> margot::heel::parse_states(
-    const boost::property_tree::ptree& block_node) {
-  std::vector<margot::heel::state_model> result;
-  margot::heel::visit_optional(
-      margot::heel::tag::states(), block_node,
-      [&result](const pt::ptree::value_type& p) { result.emplace_back(parse_state_model(p.second)); });
-  return result;
-}
-
-margot::heel::state_model parse_state_model(const pt::ptree& state_node) {
-  // declare the default state model
-  margot::heel::state_model model = {margot::heel::get(margot::heel::tag::name(), state_node),
-                                     margot::heel::rank_direction::NONE,
-                                     margot::heel::rank_type::NONE,
-                                     {},
-                                     {}};
-
-  // define a lambda to extract all the rank fields from either the maximization or minimization node
-  const auto extract_fields = [&model](const pt::ptree& rank_node) {
-    // parse all the fields of the rank, assuming that it is a geometric mean
-    margot::heel::visit_optional(
-        margot::heel::tag::geometric_mean(), rank_node, [&model](const pt::ptree::value_type& p) {
-          model.rank_fields.emplace_back(margot::heel::rank_field_model{
-              p.first, margot::heel::subject_kind::UNKNOWN, p.second.get<std::string>("", "")});
-        });
-    if (!model.rank_fields.empty()) {
-      model.combination = margot::heel::rank_type::GEOMETRIC;
-    } else {
-      // we didn't find any rank field, we need to try with the linear combination
-      margot::heel::visit_optional(
-          margot::heel::tag::linear_mean(), rank_node, [&model](const pt::ptree::value_type& p) {
-            model.rank_fields.emplace_back(margot::heel::rank_field_model{
-                p.first, margot::heel::subject_kind::UNKNOWN, p.second.get<std::string>("", "")});
-          });
-      if (!model.rank_fields.empty()) {
-        model.combination = margot::heel::rank_type::LINEAR;
-      }
-    }
-
-    // check if we need to combine different fields, or we can use directly a single entry
-    if ((model.rank_fields.size() < 2) && (model.combination != margot::heel::rank_type::NONE)) {
-      model.combination = margot::heel::rank_type::SIMPLE;
+  // parse the rank fields of the state by guessing the possible combination, therefore it is better to define
+  // a lambda function to do so. The idea is to fix a combination of rank type and direction and try to read
+  // from it. If we hit, we set the value accordingly;
+  const auto parse_rank = [&state, &state_node](const margot::heel::rank_direction direction,
+                                                const margot::heel::rank_type combination) {
+    const std::string rank_comb = margot::heel::to_str(combination);
+    const std::string rank_dir = margot::heel::to_str(direction);
+    margot::heel::parse_list(state.rank_fields, state_node, rank_dir + "." + rank_comb);
+    if (!state.rank_fields.empty()) {
+      state.direction = direction;
+      state.combination = combination;
     }
   };
-
-  // check if we need a minimization or a maximization rank
-  const auto minimize_node = state_node.get_child_optional(margot::heel::tag::minimize());
-  if (minimize_node) {
-    model.direction = margot::heel::rank_direction::MINIMIZE;
-    extract_fields(*minimize_node);
-  } else {
-    const auto maximize_node = state_node.get_child_optional(margot::heel::tag::maximize());
-    if (maximize_node) {
-      model.direction = margot::heel::rank_direction::MAXIMIZE;
-      extract_fields(*maximize_node);
-    }
+  parse_rank(margot::heel::rank_direction::MINIMIZE, margot::heel::rank_type::GEOMETRIC);
+  if (state.rank_fields.empty()) {
+    parse_rank(margot::heel::rank_direction::MINIMIZE, margot::heel::rank_type::LINEAR);
   }
-
-  // parse all the constraints
-  margot::heel::visit_optional(margot::heel::tag::constraints(), state_node,
-                               [&model](const pt::ptree::value_type& p) {
-                                 model.constraints.emplace_back(parse_constraint_model(p.second));
-                               });
-
-  return model;
+  if (state.rank_fields.empty()) {
+    parse_rank(margot::heel::rank_direction::MAXIMIZE, margot::heel::rank_type::GEOMETRIC);
+  }
+  if (state.rank_fields.empty()) {
+    parse_rank(margot::heel::rank_direction::MAXIMIZE, margot::heel::rank_type::LINEAR);
+  }
+  if (state.rank_fields.empty()) {
+    margot::heel::warning("Undefined rank in state \"", state.name, "\"");
+  }
 }
 
-margot::heel::constraint_model parse_constraint_model(const pt::ptree& constraint_node) {
-  // figure out the type of comparison function
-  std::string comparison_fun_str = margot::heel::get(margot::heel::tag::comparison(), constraint_node);
-  std::transform(comparison_fun_str.begin(), comparison_fun_str.end(), comparison_fun_str.begin(),
-                 [](typename std::string::value_type c) { return std::tolower(c); });
-  margot::heel::goal_comparison cfun = margot::heel::goal_comparison::LESS;
-  if (comparison_fun_str.compare(margot::heel::to_str(margot::heel::goal_comparison::LESS)) == 0) {
-    cfun = margot::heel::goal_comparison::LESS;
-  } else if (comparison_fun_str.compare(
-                 margot::heel::to_str(margot::heel::goal_comparison::GREATER_OR_EQUAL)) == 0) {
-    cfun = margot::heel::goal_comparison::GREATER_OR_EQUAL;
-  } else if (comparison_fun_str.compare(margot::heel::to_str(margot::heel::goal_comparison::GREATER)) == 0) {
-    cfun = margot::heel::goal_comparison::GREATER;
-  } else if (comparison_fun_str.compare(margot::heel::to_str(margot::heel::goal_comparison::LESS_OR_EQUAL)) ==
-             0) {
-    cfun = margot::heel::goal_comparison::LESS_OR_EQUAL;
-  } else {
-    margot::heel::error("Unable to understand the comparison function \"", comparison_fun_str,
-                        "\", it must be one of \"", margot::heel::to_str(margot::heel::goal_comparison::LESS),
-                        "\", \"", margot::heel::to_str(margot::heel::goal_comparison::GREATER_OR_EQUAL),
-                        "\", \"", margot::heel::to_str(margot::heel::goal_comparison::GREATER), "\", or \"",
-                        margot::heel::to_str(margot::heel::goal_comparison::LESS_OR_EQUAL), "\"");
-    throw std::runtime_error("state parser: unknown comparison function");
+void margot::heel::parse(rank_field_model& rank_field, const boost::property_tree::ptree& rank_field_node) {
+  // NOTE: it should be a single key-value item, but we need to make sure to take only the last one
+  for (const auto& pair : rank_field_node) {
+    rank_field.name = pair.first;
+    margot::heel::parse(rank_field.coefficient, pair.second);
   }
+}
 
-  // reached this point, we can compose the model
-  return {margot::heel::get(margot::heel::tag::subject(), constraint_node), cfun,
-          margot::heel::get(margot::heel::tag::value(), constraint_node), margot::heel::subject_kind::UNKNOWN,
-          margot::heel::get(margot::heel::tag::confidence(), constraint_node)};
+void margot::heel::parse(constraint_model& constraint, const boost::property_tree::ptree& constraint_node) {
+  // set the basic information about the parser
+  margot::heel::parse_element(constraint.name, constraint_node, margot::heel::tag::subject());
+  margot::heel::parse_element(constraint.value, constraint_node, margot::heel::tag::value());
+  margot::heel::parse_element(constraint.confidence, constraint_node, margot::heel::tag::confidence());
+
+  // parse the comparison type
+  std::string constraint_fun;
+  margot::heel::parse_element(constraint_fun, constraint_node, margot::heel::tag::comparison());
+  if (margot::heel::is_enum(constraint_fun, margot::heel::goal_comparison::LESS_OR_EQUAL)) {
+    constraint.cfun = margot::heel::goal_comparison::LESS_OR_EQUAL;
+  } else if (margot::heel::is_enum(constraint_fun, margot::heel::goal_comparison::GREATER_OR_EQUAL)) {
+    constraint.cfun = margot::heel::goal_comparison::GREATER_OR_EQUAL;
+  } else if (margot::heel::is_enum(constraint_fun, margot::heel::goal_comparison::LESS)) {
+    constraint.cfun = margot::heel::goal_comparison::LESS;
+  } else if (margot::heel::is_enum(constraint_fun, margot::heel::goal_comparison::GREATER)) {
+    constraint.cfun = margot::heel::goal_comparison::GREATER;
+  } else {
+    margot::heel::error("Unable to understand comparison function \"", constraint_fun, "\" in constraint \"",
+                        constraint.name, "\"");
+    throw std::runtime_error("constraint parser: unknown comparison function");
+  }
 }

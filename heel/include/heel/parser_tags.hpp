@@ -8,7 +8,6 @@ namespace heel {
 
 // this struct is used to enforce consistency in the tags names of the json format
 struct tag {
-  inline static const std::string application(void) { return "application"; }
   inline static const std::string version(void) { return "version"; }
   inline static const std::string agora(void) { return "agora"; }
   inline static const std::string url(void) { return "borker_url"; }

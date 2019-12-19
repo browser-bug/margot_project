@@ -13,8 +13,9 @@ namespace pt = boost::property_tree;
 
 // this function parses the few information about the application, then it parse the main part of the
 // configuration file: the blocks of the application
-margot::heel::application_model margot::heel::parse_application(const pt::ptree& application_node) {
-  return {margot::heel::get(margot::heel::tag::application(), application_node),
-          margot::heel::get(margot::heel::tag::version(), application_node),
-          margot::heel::parse_blocks(application_node)};
+void margot::heel::parse(application_model& application,
+                         const boost::property_tree::ptree& application_node) {
+  margot::heel::parse_element(application.name, application_node, margot::heel::tag::name());
+  margot::heel::parse_element(application.version, application_node, margot::heel::tag::version());
+  margot::heel::parse_list(application.blocks, application_node, margot::heel::tag::blocks());
 }

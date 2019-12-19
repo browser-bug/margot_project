@@ -8,7 +8,7 @@
 namespace margot {
 namespace heel {
 
-agora_model parse_agora(const boost::property_tree::ptree& block_node);
+void parse(agora_model& agora, const boost::property_tree::ptree& agora_node);
 
 }  // namespace heel
 }  // namespace margot

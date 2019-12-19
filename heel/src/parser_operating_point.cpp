@@ -58,33 +58,31 @@ margot::heel::operating_point_value parse_op_field(const std::string& tag_name,
   return result;
 }
 
-std::vector<margot::heel::operating_point_model> margot::heel::parse_operating_points(
-    const boost::property_tree::ptree& op_node, const block_model& block) {
+void margot::heel::parse_operating_points(block_model& block, const boost::property_tree::ptree& op_node) {
   // we assume that the file is about the given name, let's start parsing them
-  std::vector<margot::heel::operating_point_model> result;
-  margot::heel::visit_optional(block.name, op_node, [&result, &block](const pt::ptree::value_type& p) {
-    // declare the Operating Point model
-    margot::heel::operating_point_model op;
+  const boost::optional<const boost::property_tree::ptree&> ops_list = op_node.get_child_optional(block.name);
+  if (ops_list) {
+    for (auto& p : *ops_list) {
+      // declare the Operating Point model
+      margot::heel::operating_point_model op;
 
-    // parse all the features
-    std::for_each(block.features.fields.begin(), block.features.fields.end(),
-                  [&p, &op](const feature_model& feature) {
-                    op.features.emplace_back(
-                        parse_op_field(margot::heel::tag::features() + "." + feature.name, p.second));
-                  });
+      // parse all the features
+      for (auto& field : block.features.fields) {
+        op.features.emplace_back(parse_op_field(margot::heel::tag::features() + "." + field.name, p.second));
+      }
 
-    // parse all the knobs
-    std::for_each(block.knobs.begin(), block.knobs.end(), [&p, &op](const knob_model& knob) {
-      op.knobs.emplace_back(parse_op_field(margot::heel::tag::knobs() + "." + knob.name, p.second));
-    });
+      // parse all the knobs
+      for (auto& knob : block.knobs) {
+        op.knobs.emplace_back(parse_op_field(margot::heel::tag::knobs() + "." + knob.name, p.second));
+      }
 
-    // parse all the metrics
-    std::for_each(block.metrics.begin(), block.metrics.end(), [&p, &op](const metric_model& metric) {
-      op.metrics.emplace_back(parse_op_field(margot::heel::tag::metrics() + "." + metric.name, p.second));
-    });
+      // parse all the metrics
+      for (auto& metric : block.metrics) {
+        op.metrics.emplace_back(parse_op_field(margot::heel::tag::metrics() + "." + metric.name, p.second));
+      }
 
-    // append the operating point to the block
-    result.emplace_back(op);
-  });
-  return result;
+      // append the operating point to the list
+      block.ops.emplace_back(op);
+    }
+  }
 }

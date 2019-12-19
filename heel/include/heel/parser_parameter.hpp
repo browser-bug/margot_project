@@ -8,8 +8,8 @@
 namespace margot {
 namespace heel {
 
-// to lower the verbosity of defining a parameter, we need the pair "name" "value" (where value == ptree)
-margot::heel::parameter parse_parameter(const boost::property_tree::ptree::value_type& parameter_pair);
+void parse(parameter& parameter, const boost::property_tree::ptree& parameter_node);
+void parse(pair_property& property, const boost::property_tree::ptree& property_node);
 
 }  // namespace heel
 }  // namespace margot

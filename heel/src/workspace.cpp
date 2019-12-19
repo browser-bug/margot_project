@@ -27,30 +27,16 @@ margot::heel::workspace::workspace(const std::filesystem::path& root_path,
   // we start by parsing and validating the application model
   margot::heel::configuration_file c;
   c.load_json(margot_config_path);
-  model = margot::heel::parse(c);
+  path_configuration_files.emplace_back(margot_config_path);
+  margot::heel::parse(model, c);
   margot::heel::validate(model);
 
-  // now we need to check, for each block, if we have operating points. If so, agora must be disabled
-  std::for_each(model.blocks.begin(), model.blocks.end(), [&ops_config_path](block_model& block) {
-    // at this point we append all the points from the Operating Points list
-    std::for_each(ops_config_path.begin(), ops_config_path.end(), [&block](const std::filesystem::path& p) {
-      margot::heel::configuration_file op_config_file;
-      op_config_file.load_json(p);
-      auto new_ops(margot::heel::parse(op_config_file, block));
-      block.ops.insert(block.ops.end(), new_ops.begin(), new_ops.end());
-    });
-
-    // double check that we don't have both, an Operating Point list and margot enabled on this block
-    if (block.agora.enabled && !block.ops.empty()) {
-      margot::heel::error(
-          "Both, the Operating Points list and Agora provide the application knowledge, which one should i "
-          "select?");
-      throw std::runtime_error("workspace error: mismatch on application knowledge");
-    }
+  // then, we need to parse all the operting points file(s), if any
+  std::for_each(ops_config_path.begin(), ops_config_path.end(), [this](const std::filesystem::path& p) {
+    margot::heel::configuration_file op_config_file;
+    op_config_file.load_json(p);
+    margot::heel::parse(model, op_config_file);
   });
-
-  // finally, append the margot configuration file to vector of configuration files
-  path_configuration_files.emplace_back(margot_config_path);
 }
 
 void margot::heel::workspace::generate_adaptive_interface(void) {

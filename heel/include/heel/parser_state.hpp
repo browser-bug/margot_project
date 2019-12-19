@@ -10,7 +10,9 @@
 namespace margot {
 namespace heel {
 
-std::vector<state_model> parse_states(const boost::property_tree::ptree& block_node);
+void parse(state_model& state, const boost::property_tree::ptree& state_node);
+void parse(rank_field_model& rank_field, const boost::property_tree::ptree& rank_field_node);
+void parse(constraint_model& constraint, const boost::property_tree::ptree& constraint_node);
 
 }  // namespace heel
 }  // namespace margot

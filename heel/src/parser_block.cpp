@@ -1,8 +1,10 @@
+#include <stdexcept>
 #include <string>
 #include <vector>
 
 #include <boost/property_tree/ptree.hpp>
 
+#include <heel/logger.hpp>
 #include <heel/parser_agora.hpp>
 #include <heel/parser_block.hpp>
 #include <heel/parser_features.hpp>
@@ -15,29 +17,32 @@
 
 namespace pt = boost::property_tree;
 
-// forward declaration of the function that actually parse a block description
-margot::heel::block_model parse_block_model(const pt::ptree& block_node);
+void margot::heel::parse(block_model& block, const boost::property_tree::ptree& block_node) {
+  // parse the name, metrics and knobs of the block
+  margot::heel::parse_element(block.name, block_node, margot::heel::tag::name());
+  margot::heel::parse_list(block.monitors, block_node, margot::heel::tag::monitors());
+  margot::heel::parse_list(block.knobs, block_node, margot::heel::tag::knobs());
+  margot::heel::parse_list(block.metrics, block_node, margot::heel::tag::metrics());
 
-// this function basically iterates over the blocks defined in the file and call the appropriate function
-// to parse it, appending the new block to the result vector.
-std::vector<margot::heel::block_model> margot::heel::parse_blocks(
-    const boost::property_tree::ptree& application_node) {
-  std::vector<margot::heel::block_model> result;
-  margot::heel::visit_optional(
-      margot::heel::tag::blocks(), application_node,
-      [&result](const pt::ptree::value_type& p) { result.emplace_back(parse_block_model(p.second)); });
-  return result;
-}
+  // parsing the application features is more complicated, since it is an optional section and it
+  // contains an enum, that we have to parse and understand
+  std::string feature_distance;
+  margot::heel::parse_element(feature_distance, block_node, margot::heel::tag::feature_distance());
+  if (margot::heel::is_enum(feature_distance, margot::heel::features_distance_type::EUCLIDEAN)) {
+    block.features.distance_type = margot::heel::features_distance_type::EUCLIDEAN;
+  } else if (margot::heel::is_enum(feature_distance, margot::heel::features_distance_type::NORMALIZED)) {
+    block.features.distance_type = margot::heel::features_distance_type::NORMALIZED;
+  } else if (!feature_distance.empty()) {
+    margot::heel::error("Unknown feature distance \"", feature_distance, "\" in block \"", block.name, "\"");
+    throw std::runtime_error("block parser: unknown feature distance");
+  } else {
+    block.features.distance_type = margot::heel::features_distance_type::NONE;
+  }
+  margot::heel::parse_list(block.features.fields, block_node, margot::heel::tag::features());
 
-margot::heel::block_model parse_block_model(const pt::ptree& block_node) {
-  return {margot::heel::get(margot::heel::tag::name(), block_node),
-          margot::heel::parse_monitors(block_node),
-          margot::heel::parse_knobs(block_node),
-          "",
-          margot::heel::parse_metrics(block_node),
-          "",
-          margot::heel::parse_features(block_node),
-          margot::heel::parse_agora(block_node),
-          margot::heel::parse_states(block_node),
-          {}};
+  // now we can parse the remainder of the block fields
+  margot::heel::parse_element(block.agora, block_node, margot::heel::tag::agora());
+  margot::heel::parse_list(block.states, block_node, margot::heel::tag::states());
+
+  // the operating points are parsed in a different time, since they are no really part of the model
 }

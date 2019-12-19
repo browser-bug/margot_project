@@ -8,7 +8,7 @@
 namespace margot {
 namespace heel {
 
-features_model parse_features(const boost::property_tree::ptree& block_node);
+void parse(feature_model& field, const boost::property_tree::ptree& feature_node);
 
 }  // namespace heel
 }  // namespace margot

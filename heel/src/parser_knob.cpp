@@ -1,6 +1,3 @@
-#include <string>
-#include <vector>
-
 #include <boost/optional.hpp>
 #include <boost/property_tree/ptree.hpp>
 
@@ -11,45 +8,18 @@
 
 namespace pt = boost::property_tree;
 
-// forward declaration of the function that actually parse a knob description
-margot::heel::knob_model parse_knob_model(const pt::ptree& knob_node);
+void margot::heel::parse(knob_model& knob, const boost::property_tree::ptree& knob_node) {
+  // parse the esy part: the knob name and type
+  margot::heel::parse_element(knob.name, knob_node, margot::heel::tag::name());
+  margot::heel::parse_element(knob.type, knob_node, margot::heel::tag::type());
 
-// this function basically iterates over the knobs defined in the file and call the appropriate function
-// to parse it, appending the new knob to the result vector
-std::vector<margot::heel::knob_model> margot::heel::parse_knobs(const pt::ptree& block_node) {
-  std::vector<margot::heel::knob_model> result;
-  margot::heel::visit_optional(
-      margot::heel::tag::knobs(), block_node,
-      [&result](const pt::ptree::value_type& p) { result.emplace_back(parse_knob_model(p.second)); });
-
-  // the list might be full of knob models, but it is better to sort them according to the knob's name
-  std::sort(
-      result.begin(), result.end(),
-      [](const margot::heel::knob_model& a, const margot::heel::knob_model& b) { return a.name < b.name; });
-  return result;
-}
-
-// this is the main function that actually parse a knob
-margot::heel::knob_model parse_knob_model(const pt::ptree& knob_node) {
-  // initialize the knob model
-  margot::heel::knob_model model = {margot::heel::get(margot::heel::tag::name(), knob_node),
-                                    margot::heel::get(margot::heel::tag::type(), knob_node),
-                                    {}};
-
-  // parse the list of values (if any) as an array of strings
-  margot::heel::visit_optional(margot::heel::tag::values(), knob_node,
-                               [&model](const pt::ptree::value_type& p) {
-                                 model.values.emplace_back(p.second.get<std::string>("", ""));
-                               });
-
-  // if we have them it's ok, otherwise we need to generate them from a range of values
-  if (model.values.empty()) {
-    const boost::optional<const boost::property_tree::ptree&> range_node =
-        knob_node.get_child_optional(margot::heel::tag::range());
+  // now we try to parse the knob values (they are optional)
+  margot::heel::parse_list(knob.values, knob_node, margot::heel::tag::values());
+  if (knob.values.empty()) {
+    // if we already have a list of values it is ok, otherwise we need to compute them
+    const auto& range_node = knob_node.get_child_optional(margot::heel::tag::range());
     if (range_node) {
-      model.values = margot::heel::compute_range(*range_node, model.type);
+      margot::heel::compute_range(knob.values, *range_node, knob.type);
     }
   }
-
-  return model;
 }

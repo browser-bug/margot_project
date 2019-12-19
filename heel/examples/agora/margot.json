@@ -1,5 +1,5 @@
 {
-	"application": "bar",
+	"name": "bar",
 	"version": "4.0",
 	"blocks":
 	[
@@ -43,10 +43,10 @@
 					"distribution": "yes",
 					"prediction_plugin": "hth",
 					"prediction_parameters":
-					{
-						"param1": "value1",
-						"param2": "value2"
-					},
+					[
+						{"param1": "value1"},
+						{"param2": "value2"}
+					],
 					"observed_by": "throughput_monitor",
 					"reactive_inertia": 5
 				},
@@ -84,15 +84,15 @@
 				"client_key": "",
 				"clustering_plugin": "clusty",
 				"clustering_parameters":
-				{
-					"algorithm": "kmeans",
-					"number_centroids": 5
-				},
+				[
+					{"algorithm": "kmeans"},
+					{"number_centroids": 5}
+				],
 				"doe_plugin": "jhondoe",
 				"doe_parameters":
-				{
-					"constraint": "knob1 + knob2 < 40"
-				}
+				[
+					{"constraint": "knob1 + knob2 < 40"}
+				]
 			},
 
 			"extra-functional_requirements":

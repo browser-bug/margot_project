@@ -57,6 +57,32 @@ inline std::string to_str(const margot::heel::goal_comparison combination) {
       return "defensive programming: unknown distance type";
   };
 }
+inline std::string to_str(const margot::heel::rank_direction direction) {
+  switch (direction) {
+    case margot::heel::rank_direction::MINIMIZE:
+      return "minimize";
+    case margot::heel::rank_direction::MAXIMIZE:
+      return "maximize";
+    case margot::heel::rank_direction::NONE:
+      return "none";
+    default:
+      return "defensive programming: unknown direction type";
+  };
+}
+inline std::string to_str(const margot::heel::rank_type type) {
+  switch (type) {
+    case margot::heel::rank_type::SIMPLE:
+      return "simple_mean";
+    case margot::heel::rank_type::GEOMETRIC:
+      return "geometric_mean";
+    case margot::heel::rank_type::LINEAR:
+      return "linear_mean";
+    case margot::heel::rank_type::NONE:
+      return "none";
+    default:
+      return "defensive programming: unknown rank type";
+  };
+}
 
 }  // namespace heel
 }  // namespace margot
