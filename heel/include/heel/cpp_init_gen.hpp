@@ -30,7 +30,7 @@ struct cpp_init_gen {
                           });  // end for each initialization parameters
                     });        // end for each monitor
     });                        // end for each block
-    return signature_line.empty() ? std::string("void") : signature_line;
+    return signature_line;
   }
 };
 

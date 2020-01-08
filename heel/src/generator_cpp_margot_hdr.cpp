@@ -5,6 +5,7 @@
 #include <heel/cpp_start_monitor_gen.hpp>
 #include <heel/cpp_stop_monitor_gen.hpp>
 #include <heel/cpp_update_gen.hpp>
+#include <heel/cpp_utils.hpp>
 #include <heel/generator_cpp_margot_hdr.hpp>
 #include <heel/generator_utils.hpp>
 #include <heel/model_application.hpp>
@@ -21,7 +22,10 @@ margot::heel::cpp_source_content margot::heel::margot_hpp_content(
   c.content << "namespace margot {" << std::endl << std::endl;
 
   // define the prototype of the global initialization function
-  c.content << "void init(" << margot::heel::cpp_init_gen::signature(app) << ");" << std::endl;
+  const std::string init_signature = margot::heel::cpp_init_gen::signature(app);
+  const std::string optional_coma = init_signature.empty() ? std::string("") : std::string(", ");
+  c.content << "void init(" << init_signature << optional_coma << "const std::string& "
+            << margot::heel::generate_log_file_name_identifier() << " = \"\");" << std::endl;
 
   // loop over each block to generate the block-specific functions
   std::for_each(app.blocks.begin(), app.blocks.end(), [&c](const block_model& block) {

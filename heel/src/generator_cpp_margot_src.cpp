@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <cstdint>
 
 #include <heel/cpp_init_gen.hpp>
 #include <heel/cpp_parser_gen.hpp>
@@ -26,6 +27,36 @@ margot::heel::cpp_source_content global_init_content(const margot::heel::applica
     c.content << "{" << std::endl;  // we use the block scope to avoid name clashing and to lock it
     c.content << "\tauto& c = margot::" << block.name << "::context();" << std::endl;
     c.content << "\tconst std::lock_guard<std::mutex> lock(c.context_mux);" << std::endl;
+
+    // we need to emit the code that open the log file and write the header
+    c.content << "\t#ifdef MARGOT_ENABLE_FILE_LOG" << std::endl;
+    c.content << "\tc.log_file.open(" << margot::heel::generate_log_file_name_identifier() << " + \"margot."
+              << block.name << ".log\");" << std::endl;
+    c.content << "\tc.log_file << \"timestamp\" ";
+    for (const auto& monitor : block.monitors) {
+      for (const auto& output_statistic : monitor.requested_statistics) {
+        c.content << "<< \"monitor_" << monitor.name << "_" << output_statistic << "\" ";
+      }
+    }
+    if (!block.knobs.empty()) {
+      for (const auto& metric : block.metrics) {
+        c.content << "<< \"metric_" << metric.name << "\" ";
+      }
+      for (const auto& feature : block.features.fields) {
+        c.content << "<< \"feature_" << feature.name << "\" ";
+      }
+      for (const auto& knob : block.knobs) {
+        c.content << "<< \"knob_" << knob.name << "\" ";
+      }
+      for (const auto& state : block.states) {
+        const std::size_t constraint_number = state.constraints.size();
+        for (std::size_t index = 0; index < constraint_number; ++index) {
+          c.content << "<< \"" << margot::heel::generate_goal_identifier(state.name, index) << "\" ";
+        }
+      }
+    }
+    c.content << ";" << std::endl;
+    c.content << "\t#endif // MARGOT_ENABLE_FILE_LOG" << std::endl;
 
     // initialize the monitors that requires a variable in the constructor
     std::for_each(
@@ -188,7 +219,104 @@ margot::heel::cpp_source_content push_monitor_content(const margot::heel::block_
 
 margot::heel::cpp_source_content log_content(const margot::heel::block_model& block) {
   margot::heel::cpp_source_content c;
-  c.content << "// TBD" << std::endl;
+  c.required_headers.emplace_back("mutex");
+  c.required_headers.emplace_back("iostream");
+  c.required_headers.emplace_back("string");
+  c.required_headers.emplace_back("margot/enums.hpp");
+  c.content << "auto& c = margot::" << block.name << "::context();" << std::endl;
+  c.content << "const std::lock_guard<std::mutex> lock(c.context_mux);" << std::endl;
+
+  // we need to emit the code that log on the standard output some information
+  c.content << "#ifdef MARGOT_ENABLE_STDOUT_LOG" << std::endl;
+  c.content << "std::cout << \".---------[ mARGOt log ]---------\" << std::endl;";
+  c.content << "std::cout << \"|\" << std::endl << \"| Monitored values:\" << std::endl;" << std::endl;
+  c.content << "std::cout << \"| \" ";
+  for (const auto& monitor : block.monitors) {
+    for (const auto& output_statistic : monitor.requested_statistics) {
+      c.content << "<< \"[ " << monitor.name << "." << output_statistic
+                << " = \" << std::string(c.monitors." << monitor.name
+                << ".empty() ? std::string(\"N/A\") : std::to_string(c.monitors." << monitor.name << "."
+                << output_statistic << "())) << \" ]\" ";
+    }
+  }
+  c.content << "<< std::endl;" << std::endl;
+  if (!block.knobs.empty()) {
+    c.content << "std::cout << \"|\" << std::endl << \"| Features:\" << std::endl;" << std::endl;
+    c.content << "std::cout << \"| \" ";
+    for (const auto& feature : block.features.fields) {
+      c.content << "<< \"[ " << feature.name << " = \" << c.features." << feature.name << " << \" ]\" ";
+    }
+    c.content << "<< std::endl;" << std::endl;
+    c.content << "std::cout << \"|\" << std::endl << \"| Knob values:\" << std::endl;" << std::endl;
+    c.content << "std::cout << \"| \" ";
+    for (const auto& knob : block.knobs) {
+      c.content << "<< \"[ " << knob.name << " = \" << c.knobs." << knob.name << " << \" ]\" ";
+    }
+    c.content << "<< std::endl;" << std::endl;
+    c.content << "std::cout << \"|\" << std::endl << \"| Metric values:\" << std::endl;" << std::endl;
+    c.content << "std::cout << \"| \" ";
+    for (const auto& metric : block.metrics) {
+      c.content << "<< \"[ " << metric.name
+                << " = \" << std::string(c.manager.in_design_space_exploration() ? std::string(\"N/A\") : "
+                   "std::to_string(c.manager.get_mean<margot::OperatingPointSegments::METRICS,"
+                << margot::heel::generate_field_getter(margot::heel::subject_kind::METRIC, metric.name,
+                                                       block.name)
+                << ">())) << \" ]\" ";
+    }
+    c.content << "<< std::endl;" << std::endl;
+    c.content << "std::cout << \"|\" << std::endl << \"| Constraint values:\" << std::endl;" << std::endl;
+    c.content << "std::cout << \"| \" ";
+    for (const auto& state : block.states) {
+      const std::size_t constraint_number = state.constraints.size();
+      for (std::size_t index = 0; index < constraint_number; ++index) {
+        const std::string goal_name = margot::heel::generate_goal_identifier(state.name, index);
+        c.content << "<< \"[ " << goal_name << " = \" << c.goals." << goal_name << ".get() << \" ]\" ";
+      }
+    }
+    c.content << "<< std::endl;" << std::endl;
+  }
+  c.content << "std::cout << \"|________________________________\" << std::endl;" << std::endl;
+  c.content << "#endif // MARGOT_ENABLE_STDOUT_LOG" << std::endl;
+
+  // we need to emit the code that log on the file some information
+  c.required_headers.emplace_back("chrono");
+  c.content << "#ifdef MARGOT_ENABLE_FILE_LOG" << std::endl;
+  c.content << "c.log_file << "
+               "std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_"
+               "since_epoch()).count();"
+            << std::endl;
+  for (const auto& monitor : block.monitors) {
+    for (const auto& output_statistic : monitor.requested_statistics) {
+      c.content << "c.log_file << ',' << std::string(c.monitors." << monitor.name
+                << ".empty() ? std::string(\"N/A\") : std::to_string(c.monitors." << monitor.name << "."
+                << output_statistic << "()));" << std::endl;
+    }
+  }
+  if (!block.knobs.empty()) {
+    for (const auto& metric : block.metrics) {
+      c.content << "c.log_file << ',' << std::string(c.manager.in_design_space_exploration() ? "
+                   "std::string(\"N/A\") : "
+                   "std::to_string(c.manager.get_mean<margot::OperatingPointSegments::METRICS,"
+                << margot::heel::generate_field_getter(margot::heel::subject_kind::METRIC, metric.name,
+                                                       block.name)
+                << ">()));" << std::endl;
+    }
+    for (const auto& feature : block.features.fields) {
+      c.content << "c.log_file << ',' << c.features." << feature.name << ";" << std::endl;
+    }
+    for (const auto& knob : block.knobs) {
+      c.content << "c.log_file << ',' << c.knobs." << knob.name << ";" << std::endl;
+    }
+    for (const auto& state : block.states) {
+      const std::size_t constraint_number = state.constraints.size();
+      for (std::size_t index = 0; index < constraint_number; ++index) {
+        const std::string goal_name = margot::heel::generate_goal_identifier(state.name, index);
+        c.content << "c.log_file << ',' << c.goals." << goal_name << ".get();" << std::endl;
+      }
+    }
+  }
+  c.content << "c.log_file << std::endl;" << std::endl;
+  c.content << "#endif // MARGOT_ENABLE_FILE_LOG" << std::endl;
   return c;
 }
 
@@ -205,7 +333,10 @@ margot::heel::cpp_source_content margot::heel::margot_cpp_content(
   c.content << "namespace margot {" << std::endl << std::endl;
 
   // generate the content of the global init function
-  c.content << "void init(" << margot::heel::cpp_init_gen::signature(app) << ") {" << std::endl;
+  const std::string init_signature = margot::heel::cpp_init_gen::signature(app);
+  const std::string optional_coma = init_signature.empty() ? std::string("") : std::string(", ");
+  c.content << "void init(" << init_signature << optional_coma << "const std::string& "
+            << margot::heel::generate_log_file_name_identifier() << ") {" << std::endl;
   margot::heel::append(c, global_init_content(app), "\t");
   c.content << "}" << std::endl;
 

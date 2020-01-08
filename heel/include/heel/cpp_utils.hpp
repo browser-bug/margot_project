@@ -21,6 +21,9 @@ inline std::string generate_goal_identifier(const std::string& state_name, const
   return state_name + "_constraint_" + std::to_string(id);
 }
 
+// this function returns the name of the variable which holds the name of the file log
+inline std::string generate_log_file_name_identifier(void) { return "margot_log_file_name_prefix"; }
+
 }  // namespace heel
 }  // namespace margot
 

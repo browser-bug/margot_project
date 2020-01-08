@@ -33,7 +33,15 @@ find_package(Threads REQUIRED )
 
 
 #########################################################################
-#### Define the mARGOt framework target
+#### Define compiler option, to enable file log and/or stdout log
+#########################################################################
+
+option( MARGOT_STDOUT_LOG "Log information on the standard output" ON)
+option( MARGOT_FILE_LOG "Log information on a log file" ON)
+
+
+#########################################################################
+#### Define the mARGOt heel interface target
 #########################################################################
 
 # define the library name and paths
@@ -87,6 +95,17 @@ target_compile_options(${MARGOT_HEEL_INTERFACE_NAME} PRIVATE $<$<CONFIG:DEBUG>: 
 target_compile_options(${MARGOT_HEEL_INTERFACE_NAME} PRIVATE $<$<CONFIG:RELWITHDEBINFO>: -march=native -mtune=native -g -O2 >)
 target_compile_options(${MARGOT_HEEL_INTERFACE_NAME} PRIVATE $<$<CONFIG:RELEASE>: -march=native -mtune=native -O3 >)
 
+
+#########################################################################
+#### Set compiler flag according to the building options
+#########################################################################
+
+if (MARGOT_STDOUT_LOG)
+	set_property(SOURCE "${MARGOT_HI_SRC_PATH}/margot.cpp" APPEND PROPERTY COMPILE_DEFINITIONS "MARGOT_ENABLE_STDOUT_LOG")
+endif (MARGOT_STDOUT_LOG)
+if (MARGOT_FILE_LOG)
+	set_property(SOURCE "${MARGOT_HI_SRC_PATH}/margot.cpp" APPEND PROPERTY COMPILE_DEFINITIONS "MARGOT_ENABLE_FILE_LOG")
+endif (MARGOT_FILE_LOG)
 
 
 #########################################################################
