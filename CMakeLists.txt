@@ -4,10 +4,6 @@ cmake_minimum_required( VERSION 3.4.3 ) # for the imported targets
 # the project name
 project( mARGOt VERSION 3.0 LANGUAGES CXX)
 
-# define the option of the whole build
-option( WITH_AGORA "Build the remote application handler" OFF)
-
-
 #########################################################################
 #### Change the default  options
 #########################################################################
@@ -40,12 +36,6 @@ set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}")
 add_subdirectory( margot )
 add_subdirectory( heel )
 
-# check if we need to compile also agora
-if (WITH_AGORA)
-	add_subdirectory( agora )
-endif (WITH_AGORA)
-
-
 #########################################################################
 #### Write a summary with the build information
 #########################################################################
@@ -57,6 +47,5 @@ message ( STATUS "//===------------------------===//" )
 message ( STATUS "Build directory..................: ${PROJECT_BINARY_DIR}" )
 message ( STATUS "Install prefix...................: ${CMAKE_INSTALL_PREFIX}" )
 message ( STATUS "Build type.......................: ${CMAKE_BUILD_TYPE}")
-message ( STATUS "With remote application handler..: ${WITH_AGORA} (CMake option WITH_AGORA)" )
 message ( STATUS "//===------------------------===//" )
 message ( STATUS "" )
