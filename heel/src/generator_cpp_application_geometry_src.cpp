@@ -10,9 +10,11 @@
 #include <heel/model_block.hpp>
 #include <heel/model_knob.hpp>
 
-margot::heel::cpp_source_content margot::heel::application_geometry_cpp_content(
-    const application_model& app) {
-  margot::heel::cpp_source_content c;
+namespace margot {
+namespace heel {
+
+cpp_source_content application_geometry_cpp_content(const application_model& app) {
+  cpp_source_content c;
 
   // generate the content for each block managed by margot, within its namespace
   c.content << std::endl << "namespace margot {" << std::endl;
@@ -62,31 +64,31 @@ margot::heel::cpp_source_content margot::heel::application_geometry_cpp_content(
         c.content << "\t\tresult.emplace_back(operating_point_type(";
       } else {
         c.content << "\t\tresult[{"
-                  << margot::heel::join(block.features.fields.begin(), block.features.fields.end(), ", ",
-                                        [&block](const feature_model& field) {
-                                          return "node_pair.second.get<" + block.features.features_type +
-                                                 ">(\"features." + field.name + "\")";
-                                        })
+                  << join(block.features.fields.begin(), block.features.fields.end(), ", ",
+                          [&block](const feature_model& field) {
+                            return "node_pair.second.get<" + block.features.features_type + ">(\"features." +
+                                   field.name + "\")";
+                          })
                   << "}].emplace_back(operating_point_type(";
       }
       c.content << "{"
-                << margot::heel::join(block.knobs.begin(), block.knobs.end(), ", ",
-                                      [&block](const knob_model& knob) {
-                                        return "node_pair.second.get<" + block.knobs_segment_type +
-                                               ">(\"knobs." + knob.name + "\")";
-                                      })
+                << join(block.knobs.begin(), block.knobs.end(), ", ",
+                        [&block](const knob_model& knob) {
+                          return "node_pair.second.get<" + block.knobs_segment_type + ">(\"knobs." +
+                                 knob.name + "\")";
+                        })
                 << "}, ";
       c.content << "{"
-                << margot::heel::join(block.metrics.begin(), block.metrics.end(), ", ",
-                                      [&block](const metric_model& metric) -> std::string {
-                                        if (metric.distribution) {
-                                          return "distribution_parser(node_pair.second)";
-                                        } else {
-                                          return "metrics_type(node_pair.second.get<" +
-                                                 block.metrics_segment_type + ">(\"metrics." + metric.name +
-                                                 "\"), static_cast<" + block.metrics_segment_type + ">(0))";
-                                        }
-                                      })
+                << join(block.metrics.begin(), block.metrics.end(), ", ",
+                        [&block](const metric_model& metric) -> std::string {
+                          if (metric.distribution) {
+                            return "distribution_parser(node_pair.second)";
+                          } else {
+                            return "metrics_type(node_pair.second.get<" + block.metrics_segment_type +
+                                   ">(\"metrics." + metric.name + "\"), static_cast<" +
+                                   block.metrics_segment_type + ">(0))";
+                          }
+                        })
                 << "}));" << std::endl;
 
       c.content << "\t}" << std::endl;
@@ -95,39 +97,37 @@ margot::heel::cpp_source_content margot::heel::application_geometry_cpp_content(
 
       // generate the function that generate the string representation of an Operating Point list
       c.content << "std::string operating_point_parser::operator()("
-                << margot::heel::cpp_parser_gen::signature(block.features.fields, block.knobs, block.metrics)
-                << ") const {" << std::endl;
+                << cpp_parser_gen::signature(block.features.fields, block.knobs, block.metrics) << ") const {"
+                << std::endl;
       c.content << "\treturn \"{\\\"" << block.name << "\\\":[{";
       if (!block.features.fields.empty()) {
         c.content << "\\\"features\\\":{"
-                  << margot::heel::join(block.features.fields.begin(), block.features.fields.end(), ",",
-                                        [](const feature_model& field) {
-                                          return "\\\"" + field.name + "\\\":\" + std::to_string(" +
-                                                 field.name + ") + \"";
-                                        })
+                  << join(block.features.fields.begin(), block.features.fields.end(), ",",
+                          [](const feature_model& field) {
+                            return "\\\"" + field.name + "\\\":\" + std::to_string(" + field.name + ") + \"";
+                          })
                   << "},";
       }
       c.content << "\\\"knobs\\\":{"
-                << margot::heel::join(block.knobs.begin(), block.knobs.end(), ",",
-                                      [](const knob_model& knob) -> std::string {
-                                        if (knob.type.compare("string") == 0) {
-                                          return "\\\"" + knob.name + "\\\":\" + std::to_string(knob_" +
-                                                 knob.name + "_to_val(" + knob.name + ")) + \"";
-                                        } else {
-                                          return "\\\"" + knob.name + "\\\":\" + std::to_string(" +
-                                                 knob.name + ") + \"";
-                                        }
-                                      })
+                << join(block.knobs.begin(), block.knobs.end(), ",",
+                        [](const knob_model& knob) -> std::string {
+                          if (knob.type.compare("string") == 0) {
+                            return "\\\"" + knob.name + "\\\":\" + std::to_string(knob_" + knob.name +
+                                   "_to_val(" + knob.name + ")) + \"";
+                          } else {
+                            return "\\\"" + knob.name + "\\\":\" + std::to_string(" + knob.name + ") + \"";
+                          }
+                        })
                 << "},";
       c.content << "\\\"metrics\\\":{"
-                << margot::heel::join(block.metrics.begin(), block.metrics.end(), ",",
-                                      [](const metric_model& metric) -> std::string {
-                                        const std::string prefix = "\\\"" + metric.name + "\\\":";
-                                        if (metric.distribution) {
-                                          return prefix + "[\" + std::to_string(" + metric.name + ") + \",0]";
-                                        }
-                                        return prefix + "\" + std::to_string(" + metric.name + ") + \"";
-                                      })
+                << join(block.metrics.begin(), block.metrics.end(), ",",
+                        [](const metric_model& metric) -> std::string {
+                          const std::string prefix = "\\\"" + metric.name + "\\\":";
+                          if (metric.distribution) {
+                            return prefix + "[\" + std::to_string(" + metric.name + ") + \",0]";
+                          }
+                          return prefix + "\" + std::to_string(" + metric.name + ") + \"";
+                        })
                 << "}}]}\";" << std::endl;
       c.content << "}" << std::endl << std::endl;
     }
@@ -138,3 +138,6 @@ margot::heel::cpp_source_content margot::heel::application_geometry_cpp_content(
 
   return c;
 }
+
+}  // namespace heel
+}  // namespace margot

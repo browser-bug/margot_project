@@ -10,11 +10,17 @@
 #include <heel/parser_tags.hpp>
 #include <heel/parser_utils.hpp>
 
-void margot::heel::parse(monitor_model& monitor, const boost::property_tree::ptree& monitor_node) {
-  margot::heel::parse_element(monitor.name, monitor_node, margot::heel::tag::name());
-  margot::heel::parse_element(monitor.type, monitor_node, margot::heel::tag::type());
-  margot::heel::parse_list(monitor.requested_statistics, monitor_node, margot::heel::tag::log());
-  margot::heel::parse_list(monitor.initialization_parameters, monitor_node, margot::heel::tag::constructor());
-  margot::heel::parse_list(monitor.start_parameters, monitor_node, margot::heel::tag::start());
-  margot::heel::parse_list(monitor.stop_parameters, monitor_node, margot::heel::tag::stop());
+namespace margot {
+namespace heel {
+
+void parse(monitor_model& monitor, const boost::property_tree::ptree& monitor_node) {
+  parse_element(monitor.name, monitor_node, tag::name());
+  parse_element(monitor.type, monitor_node, tag::type());
+  parse_list(monitor.requested_statistics, monitor_node, tag::log());
+  parse_list(monitor.initialization_parameters, monitor_node, tag::constructor());
+  parse_list(monitor.start_parameters, monitor_node, tag::start());
+  parse_list(monitor.stop_parameters, monitor_node, tag::stop());
 }
+
+}  // namespace heel
+}  // namespace margot

@@ -10,9 +10,11 @@
 #include <heel/model_block.hpp>
 #include <heel/model_knob.hpp>
 
-margot::heel::cpp_source_content margot::heel::application_geometry_hpp_content(
-    const application_model& app) {
-  margot::heel::cpp_source_content c;
+namespace margot {
+namespace heel {
+
+cpp_source_content application_geometry_hpp_content(const application_model& app) {
+  cpp_source_content c;
 
   // generate the content for each block managed by margot, within its namespace
   c.content << std::endl << "namespace margot {" << std::endl;
@@ -48,10 +50,9 @@ margot::heel::cpp_source_content margot::heel::application_geometry_hpp_content(
                   << std::endl;
         size_t counter = 0;
         c.content << "\t\t"
-                  << margot::heel::join(knob.values.begin(), knob.values.end(), ", ",
-                                        [&counter](const std::string& value) {
-                                          return "{\"" + value + "\", " + std::to_string(counter++) + "}";
-                                        });
+                  << join(knob.values.begin(), knob.values.end(), ", ", [&counter](const std::string& value) {
+                       return "{\"" + value + "\", " + std::to_string(counter++) + "}";
+                     });
         c.content << std::endl << "\t};" << std::endl;
         c.content << "\treturn translator.at(value);" << std::endl << "}" << std::endl;
 
@@ -62,10 +63,9 @@ margot::heel::cpp_source_content margot::heel::application_geometry_hpp_content(
                   << std::endl;
         counter = 0;
         c.content << "\t\t"
-                  << margot::heel::join(knob.values.begin(), knob.values.end(), ", ",
-                                        [&counter](const std::string& value) {
-                                          return "{" + std::to_string(counter++) + ", \"" + value + "\"}";
-                                        });
+                  << join(knob.values.begin(), knob.values.end(), ", ", [&counter](const std::string& value) {
+                       return "{" + std::to_string(counter++) + ", \"" + value + "\"}";
+                     });
         c.content << std::endl << "\t};" << std::endl;
         c.content << "\treturn translator.at(value);" << std::endl << "}" << std::endl;
       }
@@ -99,12 +99,9 @@ margot::heel::cpp_source_content margot::heel::application_geometry_hpp_content(
         c.required_headers.emplace_back("margot/da_asrtm.hpp");
         c.required_headers.emplace_back("margot/enums.hpp");
         c.content << "using manager_type = margot::DataAwareAsrtm<margot::Asrtm<operating_point_type>,"
-                  << block.features.features_type << ","
-                  << margot::heel::cpp_enum::get(block.features.distance_type) << ","
-                  << margot::heel::join(block.features.fields.begin(), block.features.fields.end(), ",",
-                                        [](const feature_model& field) {
-                                          return margot::heel::cpp_enum::get(field.comparison);
-                                        })
+                  << block.features.features_type << "," << cpp_enum::get(block.features.distance_type) << ","
+                  << join(block.features.fields.begin(), block.features.fields.end(), ",",
+                          [](const feature_model& field) { return cpp_enum::get(field.comparison); })
                   << ">;" << std::endl
                   << std::endl;
       }
@@ -126,8 +123,8 @@ margot::heel::cpp_source_content margot::heel::application_geometry_hpp_content(
       c.content << "\toperating_point_container_type operator()(const std::string& description_str) const;"
                 << std::endl;
       c.content << "\tstd::string operator()("
-                << margot::heel::cpp_parser_gen::signature(block.features.fields, block.knobs, block.metrics)
-                << ") const;" << std::endl;
+                << cpp_parser_gen::signature(block.features.fields, block.knobs, block.metrics) << ") const;"
+                << std::endl;
       c.content << "};" << std::endl << std::endl;
     }
 
@@ -137,3 +134,6 @@ margot::heel::cpp_source_content margot::heel::application_geometry_hpp_content(
 
   return c;
 }
+
+}  // namespace heel
+}  // namespace margot

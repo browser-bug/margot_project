@@ -12,20 +12,26 @@
 #include <heel/model_features.hpp>
 #include <heel/parser_tags.hpp>
 
-void margot::heel::compose(boost::property_tree::ptree& block_node, const block_model& block) {
+namespace margot {
+namespace heel {
+
+void compose(boost::property_tree::ptree& block_node, const block_model& block) {
   // put the basic information in the block node
-  block_node.put(margot::heel::tag::name(), block.name);
+  block_node.put(tag::name(), block.name);
   if (!block.features.empty()) {
-    block_node.put(margot::heel::tag::feature_distance(), margot::heel::to_str(block.features.distance_type));
+    block_node.put(tag::feature_distance(), to_str(block.features.distance_type));
   }
 
   // and now also the more complex information
-  margot::heel::add_list(block_node, block.monitors, margot::heel::tag::monitors());
-  margot::heel::add_list(block_node, block.knobs, margot::heel::tag::knobs());
-  margot::heel::add_list(block_node, block.metrics, margot::heel::tag::metrics());
-  margot::heel::add_element(block_node, block.agora, margot::heel::tag::agora());
-  margot::heel::add_list(block_node, block.features.fields, margot::heel::tag::features());
-  margot::heel::add_list(block_node, block.states, margot::heel::tag::states());
+  add_list(block_node, block.monitors, tag::monitors());
+  add_list(block_node, block.knobs, tag::knobs());
+  add_list(block_node, block.metrics, tag::metrics());
+  add_element(block_node, block.agora, tag::agora());
+  add_list(block_node, block.features.fields, tag::features());
+  add_list(block_node, block.states, tag::states());
 
   // we omit to parse the operating point list field, since it is not really part of the model
 }
+
+}  // namespace heel
+}  // namespace margot

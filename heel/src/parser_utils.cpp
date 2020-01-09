@@ -10,7 +10,10 @@
 #include "heel/parser_utils.hpp"
 #include "heel/typer.hpp"
 
-bool margot::heel::is_bool(std::string& str_value, const bool value) {
+namespace margot {
+namespace heel {
+
+bool is_bool(std::string& str_value, const bool value) {
   boost::algorithm::to_lower(str_value);
   static const std::vector<std::string> true_values = {"1", "true", "yes", "enabled", "on", "high"};
   static const std::vector<std::string> false_values = {"0", "false", "no", "disabled", "off", "low"};
@@ -33,9 +36,8 @@ std::vector<std::string> generate(const std::string& min, const std::string& max
   return values;
 }
 
-void margot::heel::compute_range(std::vector<std::string>& values,
-                                 const boost::property_tree::ptree& range_node,
-                                 const std::string& value_type) {
+void compute_range(std::vector<std::string>& values, const boost::property_tree::ptree& range_node,
+                   const std::string& value_type) {
   // now we have to do a kind of nasty stuff to generate the values... which is get them as strings, figure
   // out which is the correct types for them, and generate the values
 
@@ -53,7 +55,7 @@ void margot::heel::compute_range(std::vector<std::string>& values,
   const std::string step = values.size() >= 3 ? values[2] : "1";  // default step is 1
 
   // now it begins the nightmare of generating the values according to the type of the knob
-  const std::string type = margot::heel::sanitize_type(value_type);
+  const std::string type = sanitize_type(value_type);
   if (type.compare("int8_t") == 0) {
     values = generate<int8_t>(min, max, step);
   } else if (type.compare("uint8_t") == 0) {
@@ -80,3 +82,6 @@ void margot::heel::compute_range(std::vector<std::string>& values,
     throw std::runtime_error(" error_range: unabale to generate a range for type \"" + value_type + "\"");
   }
 }
+
+}  // namespace heel
+}  // namespace margot

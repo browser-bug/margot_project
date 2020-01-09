@@ -4,8 +4,10 @@
 
 #include <heel/generator_utils.hpp>
 
-void margot::heel::append(margot::heel::cpp_source_content& destination,
-                          const margot::heel::cpp_source_content& source, const std::string& prefix) {
+namespace margot {
+namespace heel {
+
+void append(cpp_source_content& destination, const cpp_source_content& source, const std::string& prefix) {
   std::copy(source.required_headers.begin(), source.required_headers.end(),
             std::back_inserter(destination.required_headers));
   std::istringstream content(source.content.str());
@@ -13,3 +15,6 @@ void margot::heel::append(margot::heel::cpp_source_content& destination,
     destination.content << prefix << line << std::endl;
   }
 }
+
+}  // namespace heel
+}  // namespace margot

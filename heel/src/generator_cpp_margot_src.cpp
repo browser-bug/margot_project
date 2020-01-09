@@ -233,10 +233,9 @@ margot::heel::cpp_source_content log_content(const margot::heel::block_model& bl
   c.content << "std::cout << \"| \" ";
   for (const auto& monitor : block.monitors) {
     for (const auto& output_statistic : monitor.requested_statistics) {
-      c.content << "<< \"[ " << monitor.name << "." << output_statistic
-                << " = \" << std::string(c.monitors." << monitor.name
-                << ".empty() ? std::string(\"N/A\") : std::to_string(c.monitors." << monitor.name << "."
-                << output_statistic << "())) << \" ]\" ";
+      c.content << "<< \"[ " << monitor.name << "." << output_statistic << " = \" << std::string(c.monitors."
+                << monitor.name << ".empty() ? std::string(\"N/A\") : std::to_string(c.monitors."
+                << monitor.name << "." << output_statistic << "())) << \" ]\" ";
     }
   }
   c.content << "<< std::endl;" << std::endl;

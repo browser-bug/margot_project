@@ -6,12 +6,15 @@
 #include <heel/model_parameter.hpp>
 #include <heel/parser_tags.hpp>
 
-void margot::heel::compose(boost::property_tree::ptree& parameter_node, const parameter& parameter) {
+namespace margot {
+namespace heel {
+
+void compose(boost::property_tree::ptree& parameter_node, const parameter& parameter) {
   switch (parameter.type) {
-    case margot::heel::parameter_types::IMMEDIATE:
+    case parameter_types::IMMEDIATE:
       parameter_node.put("", parameter.content);
       break;
-    case margot::heel::parameter_types::VARIABLE:
+    case parameter_types::VARIABLE:
       parameter_node.put(parameter.content, parameter.value_type);
       break;
     default:
@@ -19,6 +22,9 @@ void margot::heel::compose(boost::property_tree::ptree& parameter_node, const pa
   }
 }
 
-void margot::heel::compose(boost::property_tree::ptree& property_node, const pair_property& property) {
+void compose(boost::property_tree::ptree& property_node, const pair_property& property) {
   property_node.put(property.key, property.value);
 }
+
+}  // namespace heel
+}  // namespace margot

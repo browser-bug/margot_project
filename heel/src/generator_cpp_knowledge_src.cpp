@@ -5,8 +5,11 @@
 #include <heel/generator_utils.hpp>
 #include <heel/model_application.hpp>
 
-margot::heel::cpp_source_content margot::heel::knowledge_cpp_content(margot::heel::application_model& app) {
-  margot::heel::cpp_source_content c;
+namespace margot {
+namespace heel {
+
+cpp_source_content knowledge_cpp_content(application_model& app) {
+  cpp_source_content c;
   c.required_headers.emplace_back("margot/application_geometry.hpp");
   c.required_headers.emplace_back("margot/application_knowledge.hpp");
   c.required_headers.emplace_back("margot/managers_definition.hpp");
@@ -16,8 +19,7 @@ margot::heel::cpp_source_content margot::heel::knowledge_cpp_content(margot::hee
     // for convenience, define a lambda that join the average value of the feature fields in a string. In this
     // way it is possible to identify easily if two features are different
     const auto str = [](const std::vector<operating_point_value>& f) {
-      return margot::heel::join(f.begin(), f.end(), ",",
-                                [](const operating_point_value& m) { return m.mean; });
+      return join(f.begin(), f.end(), ",", [](const operating_point_value& m) { return m.mean; });
     };
 
     // since the operating point in margot does not have information about the feature cluster, we need to
@@ -42,9 +44,8 @@ margot::heel::cpp_source_content margot::heel::knowledge_cpp_content(margot::hee
       const bool is_with_features = !block.features.fields.empty();
       const bool is_with_knowledge = !block.ops.empty();
       if (is_with_features && !is_with_knowledge) {
-        const std::string fake_cluster =
-            margot::heel::join(block.features.fields.begin(), block.features.fields.end(), ",",
-                               [](const feature_model&) { return "1"; });
+        const std::string fake_cluster = join(block.features.fields.begin(), block.features.fields.end(), ",",
+                                              [](const feature_model&) { return "1"; });
         c.content << "\tmanager.add_feature_cluster({{" << fake_cluster << "}});" << std::endl;
         c.content << "\tmanager.select_feature_cluster({{" << fake_cluster << "}});" << std::endl;
       } else if (is_with_knowledge) {
@@ -83,29 +84,25 @@ margot::heel::cpp_source_content margot::heel::knowledge_cpp_content(margot::hee
           c.content << "\t\t{ // new operating point" << std::endl;
           c.content << "\t\t\t{ // software knobs " << std::endl << "\t\t\t\t";
           std::size_t counter = 0;
-          c.content << margot::heel::join(block.knobs.begin(), block.knobs.end(), ", ",
-                                          [&](const knob_model& knob) {
-                                            const auto t = counter++;
-                                            return knob.type.compare("string") != 0
-                                                       ? op.knobs[t].mean
-                                                       : "margot::" + block.name + "::knob_" + knob.name +
-                                                             "_to_val(\"" + op.knobs[t].mean + "\")";
-                                          })
-                    << std::endl;
+          c.content << join(block.knobs.begin(), block.knobs.end(), ", ", [&](const knob_model& knob) {
+            const auto t = counter++;
+            return knob.type.compare("string") != 0 ? op.knobs[t].mean
+                                                    : "margot::" + block.name + "::knob_" + knob.name +
+                                                          "_to_val(\"" + op.knobs[t].mean + "\")";
+          }) << std::endl;
           c.content << "\t\t\t}," << std::endl;
           c.content << "\t\t\t{ // extra-functional properties " << std::endl << "\t\t\t\t";
           counter = 0;
-          c.content << margot::heel::join(
-                           block.metrics.begin(), block.metrics.end(), ", ",
-                           [&](const metric_model& metric) {
-                             const auto t = counter++;
-                             const std::string stdv = !metric.distribution && metric_is_distribution
-                                                          ? std::string("0")
-                                                          : op.metrics[t].standard_deviation;
-                             return metric_is_distribution ? "margot::" + block.name + "::metrics_type(" +
-                                                                 op.metrics[t].mean + "," + stdv + ")"
-                                                           : op.metrics[t].mean;
-                           })
+          c.content << join(block.metrics.begin(), block.metrics.end(), ", ",
+                            [&](const metric_model& metric) {
+                              const auto t = counter++;
+                              const std::string stdv = !metric.distribution && metric_is_distribution
+                                                           ? std::string("0")
+                                                           : op.metrics[t].standard_deviation;
+                              return metric_is_distribution ? "margot::" + block.name + "::metrics_type(" +
+                                                                  op.metrics[t].mean + "," + stdv + ")"
+                                                            : op.metrics[t].mean;
+                            })
                     << std::endl;
           c.content << "\t\t\t}" << std::endl;
           c.content << "\t\t}," << std::endl;
@@ -120,3 +117,6 @@ margot::heel::cpp_source_content margot::heel::knowledge_cpp_content(margot::hee
   });
   return c;
 }
+
+}  // namespace heel
+}  // namespace margot

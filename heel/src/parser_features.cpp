@@ -12,26 +12,31 @@
 
 namespace pt = boost::property_tree;
 
-void margot::heel::parse(feature_model& field, const boost::property_tree::ptree& feature_node) {
+namespace margot {
+namespace heel {
+
+void parse(feature_model& field, const boost::property_tree::ptree& feature_node) {
   // parse the two feature fields
-  margot::heel::parse_element(field.name, feature_node, margot::heel::tag::name());
-  margot::heel::parse_element(field.type, feature_node, margot::heel::tag::type());
+  parse_element(field.name, feature_node, tag::name());
+  parse_element(field.type, feature_node, tag::type());
 
   // now we need to check which is the comparison function of this field
   std::string comparison_fun;
-  margot::heel::parse_element(comparison_fun, feature_node, margot::heel::tag::comparison());
-  if (margot::heel::is_enum(comparison_fun, margot::heel::distance_comparison_type::LESS_OR_EQUAL)) {
-    field.comparison = margot::heel::distance_comparison_type::LESS_OR_EQUAL;
-  } else if (margot::heel::is_enum(comparison_fun,
-                                   margot::heel::distance_comparison_type::GREATER_OR_EQUAL)) {
-    field.comparison = margot::heel::distance_comparison_type::GREATER_OR_EQUAL;
-  } else if (margot::heel::is_enum(comparison_fun, margot::heel::distance_comparison_type::DONT_CARE)) {
-    field.comparison = margot::heel::distance_comparison_type::DONT_CARE;
+  parse_element(comparison_fun, feature_node, tag::comparison());
+  if (is_enum(comparison_fun, distance_comparison_type::LESS_OR_EQUAL)) {
+    field.comparison = distance_comparison_type::LESS_OR_EQUAL;
+  } else if (is_enum(comparison_fun, distance_comparison_type::GREATER_OR_EQUAL)) {
+    field.comparison = distance_comparison_type::GREATER_OR_EQUAL;
+  } else if (is_enum(comparison_fun, distance_comparison_type::DONT_CARE)) {
+    field.comparison = distance_comparison_type::DONT_CARE;
   } else if (!comparison_fun.empty()) {
-    margot::heel::error("Unknown feature comparison \"", comparison_fun, "\" in field \"", field.name, "\"");
+    error("Unknown feature comparison \"", comparison_fun, "\" in field \"", field.name, "\"");
     throw std::runtime_error("field parser: unknown feature comparison");
   } else {
-    field.comparison = margot::heel::distance_comparison_type::DONT_CARE;
-    margot::heel::warning("Automatically set feature comparison \"-\" to field\"", field.name, "\"");
+    field.comparison = distance_comparison_type::DONT_CARE;
+    warning("Automatically set feature comparison \"-\" to field\"", field.name, "\"");
   }
 }
+
+}  // namespace heel
+}  // namespace margot

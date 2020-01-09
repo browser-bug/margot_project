@@ -7,27 +7,30 @@
 #include <heel/model_monitor.hpp>
 #include <heel/typer.hpp>
 
-void margot::heel::validate(metric_model& model, const std::vector<monitor_model>& monitors) {
+namespace margot {
+namespace heel {
+
+void validate(metric_model& model, const std::vector<monitor_model>& monitors) {
   // perform checks on the metric type
   if (model.type.empty()) {
-    margot::heel::error("The metric \"", model.name, "\" must have a type");
+    error("The metric \"", model.name, "\" must have a type");
     throw std::runtime_error("metric model: metric without a type");
   }
-  model.type = margot::heel::sanitize_type(model.type);
+  model.type = sanitize_type(model.type);
   if (model.type.compare("string") == 0) {
-    margot::heel::error("The type string for the metric \"", model.name, "\" is not supported");
+    error("The type string for the metric \"", model.name, "\" is not supported");
     throw std::runtime_error("metric model: unsupported type");
   }
 
   // check if the name is a valid c/c++ identifier
-  if (!margot::heel::is_valid_identifier(model.name)) {
-    margot::heel::error("The metric name \"", model.name, "\" is not a valid c/c++ identifier");
+  if (!is_valid_identifier(model.name)) {
+    error("The metric name \"", model.name, "\" is not a valid c/c++ identifier");
     throw std::runtime_error("metric model: unsupported name");
   }
 
   // make sure that if plugin parameters exist, there should be also a plugin name
   if ((!model.prediction_parameters.empty()) && (model.prediction_plugin.empty())) {
-    margot::heel::error("The metric \"", model.name, "\" defines plugin parameters, but no plugin");
+    error("The metric \"", model.name, "\" defines plugin parameters, but no plugin");
     throw std::runtime_error("metric model: empty prediction plugin");
   }
 
@@ -36,15 +39,18 @@ void margot::heel::validate(metric_model& model, const std::vector<monitor_model
     if (!std::any_of(monitors.cbegin(), monitors.cend(), [&model](const monitor_model& monitor) {
           return model.monitor_name.compare(monitor.name) == 0;
         })) {
-      margot::heel::error("The metric \"", model.name, "\" is observed by the non-existent monitor \"",
-                          model.monitor_name, "\"");
+      error("The metric \"", model.name, "\" is observed by the non-existent monitor \"", model.monitor_name,
+            "\"");
       throw std::runtime_error("metric model: non-existent monitor");
     }
   }
 
   // finally, we need to be sure that if we react with runtime observation, it must be observed by a monitor
   if (model.inertia > 0 && model.monitor_name.empty()) {
-    margot::heel::error("The metric \"", model.name, "\" can't react without a monitor\"");
+    error("The metric \"", model.name, "\" can't react without a monitor\"");
     throw std::runtime_error("metric model: unable to active the reaction mechanism");
   }
 }
+
+}  // namespace heel
+}  // namespace margot

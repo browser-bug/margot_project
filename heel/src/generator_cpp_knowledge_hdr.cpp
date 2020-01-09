@@ -4,8 +4,11 @@
 #include <heel/generator_utils.hpp>
 #include <heel/model_application.hpp>
 
-margot::heel::cpp_source_content margot::heel::knowledge_hpp_content(margot::heel::application_model& app) {
-  margot::heel::cpp_source_content c;
+namespace margot {
+namespace heel {
+
+cpp_source_content knowledge_hpp_content(application_model& app) {
+  cpp_source_content c;
   c.required_headers.emplace_back("margot/application_geometry.hpp");
   c.content << "namespace margot {" << std::endl;
   std::for_each(app.blocks.begin(), app.blocks.end(), [&c](const block_model& block) {
@@ -18,3 +21,6 @@ margot::heel::cpp_source_content margot::heel::knowledge_hpp_content(margot::hee
   c.content << "} // namespace margot" << std::endl;
   return c;
 }
+
+}  // namespace heel
+}  // namespace margot

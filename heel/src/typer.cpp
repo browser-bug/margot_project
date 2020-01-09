@@ -12,7 +12,10 @@
 #include <heel/logger.hpp>
 #include <heel/typer.hpp>
 
-bool margot::heel::is_valid_identifier(const std::string& name) {
+namespace margot {
+namespace heel {
+
+bool is_valid_identifier(const std::string& name) {
   if (name.empty()) return false;
   if (!((std::isalpha(name[0]) || (name[0] == static_cast<std::string::value_type>('_'))))) return false;
   if (std::any_of(std::next(name.begin()), name.end(), [](const std::string::value_type c) {
@@ -24,7 +27,7 @@ bool margot::heel::is_valid_identifier(const std::string& name) {
 }
 
 // i know that this is ugly, but there is no other way
-std::string margot::heel::sanitize_type(const std::string& type_name) {
+std::string sanitize_type(const std::string& type_name) {
   // given the extreme flexibility to define a type in c using the fundamental types, we need to perform
   // search string to guess the actual type. Moreover, we need to take into account the standard type aliases
   // for defining the variable size in an architecture independent way
@@ -51,94 +54,94 @@ std::string margot::heel::sanitize_type(const std::string& type_name) {
 
   // now we can determine which type is it
   if ((t.compare("short int") == 0) || (t.compare("short") == 0)) {
-    return margot::heel::typer<short int>::get();
+    return typer<short int>::get();
   } else if (t.compare("int8_t") == 0) {
-    return margot::heel::typer<int8_t>::get();
+    return typer<int8_t>::get();
   } else if (t.compare("int16_t") == 0) {
-    return margot::heel::typer<int16_t>::get();
+    return typer<int16_t>::get();
   } else if (t.compare("int32_t") == 0) {
-    return margot::heel::typer<int32_t>::get();
+    return typer<int32_t>::get();
   } else if (t.compare("int64_t") == 0) {
-    return margot::heel::typer<int64_t>::get();
+    return typer<int64_t>::get();
   } else if (t.compare("uint8_t") == 0) {
-    return margot::heel::typer<uint8_t>::get();
+    return typer<uint8_t>::get();
   } else if (t.compare("uint16_t") == 0) {
-    return margot::heel::typer<uint16_t>::get();
+    return typer<uint16_t>::get();
   } else if (t.compare("uint32_t") == 0) {
-    return margot::heel::typer<uint32_t>::get();
+    return typer<uint32_t>::get();
   } else if (t.compare("uint64_t") == 0) {
-    return margot::heel::typer<uint64_t>::get();
+    return typer<uint64_t>::get();
   } else if (t.compare("char") == 0) {
-    return margot::heel::typer<char>::get();
+    return typer<char>::get();
   } else if (t.compare("int") == 0) {
-    return margot::heel::typer<int>::get();
+    return typer<int>::get();
   } else if ((t.compare("long int") == 0) || (t.compare("long") == 0)) {
-    return margot::heel::typer<long int>::get();
+    return typer<long int>::get();
   } else if ((t.compare("long long int") == 0) || (t.compare("long long") == 0)) {
-    return margot::heel::typer<long long int>::get();
+    return typer<long long int>::get();
   } else if (t.compare("int_fast8_t") == 0) {
-    return margot::heel::typer<int_fast8_t>::get();
+    return typer<int_fast8_t>::get();
   } else if (t.compare("int_fast16_t") == 0) {
-    return margot::heel::typer<int_fast16_t>::get();
+    return typer<int_fast16_t>::get();
   } else if (t.compare("int_fast32_t") == 0) {
-    return margot::heel::typer<int_fast32_t>::get();
+    return typer<int_fast32_t>::get();
   } else if (t.compare("int_fast64_t") == 0) {
-    return margot::heel::typer<int_fast64_t>::get();
+    return typer<int_fast64_t>::get();
   } else if (t.compare("int_least8_t") == 0) {
-    return margot::heel::typer<int_least8_t>::get();
+    return typer<int_least8_t>::get();
   } else if (t.compare("int_least16_t") == 0) {
-    return margot::heel::typer<int_least16_t>::get();
+    return typer<int_least16_t>::get();
   } else if (t.compare("int_least32_t") == 0) {
-    return margot::heel::typer<int_least32_t>::get();
+    return typer<int_least32_t>::get();
   } else if (t.compare("int_least64_t") == 0) {
-    return margot::heel::typer<int_least64_t>::get();
+    return typer<int_least64_t>::get();
   } else if ((t.compare("unsigned short int") == 0) || (t.compare("unsigned short") == 0) ||
              (t.compare("short unsigned int") == 0) || (t.compare("short unsigned") == 0)) {
-    return margot::heel::typer<unsigned short int>::get();
+    return typer<unsigned short int>::get();
   } else if ((t.compare("unsigned char") == 0) || (t.compare("char unsigned") == 0)) {
-    return margot::heel::typer<unsigned char>::get();
+    return typer<unsigned char>::get();
   } else if ((t.compare("unsigned int") == 0) || (t.compare("unsigned") == 0)) {
-    return margot::heel::typer<unsigned int>::get();
+    return typer<unsigned int>::get();
   } else if ((t.compare("unsigned long int") == 0) || (t.compare("unsigned long") == 0) ||
              (t.compare("long unsigned int") == 0) || (t.compare("long unsigned") == 0)) {
-    return margot::heel::typer<unsigned long int>::get();
+    return typer<unsigned long int>::get();
   } else if ((t.compare("unsigned long long int") == 0) || (t.compare("unsigned long long") == 0) ||
              (t.compare("long long unsigned int") == 0) || (t.compare("long long unsigned") == 0) ||
              (t.compare("long unsigned long") == 0) || (t.compare("long unsigned long int") == 0)) {
-    return margot::heel::typer<unsigned long long int>::get();
+    return typer<unsigned long long int>::get();
   } else if (t.compare("uint_fast8_t") == 0) {
-    return margot::heel::typer<uint_fast8_t>::get();
+    return typer<uint_fast8_t>::get();
   } else if (t.compare("uint_fast16_t") == 0) {
-    return margot::heel::typer<uint_fast16_t>::get();
+    return typer<uint_fast16_t>::get();
   } else if (t.compare("uint_fast32_t") == 0) {
-    return margot::heel::typer<uint_fast32_t>::get();
+    return typer<uint_fast32_t>::get();
   } else if (t.compare("uint_fast64_t") == 0) {
-    return margot::heel::typer<uint_fast64_t>::get();
+    return typer<uint_fast64_t>::get();
   } else if (t.compare("uint_least8_t") == 0) {
-    return margot::heel::typer<uint_least8_t>::get();
+    return typer<uint_least8_t>::get();
   } else if (t.compare("uint_least16_t") == 0) {
-    return margot::heel::typer<uint_least16_t>::get();
+    return typer<uint_least16_t>::get();
   } else if (t.compare("uint_least32_t") == 0) {
-    return margot::heel::typer<uint_least32_t>::get();
+    return typer<uint_least32_t>::get();
   } else if (t.compare("uint_least64_t") == 0) {
-    return margot::heel::typer<uint_least64_t>::get();
+    return typer<uint_least64_t>::get();
   } else if (t.compare("intmax_t") == 0) {
-    return margot::heel::typer<intmax_t>::get();
+    return typer<intmax_t>::get();
   } else if (t.compare("intptr_t") == 0) {
-    return margot::heel::typer<intptr_t>::get();
+    return typer<intptr_t>::get();
   } else if (t.compare("uintmax_t") == 0) {
-    return margot::heel::typer<uintmax_t>::get();
+    return typer<uintmax_t>::get();
   } else if (t.compare("uintptr_t") == 0) {
-    return margot::heel::typer<uintptr_t>::get();
+    return typer<uintptr_t>::get();
   } else if (t.compare("float") == 0) {
-    return margot::heel::typer<float>::get();
+    return typer<float>::get();
   } else if (t.compare("double") == 0) {
-    return margot::heel::typer<double>::get();
+    return typer<double>::get();
   } else if ((t.compare("long double") == 0) || (t.compare("double long") == 0)) {
-    return margot::heel::typer<long double>::get();
+    return typer<long double>::get();
   } else {
     // if we reach this statement, it means that the type is unknown so we need to throw an expection
-    margot::heel::error("Unable to understand the type \"", type_name, "\"");
+    error("Unable to understand the type \"", type_name, "\"");
     throw std::runtime_error("type sanitizer: unknown type");
   }
 }
@@ -159,10 +162,10 @@ static const std::map<std::string, int> ctype_promotions_unsigned = {
 static const std::map<std::string, int> ctype_promotions_fp = {
     {"float", 0}, {"double", 1}, {"long double", 2}};
 
-std::optional<bool> margot::heel::type_sorter(const std::string& a, const std::string& b) {
+std::optional<bool> type_sorter(const std::string& a, const std::string& b) {
   // remove the type alias to limit the number of options
-  const auto unaliased_a = margot::heel::sanitize_type(a);
-  const auto unaliased_b = margot::heel::sanitize_type(b);
+  const auto unaliased_a = sanitize_type(a);
+  const auto unaliased_b = sanitize_type(b);
 
   // declare a lambda that compares two type only if they belong to the same set
   const auto check_lambda = [&unaliased_a,
@@ -190,3 +193,6 @@ std::optional<bool> margot::heel::type_sorter(const std::string& a, const std::s
   }
   return {};
 }
+
+}  // namespace heel
+}  // namespace margot

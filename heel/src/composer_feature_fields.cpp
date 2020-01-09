@@ -9,9 +9,15 @@
 #include <heel/model_features.hpp>
 #include <heel/parser_tags.hpp>
 
-void margot::heel::compose(boost::property_tree::ptree& field_node, const feature_model& field) {
+namespace margot {
+namespace heel {
+
+void compose(boost::property_tree::ptree& field_node, const feature_model& field) {
   // write the basic information about the feature field
-  field_node.put(margot::heel::tag::name(), field.name);
-  field_node.put(margot::heel::tag::type(), field.type);
-  field_node.put(margot::heel::tag::comparison(), margot::heel::to_str(field.comparison));
+  field_node.put(tag::name(), field.name);
+  field_node.put(tag::type(), field.type);
+  field_node.put(tag::comparison(), to_str(field.comparison));
 }
+
+}  // namespace heel
+}  // namespace margot

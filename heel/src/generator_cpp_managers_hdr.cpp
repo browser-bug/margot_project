@@ -16,8 +16,11 @@
 #include <heel/model_monitor.hpp>
 #include <heel/model_state.hpp>
 
-margot::heel::cpp_source_content margot::heel::managers_hpp_content(application_model& app) {
-  margot::heel::cpp_source_content c;
+namespace margot {
+namespace heel {
+
+cpp_source_content managers_hpp_content(application_model& app) {
+  cpp_source_content c;
 
   // append by default the cstdint and the application geometry header
   c.required_headers.emplace_back("cstdint");
@@ -39,24 +42,20 @@ margot::heel::cpp_source_content margot::heel::managers_hpp_content(application_
       }
       c.content << "//" << std::endl;
     };
-    std::for_each(block.monitors.begin(), block.monitors.end(), [&print_desc](const monitor_model& monitor) {
-      print_desc(margot::heel::description_verbose(monitor));
-    });
-    std::for_each(block.metrics.begin(), block.metrics.end(), [&print_desc](const metric_model& metric) {
-      print_desc(margot::heel::description_verbose(metric));
-    });
-    std::for_each(block.knobs.begin(), block.knobs.end(), [&print_desc](const knob_model& knob) {
-      print_desc(margot::heel::description_verbose(knob));
-    });
+    std::for_each(block.monitors.begin(), block.monitors.end(),
+                  [&print_desc](const monitor_model& monitor) { print_desc(description_verbose(monitor)); });
+    std::for_each(block.metrics.begin(), block.metrics.end(),
+                  [&print_desc](const metric_model& metric) { print_desc(description_verbose(metric)); });
+    std::for_each(block.knobs.begin(), block.knobs.end(),
+                  [&print_desc](const knob_model& knob) { print_desc(description_verbose(knob)); });
     if (!block.features.fields.empty()) {
-      print_desc(margot::heel::description_verbose(block.features));
+      print_desc(description_verbose(block.features));
     }
     if (!block.agora.empty()) {
-      print_desc(margot::heel::description_verbose(block.agora));
+      print_desc(description_verbose(block.agora));
     }
-    std::for_each(block.states.begin(), block.states.end(), [&print_desc](const state_model& state) {
-      print_desc(margot::heel::description_verbose(state));
-    });
+    std::for_each(block.states.begin(), block.states.end(),
+                  [&print_desc](const state_model& state) { print_desc(description_verbose(state)); });
     c.content << "// ------------------=============" << std::string(block.name.size(), '=')
               << "=============------------------" << std::endl;
 
@@ -67,7 +66,7 @@ margot::heel::cpp_source_content margot::heel::managers_hpp_content(application_
     // define the struct that contains the monitors (and append the related headers)
     c.content << "\tstruct monitors_type {" << std::endl;
     std::for_each(block.monitors.begin(), block.monitors.end(), [&c](monitor_model& monitor) {
-      const auto& spec = margot::heel::get_monitor_cpp_spec(monitor);
+      const auto& spec = get_monitor_cpp_spec(monitor);
       c.content << "\t\t" << spec.class_name << ' ' << monitor.name << ';' << std::endl;
       c.required_headers.emplace_back(spec.header_name);
     });
@@ -83,19 +82,18 @@ margot::heel::cpp_source_content margot::heel::managers_hpp_content(application_
                       c.required_headers.emplace_back("margot/goal.hpp");
                       c.content << "\t\tmargot::Goal<";
                       switch (constraint.kind) {
-                        case margot::heel::subject_kind::METRIC:
+                        case subject_kind::METRIC:
                           c.content << block.metrics_segment_type;
                           break;
-                        case margot::heel::subject_kind::KNOB:
+                        case subject_kind::KNOB:
                           c.content << block.knobs_segment_type;
                           break;
                         default:
-                          margot::heel::error("Unknown constraint kind, this looks like an internal error");
+                          error("Unknown constraint kind, this looks like an internal error");
                           throw std::runtime_error("manager generators: unknown constraint kind");
                       }
-                      c.content << ',' << margot::heel::cpp_enum::get(constraint.cfun) << "> "
-                                << margot::heel::generate_goal_identifier(state.name, counter) << ';'
-                                << std::endl;
+                      c.content << ',' << cpp_enum::get(constraint.cfun) << "> "
+                                << generate_goal_identifier(state.name, counter) << ';' << std::endl;
                     });
     });
     c.content << "\t};" << std::endl << std::endl;
@@ -152,3 +150,6 @@ margot::heel::cpp_source_content margot::heel::managers_hpp_content(application_
 
   return c;
 }
+
+}  // namespace heel
+}  // namespace margot
