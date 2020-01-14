@@ -17,6 +17,7 @@
  * USA
  */
 
+#include <algorithm>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -46,6 +47,14 @@ void parse(block_model& block, const boost::property_tree::ptree& block_node) {
   parse_list(block.knobs, block_node, tag::knobs());
   parse_list(block.metrics, block_node, tag::metrics());
 
+  // sort them according to their name
+  std::sort(block.monitors.begin(), block.monitors.end(),
+            [](const monitor_model& i, const monitor_model& j) { return i.name < j.name; });
+  std::sort(block.knobs.begin(), block.knobs.end(),
+            [](const knob_model& i, const knob_model& j) { return i.name < j.name; });
+  std::sort(block.metrics.begin(), block.metrics.end(),
+            [](const metric_model& i, const metric_model& j) { return i.name < j.name; });
+
   // parsing the application features is more complicated, since it is an optional section and it
   // contains an enum, that we have to parse and understand
   std::string feature_distance;
@@ -61,6 +70,10 @@ void parse(block_model& block, const boost::property_tree::ptree& block_node) {
     block.features.distance_type = features_distance_type::NONE;
   }
   parse_list(block.features.fields, block_node, tag::features());
+
+  // sort the features list field
+  std::sort(block.features.fields.begin(), block.features.fields.end(),
+            [](const feature_model& i, const feature_model& j) { return i.name < j.name; });
 
   // now we can parse the remainder of the block fields
   parse_element(block.agora, block_node, tag::agora());

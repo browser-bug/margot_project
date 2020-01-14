@@ -17,6 +17,7 @@
  * USA
  */
 
+#include <algorithm>
 #include <string>
 #include <vector>
 
@@ -39,6 +40,8 @@ void parse(application_model& application, const boost::property_tree::ptree& ap
   parse_element(application.name, application_node, tag::name());
   parse_element(application.version, application_node, tag::version());
   parse_list(application.blocks, application_node, tag::blocks());
+  std::sort(application.blocks.begin(), application.blocks.end(),
+            [](const block_model& i, const block_model& j) { return i.name < j.name; });
 }
 
 }  // namespace heel
