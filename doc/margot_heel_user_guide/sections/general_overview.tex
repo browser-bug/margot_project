@@ -1,31 +1,29 @@
 \section{Configuration overview}
 The mARGOt autotuning framework implements a Monitor-Analyze-Plan-Execute loop based on application knowledge (MAPE-K).
-While the Analyze and Execute elements of the loop do not require any configuration, the  Monitor, Plan and Knowledge elements need some input from the user.
-In particular, the Monitor element requires the user to specify the monitors of interest for the application and, for each monitor, the related statistical properties that must be exposed.
-The Plan element need to know the definition of ``best'' configuration from the user, defined as a constrained multi-objective problem.
-Finally, the application Knowledge should describe the application behavior, by varying the selected configuration.
-In particular, the knowledge is a list of a paired information.
-Each pair relates an application configuration with performance reached using that configuration.
+The application Knowledge describes the application behavior, by varying the selected software-knobs configuration and according to the input features.
+In the mARGOt context, this knowledge is defined as a list of points, named Operating Points.
+Each Operating Point relate the perfomance reached by the application using a given software-knobs configuration, in the context of the given input features.
+The application knowledge might be derived at design-time, using a well-known algorithm to perform a Design Space Exploration, or at runtime, using a dedicated component (\prettyref{ssec:agora}).
+The extra-functional concerns define the Monitor-Analyze-Plan-Execute, by specifying all the information required to instantiate a MAPE loop tailored for the target application.
 
 
-
-The autotuner handles a single block of code of the application.
-To match phases of the application, we might use more than one autotuner, where each instance handles a different block of code of the application. 
-For this reason, the configuration of the MAPE-K elements of an autotuner, are related to a single block of code.
-Moreover, to employ separation of concerns, the Knowledge of the application is split in a different file with respect to the other information.
-For this reason we have one common configuration file for all the Monitor and Plan elements of each block of code of the application; but we have different files for the Knowledge of different blocks of code of the application.
+From the integration point of view, we need to create at least one configuration file, written in json format, to enable the high-level interface generation.
+In particular, all the extra-functional concerns of all the blocks that compose the application, must be written in a single file.
+\prettyref{sec:adaptation} describes in detatils its semantic and systax.
+Then, if we have gathered the application knowledge at design time, we need to write one or more configartion files for each application block managed by mARGOt.
+\prettyref{sec:knowledge} describes in details the semantic and syntax of those files.
 
 \begin{figure}
 \centering
-\includegraphics[scale=0.5]{code_example1}
-\caption{Pseudo-code of an application with two block of code to be tuned.}
-\label{fig:code_example1}
+\includegraphics[scale=0.9]{manager}
+\caption{Graphical representation of the relationship between configuration files and extra-functional concerns, in an application example.}
+\label{fig:manager}
 \end{figure}
 
 
-To clarify the concept, \prettyref{fig:code_example1} shows a pseudo-code of a very simple application.
-The whole computation is a loop that executes two different kernels on the same data.
-In this example we suppose that the developer is interested on managing two different blocks of the application (highlighted in red).
-The first block is named ``kernel1'', while the second block is named ''kernel2''.
-We would like to stress the fact that a block of code might involve several lines of code, not just a function call.
-In this case we have a single configuration file for the Monitor and Plan elements (\textit{Adaptation.xml}) of both the blocks of code; while we have two different files for the application Knowledge (\textit{Knowledge1.xml} and \textit{Knowledge2.xml}).
+To clarify the concept, \prettyref{fig:manager} shows an example of integration.
+In particular, we suppose that the application is composed of two block of code managed by mARGOt, contained in two functions, named ``kernel1'' and ``kernel2''.
+The two block of codes represent independent phases of the application, therefore they have completely different extra-functional requirements.
+This leads to the instantiations of two different MAPE loops, based on knowledge, that drive the selection of two different set of software-knobs.
+To generate this interface, it is required to write a configuration file (named ``margot.json'' in this example) with all the extra-functional concerns.
+Then, we need to create a configuration file for each block, with the application knowledge (named ``kernelX.knowledge.json'' in this example).

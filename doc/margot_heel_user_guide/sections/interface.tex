@@ -1,61 +1,154 @@
-\section{High-Level interface}
+\section{Application model and high-Level interface}
 
-Section 5 of the mARGOt user manual shows an example of manual integration in the target application.
-Even if the manual integration provides great flexibility, it has two major flaw: it requires a deep knowledge of the internals data structure of mARGOt and it requires a fair amount of code to be inserted in the target application.
-To overcame these limitations, mARGOt heel provides a mechanism to generate a very high-level interface that ease the integration process.
-In particular, starting from XML configuration files, it generates the following main functions:
+Section 5 of the mARGOt user manual shows an example on how the end-user can integrate the mARGOt autotuner in the target application, using directly the mARGOt API and objects.
+While it provides great flexibility, this low-level integration has two major flaws: it requires a deep knowledge of the internals data structure of mARGOt and it requires a fair amount of code to be inserted in the target application.
+To overcame these limitations, mARGOt heel hides all the implementation details behind few simple functions, meant to be used as wrappers of the target region of code to tune.
+
+The idea is to model an application as composed of several indipendent kernels, named ``blocks''.
+If we want to observe the performance of a block at runtime, it must be stateless; i.e. the block perfomance must depend only on the current software-knobs configuration and on features of the current input.
+The following is a simple application model example.
+For simplicity it has a single block named \textit{foo}, but it is trivial to generalize the example with more than one block.
+\begin{lstlisting}
+main
+{
+	loop
+	{
+		output = foo(IN input, IN knobs)
+	}
+}
+\end{lstlisting}
+
+For each block of code, mARGOt heel generates the following functions meant to wrap the block of code:
 \begin{itemize}
-	\item[init] This is a global function that initialize the whole framework objects.
-	This function is meant to be called just once in the application and initialize all the monitors, goals and managers.
-	It may have only input parameters, depending on the constructor parameters of the monitors of interest.
-	\item[start\_monitor] For each region of code managed by mARGOt, it is generated this function which starts all the monitor stated by the user.
-	Each function is meant to be called before the start of each region of code tuned by mARGOt.
-	It may have only input parameters, depending on the start parameters of the monitors of interest.
-	If there are no monitors of interest, this function becomes optional.
-	\item[stop\_monitor] For each region of code managed by mARGOt, it is generated this function which stops all the monitor stated by the user.
-	Each function is meant to be called after the end of each region of code tuned by mARGOt.
-	It may have only input parameters, depending on the stop parameters of the monitors of interest.
-	If there are no monitors of interest, this function becomes optional.
-	\item[log] For each region of code managed by mARGOt, it is generated this function which logs on the standard output and on a log file information regarding observed metrics (if any), the goals value (if any), the expected behavior of the application (if there is the application knowledge) and the selected configuration (if the region of code is tuned and there is an application knowledge).
-	Each function is meant to be called after the stop\_monitor of each region of code tuned by mARGOt.
-	This function is always without any parameter and it is optional, useful only for tracing the behavior of the tuned region of code.
-	\item[update] For each region of code managed by mARGOt, it is generated this function which interact with the manger to solve the optimization problem and fetch the new most suitable configuration of the software knobs.
-	Each function is meant to be called before the start\_monitor of each region of code tuned by mARGOt.
-	It has as output parameter all the software knobs of the related region of code.
-	It has as optional input parameter the features of the current input.
-	The return value of this function is a boolean, which state if the selected configuration is different with respect to the previous one.
-	Please note that whenever the configuration changes, the application should actuate the new configuration and notify the autotuner once the actuation is done.
-	Moreover, if the user is interested only on monitor the application behavior, this function does not change the configuration taken in input and returns always false.
+	\item \textbf{update}: set the current software-knob configuration.
+	\item \textbf{start\_monitors}: begin the measurement of all the monitors that requires a starting point (e.g. time monitor).
+	\item \textbf{stop\_monitors}: end the measurement of all the monitors that requires a stopping point (e.g. time monitor).
+	\item \textbf{push\_custom\_monitor\_values}: insert a new value in a custom monitor (e.g. quality monitor).
+	\item \textbf{log}: print runtime information on file and/or standard output, according to compile time flags.
 \end{itemize}
-As reported in their description, the actual prototype of these functions depends on the XML configuration provided by the user.
-Beside generating the definition of these function, the high-level interface expose directly to the application all the objects created in the high-level library, using a standard hierarchy of namespaces.
-In this way, it is possible to use directly the API exposed by the autotuner.
-In particular, this is the used hierarchy of namespaces, under the assumption that the application is composed by only one block of code named ``foo'':
-\begin{itemize}
-	\item[margot] This is the global namespace, to avoid name clashing with other tools, and it defines the global \textit{init} function.
-	\begin{itemize}
-		\item[foo] This is the namespace for the region of code ``foo''. 
-		It defines the start\_monitor, stop\_monitor, log and update function.
-		It holds the definition of the manager, as an object named ``manager''.
-		Moreover, it defines two enums which relate the index of a field of the Operating Point with its name.
-		For example, if this region uses a knob named $knob1$, the related enumerator is margot::foo::Knob::$KNOB1$ and it represents its index.
-		The enum for the metrics of interest is named \textit{Metric}.
-		\begin{itemize}
-			\item[monitor] This is the namespace which holds the definition of the monitor objects.
-			\item[goal] This is the namespace which holds the definition of the goal objects.
-		\end{itemize}
-	\end{itemize}
-\end{itemize}
+Moreover, if we want to initialize all the data structures in a given time, or if we want to log runtime information on a file, we can explicilty use the global initialization function, named \textbf{init}.
+If we consider the previous example, the following is the logical integration of mARGOt in the target application, considering all the exposed function.
+\lstset{moredelim=[is][\bfseries]{[*}{*]}}
+\begin{lstlisting}
+main
+{
+	[*init*]
+	loop
+	{
+		[*update(IN input,OUT knobs)*]
+		[*start_monitors*]
+		output = foo(IN input,IN knobs)
+		[*stop_monitors*]
+		compute custom metrics
+		[*push_custom_monitor_values*]
+		[*log*]
+	}
+}
+\end{lstlisting}
 
-Since the autotuner framework is written in C++, the complete high-level interface is generated in C++.
-However, margot\_if generates also a small C interface, that expose a C version of the five main functions.
-Since it is not possible to access directly the objects stored in the namespace hierarchy, the C interface declares additional utility functions which cover the most common operations:
-\begin{itemize}
-	\item For each goal, it generates a function that changes its value.
-	\item For each manager, it generates a function that switch the active state.
-	\item For each manager, it generates a function that notify when a configuration is applied
-\end{itemize}
-The signature of the generated functions, try to mimic the namespace hierarchy.
-For example, to change the value of the goal ``goal1'' in the region of code ''foo'' to the value $2$, the C++ statement is \textit{margot::foo:goal::goal1.set($2$)}, while the C statement is \textit{margot\_foo\_goal\_goal1\_set\_value($2$)}.
+The actual C++ signature of each function depends on extra-functional concerns.
+In particular, these are the convention used by mARGOt heel to generate the actual C++ functions with an explicit focus on their semantic:
 
 
+\subsubsection*{Init function}
+
+This function initialize the mARGOt internal structure and it writes the header of the log file (if enabled).
+This function is optional if we disable the logging on file and if the monitor constructors parameters are known at compile time.
+Note that if the call to this function is omitted, the mARGOt internal structures of a block are initialized the first time that the application calls a related function.
+
+The pseudo signature of this function is the following:
+\begin{lstlisting}
+void margot::init(<monitor_ctor_params>, log_filename_prefix = "");
+\end{lstlisting}
+Differently from all the other functions that compose the high-level interface, the init function is global and it considers all the block of code.
+The function parameters are all the monitor constructor parameters in all the blocks managed by mARGOt, that are not known at compile time.
+The order of the parameters inside a monitor constructor are preserved.
+We force a lexicographical order between monitors and blocks.
+For example, the constructor parameters of the monitor ``time'' in the block ``bar'' are before the constructor parameters of the monitor ``throughput'' in the block ``foo''.
+The last parameter is a variable that set a prefix to the log filename.
+The name of the log file for a given block is ``<prefix>margot.<block>.log''.
+This option is useful if the application is composed of several processes, for example if we use MPI.
+
+
+
+
+\subsubsection*{Update function}
+
+This function may update the software-knobs configuration according to the application requirements, the observed performance (if any), and the input features (if any).
+This function is optional if we want to use mARGOt only to profile the application.
+
+The pseudo signature of this function is the following:
+\begin{lstlisting}
+bool margot::<block>::update(const <features>, <software_knobs>&);
+\end{lstlisting}
+It returns a boolean that states whether the software-knobs configuration has changed, returning false if the configuration is the same of the previous one.
+mARGOt heel instantiate this function for each block of code inside a namespace named after the block name.
+The function parameters are the input features (if any) and the software knobs.
+The software knobs are the output parameters updated by the function.
+In the function declaration, the features are before the knobs.
+Both, the features and the knobs are lexicographically sorted.
+
+
+
+\subsubsection*{Start\_monitors function}
+
+This function call the start method of all the known monitors shipped with the mARGOt framework that are stated in the application requirements.
+This function is optional if we don't use known monitors.
+
+The pseudo signature of this function is the following:
+\begin{lstlisting}
+void margot::<block>::start_monitors(<monitor_start_params>);
+\end{lstlisting}
+mARGOt heel instantiate this function for each block of code inside a namespace named after the block name, even if there are no known monitors stated in the application requirements.
+The parameters of this function are all the parameters that a monitor may require to start a measure.
+The order of the parameters inside the start method of a monitor are preserved.
+We force a lexicographical order between monitors.
+In the current version of the framework, no known monitor requires start parameters.
+
+
+\subsubsection*{Stop\_monitors function}
+
+This function call the stop method of all the known monitors shipped with the mARGOt framework that are stated in the application requirements.
+This function is optional if we don't use known monitors.
+
+The pseudo signature of this function is the following:
+\begin{lstlisting}
+void margot::<block>::stop_monitors(<monitor_stop_params>);
+\end{lstlisting}
+mARGOt heel instantiate this function for each block of code inside a namespace named after the block name, even if there are no known monitors stated in the application requirements.
+The parameters of this function are all the parameters that a monitor may require to stop a measure.
+The order of the parameters inside the stop method of a monitor are preserved.
+We force a lexicographical order between monitors.
+In the current version of the framework, only the throughput monitor requires a stop parameter.
+
+
+
+\subsubsection*{Push\_custom\_monitor\_values function}
+
+This function aims at providing an easy way to the application developer for measuring a custom metric, such as quality.
+In the past we suggested a more strict object-oriented approach where the user inherit from a base monitor class and he/she must implement the ``start'' and ``stop'' methods to gather the measure.
+However, we noticed that it is way easier and less cumbersome to just use the base monitor and to push the computed value.
+Therefore, we introduced this function that takes as input the value of the custom metric and insert it in the related monitor.
+This function is separated by the stop\_monitor function to avoid to measure the time taken to compute the custom metric.
+
+The pseudo signature of this function is the following:
+\begin{lstlisting}
+void margot::<block>::push_custom_monitor_values(<custom_measurement>);
+\end{lstlisting}
+mARGOt heel instantiate this function for each block of code inside a namespace named after the block name, even if there are no custom monitors.
+The parameters of this function are the stop parameters of the custom monitor, we should be the value to insert in the monitor.
+We force a lexicographical order between monitors.
+
+
+\subsubsection*{Log function}
+
+This function display information about the extra-functional properties of the execution.
+In particular, it display information about the monitored values, the software-knobs configuration, the current input features, and the constraint values.
+According to configure-time variable, it can log the information on the standard output and/or on a file.
+In the second case it uses the csv format to store information.
+The idea is to generate a log file for each block of code handled by margot.
+
+The pseudo signature of this function is the following:
+\begin{lstlisting}
+void margot::<block>::log(void);
+\end{lstlisting}
