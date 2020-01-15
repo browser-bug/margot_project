@@ -1,124 +1,59 @@
 \section{Knowledge configuration file}
 \label{sec:knowledge}
 
-The knowledge file describes the behavior of a single block of code of the application, by varying the configuration of the software knobs. 
-Typically, the knowledge is the output of a Design Space Exploration and the most simple representation is as a list of Operating Points.
-Each Operating Point relates a configuration with the performance of the observed block of code.
+
+The configuration file that describes the application knowledge must be a different file with respect to the one that describes extra-functional concerns, to ensure separation of concerns.
+The structure of the configuration file matches the application knowledge representation of mARGOt.
+In particular, it is a list of Operating Points (OPs), where each OP has up to three fields:
+\begin{enumerate}
+	\item The feature section (if any)
+	\item The software-knobs section
+	\item The metric section
+\end{enumerate}
+The feature section states the value for each input feature field.
+Since mARGOt use input features as indipedent cluster of Operating Point, a best practice would be to ensure that all the input feature clusters contain OPs with the same configurations of software-knobs.
+
+Each section of the OP is basically a key-value pair, where the key is the name of field and the value is a number, which represents its average value.
+In the software-knob section, the field can be a string.
+In the metric section, we can use two values to define the mean and standard deviation of the related distribution.
+These two exceptions are enabled by the the extra-functional concerns stated in the mARGOt configuration file, explained in details in \prettyref{sec:adaptation}.
 
 \begin{figure}
-\lstset{language=XML}
+\lstset{language=json}
 \begin{lstlisting}
-<?xml version="1.0" encoding="UTF-8"?>
-<points xmlns="http://www.multicube.eu/" version="1.3" block="kernel1">
-	
-	<point>
-		<parameters>
-			<parameter name="param1" value="1"/>
-			<parameter name="param2" value="100"/>
-		</parameters>
-		<system_metrics>
-			<system_metric name="quality" value="100" standard_dev="1.0"/>
-			<system_metric name="throughput" value="324.279" standard_dev="1.0"/>
-		</system_metrics>
-	</point>
-	
-	<point>
-		<parameters>
-			<parameter name="param1" value="5"/>
-			<parameter name="param2" value="3"/>
-		</parameters>
-		<system_metrics>
-			<system_metric name="quality" value="500" standard_dev="1.0"/>
-			<system_metric name="throughput" value="17.487" standard_dev="1.0"/>
-		</system_metrics>
-	</point>
-
-</points>
+{
+	"foo":
+	[
+		{
+			"features": { "resolution": 34 },
+			"knobs": { "threads": 3, "algorithm": "one" },
+			"metrics": { "throughput": [23.0, 2.0], "quality": 32 }
+		},
+		{
+			"features": { "resolution": 34 },
+			"knobs": { "threads": 4, "algorithm": "two" },
+			"metrics": { "throughput": [2.0, 0.5], "quality": 100 }
+		}
+	]
+}
 \end{lstlisting}
-\caption{Example of a knowledge configuration file; it refers to the block \textit{kernel1} in \prettyref{fig:code_example1} (Knowledge1.xml)}
+\caption{Example of a knowledge configuration file for a block named ``foo''.}
 \label{code:knowledge_file}
 \end{figure}
 
-\prettyref{code:knowledge_file} shows an example of the syntax of the knowledge file.
-In particular, the root XML element is the tag \textit{points}, which must define the attribute \textit{block}.
-The latter is the name of the block of the application, described by the Operating Point list.
-The name of the block must be a valid C++ namespace identifier.
-The list is composed by a sequence of Operating Points, each one is represented with the tag XML \textit{point}.
-The examples shows two different Operating Points (they have a different configuration of the software knobs).
-Each Operating Point is composed by a pair of information: the configuration of the software knobs and the performance reached using such configuration.
 
-In particular, the configuration is represented by the XML tag \textit{parameters}, while the value of each software knob is represented by the XML tag \textit{parameter}.
-The latter XML element must define two attributes: the name of the target software knob (the attribute \textit{name}) and its actual value (the attribute \textit{value}).
-The name of each software knobs must be an unique valid C++ enumerator.
-The name is not case sensitive.
-
-The performance of the block of code is represented by the XML tag \textit{system\_metrics}, while each metric of interest (that defines the performance) is represented by the XML tag \textit{system\_metric}.
-The latter XML element must define two attributes: the name of the target metric (the attribute \textit{name}) and its actual value (the attribute \textit{value}).
-Optionally, it may provide the standard deviation of the measure, using the XML tag \textit{standard\_dev}.
-The name of each metric must be an unique valid C++ enumerator.
-The name is not case sensitive.
-
-\begin{figure}
-\lstset{language=XML}
-\begin{lstlisting}
-<?xml version="1.0" encoding="UTF-8"?>
-<points xmlns="http://www.multicube.eu/" version="1.3" block="foo">
-
-	<dictionary param_name="compiler_flag">
-		<value string="-O2" numeric="1" />
-		<value string="-O3" numeric="2" />
-	</dictionary>
+\prettyref{code:knowledge_file} shows an example of the syntax of the knowledge file, that defines an Operating Point list for a block named ``foo'', by defining a root element with the same name that will contain the OP list.
+A configuration file that represents the application knowledge may contain more than one OP list, if the application is composed of more than one block of code.
+However, this behaviour is not recommended to ensure separation of concerns.
+The application knowledge of a block of code can be splitted in more than file, to limit its size.
+In this example, we have just a single input feature named ``resolution'', defined in the element with tag \textbf{features}.
+If we don't have any input feature, the \textbf{features} element can be omitted.
+We have two software-knobs, named ``threads'' and ``algorithm'', defined in the element with tag \textbf{knobs}.
+The values of the second knob are strings.
+Finally, we have two metrics, named ``throughput'' and ``quality'', defined in the element with tag \textbf{metrics}.
+For the metric ``quality'', the average value is enough to describe the reached performance.
+It may happen when the metric is determistic.
+Instead, the metric ``throughput'' is a distribution defined by an average value and the standard deviation.
+While the OPs that belong to the same block managed by mARGOt have the same structure, the actual values changes to define the application knowledge.
 
 
-	<point>
-		<parameters>
-			<parameter name="compiler_flag" value="1"/>
-		</parameters>
-		<system_metrics>
-			<system_metric name="time" value="123"/>
-		</system_metrics>
-	</point>
-
-</points>
-\end{lstlisting}
-\caption{Example of a knowledge configuration file with string values for software knobs}
-\label{code:knowledge_file_dictionary}
-\end{figure}
-
-The attribute \textit{value} (and \textit{standard\_dev}) of each field of the Operating Point must be a numeric value.
-If the user requires strings as a value of a software knob, then it must also define a dictionary that translates the string to a numeric value.
-In particular, for each non-numeric software knob, the user must define a \textit{dictionary} XML element.
-The dictionary is composed by a list of \textit{value} elements that must define two attributes: the string value (with the attribute \textit{string}) and its related numeric value (with the attribute \textit{numeric}).
-\prettyref{code:knowledge_file_dictionary} shows an example of knowledge file, where the software knob ``compiler\_flag'' requires string values.
-In the current version is not supported having string values for any metric of interest.
-
-
-\begin{figure}
-	\lstset{language=XML}
-	\begin{lstlisting}
-	<?xml version="1.0" encoding="UTF-8"?>
-	<points xmlns="http://www.multicube.eu/" version="1.3" block="foo">
-	
-	
-		<point>
-			<parameters>
-				<parameter name="compiler_flag" value="1"/>
-			</parameters>
-			<system_metrics>
-				<system_metric name="time" value="123"/>
-			</system_metrics>
-			<features>
-				<feature name="size_x" value="100"/>
-				<feature name="size_y" value="10" />
-			</features>
-		</point>
-	
-	</points>
-	\end{lstlisting}
-	\caption{Example of a knowledge configuration file with data features}
-	\label{code:knowledge_file_data_feature}
-\end{figure}
-
-If the application knowledge takes into account features of the input, it is possible to enrich the definition of the Operating Points with that information.
-In particular, all the input features of each Operating Point are represented by the XML tag \textit{features}.
-Each data feature is represented by the XML tag \textit{feature}; the attribute \textit{name} represents the name of the data feature, while the attribute \textit{value} represents the numerical value of the feature.
