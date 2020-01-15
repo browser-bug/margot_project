@@ -10,7 +10,7 @@ The extra-functional concerns define the Monitor-Analyze-Plan-Execute, by specif
 From the integration point of view, we need to create at least one configuration file, written in json format, to enable the high-level interface generation.
 In particular, all the extra-functional concerns of all the blocks that compose the application, must be written in a single file.
 \prettyref{sec:adaptation} describes in detatils its semantic and systax.
-Then, if we have gathered the application knowledge at design time, we need to write one or more configartion files for each application block managed by mARGOt.
+Then, if we have gathered the application knowledge at design time, we need to write one or more configartion files that describes the Operating Point list for each block managed by mARGOt.
 \prettyref{sec:knowledge} describes in details the semantic and syntax of those files.
 
 \begin{figure}
@@ -26,4 +26,4 @@ In particular, we suppose that the application is composed of two block of code 
 The two block of codes represent independent phases of the application, therefore they have completely different extra-functional requirements.
 This leads to the instantiations of two different MAPE loops, based on knowledge, that drive the selection of two different set of software-knobs.
 To generate this interface, it is required to write a configuration file (named ``margot.json'' in this example) with all the extra-functional concerns.
-Then, we need to create a configuration file for each block, with the application knowledge (named ``kernelX.knowledge.json'' in this example).
+Then, we create a configuration file for each block, with the application knowledge (named ``kernelX.knowledge.json'' in this example).
