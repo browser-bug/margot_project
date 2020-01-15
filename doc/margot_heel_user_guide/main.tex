@@ -66,22 +66,23 @@
 %%%%% use fancy stuff for code
 \usepackage{algorithmic}
 \usepackage{listings}
-\lstdefinelanguage{XML}
+\lstdefinelanguage{json}
 {
-	basicstyle=\ttfamily\footnotesize,
+	basicstyle=\color{RoyalBlue}\ttfamily\footnotesize,
 	morestring=[b]",
-	moredelim=[s][\bfseries\color{Maroon}]{<}{\ },
-	moredelim=[s][\bfseries\color{Maroon}]{</}{>},
-	moredelim=[l][\bfseries\color{Maroon}]{/>},
-	moredelim=[l][\bfseries\color{Maroon}]{>},
-	morecomment=[s]{<?}{?>},
-	morecomment=[s]{<!--}{-->},
 	commentstyle=\color{Gray},
-	stringstyle=\color{RoyalBlue},
-	identifierstyle=\color{ForestGreen},
+	stringstyle=\color{ForestGreen},
 	numbers=left,
 	stepnumber=1,
-	tabsize=2
+	numberstyle=\color{Black},
+	tabsize=2,
+	literate=
+        *{[}{{{\color{Sepia}[}}}{1}
+         {]}{{{\color{Sepia}]}}}{1}
+         {\{}{{{\color{Sepia}\{}}}{1}
+         {\}}{{{\color{Sepia}\}}}}{1}
+         {:}{{{\color{Sepia}:}}}{1}
+         {,}{{{\color{Sepia},}}}{1}
 }
 \lstdefinelanguage{MyCPP}
 {
