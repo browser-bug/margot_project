@@ -1,387 +1,403 @@
-\section{Adaptation file overview}
+\section{Adaptation file specification}
 \label{sec:adaptation}
 
 \begin{figure}
-\lstset{language=XML}
+\lstset{language=json}
 \begin{lstlisting}
-<margot application="my_application_name" version="my_version">
-
-	<block name="kernel1">
-		<!-- The configuration of block kernel1: -->
-		<!--    - Description of the Monitor element -->
-		<!--    - Description of the Plan element -->
-	</block>
-
-	<block name="kernel2">
-		<!-- The configuration of block kernel2: -->
-		<!--    - Description of the Monitor element -->
-		<!--    - Description of the Plan element -->
-	</block>
-
-</margot>
+{
+	"name": "bar",
+	"version": "4.0",
+	"blocks":
+	[
+		{ "name": "block1", ... },
+		{ "name": "block2", ... }
+	]
+}
 \end{lstlisting}
-\caption{Minimal adaptation configuration file.}
+\caption{The top-level description of the apllication extra-functional cencerns.}
 \label{code:min_adaptation}
 \end{figure}
 
-This section describes the adaptation XML file, which define the Monitor and Plan elements for every block of code that will be tuned by mARGOt.
-The root element of the XML configuration file is the \textit{margot} tag, which holds the definition of all the block of code of the application.
-Optionally, the user is encouraged to specify the attributes \textit{application} and \textit{version} to provide further information about the configuration.
-The configuration of each block of code is inserted in the \textit{block} tag, which has also the attribute \textit{name} which holds the name of the block of code.
-The name of the block must be a valid C++ namespace identifier.
-\prettyref{code:min_adaptation} shows a simple example on how it is possible to generate an empty configuration for the blocks depicted in \prettyref{fig:code_example1}.
+This section describes in details the syntax and semantic of the configuration file that states the extra-functional concerns.
+In particular, it follows at top-down approach, where the root element represents the application and it contains all the block descriptions.
+\prettyref{code:min_adaptation} shows an example of a configuration file skeleton.
+The root element must define the application name and version, using the tag \textbf{name} and \textbf{version}.
+The \textbf{blocks} element contains the list of all the block managed by margot.
+In this example, we have a block named ``block1'' and a second one named ``block2''.
+The name of the block is represented by the element \textbf{name} and it must be a valid C++ identifier.
+The remainder of the section will expand the block description, defining all its sub-elements.
 
-Since each block of code is independent from each other, in the remainder of the documentation we focus only in a single block of code, without losing in generality.
 
 
-\subsection{Describing the monitor element}
+\subsection{How to define monitors}
 \label{ssec:monitor_element}
 
-The description of the Monitor elements consists in the list of Monitors that observe a metric of interest for the developer.
-The mARGOt framework ships with a suite of monitors for the most common metrics.
-However, the configuration file is able to handle custom monitors as well.
 
+All the monitors that belong to a block are defined as a list contained in the \textbf{monitors} element.
+Each monitor is defined by the following elements:
+\begin{itemize}
+	\item[name]: the monitor's name, it must be a valid C++ identifier and it must be unique.
+	\item[type]: the monitor's type. \prettyref{appendix:monitor_implementation} provides the list of monitors shipped with mARGOt. If the type is arithmetic type, it will create a custom monitor of that type.
+	\item[log]: the list of statistical properties that we want to display in the log. Each element of the list must assume one of the following values: \textbf{average}, \textbf{standard\_deviation}, \textbf{max}, and \textbf{min}.
+	\item[constructor]: the list of parameters that the monitor's constructor is expecting. The order of the parameters must match the constructor signature. If we want to override the default parameters, we need to specify all of them. \prettyref{appendix:monitor_implementation} provides more details on constructor parameters for the known monitors. Custom monitors have a single constructor parameter: the observation window size.
+	\item[start]: the list of parameters for starting a mesure. In the current version, no monitors requires any parameter to start a measure.
+	\item[stop]: the list of parameters for stopping a measure. In the current version, only the throughput monitor and the custom monitor requires a stop parameter, which are the amount of data elaborated and the value to push in the monitor, respectively.
+\end{itemize}
+
+All the parameters specified in the \textit{constructor}, \textit{start}, and \textit{stop} fields can be an immediate or a variable.
+An immediate parameter is a string that it is used ``as it is'', therefore it is set a compile time.
+A variable parameter is a pair of strings that represents a C++ variable that will be exposed to the user through as parameter of the high-level interface, therefore it can change at runtime.
+In particular, the first value of the variable parameter is its C++ type, while the second is its name.
+Therefore, the latter must be a valid C++ identfier.
+Moreover, to ensure the uniqueness of the variable parameters exposed in the high-level interface, the actual name of the parameter exposed through the high-level interface is ``<monitor\_name>\_<parameter\_name>''.
 
 \begin{figure}
-\lstset{language=XML}
+\lstset{language=json}
 \begin{lstlisting}
-<monitor name="my_custom_monitor" type="custom">
-
-	<spec>
-		<header reference="my_monitor.hpp" />
-		<class name="MyCustomMonitor" />
-		<type name="double" />
-		<stop_method name="my_stop" />
-		<start_method name="my_start" />
-	</spec>
-
-	<creation>
-		<param name="window_size">
-			<fixed value="1" />
-		</param>
-	</creation>
-
-	<start>
-		<param>
-			<local_var name="start_param" type="int" />
-		</param>
-	</start>
-
-	<stop>
-		<param name="error">
-			<local_var name="error" type="double" />
-		</param>
-	</stop>
-
-	<expose var_name="avg_quality" what="average" />
-
-</monitor>
+"monitors":
+[
+	{
+		"name": "error_monitor",
+		"type": "float",
+		"log": [ "average" ],
+		"constructor": [ 22 ]
+		"stop": [ {"error":"float"} ]
+	},
+	{
+		"name": "time_monitor",
+		"type": "time",
+		"log": [ "average" ],
+		"constructor": [ "margot::TimeUnit::MICROSECONDS", 1 ]
+	}
+]
 \end{lstlisting}
-\caption{Example of the definition of a monitor element.}
-\label{code:monitor_xml}
+\caption{This is an example on how we can define of two monitors}
+\label{code:monitors}
 \end{figure}
 
-
-In particular, \prettyref{code:monitor_xml} shows an example of the full declaration of a monitor that observe a metric of interest.
-Each tag \textit{monitor} states the characteristic of the monitor of interested and it must specify the identifier of the monitor (with the attribute \textit{name}) and its type (with the attribute \textit{type}).
-The identifier of the monitor must be a valid C++ identifier.
-The type of the monitor is an enumeration of all the available monitor in mARGOt, plus the \textit{custom} enumerator which represents a user-defined monitor.
-
-
-In current implementation, the available monitor in mARGOt are:
-\begin{enumerate}
-	\item[Frequency] For the frequency monitor
-	\item[Memory] For the memory monitor
-	\item[PAPI] For the PAPI monitor
-	\item[CPUPROCESS] For the process CPU usage monitor
-	\item[CPUSYSTEM] For the system-wide CPU usage monitor
-	\item[Temperature] For the temperature monitor
-	\item[Throughput] For the throughput monitor
-	\item[Time] For the time monitor
-	\item[Collector] For the ETHz monitoring framework
-	\item[ENERGY] For the energy monitor, using RAPL
-	\item[ODROID\_POWER] For the power monitor on Odroid
-	\item[ODROID\_ENERGY] For the energy monitor on Odroid
-\end{enumerate}
+\prettyref{code:monitors} shows an example that defines an error monitor and a time monitor.
+The error monitor will store $22$ elements of type \textit{floats}, to display the average in the logs.
+Each observation is pushed in the monitor using a \textit{float} variable named ``error''.
+This variable will be exposed to the user as parameter of the \textbf{push\_custom\_monitor\_values} high-level function.
+According to generation convention, the name of the parameter will be ``\textit{error\_monitor\_error}''.
+The second monitor observe the elapsed time between the \textbf{start\_monitors} and \textbf{stop\_monitors} high-level functions.
+Since all its parameters are immediate, they will be compile-time constant in the generated code.
 
 
-The type of the monitor is not case sensitive.
-If the type of the monitor is \textit{custom}, it means that the developer is planning to use a monitor which is not shipped with the framework.
-For this reason it should specify also the monitor specification from a C++ point of view.
-The latter is defined within the XML tag \textit{spec}.
-In particular, the developer should specify:
-\begin{enumerate}
-	\item The header of the C++ which define the monitor object, using the \textit{reference} attribute of the XML tag \textit{header}
-	\item The name of the C++ class, using the \textit{name} attribute of the XML element \textit{class}
-	\item The type of the observed values stored in the monitor, using the \textit{name} attribute of the XML tag \textit{type}
-	\item If any, the name of the method that starts a measure, using the attribute \textit{name} of the XML tag \textit{start\_method}
-	\item If any, the name of the method that stops a measure, using the attribute \textit{name} of the XML tag \textit{stop\_method}
-\end{enumerate}
 
-The remainder of the specification for the monitor have two purposes: defining the \textbf{input} and \textbf{output} variables for the monitor.
-In particular, the XML tag \textit{creation} states all the parameters of the C++ constructor of the monitor.
-The XML tag \textit{start} states all the parameters of the C++ method that starts a measure.
-Finally, the XML tag \textit{stop} states all the parameters of the C++ method that stops a measure.
-
-Syntactically, all the parameters are specified by the XML tag \textit{param}, however its actual content depends on the nature of the parameter.
-In particular, if the parameter is an immediate value, then it is represented by the attribute \textit{value} of the XML tag \textit{fixed}.
-If the parameter must be an l-value or it is not known at compile time, it is possible to forward its value to the developer, relying on function parameters exposed to the developer.
-In this case the developer must specify the XML tag \textit{local\_var}, which is defined by the C++ type of the parameter (using the attribute \textit{type}) and the name of the parameter (using the attribute \textit{name}).
-Semantically, the parameters depends on the monitor, see \prettyref{appendix:monitor_implementation} for a complete list of parameter for each monitor shipped with mARGOt.
-
-Since each monitor collects the observations in a circular buffer, the output variables for the monitor are the statistical properties of interest for the developer (i.e. the average).
-The XML tag \textit{expose} identifies such property.
-In particular the attribute \textit{name} states the name of the variable that holds such value (therefore it must be a valid C++ identifier), while the attribute \textit{what} identify the target statistical property.
-The following is the list of the available statistical properties:
-\begin{enumerate}
-	\item[AVERAGE] To retrieve the mean value of the observations.
-	\item[STDDEV] To retrieve the standard deviation of the observations.
-	\item[MAX] To retrieve the maximum value of the observations.
-	\item[MIN] To retrieve the minimum value of the observations.
-\end{enumerate}
+\subsection{How to define software-knobs}
+\label{ssec:knob_element}
 
 
-\subsection{Describing the geometry of the application knowledge}
+All the block software-knobs are defined as a list contained in the \textbf{knobs} element.
+Each software-knob is defined by the following elements:
+\begin{itemize}
+	\item[name]: the knob name, it must be a valid C++ identifier.
+	\item[type]: the C++ type of the knob. It can be an arithmetic type or a string. If the type is integral, it will be aliased with a fixed size. For example, ``int'' will be automatically aliased to ``int32\_t'' in certain systems. If the type is a string, then it will be considered as an enumeration. Therefore, it must be specified in the configuration file all the possible values that the knob can take, using the \textbf{values} field.
+	\item[values]: the list of all the possible values that the knob may take. This field is mandatory if we plan to learn the application knowledge at runtime or if we the know type is a string.
+	\item[range]: it's a list composed of two or three values (\textit{min}, \textit{max}, and \textit{step}) that generates all the values in the range [\textit{min}; \textit{max}) with step \textit{step}. The parameter \textit{step} is optional and its default value is $1$. It replaces the \textbf{values} field.
+\end{itemize}
+
+The software-knobs are part of the application geometry, along with the definition of the metrics of interest.
+They are optional, meaning that we can omit this element in a block defition.
+However, in this case we are not able to tune the application, but we can use the mARGOt facilities to monitor its performance.
+If we define the software-knobs, we need to define also the metrics of interest.
 
 
 \begin{figure}
-	\lstset{language=XML}
-	\begin{lstlisting}
-	<!-- SW-KNOB SECTION -->
-	<knob name="num_threads" var_name="threads" var_type="int"/>
-	<knob name="num_trials" var_name="trials" var_type="int"/>
-
-	<!-- METRIC SECTION -->
-	<metric name="throughput" type="float" distribution="yes"/>
-	<metric name="quality" type="float" distribution="no"/>
-
-	<!-- FEATURE SECTION -->
-	<features distance="euclidean">
-		<feature name="size_x" type="int" comparison="LE"/>
-		<feature name="size_y" type="int" comparison="-"/>
-	</features>
-
-	\end{lstlisting}
-	\caption{Example of definition for the geometry of the application knowledge.}
-	\label{code:geometry_xml}
+\lstset{language=json}
+\begin{lstlisting}
+"knobs":
+[
+	{
+		"name": "threads",
+		"type": "int",
+		"range": [ 1, 33, 1 ]
+	},
+	{
+		"name": "algorithm",
+		"type": "string",
+		"values": [ "one", "two", "three" ]
+	}
+]
+\end{lstlisting}
+\caption{This is an example on how we can define of two software-knobs}
+\label{code:knobs}
 \end{figure}
 
-The autotuning framework leverage as much as possible, compile-time information to specialize the definition of the manger.
-In particular, it requires to know the geometry of the application knowledge, i.e. the software knobs, the metrics of interest and the data features (if any).
-Without those information, it is possible to use the high-level interface for profiling purpose, but no manager will be instantiated.
+\prettyref{code:knobs} shows an example that defines two software-knobs, named ``threads'' and ``algorithm''.
+Since the first one represents the number of threads used in an application, its type is integral.
+Moreover, if we assume that the target platforms has $32$ hardware thread, its range spans from $1$ thread to $32$, with step $1$.
+The second software-knob represents the name of the algorithm to use in the elaboration.
+Therefore, it defines the enumeration of all the possible values that the knobs can have.
 
 
-\subsubsection*{Software-knob section}
 
-This section relates the software-knob states in the application knowledge, with C++ variables that must be exported to the application in the update function.
-In particular, each software knob is represented by the XML tag \textit{knob} and must define:
+\subsection{How to define metrics of interest}
+\label{ssec:metric_element}
+
+
+All the metrics of interest are defined as a list contained in the \textbf{metrics} element.
+Each metric is defined by the following elements:
 \begin{itemize}
-	\item the attribute \textit{name}, which relates to the name of a software knob in the application knowledge
-	\item the attribute \textit{var\_name}, which is the name of the exported variable, therefore it must be a valid C++ identifier.
-	\item the attribute \textit{var\_type}, states the C++ type of the exported variable.
+	\item[name]: the metric name, it must be a valid C++ identifier.
+	\item[type]: the C++ type of the knob. It must be an arithmetic type. If the type is integral, it will be aliased with a fixed size. For example, ``int'' will be automatically aliased to ``int32\_t'' in certain systems.
+	\item[distribution]: tells whether this metric is determistic or not. Which means that if the value is true, we need a mean and a standard deviation to define a value.
+	\item[observed\_by]: relate this metric to a monitor. This field is required if we need to adapt reactively of if we need to learn the application knowledge at runtime.
+	\item[reactive\_inertia]: the size of circular buffer that adjust the expected metric value, according to the runtime observation. Larger values lead to a slower reaction. If the value is zero, it means that we don't want to adapt reactively at runtime. This field is optional and its default value is zero.
+	\item[prediction\_plugin]: the name of the plugin in charge of predicting this metric. This field is meaningful only if we learn the application knowledge at runtime.
+	\item[prediction\_parameters]: a list of key-value parameters that we would like to forward to the prediction plugin. This field is meaningful only if we learn the application knowledge at runtime.
 \end{itemize}
 
-These information -- together with the the data features (if any) --  are used to compose the signature of the update function, exposed to the user.
+The metrics of interest are part of the application geometry, along with the definition of the software-knobs and input features.
+They are optional, meaning that we can omit this element in a block defition.
+However, in this case we are not able to tune the application, but we can use the mARGOt facilities to monitor its performance.
+If we define the metrics of interest, we need to define also the software-knobs.
 
-\subsubsection*{Metric section}
+\begin{figure}
+\lstset{language=json}
+\begin{lstlisting}
+"metrics":
+[
+	{
+		"name": "throughput",
+		"type": "float",
+		"distribution": "yes",
+		"observed_by": "throughput_monitor",
+		"reactive_inertia": 5,
+		"prediction_plugin": "hth",
+		"prediction_parameters":
+		[
+			{"param1": "value1"},
+			{"param2": "value2"}
+		]
+	},
+	{
+		"name": "quality",
+		"type": "float",
+		"observed_by": "quality_monitor",
+		"prediction_plugin": "hth"
+	}
+]
+\end{lstlisting}
+\caption{This is an example on how we can define of two software-knobs}
+\label{code:metrics}
+\end{figure}
 
-This section define the metrics of interest.
-In particular, each metric is represented by the XML tag \textit{metric} and must define:
+
+
+\prettyref{code:metrics} shows an example that defines two metrics, named ``throughput'' and ``quality''.
+In this example we consider the throughput as distribution since the measure depends on several factors that are unknown at priori and that depends on the system evolution.
+Therefore, we want to react on those changes, but with some inertia to lower the effect of noise.
+To predict this metric we use the plugin ``hth'', where we define two additional parameters to improve the prediction.
+Moreover, in this example we consider the error determistic, therefore we can describe its values using only the mean.
+Since computing the error might be expensive to perform at runtime, we don't adapt reactively.
+Indeed, we use the measurement only to learn its behaviour at runtime, using the plugin ``hth''.
+
+
+
+
+\subsection{How to define input features}
+\label{ssec:feature_element}
+
+
+The input features are defined by two elements.
+The \textbf{feature\_distance} element which represent how mARGOt should compute the distance between two input features.
+This element can have only two values: \textit{euclidean} or \textit{normalized}.
+The \textbf{features} element stores the list of all the fields that compose the input features.
+Each field is defined by the following elements:
 \begin{itemize}
-	\item the attribute \textit{name}, which attach a label to the metric index
-	\item the attribute \textit{type}, shall define the minimum C-type required to express the metric in the application knowledge.
-	\item the attribute \textit{distribution}, which states whether the metric is a distribution or not. If a metric is declared as distribution, the application knowledge shall define also the standard deviation of the metric. If a metric is not declared as distribution, any information about its standard deviation in the application knowledge is discarded.
-\end{itemize}
-
-Heterogeneous metrics will be automatically handled when the high-level library is generated.
-
-
-
-\subsubsection*{Feature section}
-
-This section is optional and defines the input features of the block of code and how to handle them.
-In particular, all the features are represented by the XML tag \textit{features}.
-The latter shall define the attribute \textit{distance}, which states how the framework should compute the distance between data features.
-In the current version, the available values are:
-\begin{itemize}
-	\item[NORMALIZED] For computing a normalized distance between data feature, useful if the data features have values which differs by orders of magnitudes
-	\item[EUCLIDEAN] For computing a classic euclidean distance.
-\end{itemize}
-
-As child of the \textit{features} element, each XML tag \textit{feature} represents a data feature.
-The latter element shall define:
-\begin{itemize}
-	\item the attribute \textit{name}, which relates to the name of a software knob in the application knowledge and the name of the variable exposed to the update function. Therefore should be a valid C identifier.
-	\item the attribute \textit{type}, shall define the minimum C-type required to express the metric in the application knowledge. This will be also the type of the variable exposed to the update function.
-	\item the attribute \textit{comparison}, which states the validity comparison for the defining data feature. It might assume the following values:
+	\item[name]: the knob's name, it must be a valid C++ identifier.
+	\item[type]: the C++ type of the knob, it must be an arithmetic type.
+	\item[comparison]: the type of constraint that we would like to impose for the cluster selection. It is possible to use one of the following values:
 	\begin{itemize}
-		\item[GE] To express the fact that the defining data feature of the selected feature cluster must be greater or equals to the value of the current input.
-		\item[LE] To express the fact that the defining data feature of the selected feature cluster must be less or equals to the value of the current input.
-		\item[-] To express the fact that there is no validity requirement for the defining data feature.
+		\item[le] to express the ``less or equal than'' constraint
+		\item[ge] to express the ``greater or equal than'' constraint
+		\item[-] if we don't care about imposing a constrant. This is the default value.
 	\end{itemize}
 \end{itemize}
 
-
-These information -- together with the software knobs --  are used to compose the signature of the update function, exposed to the user.
-
-
-
-\subsection{Online Design Space Exploration}
-\label{ssec:agora}
-
-
-\begin{figure}
-	\lstset{language=XML}
-	\begin{lstlisting}
-	<agora address="tcp://127.0.0.1:1883" username="" password="" qos="2"
-        doe="full_factorial" observations="5" broker_ca="" client_cert="" client_key="">
-		<explore knob_name="num_threads" values="1,2,3,4"/>
-		<explore knob_name="skip_factor" values="5,6,7"/>
-		<predict metric_name="time_ms" prediction="crs" monitor="my_time_monitor"/>
-		<predict metric_name="error" prediction="crs" monitor="my_error_monitor"/>
-		<given feature_name="size_x" values="10,20,30"/>
-		<given feature_name="size_y" values="10,20,30"/>
-	</agora>
-	\end{lstlisting}
-	\caption{Example of information definition for remote application local handler.}
-	\label{code:agora_xml}
-\end{figure}
-
-The autotuning framework provides to the end-user a mechanism to perform a design space exploration at runtime.
-In particular, on one hand a remote application handler typically runs in a dedicated machine and acts as a server.
-Each application may contact the remote application handler to let it handle the Design Space Exploration on its behalf.
-On the other hand, each instance of the application start a service thread, named local application handler, that communicate with the server and manipulates the application knowledge.
-In this way the server will dispatch the configuration of the Design of Experiment to the available instance of the application to shorten the time to knowledge.
-Once the application knowledge is available, the server dispatch it to each application to start the exploitation phase.
-
-If the end user would like to use this mechanism, it is required to state the information of the Design Space Exploration, as depicted in \prettyref{code:agora_xml}.
-In particular, the XML tag \textit{agora} represents the local application handler and shall define:
-\begin{itemize}
-	\item the attribute \textit{address} with the URI of the MQTT broker, in the form ``<protocol>://<address>:<port>'', where the supported protocols are \textit{tcp} and \textit{ssl}.
-	\item the attributes \textit{username} and \textit{password} for the authentication. Leave empty if it is not required.
-	\item the attribute \textit{qos} to define the quality of service of the MQTT protocol, which is integer between 0 and 2.
-	\item the attribute \textit{doe} to define the name of the Design of Experiments (DoE) technique used by the Design Space Exploration.
-	\item the attribute \textit{observations} to define the number of times to repeat each configuration in the DoE.
-  \item the attribute \textit{broker\_ca} with the path to the broker CA. Leave empty if it is not required.
-  \item the attribute \textit{client\_crt} with the path to the client certificate. Leave empty if it is not required.
-  \item the attribute \textit{client\_key} with the path to the client key. Leave empty if it is not required.
-\end{itemize}
-
-Since the remote application handler is designed to interact with unknown applications, the \textit{agora} element must specify information about the available range of software knobs, the required range of data features to bring in the model and the way to observe and predicts the target metrics.
-In particular, for each software knob of the block, the user must insert the XML tag \textit{explore} with the name of knob (attribute \textit{knob\_name}) and the range of possible values (attribute \textit{values}) as coma separated list of numbers.
-Moreover, for each data features, the user must specify the XML tag \textit{given} with the name of the data feature (attribute \textit{feature\_name}) and the values to include in the knowledge base (attribute \textit{values}) as a coma separated list of numbers.
-Finally, for each metric, the user must specify the XML tag \textit{predict} with the name of the metric (attribute \textit{metric\_name}), the name of the plugin used to perform the prediction (attribute \textit{prediction}) and the name of the monitor that observe that metric at runtime (attribute \textit{monitor}).
-
-
-
-
-\subsection{Describing the plan element}
-
-The main goal of the plan element to state the concept of ``best'' for the application developer.
-Internally, mARGOt represent such definition as a constrained multi-objective optimization problem.
-Since the application might have different definitions of ``best'', according to its evolution or external events, it is possible to state more than one optimization problem (or states in mARGOt context).
+The input features are part of the application geometry, along with the definition of the metrics of interest and software-knobs.
+Differently from the former sections, the input feature definition is not mandatory.
+However, if we define input features, we need to define also the metrics of interest and software-knobs.
 
 
 
 \begin{figure}
-\lstset{language=XML}
+\lstset{language=json}
 \begin{lstlisting}
-<!-- GOAL SECTION -->
-<goal name="threads_g" knob_name="num_threads" cFun="LT" value="2" />
-<goal name="quality_g" metric_name="quality" cFun="LT" value="80" />
-
-<!-- RUNTIME INFORMATION PROVIDER -->
-<adapt metric_name="exectime" using="my_time_monitor" inertia="1" />
-
-<!-- OPTIMIZATION SECTION -->
-<state name="my_optimization_1" starting="yes" >
-	<minimize combination="linear">
-		<knob name="num_threads" coef="1.0"/>
-		<metric name="exectime" coef="2.0"/>
-	</minimize>
-	<subject to="quality_g" priority="30" />
-</state>
-
-<state name="my_optimization_2" >
-	<maximize combination="geometric">
-		<metric name="quality" coef="1.0"/>
-	</maximize>
-	<subject to="threads_g" priority="10" />
-	<subject to="exectime_g" priority="20" confidence="3" />
-</state>
-
+"feature_distance":"euclidean",
+"features":
+[
+	{
+		"name": "f1",
+		"type": "int",
+		"comparison": "le"
+	}
+]
 \end{lstlisting}
-\caption{Example of the definition of the plan element.}
-\label{code:plan_xml}
+\caption{This is an example on how we can define input features}
+\label{code:features}
 \end{figure}
 
-\prettyref{code:plan_xml} shows an example of a definition of a plan element.
-In particular, it includes the definition of two sections: the goal section and the optimization section.
-These two sections are related with each other, with the geometry of the application knowledge, the monitors stated in the definition of the monitor element and the application knowledge.
-The remainder of this section explains in details such relations.
 
-\subsubsection*{Goal section}
-\label{ssec:goal}
-
-This section states all the goals that the developer would like to express.
-Each goal represents a target that must be reached (i.e. \textit{$<subject>$} must be \textit{$<comparison_function>$} than \textit{$<value>$})
-The mere definition of a goal does not influence the selection of the configuration.
-
-A goal is represented by the XML tag \textit{goal}.
-The attribute \textit{name} identify the goal and it has to be a valid C++ identifier.
-The attribute \textit{value} states the actual numeric value of the goal.
-The attribute \textit{cFun} states the comparison function of the goal.
-The available comparison functions are:
-\begin{enumerate}
-	\item[GT] For the ``greater than'' comparison function.
-	\item[GE] For the ``greater or equal than'' comparison function.
-	\item[LT] For the ``less than'' comparison function.
-	\item[LE] For the ``less or equal than'' comparison function.
-\end{enumerate}
-
-For the generation of the high-level interface, the goal subject is a field (either a metric or a software-knob) of the application knowledge.
-In particular, if the goal targets a metric, it must define the attribute \textit{metric\_name}, which holds the name of a metric in the related Operating Point (see \prettyref{sec:knowledge}).
-If the goal targets a software-knob, it must define the attribute \textit{knob\_name}, which holds the name of a software-knob in the related Operating Point.
+\prettyref{code:features} shows an example that defines the input features as composed by a single integer field named ``f1''.
+We impose a constraint on the selection of the input feature cluster.
+In particolar, we state that the feature \textit{f1} of a cluster must be lower or equal than the feature of the current input to be selected.
+Moreover, we stated that we want to select the closest one, among the eligble ones, computing the euclidean distance.
 
 
-\subsubsection*{Runtime adaptation section}
 
-This section states all the feedback loops required by the application developer.
-In particular, mARGOt might use runtime information from the monitors to adapt the application knowledge.
-Therefore, it is possible to state that a given metric is observed by the related monitor by using the XML tag \textit{adapt}.
-The latter XML element shall define the following attributes:
+
+
+\subsection{How to learn the application knowledge at runtime}
+\label{ssec:agora_element}
+
+
+If we want to learn the application knowledge at runtime, we need to connect to an MQTT broker and provide information about DoE and clustering (if any).
+All these information are contained in the \textbf{agora} element, where we can specify the following information as inner elements:
 \begin{itemize}
-	\item \textit{metric\_name} to identify the target metric in the application knowledge geometry. In particular, its value shall be the name of a metric stated in the metrics section.
-	\item \textit{using} to identify the target monitor. In particular, its value shall be the name of the monitor stated in the monitors section.
-	\item \textit{inertia} to define the inertia of the adaptation. This field shall be a positive integer number.
+	\item[borker\_url]: the string containing the url of the target broker in the form \textit{<protocol>://<url>:<port>}. The protocol can be either \textit{tcp} or \textit{ssl}; and the port usually is $1883$ for tcp or $8883$ for ssl. Both, the protocol and port can be omitted. The default value depends on the MQTT driver implementation.
+	\item[broker\_username]: the username used to log in the MQTT broker, leave empty if not required.
+	\item[broker\_password]: the password used to log in the MQTT broker, leave empty if not required.
+	\item[broker\_qos]: the amount of effort spent by MQTT to check if the receiver has received the sent message. It is an integral value in range [$0$,$2$], where with the value $2$ MQTT spend most effort.
+	\item[broker\_ca]: the path to the broker certificate, leave empty if not required.
+	\item[client\_cert]: the path to the client certificate, leave empty if not required.
+	\item[client\_key]: the path to the key of the client certificate, leave empty if not required.
+	\item[clustering\_plugin]: the name of the plugin in charge of clustering the observed input features. This field is meaningful only if we have input features.
+	\item[clustering\_parameters]: a list of key-value parameters that we would like to forward to the clustering plugin. This field is meaningful only if we have input features.
+	\item[doe\_plugin]: the name of the plugin in that defines the DoE to explore at runtime.
+	\item[doe\_parameters]: a list of key-value parameters that we would like to forward to the DoE plugin.
 \end{itemize}
 
 
+Beside the information required to connect with the MQTT broker, all the other information are forwarded to the remote component in charge of orchestrating the DSE, without validating them.
+If the connection with broker fails, the generated code rise an \textit{std::runtime\_error}, since the specification of the \textbf{agora} component is required only if we want to learn the application knoweldge and it can't happen without a MQTT broker.
 
 
-\subsubsection*{Optimization section}
+\begin{figure}
+\lstset{language=json}
+\begin{lstlisting}
+"agora":
+{
+	"borker_url": "127.0.0.1:1883",
+	"broker_username": "margot",
+	"broker_password": "margot",
+	"broker_qos": 2,
+	"broker_ca": "",
+	"client_cert": "",
+	"client_key": "",
+	"clustering_plugin": "clusty",
+	"clustering_parameters":
+	[
+		{"algorithm": "kmeans"},
+		{"number_centroids": 5}
+	],
+	"doe_plugin": "jhondoe",
+	"doe_parameters":
+	[
+		{"constraint": "knob1 + knob2 < 40"}
+	]
+}
+\end{lstlisting}
+\caption{This is an example on how we can define the information required to learn the application knowledge at runtime}
+\label{code:agora}
+\end{figure}
 
-This section states the list of states, which is the list of constrained multi-objective optimization problems.
-In particular, each state is represented by the XML tag \textit{state}, using the attribute \textit{name} to identify it.
-If the developer specify more than one state, he also have to specify which is the starting state, using the attribute \textit{starting} and setting its value to ``yes''.
+
+\prettyref{code:agora} shows an example where mARGOt will connect locally to the MQTT broker, with authentication.
+Since we are communicating locally, encription is not required.
+Moreover, we forward two parameters to the clustering pluging, while we forward a single parameter.
 
 
-Each state is composed by an objective function that must be maximized or minimized and the list of constraints.
-The objective function is represented by either the XML tag \textit{maximize} or \textit{minimize}, according to the requirements of the application.
-Since the objective function is a composition of fields (thus metrics and/or knobs), the attribute \textit{combination} specify the composition formula.
-In the current implementation are available two kind of compositions:
-\begin{enumerate}
-	\item a geometrical combination, represented by the value ``geometric''
-	\item a linear combination, represented by the value ``linear''
-	\item a simple combination, i.e. it targets only a single field, represented by the value ``simple''
-\end{enumerate}
-As child  of the objective function tag, there is the list of fields that compose the objective function.
-In particular, the XML tag \textit{metric} represents a metric of the application knowledge, specified by the attribute \textit{name}; while the XML tag \textit{knob} represents a software-knob of the application knowledge, specified by the attribute \textit{name}.
-Both cases require to define the attribute \textit{coefficient}, which states the numeric value of the coefficient of each term in the combination.
-This hold true also in case of a ``simple'' combination.
 
 
-The list of constraints is represented by the list of XML tags \textit{subject}, using the attribute \textit{to} to specify the related goal name (see \prettyref{ssec:goal}), the attribute \textit{priority} to specify the priority of constraint and (optionally) the attribute \textit{confidence} to specify the confidence level of the constraint.
-The priority is a number used to order by importance the constraints, therefore it is required that each constraint of a state must have a different priority.
-If the constraints relates to a goal whose subject is a monitored value, it is required to specify the name of the related metric in the application knowledge, using the attribute \textit{metric\_name}.
-The confidence is the number of times to take into account the standard deviation in the Operating Point evaluation, therefore it must be an integer number.
+\subsection{How to define the optimization problem}
+\label{ssec:agora_element}
+
+The element that contains the list of optimization problem that defines the application requirements is \textbf{extra-functional\_requirements}.
+Each optimization problem is defined by a name (using the element \textbf{name}), the objective function (named rank in mARGOt context), and the list of constraint.
+
+The optimization function is defined by the element \textbf{maximize} or \textbf{minimize}, according to the rank direction.
+The only child element of the rank direction is how the user would combine the different rank fields, using either the element \textbf{geometric\_mean} or \textbf{linear\_mean}.
+The child of the latter element is a list, composed of rank field.
+Each rank field is defined by a key-value element.
+The key is the name of the related metric or software-knob.
+The value is its coefficient in the formula combination.
+
+
+
+The list of constraint is represented in the \textbf{subject\_to} element, where the order in which they appear in the configuration file set the priority between them.
+In particular the constraint on the top has higher priority of the one in the bottom.
+Each constraint is defined by the following fields:
+\begin{itemize}
+	\item[subject]: the name of the target metric or software-knob.
+	\item[comparison]: the kind of comparison used in this contraint. The semantic is that \textit{<field>} must be \textit{<operator} than \textit{value}.
+	\item[value]: the initial value of the constraint. It can be updated at runtime.
+	\item[confidence]: the number of times that we need to consider the standard deviation of the Operating Point. If we want to consider only the mean value, we can set the confidence to zero.
+\end{itemize}
+
+
+The specification of the optimization problem happens during the initialization of the data structures.
+If we want to update the value of a constraint, we can do it by setting the value of the related goal.
+In particular, the related goal is automatically generated and its name is \textit{<name>\_constraint\_<index constraint>}.
+For example the following instruction set the goal on the second constraint of the optimization problem named ``problem'', in the block named ``elaboration''.
+\begin{lstlisting}
+margot::elaboration::context().goals.problem_constraint_1.set(25);
+\end{lstlisting}
+Moreover, if we define more than one optimization problem, the application is in charge of selecting the starting one.
+By default it will be the last problem defined in the configuration file.
+
+
+\begin{figure}
+\lstset{language=json}
+\begin{lstlisting}
+"extra-functional_requirements":
+[
+	{
+		"name":"default",
+		"maximize":
+		{
+			"geometric_mean":
+			[
+				{"quality": 2},
+				{"throughput": 5}
+			]
+		},
+		"subject_to":
+		[
+			{
+				"subject":"throughput",
+				"comparison": "ge",
+				"value": 25.0,
+				"confidence": 3
+			}
+		]
+	}
+]
+\end{lstlisting}
+\caption{This is an example on how we can define the information required to learn the application knowledge at runtime}
+\label{code:agora}
+\end{figure}
+
+
+\prettyref{code:agora} shows an example where we define a single optimization problem named ``default''.
+In terms of mARGOt representation, the target problem is the following:
+\begin{equation}
+\label{eq:optimization-general}
+\begin{array}{rrclcl}
+\displaystyle \max & \multicolumn{4}{l}{E(quality)^{2} \times E(throughput)^{5}} \\
+\textrm{s.t.} & C_0: E(throughput) - 3 \times \sigma_{throughput}  & \leq   & 25
+\end{array}
+\end{equation}
+where the mean and standard deviation of the \textit{quality} and \textit{throughput} may change if we change software-knobs configuration.
+
+
+
+
+
+
+
+
+
+
