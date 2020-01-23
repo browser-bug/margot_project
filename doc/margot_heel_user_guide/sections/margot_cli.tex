@@ -1,25 +1,85 @@
-\section{mARGOt command line interface}
+\section{Integration Process}
 
-The mARGOt command line interface (margot\_cli) is a python script to provide to the end-user utility functions to manage the mARGOt heel configuration files.
-The usage of the script is explained in the its help command.
-The most important command is \textit{generate} which automatically generates the source code of the high level interface, from the XML configurations files.
-This is the command  leveraged by margot\_if to generate the high-level interface library.
-Beside this command, margot\_cli expose the following operations to manage the application knowledge:
-\begin{itemize}
-	\item[plotOPs] It takes in input the XML configuration file of the application knowledge and it prints on the standard output a gnuplot script that display the application knowledge, according to the fields specified at command line.
-	\item[pareto] It takes in input the XML configuration file of the application knowledge and it prints on the standard output the XML configuration file of application knowledge with only the Operating Points which belong to the Pareto set, according to the criteria specified at command line.
-	\item[csv2xml] It takes in input the CSV configuration file of the application knowledge and it prints on the standard output the XML configuration file of application knowledge.
-	\item[xml2csv] It takes in input the XML configuration file of the application knowledge and it prints on the standard output the CSV configuration file of application knowledge
-\end{itemize}
+The mARGOt heel high-level interface extends the mARGOt API with a set of high-level interface that aims at lowering as much as possible the integration effort.
+Following this trend, we provide facilities to minimize the integration effort from the compilation process point of view, if the end-user uses \textit{CMake} as building system.
+The first section states the requirements in order to build mARGOt and mARGOt heel.
+Then, we start explaining how to inegrate mARGOt in a target application with the easy way, which relies on CMake.
+Finally, we explain the integration process that can be ported in a generic build system, when we want to take the hard way.
 
-The CSV format of the application knowledge shall represents the Operating Point list using the following conventions.
-Each row is considered a different Operating Point.
-Each column is considered a field of the Operating Point.
-All the column of the file shall have an header to identify the field:
-\begin{itemize}
-	\item Each software knob shall have the prefix ``\#''. For example, to represent the knob ``compiler\_flag'', the header name should be ``\#compiler\_flag''.
-	\item The metric mean value and standard deviation must be in two separated columns. In particular, the column with the mean value of the metric is written in plain, while its standard deviation shall have the ``\_standard\_dev'' suffix. For example to represent the mean value and the standard deviation of the metric execution time, the header of the column that represents the mean value is ``exec\_time'', while the header of the column that represents its standard deviation is ``exec\_time\_standard\_dev``.
-	\item Each data feature shall have the prefix ``$@$''. For example, to represent the data feature ``size'', the header name should be ``$@$size''.
-\end{itemize}
 
-All the required suffixes and prefixes will be stripped from the actual name of the field.
+\subsection{Build requirements}
+
+The mARGOt autotuning framework uses standard C++11 features.
+However, it uses the Paho MQTT C++ client library to communicate with the broker (https://github.com/eclipse/paho.mqtt.cpp), which in turns requires the OpenSSL development files.
+Moreover, mARGOt heel requires a compiler that support \textit{std::filesystem} (C++17) and the boost library to parse a json configuration file.
+We strongly suggest to handle these dependencies externally, for obvious reasons, but we included for convenience two scripts to download and compile OpenSSL and PahoMQTT.
+
+
+
+\subsection{CMake-based integration}
+
+The main idea of the integration is to hide as much as possible implementation details.
+Therefore, if the building system of the target application is CMake, the integration procedure follows these steps:
+\begin{enumerate}
+	\item Import mARGOt heel
+	\item Call a CMake function to configure the high-level interface generation
+	\item Link the high-level interface to the executable
+\end{enumerate}
+We use modern CMake facilities to automatically resolve all the dependence chains and to generate the high-level interface at compile time, rather than configure time.
+In this way, the high-level interface is generate if, and only if, we update the configuration files or if we update mARGOt heel.
+The benefit of this choice is twofold: on the main hand, we lower the compilation time during the application development.
+On the other hand, we are sure to always use the most updated high-level interface.
+
+\subsubsection{Import mARGOt heel}
+
+How to perform this step depends on whether	we want to use mARGOt as an application model or if it is shared among other applications.
+In the first case, we expect the user to clone the mARGOt repository in the source folder of the application.
+In this case, to import mARGOt, it is enough to use the following code:
+\begin{lstlisting}
+add_subdirectory( path/to/margot )
+\end{lstlisting}
+This procedure has the advantage that the mARGOt compilation process is tied to the compilation process of the application.
+For example, if the user would like to compile the application in DEBUG mode, also mARGOt will compiled in DEBUG mode.
+
+If we plan to integrate mARGOt in several application, it is better to proceed with this two-step procedure.
+At first we have to compile and install mARGOt, using the classic CMake procedure:
+\begin{lstlisting}
+$ git clone https://gitlab.com/margot_project/core.git
+$ cd clone
+$ mkdir build
+$ cd build
+$ cmake -DCMAKE_INSTALL_PREFIX:PATH=/install/path ..
+$ make
+$ make install
+\end{lstlisting}
+If we omit the install prefix, it will use the project directory.
+Please notice that the CMake finders of mARGOt are stored in the folder \textit{<prefix>/lib/cmake/margot}.
+In the second step, we add to the CMakeLists.txt of each application, the lines to import the mARGOt heel high-level generator, for example:
+\begin{lstlisting}
+set(margot_heel_generator_DIR "/install/path/lib/cmake/margot")
+find_package(margot_heel_generator REQUIRED)
+\end{lstlisting}
+This procedure has the advantage that mARGOt can be downloaded and compiled only once.
+All the application import and share its implementation.
+
+\subsubsection{Configure the high-level interface generation}
+
+The next step is to configure the high-level interface generation.
+In order to do so, we need to write the mARGOt configuration file, along with the ones for the operating points.
+Then, it is enough to call the following function, that takes as input parameters the list of configuration files, where the mARGOt configuration must be the first one.
+\begin{lstlisting}
+margot_heel_generate_interface( "path/to/margot.json" "path/to/ops.json" )
+\end{lstlisting}
+From this moment, we can use the target \textit{margot::margot\_heel\_interface} that represents the high-level interface and its dependencies, such as the mARGOt framework.
+The actual source files of the library are created in the build directory, as defined in \textit{CMAKE\_CURRENT\_BINARY\_DIR}.
+
+
+\subsubsection{Link the target library}
+
+The last step to integrate mARGOt heel in the building system, is to link the target \textit{margot::margot\_heel\_interface} to the executable targets.
+In this way, CMake automatically set includes directories, linking flags, and build dependencies.
+
+
+\subsection{Source code integration}
+
+To access the high-level interface of mARGOt, it is only required to include the \textit{margot/margot.hpp} header file.
