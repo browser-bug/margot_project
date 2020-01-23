@@ -1,5 +1,5 @@
 /* mARGOt HEEL library
- * Copyright (C) 2018 Politecnico di Milano
+ * Copyright (C) 2018 Davide Gadioli
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
