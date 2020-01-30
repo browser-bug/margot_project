@@ -11,26 +11,11 @@ The application requirements are expressed as a constrained multi-objective opti
 
 The repository is organized as follow:
 ```
-├── margot_heel/
-|   ├── margot_heel_cli/  -> Command Line Interface, it might:
-|   |                            - generate the glue code to ease the integration (MARGOT_HEEL)
-|   |                            - genarate a gnuplot script that plot a list of Operating Points
-|   |                            - filter the Pareto-dominated Operating Points
-|   |                            - additional minor features to manage the list of Operating Points
-|   |                            - plot execution traces of the tuned applications
-|   ├── margot_heel_if/   -> An high-level interface template, to ease the integration process
-|                            It uses margot_heel_cli to generate the glue code
-|
-├── framework/
-|   ├── cmake/             -> CMake files used to find dependecy libraries (for some monitors)
-│   ├── config/            -> Framework configuration files to find mARGOt in the target application:
-|   |                          - the template used to generate FinMARGOT.cmake for cmake
-|   |                          - the template of mARGOt ".pc" file for pkg-config
-|   |
-|   ├── doc/               -> Configuration files to generate Doxygen documentation
-|   ├── include/           -> Header files of the mARGOt autotuner
-|   ├── src/               -> Source files of the mARGOt autotuner
-|   ├── test/              -> Test suite files, exploiting cxxtest
+.
+├── doc/        -> The mARGOt user manuals
+├── heel/       -> mARGOt heel source files (lib + exe)
+├── margot/     -> the autotuner source files
+└── scripts/    -> helper scripts to download dependecies
 ```
 
 ### Compiling instructions
@@ -43,8 +28,12 @@ $ cmake -DCMAKE_INSTALL_PREFIX:PATH=<path> ..
 $ make
 $ make install
 ~~~
-In order to build the framework it is required gcc > 4.8.1.
-The framework itself is complaint to the C++11 standard, making it generic; however, several monitors parse the /proc metafiles, assuming a unix-like environment
+The mARGOt autotuning framework is written in C++11. However, it requires the Paho MQTT C client to enable the online learning of the application knowledge.
+The mARGOt heel libraries and executables requires C++17 for the std::filesystem features, and boost::program_options. We recommend the user to provide these libraries. However, we provide some scripts that automatize the building of OpenSSL and MQTT.
+The framework itself is platform-agnostic. However, several monitors parse the /proc metafiles, assuming a unix-like environment.
+
+NOTE: if no install prefix is specified, we set the default value to the current directory.
+
 
 
 #### Building option
@@ -54,11 +43,11 @@ However, it is possible to change this behavior using the CMake configuration op
 | Option name              |  Values [default]  | Description                                                 |
 |--------------------------|--------------------|-------------------------------------------------------------|
 | LIB_STATIC               |  [ON],  OFF        | Build a static library (otherwise it is shared)             |
-| WITH_DOC                 |   ON , [OFF]       | Generate the Doxygen documentation                          |
-| WITH_TEST                |  [ON],  OFF        | Build the cxxtest application, to test the framework        |
-| USE_COLLECTOR_MONITOR    |   ON , [OFF]       | Include the wrapper monitor for Examon (by ETHz)            |
-| USE_PAPI_MONITOR         |  [ON],  OFF        | Include the monitor of Perf events (using PAPI interface)   |
-| USE_TEMPERATURE_MONITOR  |  [ON],  OFF        | Include the temperature monitor (requires lm_sensors)       |
+| GEN_DOC                  |   ON , [OFF]       | Generate the Doxygen documentation                          |
+| WITH_TEST                |   ON , [OFF]       | Build the cxxtest application, to test the framework        |
+| WITH_PAPI_MONITOR        |   ON , [OFF]       | Include the monitor of Perf events (using PAPI interface)   |
+| WITH_TEMPERATURE_MONITOR |   ON , [OFF]       | Include the temperature monitor (requires lm_sensors)       |
+| WITH_BENCHMARK           |   ON , [OFF]       | Build a benchmark to evaluate the overheads                 |
 
 
 ### Contribution guidelines
@@ -68,6 +57,10 @@ Clone the repository and send pull requests, any contribution is welcome.
 Contact: davide [dot] gadioli [at] polimi [dot] it
 
 Organization: Politecnico di Milano, Italy
+
+
+### Acknowledgment
+This work has been supported by European Commission under the grant 671623 FET-HPC-ANTAREX (AutoTuning and Adaptivity appRoach for Energy efficient eXascale HPC systems)
 
 
 */

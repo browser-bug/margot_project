@@ -11,37 +11,11 @@ The application requirements are expressed as a constrained multi-objective opti
 
 The repository is organized as follow:
 ```
-├── margot_heel/
-|   ├── margot_heel_cli/  -> Command Line Interface, it might:
-|   |                            - generate the glue code to ease the integration (MARGOT_HEEL)
-|   |                            - genarate a gnuplot script that plot a list of Operating Points
-|   |                            - filter the Pareto-dominated Operating Points
-|   |                            - additional minor features to manage the list of Operating Points
-|   |                            - plot execution traces of the tuned applications
-|   ├── margot_heel_if/   -> An high-level interface template, to ease the integration process
-|                            It uses margot_heel_cli to generate the glue code
-|
-├── framework/
-|   ├── cmake/            -> CMake files used to find dependecy libraries (for some monitors)
-│   ├── config/           -> Framework configuration files to find mARGOt in the target application:
-|   |                         - the template used to generate FinMARGOT.cmake for cmake
-|   |                         - the template of mARGOt ".pc" file for pkg-config
-|   |
-|   ├── doc/              -> Configuration files to generate Doxygen documentation
-|   ├── include/          -> Header files of the mARGOt autotuner and AGORA application handler
-|   ├── src/              -> Source files of the mARGOt autotuner and AGORA application handler
-|   ├── test/             -> Test suite files, exploiting cxxtest
-|
-├── agora/
-|   ├── plugins/          -> Collection of tools to build the application knowledge from observations
-|   |                         - crs: leverage nonparametric regression splines
-|   |                         - average: compute the average between observed configurations
-|   |                         - hth: advanced plugin to model a metrics
-|   |
-│   ├── src/              -> The AGORA remote application handler source files
-|
-├── extra/
-|   ├── benchmark/        -> A benchmark application to evaluate the framework overheads
+.
+├── doc/        -> The mARGOt user manuals
+├── heel/       -> mARGOt heel source files (lib + exe)
+├── margot/     -> the autotuner source files
+└── scripts/    -> helper scripts to download dependecies
 ```
 
 ### Compiling instructions
@@ -54,8 +28,12 @@ $ cmake -DCMAKE_INSTALL_PREFIX:PATH=<path> ..
 $ make
 $ make install
 ~~~
-In order to build the framework it is required gcc > 4.8.1.
-The framework itself is complaint to the C++11 standard, making it generic; however, several monitors parse the /proc metafiles, assuming a unix-like environment
+The mARGOt autotuning framework is written in C++11. However, it requires the Paho MQTT C client to enable the online learning of the application knowledge.
+The mARGOt heel libraries and executables requires C++17 for the std::filesystem features, and boost::program_options. We recommend the user to provide these libraries. However, we provide some scripts that automatize the building of OpenSSL and MQTT.
+The framework itself is platform-agnostic. However, several monitors parse the /proc metafiles, assuming a unix-like environment.
+
+NOTE: if no install prefix is specified, we set the default value to the current directory.
+
 
 
 #### Building option
@@ -65,24 +43,11 @@ However, it is possible to change this behavior using the CMake configuration op
 | Option name              |  Values [default]  | Description                                                 |
 |--------------------------|--------------------|-------------------------------------------------------------|
 | LIB_STATIC               |  [ON],  OFF        | Build a static library (otherwise it is shared)             |
-| WITH_DOC                 |   ON , [OFF]       | Generate the Doxygen documentation                          |
+| GEN_DOC                  |   ON , [OFF]       | Generate the Doxygen documentation                          |
 | WITH_TEST                |   ON , [OFF]       | Build the cxxtest application, to test the framework        |
-| USE_COLLECTOR_MONITOR    |   ON , [OFF]       | Include the wrapper monitor for Examon (by ETHz)            |
-| USE_PAPI_MONITOR         |   ON , [OFF]       | Include the monitor of Perf events (using PAPI interface)   |
-| USE_TEMPERATURE_MONITOR  |   ON , [OFF]       | Include the temperature monitor (requires lm_sensors)       |
-| WITH_AGORA               |   ON , [OFF]       | Enable the AGORA application handler (see NOTE below)       |
+| WITH_PAPI_MONITOR        |   ON , [OFF]       | Include the monitor of Perf events (using PAPI interface)   |
+| WITH_TEMPERATURE_MONITOR |   ON , [OFF]       | Include the temperature monitor (requires lm_sensors)       |
 | WITH_BENCHMARK           |   ON , [OFF]       | Build a benchmark to evaluate the overheads                 |
-| WITH_CASSANDRA           |   ON , [OFF]       | Enable the cassandra storage back-end                       |
-
-NOTE: if you are interested on using the AGORA application handler to perform an online Design Space Exploration, the module adds several dependencies:
- - The C/C++ Cassandra driver ( http://datastax.github.io/cpp-driver/ )
- - The C/C++ MQTT client implementation ( https://www.eclipse.org/paho/ )
-
-The build system is able to automatically download and compile those libraries if they are not available, which is the preferred option.
-However, to compile them, we have the following requirements:
- - The uv library ( https://github.com/libuv/libuv ), on fedora is available in the repositories
- - The OpenSSL libraries, usually they are available on the repositories
- - The pthread library, usually already installed in most distributions
 
 
 ### Contribution guidelines
