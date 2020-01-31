@@ -43,7 +43,7 @@ STDERR_FILE=$PWD/stderr.txt
 # retrieving the source code of the dependency
 if [ ! -d $DEPENDENCY_SRC ]; then
 	echo "Cloning the $DEPENDENCY_NAME framework..."
-	git clone git://git.openssl.org/openssl.git $DEPENDENCY_SRC > $STDOUT_FILE 2> $STDERR_FILE
+	git clone git://git.openssl.org/openssl.git --branch OpenSSL_1_1_1-stable $DEPENDENCY_SRC > $STDOUT_FILE 2> $STDERR_FILE
 	if [ ! $? -eq 0 ]; then
 		>&2 echo "Error: unable to download the $DEPENDENCY_NAME sources"
 		>&2 echo "       standard output file: $STDOUT_FILE"
