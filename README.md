@@ -1,5 +1,5 @@
 # README
-This repository contains the mARGOt framework core, version 2
+This repository contains the mARGOt framework core, version 3
 
 ## Summary of the framework
 
