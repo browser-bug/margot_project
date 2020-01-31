@@ -26,6 +26,9 @@ option( WITH_TEMPERATURE_MONITOR "Build the temperature monitor" OFF)
 set( MARGOT_CUSTOM_FINDERS_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 list (APPEND CMAKE_MODULE_PATH "${MARGOT_CUSTOM_FINDERS_PATH}")
 
+# include standard gnu path (to make sure to have them when needed)
+include(GNUInstallDirs)
+
 # define a macro to try to use the internal built version fo stuff (if not alredy set)
 macro( set_gentle_hint TARGET_ROOT_VARIABLE )
 	if (NOT DEFINED ${TARGET_ROOT_VARIABLE})
@@ -117,7 +120,6 @@ set( MARGOT_HEADERS
 	"${MARGOT_HDR_PATH}/margot/virtual_channel_impl_paho.hpp"
 	"${MARGOT_HDR_PATH}/margot/virtual_channel_interface.hpp"
 	)
-set( SRC_PATH "${CMAKE_CURRENT_SOURCE_DIR}/src" )
 set( MARGOT_SOURCES
 	"${MARGOT_SRC_PATH}/energy_monitor"
 	"${MARGOT_SRC_PATH}/frequency_monitor"
@@ -141,9 +143,9 @@ add_library(margot::${MARGOT_LIBRARY_NAME} ALIAS ${MARGOT_LIBRARY_NAME})
 
 # define its interface
 target_include_directories( ${MARGOT_LIBRARY_NAME}
-    PUBLIC
-        $<INSTALL_INTERFACE:include>
-        $<BUILD_INTERFACE:${MARGOT_HDR_PATH}>
+	PUBLIC
+		$<BUILD_INTERFACE:${MARGOT_HDR_PATH}> # for headers when building
+		$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}> # for clients in install mode
 )
 set_target_properties(${MARGOT_LIBRARY_NAME} PROPERTIES PUBLIC_HEADER "${MARGOT_HEADERS}" )
 

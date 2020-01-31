@@ -11,6 +11,9 @@ project( HEEL VERSION 3.0 LANGUAGES CXX)
 set(Boost_USE_STATIC_LIBS ON)
 find_package(Boost REQUIRED COMPONENTS program_options)
 
+# include standard gnu path (to make sure to have them when needed)
+include(GNUInstallDirs)
+
 
 #########################################################################
 #### Define the mARGOt heel library target
@@ -132,7 +135,12 @@ add_library( ${HEEL_LIBRARY_NAME} SHARED ${HEEL_LIBRARY_SOURCES} ${HEEL_LIBRARY_
 add_library( margot::${HEEL_LIBRARY_NAME} ALIAS ${HEEL_LIBRARY_NAME} )
 
 # define its interface
-target_include_directories( ${HEEL_LIBRARY_NAME} PRIVATE ${HEEL_HDR_PATH} )
+target_include_directories( ${HEEL_LIBRARY_NAME}
+	PUBLIC
+		$<BUILD_INTERFACE:${HEEL_HDR_PATH}> # for headers when building
+		$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}> # for clients in install mode
+)
+
 set_target_properties( ${HEEL_LIBRARY_NAME} PROPERTIES PUBLIC_HEADER "${HEEL_LIBRARY_HEADERS}" )
 
 # set the executable dependencies
