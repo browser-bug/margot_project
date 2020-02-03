@@ -1,6 +1,8 @@
  # Add the targets file
  include("${CMAKE_CURRENT_LIST_DIR}/@HEEL_BINARY_NAME@Targets.cmake")
 
+# Find the Boost library dependency
+find_dependency(Boost REQUIRED program_options)
 
 # Define the CMake function that generates the high-level interface for
 # the application, to be used when compiling the application

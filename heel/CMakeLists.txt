@@ -143,7 +143,7 @@ target_include_directories( ${HEEL_LIBRARY_NAME}
 set_target_properties( ${HEEL_LIBRARY_NAME} PROPERTIES PUBLIC_HEADER "${HEEL_LIBRARY_HEADERS}" )
 
 # set the executable dependencies
-target_link_libraries( ${HEEL_LIBRARY_NAME} PUBLIC Boost::boost Boost::program_options )
+target_link_libraries( ${HEEL_LIBRARY_NAME} PUBLIC Boost::headers )
 
 # define its compiler options
 target_compile_features( ${HEEL_LIBRARY_NAME} PRIVATE cxx_std_17 ) # for the filesystem component
@@ -176,7 +176,7 @@ add_executable( margot::${HEEL_BINARY_NAME} ALIAS ${HEEL_BINARY_NAME} )
 target_include_directories( ${HEEL_BINARY_NAME} PRIVATE ${HEEL_HDR_PATH} )
 
 # set the executable dependencies
-target_link_libraries( ${HEEL_BINARY_NAME} PUBLIC ${HEEL_LIBRARY_NAME} )
+target_link_libraries( ${HEEL_BINARY_NAME} PUBLIC ${HEEL_LIBRARY_NAME} Boost::program_options )
 
 # set the runtime library path for executing it anywhere
 set_target_properties(${HEEL_BINARY_NAME} PROPERTIES INSTALL_RPATH_USE_LINK_PATH TRUE)
