@@ -61,7 +61,7 @@ void print_application_model(const application_model& model, std::basic_ostream<
       formatter(margot::heel::description_verbose(metric));
     }
     formatter(margot::heel::description_verbose(block.features));
-    if (block.agora.enabled) {
+    if (!block.agora.empty()) {
       formatter(margot::heel::description_verbose(block.agora));
     }
     for (const auto& state : block.states) {
