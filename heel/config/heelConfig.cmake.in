@@ -1,9 +1,6 @@
 include(CMakeFindDependencyMacro)
 
 # Find the Boost library dependency
-set(Boost_USE_STATIC_LIBS @Boost_USE_STATIC_LIBS@)
-set(Boost_USE_MULTITHREADED @Boost_USE_MULTITHREADED@)
-set(Boost_USE_STATIC_RUNTIME @Boost_USE_STATIC_RUNTIME@)
 find_dependency(Boost REQUIRED)
 
 # Add the targets file

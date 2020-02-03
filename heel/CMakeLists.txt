@@ -8,7 +8,6 @@ project( HEEL VERSION 3.0 LANGUAGES CXX)
 #### Look for required external libraries
 #########################################################################
 
-set(Boost_USE_STATIC_LIBS ON)
 find_package(Boost REQUIRED COMPONENTS program_options)
 
 # include standard gnu path (to make sure to have them when needed)
