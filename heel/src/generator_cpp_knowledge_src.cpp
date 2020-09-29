@@ -88,7 +88,7 @@ cpp_source_content knowledge_cpp_content(application_model& app) {
 
           // emit the cpp code according to the decision logic
           if (need_to_generate_add_op_end) {
-            c.content << "\t});" << std::endl;
+            c.content << "\t}));" << std::endl;
           }
           if (need_to_generate_change_cluster) {
             c.content << "\tmanager.add_feature_cluster({{" << current_cluster << "}});" << std::endl;

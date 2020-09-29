@@ -54,27 +54,27 @@ margot::heel::cpp_source_content global_init_content(const margot::heel::applica
     c.content << "\tc.log_file << \"timestamp\" ";
     for (const auto& monitor : block.monitors) {
       for (const auto& output_statistic : monitor.requested_statistics) {
-        c.content << "<< \"monitor_" << monitor.name << "_" << output_statistic << "\" ";
+        c.content << "<< \",monitor_" << monitor.name << "_" << output_statistic << "\" ";
       }
     }
     if (!block.knobs.empty()) {
       for (const auto& metric : block.metrics) {
-        c.content << "<< \"metric_" << metric.name << "\" ";
+        c.content << "<< \",metric_" << metric.name << "\" ";
       }
       for (const auto& feature : block.features.fields) {
-        c.content << "<< \"feature_" << feature.name << "\" ";
+        c.content << "<< \",feature_" << feature.name << "\" ";
       }
       for (const auto& knob : block.knobs) {
-        c.content << "<< \"knob_" << knob.name << "\" ";
+        c.content << "<< \",knob_" << knob.name << "\" ";
       }
       for (const auto& state : block.states) {
         const std::size_t constraint_number = state.constraints.size();
         for (std::size_t index = 0; index < constraint_number; ++index) {
-          c.content << "<< \"" << margot::heel::generate_goal_identifier(state.name, index) << "\" ";
+          c.content << "<< \"," << margot::heel::generate_goal_identifier(state.name, index) << "\" ";
         }
       }
     }
-    c.content << ";" << std::endl;
+    c.content << "<< std::endl;" << std::endl;
     c.content << "\t#endif // MARGOT_ENABLE_FILE_LOG" << std::endl;
 
     // initialize the monitors that requires a variable in the constructor
@@ -206,32 +206,30 @@ margot::heel::cpp_source_content stop_monitor_content(const margot::heel::block_
 
 margot::heel::cpp_source_content push_monitor_content(const margot::heel::block_model& block) {
   margot::heel::cpp_source_content c;
-  if (!block.knobs.empty()) {
-    c.required_headers.emplace_back("mutex");
-    c.content << "auto& c = margot::" << block.name << "::context();" << std::endl;
-    c.content << "const std::lock_guard<std::mutex> lock(c.context_mux);" << std::endl;
-    std::for_each(
-        block.monitors.begin(), block.monitors.end(), [&c](const margot::heel::monitor_model& monitor) {
-          const auto& spec = margot::heel::get_monitor_cpp_spec(monitor.type);
-          if (!spec.stop_method_name.empty()) {
-            if (spec.stop_method_name.compare("push") == 0) {
-              c.content << "c.monitors." << monitor.name << ".push(";
-              c.content << margot::heel::join(monitor.stop_parameters.begin(), monitor.stop_parameters.end(),
-                                              ", ",
-                                              [](const margot::heel::parameter& p) { return p.content; });
-              c.content << ");" << std::endl;
-            }
+  c.required_headers.emplace_back("mutex");
+  c.content << "auto& c = margot::" << block.name << "::context();" << std::endl;
+  c.content << "const std::lock_guard<std::mutex> lock(c.context_mux);" << std::endl;
+  std::for_each(
+      block.monitors.begin(), block.monitors.end(), [&c](const margot::heel::monitor_model& monitor) {
+        const auto& spec = margot::heel::get_monitor_cpp_spec(monitor.type);
+        if (!spec.stop_method_name.empty()) {
+          if (spec.stop_method_name.compare("push") == 0) {
+            c.content << "c.monitors." << monitor.name << ".push(";
+            c.content << margot::heel::join(monitor.stop_parameters.begin(), monitor.stop_parameters.end(),
+                                            ", ",
+                                            [](const margot::heel::parameter& p) { return p.content; });
+            c.content << ");" << std::endl;
           }
-        });
-
-    // check if we need to generate the call to the function that sends the information to agora
-    if (!block.agora.empty()) {
-      c.required_headers.emplace_back("margot/application_geometry.hpp");
-      c.content << "margot::" << block.name << "::operating_point_parser p;" << std::endl;
-      c.content << "c.manager.send_observation(p("
-                << margot::heel::cpp_parser_gen::usage(block.features.fields, block.knobs, block.metrics)
-                << "));" << std::endl;
-    }
+        }
+      });
+      
+  // check if we need to generate the call to the function that sends the information to agora
+  if (!block.agora.empty()) {
+    c.required_headers.emplace_back("margot/application_geometry.hpp");
+    c.content << "margot::" << block.name << "::operating_point_parser p;" << std::endl;
+    c.content << "c.manager.send_observation(p("
+              << margot::heel::cpp_parser_gen::usage(block.features.fields, block.knobs, block.metrics)
+              << "));" << std::endl;
   }
   return c;
 }
