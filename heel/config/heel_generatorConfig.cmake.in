@@ -27,6 +27,6 @@ function(margot_heel_generate_interface MARGOT_CONFIG_FILE )
                       "${CMAKE_CURRENT_BINARY_DIR}/margot_heel_interface/CMakeLists.txt" COPYONLY)
 
        # finally, we had that project
-       add_subdirectory( ${CMAKE_CURRENT_BINARY_DIR}/margot_heel_interface )
+       add_subdirectory( ${CMAKE_CURRENT_BINARY_DIR}/margot_heel_interface build/margot_heel_interface)
 
 endfunction(margot_heel_generate_interface)
