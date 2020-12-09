@@ -37,7 +37,7 @@ void compose(boost::property_tree::ptree& root_node, const application_model& ap
   add_list(root_node, app.blocks, tag::blocks());
 
   // add the application name for each block
-  for(auto& block : app.blocks) {
+  for(auto block : app.blocks) {
     block.application_name = app.name;
   }
 }
