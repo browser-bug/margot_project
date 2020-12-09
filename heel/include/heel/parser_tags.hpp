@@ -36,6 +36,9 @@ struct tag {
   inline static const std::string broker_ca(void) { return "broker_ca"; }
   inline static const std::string client_cert(void) { return "client_cert"; }
   inline static const std::string client_key(void) { return "client_key"; }
+  inline static const std::string number_configurations_per_iteration(void) { return "number_configurations_per_iteration"; }
+  inline static const std::string number_observations_per_configuration(void) { return "number_observations_per_configuration"; }
+  inline static const std::string max_number_iteration(void) { return "max_number_iteration"; }
   inline static const std::string doe_plugin(void) { return "doe_plugin"; }
   inline static const std::string clustering_plugin(void) { return "clustering_plugin"; }
   inline static const std::string doe_parameters(void) { return "doe_parameters"; }

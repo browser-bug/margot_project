@@ -37,6 +37,9 @@ void compose(boost::property_tree::ptree& agora_node, const agora_model& agora) 
   agora_node.put(tag::broker_ca(), agora.broker_ca);
   agora_node.put(tag::client_cert(), agora.client_cert);
   agora_node.put(tag::client_key(), agora.client_key);
+  agora_node.put(tag::number_configurations_per_iteration(), agora.doe_plugin);
+  agora_node.put(tag::number_observations_per_configuration(), agora.doe_plugin);
+  agora_node.put(tag::max_number_iteration(), agora.doe_plugin);
   agora_node.put(tag::doe_plugin(), agora.doe_plugin);
   agora_node.put(tag::clustering_plugin(), agora.clustering_plugin);
 

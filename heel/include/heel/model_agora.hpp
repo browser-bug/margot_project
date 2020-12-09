@@ -38,6 +38,9 @@ struct agora_model {
   std::string broker_ca;
   std::string client_cert;
   std::string client_key;
+  std::string number_configurations_per_iteration;
+  std::string number_observations_per_configuration;
+  std::string max_number_iteration;
   std::string doe_plugin;
   std::string clustering_plugin;
   std::vector<pair_property> doe_parameters;
