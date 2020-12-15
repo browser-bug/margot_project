@@ -44,9 +44,7 @@ endmacro(set_gentle_hint)
 find_package( Threads REQUIRED )
 set_gentle_hint(OPENSSL_ROOT_DIR)
 find_package( OpenSSL REQUIRED )
-set_gentle_hint(PAHOMQTT_ROOT_DIR)
-find_package( PahoMQTT REQUIRED )
-
+find_package(eclipse-paho-mqtt-c REQUIRED)
 
 # conditional test according to the build options
 if ( WITH_TEST )
@@ -151,7 +149,7 @@ set_target_properties(${MARGOT_LIBRARY_NAME} PROPERTIES PUBLIC_HEADER "${MARGOT_
 
 # define the linker options
 target_link_libraries(${MARGOT_LIBRARY_NAME} PUBLIC
-        PahoMQTT::PahoMQTT
+        eclipse-paho-mqtt-c::paho-mqtt3c
         OpenSSL::SSL
         OpenSSL::Crypto
         Threads::Threads
@@ -214,7 +212,6 @@ install(FILES "${CMAKE_CURRENT_BINARY_DIR}/${MARGOT_LIBRARY_NAME}Config.cmake"
         DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/margot
         )
 install(FILES "${MARGOT_CUSTOM_FINDERS_PATH}/FindCOLLECTOR.cmake"
-	          "${MARGOT_CUSTOM_FINDERS_PATH}/FindPahoMQTT.cmake"
 	          "${MARGOT_CUSTOM_FINDERS_PATH}/FindPAPI.cmake"
 	          "${MARGOT_CUSTOM_FINDERS_PATH}/FindPFM.cmake"
 	          "${MARGOT_CUSTOM_FINDERS_PATH}/FindSENSORS.cmake"
