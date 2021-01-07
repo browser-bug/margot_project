@@ -111,7 +111,7 @@ cpp_source_content managers_cpp_content(application_model& app, const std::strin
         std::unique_copy(escaped.begin(), escaped.end(), std::back_insert_iterator<std::string>(stripped),
                          [](const char a, const char b) { return std::isspace(a) && std::isspace(b); });
         c.content << "\tmanager.start_support_thread<margot::" << block.name << "::operating_point_parser>(\""
-                  << app.name << '/' << app.version << '/' << block.name << "\",\"" << block.agora.url
+                  << app.name << '^' << block.name << '^' << app.version << "\",\"" << block.agora.url
                   << "\",\"" << block.agora.username << "\",\"" << block.agora.password << "\","
                   << block.agora.qos << ",\"" << stripped << "\",\"" << block.agora.broker_ca << "\",\""
                   << block.agora.client_cert << "\",\"" << block.agora.client_key << "\");" << std::endl;
