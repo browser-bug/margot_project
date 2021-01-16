@@ -5,8 +5,8 @@
 #include <string>
 
 #include "agora/fs_prediction.hpp"
-#include "agora/csv/csv.hpp"
 #include "agora/logger.hpp"
+#include "csv.hpp"
 
 namespace agora {
 
