@@ -1,0 +1,125 @@
+{
+	"name": "bar",
+	"version": "4.0",
+	"blocks":
+	[
+		{
+			"name": "foo",
+
+			"monitors":
+			[
+				{
+					"name": "quality_monitor",
+					"type": "float",
+					"log": [ "average" ]
+				},
+				{
+					"name": "throughput_monitor",
+					"type": "throughput",
+					"log": [ "average" ]
+				}
+			],
+
+
+			"knobs":
+			[
+				{
+					"name": "threads",
+					"type": "int",
+					"range": [ 1, 32, 1 ]
+				},
+				{
+					"name": "algorithm",
+					"type": "string",
+					"values": [ "one", "two", "three" ]
+				}
+			],
+
+			"metrics":
+			[
+				{
+					"name": "throughput",
+					"type": "float",
+					"distribution": "yes",
+					"prediction_plugin": "hth",
+					"prediction_parameters":
+					[
+						{"param1": "value1"},
+						{"param2": "value2"}
+					],
+					"observed_by": "throughput_monitor",
+					"reactive_inertia": 5
+				},
+				{
+					"name": "quality",
+					"type": "float",
+					"prediction_plugin": "hth",
+					"observed_by": "quality_monitor"
+				}
+			],
+
+			"feature_distance":"euclidean",
+			"features":
+			[
+				{
+					"name": "f1",
+					"type": "int",
+					"comparison": "le"
+				},
+				{
+					"name": "f2",
+					"type": "int",
+					"comparison": "le"
+				}
+			],
+
+			"agora":
+			{
+				"borker_url": "127.0.0.1:1883",
+				"broker_username": "margot",
+				"broker_password": "margot",
+				"broker_qos": 2,
+				"broker_ca": "",
+				"client_cert": "",
+				"client_key": "",
+        "number_configurations_per_iteration": 3,
+        "number_observations_per_configuration": 23,
+        "max_number_iteration": 100,
+				"clustering_plugin": "clusty",
+				"clustering_parameters":
+				[
+					{"algorithm": "kmeans"},
+					{"number_centroids": 5}
+				],
+				"doe_plugin": "jhondoe",
+				"doe_parameters":
+				[
+					{"constraint": "knob1 + knob2 < 40"}
+				]
+			},
+
+			"extra-functional_requirements":
+			[
+				{
+					"name":"default",
+					"maximize":
+					{
+						"geometric_mean":
+						[
+							{"quality": 1}
+						]
+					},
+					"subject_to":
+					[
+						{
+							"subject":"throughput",
+							"comparison": "ge",
+							"value": 25.0,
+							"confidence": 3
+						}
+					]
+				}
+			]
+		}
+	]
+}
