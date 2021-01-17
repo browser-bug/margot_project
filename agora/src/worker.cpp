@@ -202,7 +202,7 @@ const application_id Worker::get_application_id(const std::string &s, const std:
   // TODO: we're splitting the application_id based on an hardcoded character instead of using topic division
   // (app_name/block_name/version), is this still ok?
   const auto app_id_tokens = tokenize(s, app_id_separator);
-  return application_id(app_id_tokens.at(0), std::stof(app_id_tokens.at(1)), app_id_tokens.at(2));
+  return application_id(app_id_tokens.at(0), app_id_tokens.at(1), app_id_tokens.at(2));
 }
 
 } // namespace agora

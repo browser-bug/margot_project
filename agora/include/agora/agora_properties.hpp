@@ -81,18 +81,20 @@ inline AgoraSystemCommandType resolve_system_command_type(const std::string &inp
 // Application Identifier
 struct application_id
 {
-  application_id(const std::string &a_name, float v, const std::string &b_name) : app_name(a_name), version(v), block_name(b_name) {}
+  application_id(const std::string &a_name, const std::string &v, const std::string &b_name)
+      : app_name(a_name), version(v), block_name(b_name)
+  {}
 
   std::string app_name;
-  float version;
+  std::string version;
   std::string block_name;
 
   inline bool operator==(const application_id &rhs) const
   {
     return app_name == rhs.app_name && version == rhs.version && block_name == rhs.block_name;
   }
-  inline std::string str() const { return std::string(app_name + " | " + std::to_string(version)+ " | " + block_name); }
-  inline std::filesystem::path path() const { return std::filesystem::path(app_name) / std::to_string(version)/ block_name; }
+  inline std::string str() const { return std::string(app_name + "|" + version + "|" + block_name); }
+  inline std::filesystem::path path() const { return std::filesystem::path(app_name) / version / block_name; }
 };
 
 } // namespace agora

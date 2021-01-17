@@ -90,9 +90,9 @@ private:
       {
         // assign the config_id to the client_name
         assigned_configurations[name] = configuration->first;
-        remote->send_message({MESSAGE_HEADER + "/" + app_id.app_name + "^" + app_id.block_name + "^" + std::to_string(app_id.version) +
-                                  "/" + name + "/explore",
-                              configuration_to_json(configuration->second)});
+        remote->send_message(
+            {MESSAGE_HEADER + "/" + app_id.app_name + "^" + app_id.version + "^" + app_id.block_name + "/" + name + "/explore",
+             configuration_to_json(configuration->second)});
         doe.update_config(configuration->first);
 
         num_configurations_sent_per_iteration++;
@@ -103,17 +103,16 @@ private:
   // send the prediction to a specific client
   inline void send_prediction(const client_id_t &name) const
   {
-    remote->send_message({MESSAGE_HEADER + "/" + app_id.app_name + "^" + app_id.block_name + "^" + std::to_string(app_id.version) + "/" +
-                              name + "/prediction",
-                          prediction_to_json(prediction)});
+    remote->send_message(
+        {MESSAGE_HEADER + "/" + app_id.app_name + "^" + app_id.version + "^" + app_id.block_name + "/" + name + "/prediction",
+         prediction_to_json(prediction)});
   }
 
   // send the prediction to everybody
   inline void broadcast_prediction() const
   {
-    remote->send_message(
-        {MESSAGE_HEADER + "/" + app_id.app_name + "^" + app_id.block_name + "^" + std::to_string(app_id.version) + "/prediction",
-         prediction_to_json(prediction)});
+    remote->send_message({MESSAGE_HEADER + "/" + app_id.app_name + "^" + app_id.version + "^" + app_id.block_name + "/prediction",
+                          prediction_to_json(prediction)});
   }
 };
 
