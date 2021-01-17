@@ -36,7 +36,6 @@ namespace heel {
 
 struct block_model {
   std::string name;
-  std::string application_name;
   std::vector<monitor_model> monitors;
   std::vector<knob_model> knobs;
   std::string knobs_segment_type;
