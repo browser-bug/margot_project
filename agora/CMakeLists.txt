@@ -109,3 +109,15 @@ target_compile_options( ${AGORA_LIBRARY_NAME} PRIVATE $<$<CONFIG:RELEASE>: -marc
 #### UNIT TEST
 #########################################################################
 #add_subdirectory(test)
+
+#########################################################################
+#### Define the install settings for all the stuff
+#########################################################################
+
+install(TARGETS ${AGORA_LIBRARY_NAME}
+  EXPORT ${AGORA_LIBRARY_NAME}Targets
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/agora
+        PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/agora
+)
