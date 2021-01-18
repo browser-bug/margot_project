@@ -8,8 +8,6 @@ project( AGORA VERSION 2.0 LANGUAGES CXX)
 #### Look for required external libraries
 #########################################################################
 
-list (APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
-
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 
@@ -31,6 +29,7 @@ set( AGORA_LIBRARY_HEADERS
     "${AGORA_HDR_PATH}/agora/application_handler.hpp"
     "${AGORA_HDR_PATH}/agora/application_manager.hpp"
     "${AGORA_HDR_PATH}/agora/agora_properties.hpp"
+    "${AGORA_HDR_PATH}/agora/model_message.hpp"
     "${AGORA_HDR_PATH}/agora/model_doe.hpp"
     "${AGORA_HDR_PATH}/agora/model_cluster.hpp"
     "${AGORA_HDR_PATH}/agora/model_prediction.hpp"
@@ -47,11 +46,13 @@ set( AGORA_LIBRARY_HEADERS
     "${AGORA_HDR_PATH}/agora/fs_observation.hpp"
     "${AGORA_HDR_PATH}/agora/launcher.hpp"
     "${AGORA_HDR_PATH}/agora/launcher_configuration.hpp"
+    "${AGORA_HDR_PATH}/agora/plugin_configuration.hpp"
     "${AGORA_HDR_PATH}/agora/remote_handler.hpp"
     "${AGORA_HDR_PATH}/agora/remote_configuration.hpp"
     "${AGORA_HDR_PATH}/agora/paho_remote_handler.hpp"
-    "${AGORA_HDR_PATH}/agora/threadpool.hpp"
     "${AGORA_HDR_PATH}/agora/safe_queue.hpp"
+    "${AGORA_HDR_PATH}/agora/threadpool.hpp"
+    "${AGORA_HDR_PATH}/agora/worker.hpp"
     # csv_storage
     "${AGORA_HDR_PATH}/agora/csv/csv_fs_cluster.hpp"
     "${AGORA_HDR_PATH}/agora/csv/csv_fs_description.hpp"
