@@ -21,6 +21,7 @@
 #include "margot/operating_point.hpp"
 #include "margot/state.hpp"
 
+#include "agora/logger.hpp"
 #include "agora/remote_handler.hpp"
 #include "agora/model_message.hpp"
 
@@ -194,6 +195,7 @@ class Asrtm {
    */
   ~Asrtm(void) {
     if (local_handler.joinable()) {
+      // TODO: check on this, we may already have the disconnection on the RemoteHandler desctructor call
       remote->disconnect();
       local_handler.join();
     }
@@ -394,7 +396,7 @@ class Asrtm {
    *
    * @return True, if we are performing a design space exploration
    */
-  inline bool is_performing_dse(void) const {
+  inline bool in_design_space_exploration(void) const {
     std::lock_guard<std::mutex> lock(manager_mutex);
     return status == ApplicationStatus::DESIGN_SPACE_EXPLORATION || status == ApplicationStatus::WITH_PREDICTION;
   }
