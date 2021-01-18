@@ -3,7 +3,6 @@
 
 #include "agora/application_manager.hpp"
 #include "agora/logger.hpp"
-#include "agora/virtual_io.hpp"
 #include "agora/worker.hpp"
 
 namespace agora {
