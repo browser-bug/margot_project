@@ -8,8 +8,6 @@ project( AGORA VERSION 2.0 LANGUAGES CXX)
 #### Look for required external libraries
 #########################################################################
 
-list (APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
-
 #set(THREADS_PREFER_PTHREAD_FLAG ON)
 #find_package(Threads REQUIRED)
 
@@ -39,7 +37,7 @@ add_executable( ${AGORA_BINARY_NAME} ${AGORA_BINARY_SOURCES} ${AGORA_BINARY_HEAD
 add_executable( margot::${AGORA_BINARY_NAME} ALIAS ${AGORA_BINARY_NAME} )
 
 # set the executable dependencies
-target_link_libraries( ${AGORA_BINARY_NAME} PUBLIC margot::agora_common Boost::program_options)
+target_link_libraries( ${AGORA_BINARY_NAME} PUBLIC margot::margot_core margot::margot_heel Boost::program_options)
 
 # set the runtime library path for executing it anywhere
 set_target_properties(${AGORA_BINARY_NAME} PROPERTIES INSTALL_RPATH_USE_LINK_PATH TRUE)
@@ -74,7 +72,7 @@ add_executable( ${AGORA_CLIENT_BINARY_NAME} ${AGORA_CLIENT_BINARY_SOURCES} ${AGO
 add_executable( margot::${AGORA_CLIENT_BINARY_NAME} ALIAS ${AGORA_CLIENT_BINARY_NAME} )
 
 # set the executable dependencies
-target_link_libraries( ${AGORA_CLIENT_BINARY_NAME} PUBLIC margot::agora_common Boost::program_options)
+target_link_libraries( ${AGORA_CLIENT_BINARY_NAME} PUBLIC margot::margot_core margot::margot_heel Boost::program_options)
 
 # set the runtime library path for executing it anywhere
 set_target_properties(${AGORA_CLIENT_BINARY_NAME} PROPERTIES INSTALL_RPATH_USE_LINK_PATH TRUE)
