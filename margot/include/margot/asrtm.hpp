@@ -21,6 +21,7 @@
 #include "margot/operating_point.hpp"
 #include "margot/state.hpp"
 
+#include "agora/application_manager.hpp"
 #include "agora/logger.hpp"
 #include "agora/remote_handler.hpp"
 #include "agora/model_message.hpp"
@@ -940,16 +941,19 @@ class Asrtm {
     // set the status of the autotuner to DSE
     status = ApplicationStatus::DESIGN_SPACE_EXPLORATION;
 
+    agora::ApplicationManager &app_manager = agora::ApplicationManager::get_instance();
+
     // get the logger
-    agora::LoggerConfiguration logger_configuration(agora::LogLevel::INFO, agora::LoggerType::Console);
-    logger = agora::Logger::get_instance(logger_configuration);
+    agora::LoggerConfiguration logger_configuration(agora::LogLevel::DEBUG, agora::LoggerType::Console);
+    app_manager.setup_logger(logger_configuration);
+    logger = app_manager.get_logger();
 
     // initialize communication channel with the server
     // TODO: how the user can decide which communication implementation to use?
     agora::RemoteConfiguration remote_configuration(agora::RemoteType::Paho);
-    remote_configuration.set_paho_handler_properties(app_id, broker_url, qos_level, username, password, broker_ca, client_cert,
-                                                     client_key);
-    remote = agora::RemoteHandler::get_instance(remote_configuration);
+    remote_configuration.set_paho_handler_properties(app_id, broker_url, qos_level, username, password, broker_ca, client_cert, client_key);
+    app_manager.setup_remote_handler(remote_configuration);
+    remote = app_manager.get_remote_handler();
 
     // start the thread
     local_handler = std::thread(&type::local_application_handler<OpConverter>, this, description);
@@ -1179,12 +1183,12 @@ class Asrtm {
   /**
    * @brief This is the virtual channel used to communicate with the agora remote application handler
    */
-  std::unique_ptr<agora::RemoteHandler> remote;
+  std::shared_ptr<agora::RemoteHandler> remote;
 
   /**
    * @brief This is the local application handler logger
    */
-  std::unique_ptr<agora::Logger> logger;
+  std::shared_ptr<agora::Logger> logger;
 
   /**
    * @brief The identifier of this application
