@@ -29,7 +29,7 @@ namespace heel {
 struct tag {
   inline static const std::string version(void) { return "version"; }
   inline static const std::string agora(void) { return "agora"; }
-  inline static const std::string url(void) { return "borker_url"; }
+  inline static const std::string url(void) { return "broker_url"; }
   inline static const std::string username(void) { return "broker_username"; }
   inline static const std::string password(void) { return "broker_password"; }
   inline static const std::string qos(void) { return "broker_qos"; }
