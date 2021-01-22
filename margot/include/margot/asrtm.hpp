@@ -1,3 +1,22 @@
+/* core/asrtm.hpp
+ * Copyright (C) 2017 Davide Gadioli
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301
+ * USA
+ */
+
 #ifndef ASRTM_HPP
 #define ASRTM_HPP
 
@@ -903,6 +922,7 @@ class Asrtm {
     const std::string observation_msg =
         std::to_string(sec_since_now.count()) + "@" + std::to_string(ns_since_sec.count()) + "@" + observation;
 
+    logger->info("Sending observation with payload: ", observation_msg);
     remote->send_message({agora::MESSAGE_HEADER + "/" + app_id + "/observation/" + my_client_id, observation_msg});
   }
 
@@ -911,7 +931,7 @@ class Asrtm {
    *
    * @tparam OpConverter The type of a functor that parses the list of Operating Points from agora
    *
-   * @param [in] application The name of the application with format "<name>/<version>/<block>"
+   * @param [in] application The name of the application with format "<name>^<version>^<block>"
    * @param [in] broker_url The address of the MQTT broker
    * @param [in] username The username required to authenticate with the broker. Leave empty if it is not
    * required
@@ -1103,11 +1123,15 @@ class Asrtm {
 
       // handle the single configurations coming from the server
       if (message_type == "/explore") {
+        //logger->info("Received a new configuration to explore: ", new_incoming_message.payload);
+
         operating_point_container_type ops(get_op(new_incoming_message.payload));
         assert(!ops.empty() && "error: receiving an empty list of op from server");
         set_single_point(ops.front());
       } else if (message_type == "/prediction")  // handle the final model coming from the server
       {
+        //logger->info("Received a new application knowledge to set: ", new_incoming_message.payload);
+
         set_model(get_op(new_incoming_message.payload));
       } else if (message_type == "/welcome")  // handle the case where a new agora handler appears
       {
