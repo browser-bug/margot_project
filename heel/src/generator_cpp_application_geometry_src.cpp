@@ -101,7 +101,7 @@ cpp_source_content application_geometry_cpp_content(const application_model& app
                 << join(block.metrics.begin(), block.metrics.end(), ", ",
                         [&block](const metric_model& metric) -> std::string {
                           if (metric.distribution) {
-                            return "distribution_parser(node_pair.second)";
+                            return "distribution_parser(node_pair.second.get_child(\"metrics." + metric.name + "\"))";
                           } else {
                             return "metrics_type(node_pair.second.get<" + block.metrics_segment_type +
                                    ">(\"metrics." + metric.name + "\"), static_cast<" +
