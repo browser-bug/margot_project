@@ -9,14 +9,14 @@
 #include <vector>
 
 #include "agora/agora_properties.hpp"
-#include "agora/csv/csv_fs_description.hpp"
 #include "agora/csv/csv.hpp"
+#include "agora/csv/csv_fs_description.hpp"
 
 namespace agora {
 
 namespace fs = std::filesystem;
 
-CsvDescriptionStorage::CsvDescriptionStorage(const FsConfiguration& configuation)
+CsvDescriptionStorage::CsvDescriptionStorage(const FsConfiguration &configuation)
     : FsDescription(configuation), csv_separator(configuation.csv_separator)
 {
   description_dir = configuation.csv_storage_root_path / "descriptions";
@@ -54,8 +54,7 @@ void CsvDescriptionStorage::store_description(const application_id &app_id, cons
   } else
   {
     logger->warning("Csv manager: unable to open/create file \"", get_knobs_name(app_id), "\"");
-    throw std::runtime_error("Csv manager: unable to open/create file \"" + get_knobs_name(app_id) +
-                             "\"");
+    throw std::runtime_error("Csv manager: unable to open/create file \"" + get_knobs_name(app_id) + "\"");
   }
 
   out.close();
@@ -76,8 +75,7 @@ void CsvDescriptionStorage::store_description(const application_id &app_id, cons
   } else
   {
     logger->warning("Csv manager: unable to open/create file \"", get_metrics_name(app_id), "\"");
-    throw std::runtime_error("Csv manager: unable to open/create file \"" +
-                             get_metrics_name(app_id) + "\"");
+    throw std::runtime_error("Csv manager: unable to open/create file \"" + get_metrics_name(app_id) + "\"");
   }
 
   out.close();
@@ -97,9 +95,8 @@ void CsvDescriptionStorage::store_description(const application_id &app_id, cons
     }
   } else
   {
-    logger->warning("Csv manager: unable to open/create file \"",get_features_name(app_id), "\"");
-    throw std::runtime_error("Csv manager: unable to open/create file \"" +
-                             get_features_name(app_id) + "\"");
+    logger->warning("Csv manager: unable to open/create file \"", get_features_name(app_id), "\"");
+    throw std::runtime_error("Csv manager: unable to open/create file \"" + get_features_name(app_id) + "\"");
   }
 
   out.close();
@@ -121,8 +118,7 @@ void CsvDescriptionStorage::store_description(const application_id &app_id, cons
   } else
   {
     logger->warning("Csv manager: unable to open/create file \"", get_properties_name(app_id), "\"");
-    throw std::runtime_error("Csv manager: unable to open/create file \"" +
-                             get_properties_name(app_id) + "\"");
+    throw std::runtime_error("Csv manager: unable to open/create file \"" + get_properties_name(app_id) + "\"");
   }
 
   out.close();
@@ -143,60 +139,50 @@ void CsvDescriptionStorage::store_description(const application_id &app_id, cons
           out << param.key << ',' << param.value << "\n";
       } else
       {
-        logger->warning("Csv manager: unable to open/create file \"",
-                get_model_parameters_name(app_id, metric.name), "\"");
-        throw std::runtime_error("Csv manager: unable to open/create file \"" +
-                                 get_model_parameters_name(app_id, metric.name) + "\"");
+        logger->warning("Csv manager: unable to open/create file \"", get_model_parameters_name(app_id, metric.name), "\"");
+        throw std::runtime_error("Csv manager: unable to open/create file \"" + get_model_parameters_name(app_id, metric.name) + "\"");
       }
       out.close();
     }
   }
 
   // storing doe parameters
-  if (!description.agora.doe_parameters.empty())
+  out.open(get_doe_parameters_name(app_id), std::ios::out | std::ios::trunc);
+
+  if (out.is_open())
   {
-    out.open(get_doe_parameters_name(app_id), std::ios::out | std::ios::trunc);
+    // print the table header
+    out << "parameter_name,value\n";
 
-    if (out.is_open())
-    {
-      // print the table header
-      out << "parameter_name,value\n";
-
-      // print the values
-      for (const auto &param : description.agora.doe_parameters)
-        out << param.key << ',' << param.value << "\n";
-    } else
-    {
-      logger->warning("Csv manager: unable to open/create file \"", get_doe_parameters_name(app_id), "\"");
-      throw std::runtime_error("Csv manager: unable to open/create file \"" +
-                               get_doe_parameters_name(app_id) + "\"");
-    }
-
-    out.close();
+    // print the values
+    for (const auto &param : description.agora.doe_parameters)
+      out << param.key << ',' << param.value << "\n";
+  } else
+  {
+    logger->warning("Csv manager: unable to open/create file \"", get_doe_parameters_name(app_id), "\"");
+    throw std::runtime_error("Csv manager: unable to open/create file \"" + get_doe_parameters_name(app_id) + "\"");
   }
+
+  out.close();
 
   // storing clustering parameters
-  if (!description.agora.clustering_parameters.empty())
+  out.open(get_clustering_parameters_name(app_id), std::ios::out | std::ios::trunc);
+
+  if (out.is_open())
   {
-    out.open(get_clustering_parameters_name(app_id), std::ios::out | std::ios::trunc);
+    // print the table header
+    out << "parameter_name,value\n";
 
-    if (out.is_open())
-    {
-      // print the table header
-      out << "parameter_name,value\n";
-
-      // print the values
-      for (const auto &param : description.agora.clustering_parameters)
-        out << param.key << ',' << param.value << "\n";
-    } else
-    {
-      logger->warning("Csv manager: unable to open/create file \"", get_clustering_parameters_name(app_id), "\"");
-      throw std::runtime_error("Csv manager: unable to open/create file \"" +
-                               get_clustering_parameters_name(app_id) + "\"");
-    }
-
-    out.close();
+    // print the values
+    for (const auto &param : description.agora.clustering_parameters)
+      out << param.key << ',' << param.value << "\n";
+  } else
+  {
+    logger->warning("Csv manager: unable to open/create file \"", get_clustering_parameters_name(app_id), "\"");
+    throw std::runtime_error("Csv manager: unable to open/create file \"" + get_clustering_parameters_name(app_id) + "\"");
   }
+
+  out.close();
 }
 
 margot::heel::block_model CsvDescriptionStorage::load_description(const application_id &app_id)
