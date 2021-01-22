@@ -56,7 +56,6 @@ private:
   int num_configurations_sent_per_iteration;
 
   client_list_t active_clients;
-  configuration_map_t assigned_configurations;
 
   margot::heel::block_model description;
   // TODO: check if the followings are reasonable
@@ -88,11 +87,11 @@ private:
       auto configuration = doe.get_next();
       if (configuration != doe.required_explorations.end())
       {
-        // assign the config_id to the client_name
-        assigned_configurations[name] = configuration->first;
         remote->send_message(
             {MESSAGE_HEADER + "/" + app_id.app_name + "^" + app_id.version + "^" + app_id.block_name + "/" + name + "/explore",
              configuration_to_json(configuration->second)});
+
+
         doe.update_config(configuration->first);
 
         num_configurations_sent_per_iteration++;
