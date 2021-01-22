@@ -1,3 +1,4 @@
+#define BOOST_BIND_GLOBAL_PLACEHOLDERS
 #include <boost/property_tree/json_parser.hpp>
 #include <heel/model_application.hpp>
 #include <heel/parser_application.hpp>
@@ -102,7 +103,7 @@ void RemoteApplicationHandler::welcome_client(const client_id_t &cid, const std:
     // call the doe plugin and wait for its completion
     logger->info(LOG_HEADER, "starting the DOE generation process.");
     pid_t doe_pid_t = doe_launcher->launch(doe_config);
-    doe_launcher->wait(doe_pid_t);
+    Launcher::wait(doe_pid_t);
 
     // retrieve the doe informations produced
     doe = fs_handler->load_doe(app_id, description);
@@ -265,7 +266,7 @@ void RemoteApplicationHandler::process_observation(const client_id_t &cid, const
     // call the cluster plugin
     logger->info(LOG_HEADER, "starting the cluster generation process.");
     pid_t cluster_pid_t = cluster_launcher->launch(cluster_config);
-    cluster_launcher->wait(cluster_pid_t);
+    Launcher::wait(cluster_pid_t);
 
     // retrieve the cluster informaton
     cluster = fs_handler->load_cluster(app_id, description);
@@ -276,7 +277,7 @@ void RemoteApplicationHandler::process_observation(const client_id_t &cid, const
   {
     // TODO: this is ugly.. maybe we shall turn "wait()" into a static function in the future since it doesn't really matter with plugin
     // launcher we're using to achieve that now.
-    model_launchers.begin()->second->wait(pid);
+    Launcher::wait(pid);
   }
 
   lock.lock();
@@ -310,7 +311,7 @@ void RemoteApplicationHandler::process_observation(const client_id_t &cid, const
     // call the cluster plugin and wait for its completion
     logger->info(LOG_HEADER, "starting the application knowledge generation process.");
     pid_t prediction_pid_t = prediction_launcher->launch(prediction_config);
-    prediction_launcher->wait(prediction_pid_t);
+    Launcher::wait(prediction_pid_t);
 
     lock.lock();
     // retrieve the final predictions
@@ -334,7 +335,7 @@ void RemoteApplicationHandler::process_observation(const client_id_t &cid, const
     // call the doe plugin (with the last configuration used) and wait for its completion
     logger->info(LOG_HEADER, "starting the DOE generation process once again.");
     pid_t doe_pid_t = doe_launcher->launch();
-    doe_launcher->wait(doe_pid_t);
+    Launcher::wait(doe_pid_t);
 
     lock.lock();
     // retrieve the doe informations produced
