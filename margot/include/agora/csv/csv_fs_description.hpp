@@ -48,7 +48,7 @@ public:
   std::string get_model_parameters_name(const application_id &app_id,
                                         const std::string &metric_name) const override
   {
-    std::filesystem::path p = description_dir / app_id.path() / std::string(metric_name + "model_parameters.csv");
+    std::filesystem::path p = description_dir / app_id.path() / std::string(metric_name + "_model_parameters.csv");
     return p.string();
   }
   std::string get_clustering_parameters_name(const application_id &app_id) const override

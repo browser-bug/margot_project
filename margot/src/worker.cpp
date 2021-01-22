@@ -168,16 +168,15 @@ void Worker::handle_incoming_message(const message_model &new_message)
     const auto app_id = get_application_id(topic_tokens.at(1));
 
     const auto payload_tokens = tokenize(new_message.payload, "@");
-    if (payload_tokens.size() != 4)
+    if (payload_tokens.size() != 3)
     {
       logger->warning("Received observation message with invalid payload format.");
       return;
     }
 
-    const auto client_id = payload_tokens.at(0);
-    const auto timestamp_sec = std::stol(payload_tokens.at(1));
-    const auto timestamp_ns = std::stol(payload_tokens.at(2));
-    const auto observation = payload_tokens.at(3);
+    const auto timestamp_sec = std::stol(payload_tokens.at(0));
+    const auto timestamp_ns = std::stol(payload_tokens.at(1));
+    const auto observation = payload_tokens.at(2);
 
     const auto application_handler = am.get_application_handler(app_id);
 

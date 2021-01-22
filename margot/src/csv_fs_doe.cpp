@@ -79,7 +79,10 @@ doe_model CsvDoeStorage::load_doe(const application_id &app_id, const margot::he
         config.insert({knob.name, row[knob.name].get()});
       }
 
-      output_doe.add_config(id, config, counter);
+      if (output_doe.add_config(id, config, counter))
+      {
+        logger->warning("CSV Doe: the configuration with ID ", id, " was already present. Replacing it.");
+      }
     }
   }
 

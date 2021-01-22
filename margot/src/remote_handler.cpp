@@ -29,7 +29,7 @@ std::unique_ptr<RemoteHandler> RemoteHandler::get_instance(const RemoteConfigura
 void RemoteHandler::whitelist(message_model &incoming_string)
 {
   static const std::string topic_accepted_characters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_/^.";
-  static const std::string payload_accepted_characters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_ -.,@<>=;()^*+";
+  static const std::string payload_accepted_characters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_ -.:,@<>=;()[]{}^*+'\"";
 
   const auto topic_invalid_idx = incoming_string.topic.find_first_not_of(topic_accepted_characters);
   const bool is_topic_invalid = topic_invalid_idx != std::string::npos;
@@ -42,14 +42,14 @@ void RemoteHandler::whitelist(message_model &incoming_string)
     std::string error_msg = "Input sanitizer: found non valid characters. ";
 
     if (is_topic_invalid){
-      error_msg += "[";
+      error_msg += "-> ";
       error_msg += incoming_string.topic[topic_invalid_idx];
-      error_msg +=  + "] in the topic of the message;";
+      error_msg +=  + " <- in the topic of the message.";
     }
     if (is_payload_invalid){
-      error_msg += "[";
+      error_msg += "-> ";
       error_msg += incoming_string.payload[payload_invalid_idx];
-      error_msg += "] in the payload of the message;";
+      error_msg += " <- in the payload of the message.";
     }
 
     incoming_string.topic = MESSAGE_HEADER + "/error/";

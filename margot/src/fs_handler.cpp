@@ -27,7 +27,7 @@ void FsHandler::env_configuration_preamble(PluginConfiguration &pc)
   pc.properties.insert({"BLOCK_NAME", pc.app_id.block_name});
   // pc.properties.insert({"VERSION", pc.version});
   pc.properties.insert(
-      {"AGORA_PROPERTIES_CONTAINER_NAME", get_type_identifier(description_fs) + description_fs->get_properties_name(pc.app_id)});
+      {"AGORA_PROPERTIES_CONTAINER_NAME", description_fs->get_properties_name(pc.app_id)});
 
   pc.properties.insert({"DESCRIPTION_FS_TYPE", get_type_identifier(description_fs)});
   pc.properties.insert({"DOE_FS_TYPE", get_type_identifier(doe_fs)});
@@ -71,6 +71,8 @@ template <> void FsHandler::create_env_configuration<PluginType::Model>(PluginCo
 
 template <> void FsHandler::create_env_configuration<PluginType::Cluster>(PluginConfiguration &pc)
 {
+  env_configuration_preamble(pc);
+
   pc.properties.insert({"FEATURES_CONTAINER_NAME", description_fs->get_features_name(pc.app_id)});
   pc.properties.insert({"OBSERVATION_CONTAINER_NAME", observation_fs->get_observation_name(pc.app_id)});
   pc.properties.insert({"CLUSTER_CONTAINER_NAME", cluster_fs->get_cluster_name(pc.app_id)});
@@ -79,6 +81,8 @@ template <> void FsHandler::create_env_configuration<PluginType::Cluster>(Plugin
 
 template <> void FsHandler::create_env_configuration<PluginType::Prediction>(PluginConfiguration &pc)
 {
+  env_configuration_preamble(pc);
+
   pc.properties.insert({"KNOBS_CONTAINER_NAME", description_fs->get_knobs_name(pc.app_id)});
   pc.properties.insert({"METRICS_CONTAINER_NAME", description_fs->get_metrics_name(pc.app_id)});
   pc.properties.insert({"FEATURES_CONTAINER_NAME", description_fs->get_features_name(pc.app_id)});
@@ -86,8 +90,7 @@ template <> void FsHandler::create_env_configuration<PluginType::Prediction>(Plu
   pc.properties.insert({"CLUSTER_CONTAINER_NAME", cluster_fs->get_cluster_name(pc.app_id)});
   pc.properties.insert({"PREDICTIONS_CONTAINER_NAME", prediction_fs->get_prediction_name(pc.app_id)});
 
-  // insert a list of model paths
-  pc.properties.insert({"MODEL_CONTAINERS", prediction_fs->get_prediction_name(pc.app_id)});
+  pc.properties.insert({"MODELS_CONTAINER", prediction_fs->get_models_path(pc.app_id)});
 }
 
 } // namespace agora
