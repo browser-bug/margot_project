@@ -40,8 +40,9 @@ void parse(agora_model& agora, const boost::property_tree::ptree& agora_node) {
   parse_element(agora.client_key, agora_node, tag::client_key());
   parse_element(agora.doe_plugin, agora_node, tag::doe_plugin());
   parse_element(agora.clustering_plugin, agora_node, tag::clustering_plugin());
-  parse_element(agora.url, agora_node, tag::url());
-  parse_element(agora.url, agora_node, tag::url());
+  parse_element(agora.number_configurations_per_iteration, agora_node, tag::number_configurations_per_iteration());
+  parse_element(agora.number_observations_per_configuration, agora_node, tag::number_observations_per_configuration());
+  parse_element(agora.max_number_iteration, agora_node, tag::max_number_iteration());
   parse_list(agora.doe_parameters, agora_node, tag::doe_parameters());
   parse_list(agora.clustering_parameters, agora_node, tag::clustering_parameters());
 }
