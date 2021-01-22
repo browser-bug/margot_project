@@ -18,6 +18,7 @@ public:
   {
     return std::shared_ptr<Launcher>(new Launcher(configuration, plugin_name));
   }
+  static void wait(pid_t plugin_pid);
 
   // create the workspace directory
   void initialize_workspace(const application_id &app_id);
@@ -25,7 +26,6 @@ public:
   // (async) call the plugin launcher with the latest configuration set
   pid_t launch(const PluginConfiguration &env_configuration);
   pid_t launch();
-  void wait(pid_t plugin_pid) const;
 
 private:
   Launcher(const LauncherConfiguration &configuration, const std::string& plugin_name);

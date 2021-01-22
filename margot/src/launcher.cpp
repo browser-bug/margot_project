@@ -19,6 +19,22 @@ Launcher::Launcher(const LauncherConfiguration &configuration, const std::string
   plugin_path = configuration.plugins_path / plugin_name;
 }
 
+void Launcher::wait(pid_t plugin_pid)
+{
+  int plugin_return_code = 0;
+  auto rc = waitpid(plugin_pid, &plugin_return_code, 0);
+
+  if (rc < 0)
+  {
+    throw std::runtime_error("Launcher: unable to wait the child \"" + std::to_string(plugin_pid) + "\" errno=" + std::to_string(errno));
+  }
+
+  if (plugin_return_code != 0)
+  {
+    throw std::runtime_error("Launcher: a plugin process terminated with return code:" + std::to_string(plugin_return_code));
+  }
+}
+
 pid_t Launcher::start_plugin(const fs::path &exec_script_path, const fs::path &config_file_path) const
 {
   pid_t plugin_pid = fork();
@@ -39,23 +55,6 @@ pid_t Launcher::start_plugin(const fs::path &exec_script_path, const fs::path &c
   return plugin_pid;
 }
 
-void Launcher::wait(pid_t plugin_pid) const
-{
-  int plugin_return_code = 0;
-  auto rc = waitpid(plugin_pid, &plugin_return_code, 0);
-
-  if (rc < 0)
-  {
-    logger->warning("Launcher: unable to wait the child \"", plugin_pid, "\", errno=", errno);
-    throw std::runtime_error("Launcher: unable to wait the child \"" + std::to_string(plugin_pid) + "\" errno=" + std::to_string(errno));
-  }
-
-  if (plugin_return_code != 0)
-  {
-    logger->warning("Launcher: a plugin process terminated with return code: ", plugin_return_code);
-    throw std::runtime_error("Launcher: a plugin process terminated with return code:" + std::to_string(plugin_return_code));
-  }
-}
 
 void Launcher::copy_plugin_directory(const fs::path &from, const fs::path &to)
 {
@@ -81,20 +80,6 @@ void Launcher::copy_plugin_directory(const fs::path &from, const fs::path &to)
   }
 }
 
-void Launcher::initialize_workspace(const application_id &app_id)
-{
-  // let's copy the plugin directory for sandboxing
-  fs::path plugin_destination_path = workspace_path / app_id.path() / plugin_path.filename();
-
-  if (fs::exists(plugin_destination_path))
-    logger->warning("Launcher: the pluging working directory already exists.");
-
-  copy_plugin_directory(plugin_path, plugin_destination_path);
-
-  // if everything wents ok, we can set the newly created working directory for the plugin
-  plugin_working_dir = plugin_destination_path;
-}
-
 void Launcher::set_plugin_configuration(const PluginConfiguration &env_configuration, const std::filesystem::path &config_path)
 {
   if (!fs::exists(plugin_working_dir))
@@ -113,6 +98,20 @@ void Launcher::set_plugin_configuration(const PluginConfiguration &env_configura
   config_file << "CONFIG_FILE_PATH=\"" << config_path.string() << "\"\n";
 
   config_file.close();
+}
+
+void Launcher::initialize_workspace(const application_id &app_id)
+{
+  // let's copy the plugin directory for sandboxing
+  fs::path plugin_destination_path = workspace_path / app_id.path() / plugin_path.filename();
+
+  if (fs::exists(plugin_destination_path))
+    logger->warning("Launcher: the pluging working directory already exists.");
+
+  copy_plugin_directory(plugin_path, plugin_destination_path);
+
+  // if everything wents ok, we can set the newly created working directory for the plugin
+  plugin_working_dir = plugin_destination_path;
 }
 
 pid_t Launcher::launch(const PluginConfiguration &env_configuration)
