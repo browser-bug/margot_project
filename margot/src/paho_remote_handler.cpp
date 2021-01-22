@@ -21,9 +21,11 @@ int recv_callback_function(void *recv_buffer, char *topic_c_str, int topic_size,
 {
 
   // fix the string if it is broken and convert it to a std::string
-  std::string topic(topic_c_str); // FIX: topic_size is always 0, why??
-  std::string payload((char *)message->payload);
-  //std::string payload((char *)message->payload, message->payloadlen);
+  // NOTE: 	The length of the topic if there are one more NULL characters embedded in topicName, otherwise topicLen is 0. If topicLen is
+  // 0, the value returned by strlen(topicName) can be trusted. If topicLen is greater than 0, the full topic name can be retrieved by
+  // accessing topicName as a byte array of length topicLen.
+  std::string topic(topic_c_str); // assuming topic_size is always 0
+  std::string payload((char *)message->payload, message->payloadlen);
 
   // log the reception of a message
   ApplicationManager &am = ApplicationManager::get_instance();
@@ -182,7 +184,7 @@ void PahoClient::send_message(const message_model &output_message)
 
   // compose the message using paho facilities
   MQTTClient_message message = MQTTClient_message_initializer;
-  message.payload = (void *)output_message.payload.c_str(); // brrr, who should free the memory?
+  message.payload = (void *)output_message.payload.c_str();
   message.payloadlen = output_message.payload.size();
   message.qos = qos_level;
   message.retained = 0; // change to 1 if we want messages to appear to new subcribers
