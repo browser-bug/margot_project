@@ -7,6 +7,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 from create_cluster import create_cluster
+import utils
 
 __author__ = "Bernardo Menicagli"
 __copyright__ = ""
@@ -77,8 +78,10 @@ def main():
         observation_df = pd.read_csv(observation_container)
 
     # generate a dictionary for all the parameters
-    cluster_params = cluster_params_df.set_index('parameter_name').T.to_dict('records')[0]
-    agora_properties = agora_properties_df.set_index('property_name').T.to_dict('records')[0]
+    cluster_params_dict = cluster_params_df.set_index('parameter_name').T.to_dict('records')
+    cluster_params = cluster_params_dict[0] if cluster_params_dict else {}
+    agora_properties_dict = agora_properties_df.set_index('property_name').T.to_dict('records')
+    agora_properties = agora_properties_dict[0] if agora_properties_dict else {}
     print(cluster_params)
 
     # Create a dictionary: {feature_name, feature_type}
@@ -91,13 +94,18 @@ def main():
 
     # Create the Cluster
     cluster_df = create_cluster(cluster_params, features_matrix)
+    cluster_df = cluster_df.round(decimals=4).drop_duplicates()
     cluster_df.columns = f_types.keys()
+    utils.convert_types(cluster_df, f_types)
     print(cluster_df)
 
     # Add an unique_id for each centroid
     cluster_df.insert(0, 'centroid_id', [ uuid.uuid4() for _ in cluster_df.index])
 
     if cluster_fs_type == 'csv':
+        output_dir = Path(cluster_container).parent
+        if not output_dir.exists():
+            output_dir.mkdir(parents=True, exist_ok=True)
         cluster_df.to_csv(cluster_container, index=False)
 
     print("New clusters have been created.")

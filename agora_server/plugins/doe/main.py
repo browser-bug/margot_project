@@ -34,7 +34,7 @@ def main():
     load_dotenv(config_file_path, verbose=True)
 
     # set the current working directory
-    plugin_working_dir = os.path.dirname(os.path.realpath(__file__))
+    plugin_working_dir = Path(__file__).parent
     os.chdir(plugin_working_dir)
 
     # Accessing env variables
@@ -96,8 +96,10 @@ def main():
     print(factors)
 
     # generate a dictionary for all the parameters
-    doe_params = doe_params_df.set_index('parameter_name').T.to_dict('records')[0]
-    agora_properties = agora_properties_df.set_index('property_name').T.to_dict('records')[0]
+    doe_params_dict = doe_params_df.set_index('parameter_name').T.to_dict('records')
+    doe_params = doe_params_dict[0] if doe_params_dict else {}
+    agora_properties_dict = agora_properties_df.set_index('property_name').T.to_dict('records')
+    agora_properties = agora_properties_dict[0] if agora_properties_dict else {}
 
     # if not already, create the total configurations table for later use
     if Path(total_configurations_container).is_file():
@@ -112,7 +114,8 @@ def main():
         # filtering
         constraints = doe_params['constraint'].split(';') if 'constraint' in doe_params.keys() else []
         limit_query = ' and '.join(constraints)
-        total_configs_df = total_configs_df.query(limit_query)
+        if limit_query:
+            total_configs_df = total_configs_df.query(limit_query)
 
         # create a LabelEncoder for each knob string type and save it for later use
         encoders = utils.encode_data(total_configs_df, k_types)
@@ -120,6 +123,8 @@ def main():
 
         # write the df down
         if description_fs_type == 'csv':
+            output_dir = Path(total_configurations_container).parent
+            output_dir.mkdir(parents=True, exist_ok=True)
             total_configs_df.to_csv(total_configurations_container, index=False)
 
     # Create the DOE
@@ -136,6 +141,9 @@ def main():
     doe_df.insert(0, 'config_id', [ uuid.uuid4() for _ in doe_df.index])
 
     if doe_fs_type == 'csv':
+        output_dir = Path(doe_container).parent
+        if not output_dir.exists():
+            output_dir.mkdir(parents=True, exist_ok=True)
         doe_df.to_csv(doe_container, index=False)
 
     print("A new DOE has been created.")

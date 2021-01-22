@@ -6,9 +6,6 @@ from discretize import discretize
 def create_doe(agora_properties, doe_params, levels, factors):
     df = pd.DataFrame()
 
-    # dataframe -> dictionary
-    # print(doe_params)
-
     num_config_per_iter = int(agora_properties['number_configurations_per_iteration'])
     max_num_iter = int(agora_properties['max_number_iteration'])
     algorithm = doe_params['algorithm'] if 'algorithm' in doe_params.keys() else 'full-factorial'

@@ -53,11 +53,11 @@ def main():
     agora_properties_container = os.getenv('AGORA_PROPERTIES_CONTAINER_NAME')
     knobs_container = os.getenv('KNOBS_CONTAINER_NAME')
     features_container = os.getenv('FEATURES_CONTAINER_NAME')
-    metrics_container = os.getenv('METRIC_CONTAINER_NAME')
+    metrics_container = os.getenv('METRICS_CONTAINER_NAME')
     total_configurations_container = os.getenv('TOTAL_CONFIGURATIONS_CONTAINER_NAME')
     cluster_container = os.getenv('CLUSTER_CONTAINER_NAME')
     predictions_container = os.getenv('PREDICTIONS_CONTAINER_NAME')
-    model_containers = os.getenv('MODEL_CONTAINERS')
+    models_container = os.getenv('MODELS_CONTAINER')
 
     agora_properties_df = pd.DataFrame()
     knobs_df = pd.DataFrame()
@@ -76,7 +76,8 @@ def main():
     if doe_fs_type == 'csv':
         total_configs_df = pd.read_csv(total_configurations_container)
     if cluster_fs_type == 'csv':
-        cluster_df = pd.read_csv(cluster_container)
+        if not features_df.empty:
+            cluster_df = pd.read_csv(cluster_container)
 
     # Create a dictionary: {knob_name, knob_type}
     k_types = {}
@@ -88,11 +89,14 @@ def main():
         m_types[row[0]] = row[1]
 
     # generate a dictionary for all the parameters
-    agora_properties = agora_properties_df.set_index('property_name').T.to_dict('records')[0]
+    agora_properties_dict = agora_properties_df.set_index('property_name').T.to_dict('records')
+    agora_properties = agora_properties_dict[0] if agora_properties_dict else {}
 
     # Generate the sample dataset for the final prediction
-    samples_df = pd.merge(total_configs_df, cluster_df, 'cross')
-    del samples_df['centroid_id']
+    samples_df = total_configs_df
+    if not features_df.empty:
+        samples_df = pd.merge(samples_df, cluster_df, 'cross')
+        del samples_df['centroid_id']
 
     # Label encoding for every knobs that are of the "string" type
     encoders = load("../encoders.joblib")
@@ -104,7 +108,7 @@ def main():
     print("Loading up the models.")
     models = {}
     for m_name in m_types.keys():
-        model_path = Path(model_containers) / (m_name + "_model.data")
+        model_path = Path(models_container) / (m_name + "_model.data")
         models[m_name] = load(model_path)
 
     # Produce the predictions
@@ -117,12 +121,15 @@ def main():
 
     # Join with coresponding configuration row and add a prediction_id
     prediction_df = samples_df.join(prediction_df)
-    prediction_df.insert(0, 'prediction_id', [ uuid.uuid4() for _ in prediction_df.index])
+    prediction_df.insert(0, 'pred_id', [ uuid.uuid4() for _ in prediction_df.index])
     print(prediction_df)
 
     # Store the predictions table
     print("Storing the predictions.")
     if prediction_fs_type == 'csv':
+        output_dir = Path(predictions_container).parent
+        if not output_dir.exists():
+            output_dir.mkdir(parents=True, exist_ok=True)
         prediction_df.to_csv(predictions_container, index=False)
 
 if __name__ == '__main__':

@@ -4,6 +4,7 @@ import argparse
 import pandas as pd
 from joblib import dump, load
 from dotenv import load_dotenv
+from pathlib import Path
 
 from create_model import create_model
 
@@ -80,12 +81,15 @@ def main():
         f_types[row[0]] = row[1]
 
     # generate a dictionary for all the parameters
-    model_params = model_params_df.set_index('parameter_name').T.to_dict('records')[0]
-    agora_properties = agora_properties_df.set_index('property_name').T.to_dict('records')[0]
+    model_params_dict = model_params_df.set_index('parameter_name').T.to_dict('records')
+    model_params = model_params_dict[0] if model_params_dict else {}
+    agora_properties_dict = agora_properties_df.set_index('property_name').T.to_dict('records')
+    agora_properties = agora_properties_dict[0] if agora_properties_dict else {}
 
-    # Extract the training data and the target value (and shuffle them)
-    data = observation_df[list(k_types.keys()) + list(f_types.keys())].sample(frac=1)
-    target = observation_df[metric_name].sample(frac=1)
+    # Shuffle data and extract the training data and the target value
+    observation_df = observation_df.sample(frac=1)
+    data = observation_df[list(k_types.keys()) + list(f_types.keys())]
+    target = observation_df[metric_name]
     if data.empty or target.empty:
         print("No training data or target values available, stopping the model plugin.")
         return
@@ -103,8 +107,14 @@ def main():
     is_good,model = create_model(model_params, data, target)
 
     if is_good or iteration_number >= int(agora_properties['max_number_iteration']):
-        print("I'm accepting the model. Dumping estimator data on disk.")
+        if is_good:
+            print("Model is good! Dumping estimator data on disk.")
+        if iteration_number >= int(agora_properties['max_number_iteration']) and not is_good:
+            print("Max. number of iterations reached. Using the best model I've found. Dumping estimator data on disk.")
         model.fit(data, target)
+        output_dir = Path(model_container).parent
+        if not output_dir.exists():
+            output_dir.mkdir(parents=True, exist_ok=True)
         dump(model, model_container)
     else:
         print("Couldn't find a suitable model, waiting for more observations.")

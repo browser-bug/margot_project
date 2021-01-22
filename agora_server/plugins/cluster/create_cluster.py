@@ -7,26 +7,26 @@ def create_cluster(cluster_params, features_matrix):
     print("Original features matrix")
     print(features_matrix)
 
+    do_preprocessing = int(cluster_params['preprocessing']) if 'preprocessing' in cluster_params.keys() else True
+    algorithm = cluster_params['algorithm'] if 'algorithm' in cluster_params.keys() else 'kmeans'
+
     # Preprocessing phase
     scal = StandardScaler()
-    do_preprocessing = int(cluster_params['preprocessing']) if 'preprocessing' in cluster_params.keys() else True
     if do_preprocessing:
         print("Scaling features matrix")
         features_matrix = scal.fit_transform(features_matrix)
         print(features_matrix)
 
-    # algorithm = cluster_params['algorithm']
-    algorithm = 'dbscan'
     result = np.empty([0,features_matrix.shape[1]])
 
     print("Creating clusters using algorithm:", algorithm)
 
     if algorithm == "kmeans":
         method = cluster_params['init_method'] if 'init_method' in cluster_params.keys() else 'k-means++'
-        n_clusters = int(cluster_params['number_centroids']) if 'number_centroids' in cluster_params.keys() else 8
+        n_clusters = int(cluster_params['num_clusters']) if 'num_clusters' in cluster_params.keys() else 5
         max_iter = int(cluster_params['max_num_iterations']) if 'max_num_iterations' in cluster_params.keys() else 300
 
-        kmeans = KMeans(n_clusters=n_clusters, init=method, max_iter=max_iter, verbose=1 )
+        kmeans = KMeans(n_clusters=n_clusters, init=method, max_iter=max_iter, verbose=0 )
         kmeans_result = kmeans.fit(features_matrix)
 
         result = kmeans_result.cluster_centers_
@@ -47,8 +47,6 @@ def create_cluster(cluster_params, features_matrix):
         result = []
         for cluster in clusters:
             result.append(np.mean(cluster, axis=0))
-
-        # result = dbscan_result
     else:
         print("Uknown doe algorithm, returning an empty doe")
 
