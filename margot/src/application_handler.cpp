@@ -38,7 +38,7 @@ void RemoteApplicationHandler::welcome_client(const client_id_t &cid, const std:
   {
     logger->info(LOG_HEADER, "a new application has joined the pool. Retrieving informations.");
 
-    logger->info(LOG_HEADER, "receiving and parsing informations on the application.");
+    logger->info(LOG_HEADER, "parsing JSON informations on the application.");
 
     // parse the app informations
     margot::heel::application_model app_description;
@@ -69,18 +69,18 @@ void RemoteApplicationHandler::welcome_client(const client_id_t &cid, const std:
     }
 
     // TODO: this is a value that needs to be specified on margot_heel configuration file, for now let's use a default
-    prediction_launcher = Launcher::get_instance(launcher_configuration, "prediction");
+    prediction_launcher = Launcher::get_instance(launcher_configuration, "predict");
     prediction_launcher->initialize_workspace(app_id);
 
     // adding a new launcher for every metric we have
     for (const auto &metric : description.metrics)
     {
       // we could have the same plugin launcher for two different metrics, so we have to check on that
-      if (model_launchers.find(metric.name) != model_launchers.end())
+      if (model_launchers.find(metric.prediction_plugin) != model_launchers.end())
         continue;
       auto model_launcher = Launcher::get_instance(launcher_configuration, metric.prediction_plugin);
       model_launcher->initialize_workspace(app_id);
-      model_launchers.insert({metric.name, model_launcher});
+      model_launchers.insert({metric.prediction_plugin, model_launcher});
     }
 
     logger->info(LOG_HEADER, "storing description informations.");
@@ -89,20 +89,20 @@ void RemoteApplicationHandler::welcome_client(const client_id_t &cid, const std:
     logger->info(LOG_HEADER, "creating required containers into the storage");
     fs_handler->create_observation_table(app_id, description);
 
+
     // start the doe building phase
     status = ApplicationStatus::BUILDING_DOE;
     lock.unlock();
 
     // creating the doe plugin configuratin file
     logger->info(LOG_HEADER, "creating the doe plugin configuration file.");
-    PluginConfiguration doe_config(app_id);
+    PluginConfiguration doe_config("plugin_config.env", app_id);
     fs_handler->create_env_configuration<PluginType::DOE>(doe_config);
-    doe_launcher->set_plugin_configuration(doe_config);
 
     // call the doe plugin and wait for its completion
     logger->info(LOG_HEADER, "starting the DOE generation process.");
-    doe_launcher->launch();
-    doe_launcher->wait();
+    pid_t doe_pid_t = doe_launcher->launch(doe_config);
+    doe_launcher->wait(doe_pid_t);
 
     // retrieve the doe informations produced
     doe = fs_handler->load_doe(app_id, description);
@@ -123,6 +123,14 @@ void RemoteApplicationHandler::welcome_client(const client_id_t &cid, const std:
 
     logger->info(LOG_HEADER, "starting the Design Space Exploration.");
     status = ApplicationStatus::EXPLORING;
+
+    // PRINT DOE
+    //for (auto config : doe.required_explorations)
+    //{
+      //std::cout << "Configuration: " << config.first << std::endl;
+      //for (auto value : config.second)
+        //std::cout << value.first << "\t" << value.second << std::endl;
+    //}
 
     // send the available configurations to the active clients
     for (const auto &client_name : active_clients)
@@ -165,12 +173,6 @@ void RemoteApplicationHandler::bye_client(const client_id_t &cid)
 
   active_clients.erase(cid);
 
-  if (status == ApplicationStatus::EXPLORING)
-  {
-    logger->info(LOG_HEADER, "removing assigned configurations (if any) for client \"", cid, "\".");
-    assigned_configurations.erase(cid);
-  }
-
   // TODO: if it was the last client do things
 }
 
@@ -200,9 +202,14 @@ void RemoteApplicationHandler::process_observation(const client_id_t &cid, const
 
   // if we're not exploring configurations, we're not interested in this message type
   if (status != ApplicationStatus::EXPLORING)
+  {
+    logger->warning(LOG_HEADER, "the DSE phase has ended, ignoring the new observation.");
     return;
+  }
 
   fs_handler->insert_observation_entry(app_id, cid, duration_sec, duration_ns, op_description.ops.front());
+
+
 
   // TODO: check if the configuration received is matched with the configurations assigned to the client?
 
@@ -224,23 +231,27 @@ void RemoteApplicationHandler::process_observation(const client_id_t &cid, const
   logger->info(LOG_HEADER, "starting the model phase.");
 
   // creating the model plugin configuration file for each metric
-  logger->info(LOG_HEADER, "creating the model plugin configuration file for each metric.");
-  std::unordered_map<std::string, PluginConfiguration> model_configs;
+  logger->info(LOG_HEADER, "creating a model plugin configuration file for each metric.");
+  std::unordered_map<std::string, std::pair<std::string, PluginConfiguration>> model_configs;
   for (const auto &metric : description.metrics)
   {
-    PluginConfiguration model_config(app_id, metric.name, iteration_number);
+    PluginConfiguration model_config("plugin_config.env", app_id, metric.name, iteration_number);
     fs_handler->create_env_configuration<PluginType::Model>(model_config);
-    model_configs.insert({metric.name, model_config});
+    model_configs.insert({metric.name, {metric.prediction_plugin, model_config}});
   }
 
   // call the model plugin for each metric
-  for (const auto &config : model_configs)
+  std::vector<pid_t> model_pids;
+  model_pids.reserve(model_configs.size());
+  for (const auto &itr : model_configs)
   {
-    auto model_launcher = model_launchers.at(config.first);
-    model_launcher->set_plugin_configuration(config.second);
+    auto plugin_name = itr.second.first;
+    const auto& plugin_config = itr.second.second;
+    const auto& model_launcher = model_launchers.at(plugin_name);
 
-    logger->info(LOG_HEADER, "starting the model generation process for the metric [", config.first, "].");
-    model_launcher->launch();
+    logger->info(LOG_HEADER, "starting the model generation process for the metric [", plugin_config.metric_name, "].");
+    pid_t model_pid_t = model_launcher->launch(plugin_config);
+    model_pids.push_back(model_pid_t);
   }
 
   if (!description.features.fields.empty())
@@ -248,22 +259,25 @@ void RemoteApplicationHandler::process_observation(const client_id_t &cid, const
     logger->info(LOG_HEADER, "starting the clustering phase.");
 
     logger->info(LOG_HEADER, "creating the cluster plugin configuration file");
-    PluginConfiguration cluster_config(app_id);
+    PluginConfiguration cluster_config("plugin_config.env", app_id);
     fs_handler->create_env_configuration<PluginType::Cluster>(cluster_config);
-    cluster_launcher->set_plugin_configuration(cluster_config);
 
     // call the cluster plugin
     logger->info(LOG_HEADER, "starting the cluster generation process.");
-    cluster_launcher->launch();
-    cluster_launcher->wait();
+    pid_t cluster_pid_t = cluster_launcher->launch(cluster_config);
+    cluster_launcher->wait(cluster_pid_t);
 
     // retrieve the cluster informaton
     cluster = fs_handler->load_cluster(app_id, description);
   }
 
   // wait for the models generation
-  for (const auto &launcher : model_launchers)
-    launcher.second->wait();
+  for (const auto &pid : model_pids)
+  {
+    // TODO: this is ugly.. maybe we shall turn "wait()" into a static function in the future since it doesn't really matter with plugin
+    // launcher we're using to achieve that now.
+    model_launchers.begin()->second->wait(pid);
+  }
 
   lock.lock();
 
@@ -282,6 +296,7 @@ void RemoteApplicationHandler::process_observation(const client_id_t &cid, const
   // if everything went fine, we can generate the application knowledge
   if (are_models_valid)
   {
+
     status = ApplicationStatus::WITH_MODEL;
     lock.unlock();
 
@@ -289,14 +304,13 @@ void RemoteApplicationHandler::process_observation(const client_id_t &cid, const
     logger->info(LOG_HEADER, "starting the prediction phase.");
 
     logger->info(LOG_HEADER, "creating the prediction plugin configuration file");
-    PluginConfiguration prediction_config(app_id);
+    PluginConfiguration prediction_config("plugin_config.env", app_id);
     fs_handler->create_env_configuration<PluginType::Prediction>(prediction_config);
-    prediction_launcher->set_plugin_configuration(prediction_config);
 
     // call the cluster plugin and wait for its completion
     logger->info(LOG_HEADER, "starting the application knowledge generation process.");
-    prediction_launcher->launch();
-    prediction_launcher->wait();
+    pid_t prediction_pid_t = prediction_launcher->launch(prediction_config);
+    prediction_launcher->wait(prediction_pid_t);
 
     lock.lock();
     // retrieve the final predictions
@@ -305,13 +319,11 @@ void RemoteApplicationHandler::process_observation(const client_id_t &cid, const
     status = ApplicationStatus::WITH_PREDICTION;
 
     // finally broadcast the application knowledge and exit
-    for (auto &cid : active_clients)
-      send_prediction(cid);
+    broadcast_prediction();
     return;
   }
 
   // some of the models are not valid so we need to collect more observations
-  // TODO: for now we should never enter this stage since all the possible configurations are already stored inside doe
   if (doe.required_explorations.empty())
   {
     status = ApplicationStatus::BUILDING_DOE;
@@ -319,10 +331,10 @@ void RemoteApplicationHandler::process_observation(const client_id_t &cid, const
 
     logger->info(LOG_HEADER, "no more configurations avilable.");
 
-    // call the doe plugin and wait for its completion
+    // call the doe plugin (with the last configuration used) and wait for its completion
     logger->info(LOG_HEADER, "starting the DOE generation process once again.");
-    doe_launcher->launch();
-    doe_launcher->wait();
+    pid_t doe_pid_t = doe_launcher->launch();
+    doe_launcher->wait(doe_pid_t);
 
     lock.lock();
     // retrieve the doe informations produced
@@ -359,9 +371,41 @@ const std::string RemoteApplicationHandler::configuration_to_json(const configur
 
   json_string << "\"knobs\": {"; // knobs
   for (const auto &knob : description.knobs)
-    json_string << "\"" << knob.name << "\":" << configuration.at(knob.name) << ",";
+  {
+    json_string << "\"" << knob.name << "\":";
+    if(knob.type == "string")
+    {
+      json_string << "\"" << configuration.at(knob.name) << "\",";
+    }
+    else{
+      json_string << configuration.at(knob.name) << ",";
+    }
+  }
   json_string.seekp(-1, json_string.cur);
-  json_string << "}"; // knobs
+  json_string << "},"; // knobs
+
+  // now we have to append fake features and metrics
+  if (!description.features.fields.empty())
+  {
+    json_string << "\"features\": {"; // features
+    for (const auto &feature : description.features.fields)
+      json_string << "\"" << feature.name << "\":" << 9999 << ",";
+    json_string.seekp(-1, json_string.cur);
+    json_string << "},"; // features
+  }
+
+  json_string << "\"metrics\": {"; // metrics
+  for (const auto &metric : description.metrics)
+  {
+    json_string << "\"" << metric.name << "\":";
+    if (metric.distribution)
+      json_string << "[" << 9999 << ", " << 0 << "]";
+    else
+      json_string << 9999;
+    json_string << ",";
+  }
+  json_string.seekp(-1, json_string.cur);
+  json_string << "}"; // metrics
 
   json_string << "}";  // operating_point
   json_string << "]}"; // block
@@ -396,7 +440,14 @@ const std::string RemoteApplicationHandler::prediction_to_json(const prediction_
     json_string << "\"knobs\":{";
     for (const auto &knob : description.knobs)
     {
-      json_string << "\"" << knob.name << "\":" << prediction.configurations.at(pred_id).at(knob.name) << ",";
+      json_string << "\"" << knob.name << "\":";
+      if (knob.type == "string")
+      {
+        json_string << "\"" << prediction.configurations.at(pred_id).at(knob.name) << "\",";
+      } else
+      {
+        json_string << prediction.configurations.at(pred_id).at(knob.name) << ",";
+      }
     }
     json_string.seekp(-1, json_string.cur);
     json_string << "},";
@@ -406,7 +457,7 @@ const std::string RemoteApplicationHandler::prediction_to_json(const prediction_
     {
       json_string << "\"" << metric.name << "\":";
       if (metric.distribution)
-        json_string << "[" << prediction.predicted_results.at(pred_id).at(metric.name)._avg
+        json_string << "[" << prediction.predicted_results.at(pred_id).at(metric.name)._avg << ","
                     << prediction.predicted_results.at(pred_id).at(metric.name)._std << "]";
       else
         json_string << prediction.predicted_results.at(pred_id).at(metric.name)._avg;
