@@ -81,6 +81,7 @@ inline AgoraSystemCommandType resolve_system_command_type(const std::string &inp
 // Application Identifier
 struct application_id
 {
+  application_id() {}
   application_id(const std::string &a_name, const std::string &v, const std::string &b_name)
       : app_name(a_name), version(v), block_name(b_name)
   {}
