@@ -42,9 +42,11 @@
 #include "margot/data_features.hpp"
 #include "margot/debug.hpp"
 #include "margot/operating_point.hpp"
-#include "margot/virtual_channel.hpp"
-#include "margot/virtual_channel_impl_paho.hpp"
-#include "margot/virtual_channel_interface.hpp"
+
+#include "agora/application_manager.hpp"
+#include "agora/logger.hpp"
+#include "agora/remote_handler.hpp"
+#include "agora/model_message.hpp"
 
 namespace margot {
 
@@ -54,18 +56,18 @@ namespace margot {
  * @tparam Asrtm The type which defines the underlying Application-Specific RunTime managers
  * @tparam T The type of the elements stored in the data features
  * @tparam distance_type The enumerator that defines how distance between features are computed
- * @tparam cfs.. The type of comparator which define a vald data feature candidate
+ * @tparam cfs.. The type of comparator which define a valid data feature candidate
  *
  * @see Asrtm
  *
  * @details
- * This class represent the interface of the mARGOt dynamic autotuner toward the appplication, if we want to
+ * This class represent the interface of the mARGOt dynamic autotuner toward the application, if we want to
  * take in consideration heterogeneous input, without any assumption on the order of the input.
  * The idea of this class is to allocate a separate Asrtm for each cluster of input, represented by the
  * Feature template parameter, i.e. an array of numeric values. At run-time the application set the correct
  * data features for the actual input, and this class will use that value for selecting the most suitable
  * configuration. To define the "closest" datafeature, we implemented the concept in two stage, in the first
- * stage we compara the validity of the data features, using the cfs template parameters, then we compute the
+ * stage we compare the validity of the data features, using the cfs template parameters, then we compute the
  * distance from the requested key and we choose the closest one. If there are more than one feature cluster
  * at the same distance of the requested one, it will be chosen the one that happens to be inserted first. All
  * the methods that defines the optimization problem, e.g. adding a constraint, will apply to all the Input
@@ -173,7 +175,8 @@ class DataAwareAsrtm {
    */
   ~DataAwareAsrtm(void) {
     if (local_handler.joinable()) {
-      remote.destroy_channel();
+      // TODO: check on this, we may already have the disconnection on the RemoteHandler desctructor call
+      remote->disconnect();
       local_handler.join();
     }
   }
@@ -817,11 +820,24 @@ class DataAwareAsrtm {
    *
    * @see Asrtm
    */
-  inline void send_observation(const std::string& message) {
+  inline void send_observation(const std::string &observation)
+  {
     std::lock_guard<std::mutex> lock(asrtm_mutex);
-    margot::remote_message_ptr output_message(
-        new margot::remote_message{{"margot/" + application_name + "/observation"}, message});
-    remote.send_message(output_message);
+
+    // get the timestamp of now
+    auto now = std::chrono::system_clock::now();
+
+    // convert the measure in seconds since epoch and
+    // nanosec since second
+    const auto sec_since_now = std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch());
+    const auto almost_epoch = now - sec_since_now;
+    const auto ns_since_sec = std::chrono::duration_cast<std::chrono::nanoseconds>(almost_epoch.time_since_epoch());
+
+    const std::string observation_msg =
+        std::to_string(sec_since_now.count()) + "@" + std::to_string(ns_since_sec.count()) + "@" + observation;
+
+    logger->info("Sending observation with payload: ", observation_msg);
+    remote->send_message({agora::MESSAGE_HEADER + "/" + app_id + "/observation/" + my_client_id, observation_msg});
   }
 
   /**
@@ -829,7 +845,7 @@ class DataAwareAsrtm {
    *
    * @tparam OpConverter The type of a functor that generates an Operating Point from a string
    *
-   * @param [in] application The name of the application with format "<name>/<version>/<block>"
+   * @param [in] application_id The name of the application with format "<name>/<version>/<block>"
    * @param [in] broker_url The address of the MQTT broker
    * @param [in] username The username required to authenticate with the broker. Leave empty if it is not
    * required
@@ -844,23 +860,33 @@ class DataAwareAsrtm {
    * @see Asrtm
    */
   template <class OpConverter>
-  void start_support_thread(const std::string& application, const std::string& broker_url,
+  void start_support_thread(const std::string& application_id, const std::string& broker_url,
                             const std::string& username, const std::string& password, const int qos_level,
                             const std::string& description, const std::string& broker_ca,
                             const std::string& client_cert, const std::string& client_key) {
     std::lock_guard<std::mutex> lock(asrtm_mutex);
 
-    // get the application name
-    application_name = application;
+    // get the application name ("app_name^block_name^version")
+    app_id = application_id;
 
     // set the Design Space Exploration state in the cluster managers
     for (auto& asrtm_pair : managers) {
       asrtm_pair.second.set_autotuner_in_dse();
     }
 
+    agora::ApplicationManager &app_manager = agora::ApplicationManager::get_instance();
+
+    // get the logger
+    agora::LoggerConfiguration logger_configuration(agora::LogLevel::DEBUG, agora::LoggerType::Console);
+    app_manager.setup_logger(logger_configuration);
+    logger = app_manager.get_logger();
+
     // initialize communication channel with the server
-    remote.create<margot::PahoClient>(application_name, broker_url, qos_level, username, password, broker_ca,
-                                      client_cert, client_key);
+    // TODO: how the user can decide which communication implementation to use?
+    agora::RemoteConfiguration remote_configuration(agora::RemoteType::Paho);
+    remote_configuration.set_paho_handler_properties(app_id, broker_url, qos_level, username, password, broker_ca, client_cert, client_key);
+    app_manager.setup_remote_handler(remote_configuration);
+    remote = app_manager.get_remote_handler();
 
     // start the thread
     local_handler = std::thread(&type::local_application_handler<OpConverter>, this, description);
@@ -900,40 +926,41 @@ class DataAwareAsrtm {
     OpConverter get_op;
 
     // get my own id
-    const std::string my_client_id = remote.get_my_client_id();
+    my_client_id = remote->get_my_client_id();
 
     // register to the application-specific topic (before send the welcome message)
-    remote.subscribe("margot/" + application_name + "/" + my_client_id + "/#");
+    remote->subscribe(agora::MESSAGE_HEADER + "/" + app_id + "/" + my_client_id + "/#");
 
-    // register to the application topic to receive the model
-    remote.subscribe("margot/" + application_name + "/model");
+    // register to the application topic to receive the prediction
+    remote->subscribe(agora::MESSAGE_HEADER + "/" + app_id + "/prediction");
 
     // register to the server welcome topic
-    remote.subscribe("margot/agora/welcome");
+    remote->subscribe(agora::MESSAGE_HEADER + "/welcome");
 
-    // announce to the world that i exist
-    remote_message_ptr output_message(
-        new remote_message{{"margot/" + application_name + "/welcome"}, my_client_id});
-    remote.send_message(output_message);
+    // announce to the world that I exist
+    remote->send_message({agora::MESSAGE_HEADER + "/" + app_id + "/welcome/" + my_client_id, application_description});
 
     // remember, this is a thread, it should terminate only when the
     // MQTT client disconnect, so keep running
     while (true) {
       // receive a new message
-      remote_message_ptr new_incoming_message = remote.recv_message();
+      agora::message_model new_incoming_message;
 
-      if (!new_incoming_message) {
-        return;  // there is no more work available
+      if (!remote->recv_message(new_incoming_message)) {
+        // no more work available
+        logger->info("mARGOt support thread on retirement.");
+        return;
       }
 
-      // get the "topic" of the message
-      const auto start_type_pos = new_incoming_message->topic.find_last_of('/');
-      const std::string message_topic = new_incoming_message->topic.substr(start_type_pos);
+      const auto start_type_pos = new_incoming_message.topic.find_last_of('/');
+      const auto message_type = new_incoming_message.topic.substr(start_type_pos);
 
       // handle the single configurations coming from the server
-      if (message_topic.compare("/explore") == 0) {
+      if (message_type == "/explore") {
+        logger->info("Received a new configuration to explore: ", new_incoming_message.payload);
+
         // build the op
-        const auto ops = get_op(new_incoming_message->payload);
+        const auto ops = get_op(new_incoming_message.payload);
         assert(!ops.empty() && "Error: received an empty Operating Points container");
         assert(!ops.begin()->second.empty() && "Error: received an empty Operating Points container");
 
@@ -945,17 +972,14 @@ class DataAwareAsrtm {
 
         // set the knowledge base for all the data features
         for (auto& asrtm_pair : managers) {
-          asrtm_pair.second.set_sinlgle_point(ops.begin()->second.front());
+          asrtm_pair.second.set_single_point(ops.begin()->second.front());
         }
-      } else if (message_topic.compare("/info") == 0)  // handle the info message
+      }  else if (message_type == "/prediction")  // handle the final model coming from the server
       {
-        remote_message_ptr info_message(
-            new remote_message{{"margot/" + application_name + "/info"}, application_description});
-        remote.send_message(info_message);
-      } else if (message_topic.compare("/model") == 0)  // handle the final model coming from the server
-      {
+        logger->info("Received a new application knowledge to set: ", new_incoming_message.payload);
+
         // get all the Operating Points of the model
-        operating_point_container_type model = get_op(new_incoming_message->payload);
+        operating_point_container_type model = get_op(new_incoming_message.payload);
 
         // get a clone of the actual manager, to avoid to loose any information about the problem
         std::lock_guard<std::mutex> lock(asrtm_mutex);
@@ -963,7 +987,7 @@ class DataAwareAsrtm {
         auto reference_manager = managers.begin()->second.create_sibling();
         managers.clear();  // we need to start from an empty set of input features cluster
 
-        // set the new nowledge
+        // set the new knowledge
         for (auto& model_pair : model) {
           managers.emplace_back(model_pair.first, reference_manager.create_sibling());
           managers.back().second.set_model(model_pair.second);
@@ -972,12 +996,13 @@ class DataAwareAsrtm {
         // set the current manager as the first one, it will be chosen the correct one the next time
         // that we set the current input feature
         active_manager = managers.begin();
-      } else if (message_topic.compare("/welcome") == 0)  // handle the case where a new agora handler appears
+      } else if (message_type == "/welcome")  // handle the case where a new agora handler appears
       {
         // send a welcome message to restore the communication
-        remote_message_ptr welcome_message(
-            new remote_message{{"margot/" + application_name + "/welcome"}, my_client_id});
-        remote.send_message(welcome_message);
+        remote->send_message({agora::MESSAGE_HEADER + "/" + app_id + "/welcome/" + my_client_id, application_description});
+      } else
+      {
+        logger->warning("Uknown message type received. Ignoring it.");
       }
     }
   }
@@ -1010,12 +1035,22 @@ class DataAwareAsrtm {
   /**
    * @brief This is the virtual channel used to communicate with the agora remote application handler
    */
-  margot::VirtualChannel remote;
+  std::shared_ptr<agora::RemoteHandler> remote;
 
   /**
-   * @brief The name of this application
+   * @brief This is the local application handler logger
    */
-  std::string application_name;
+  std::shared_ptr<agora::Logger> logger;
+
+  /**
+   * @brief The identifier of this application
+   */
+  std::string app_id;
+
+  /**
+   * @brief The identifier (pid) of this client
+   */
+  std::string my_client_id;
 };
 
 template <class Asrtm, typename T, FeatureDistanceType distance_type, FeatureComparison... cfs>
