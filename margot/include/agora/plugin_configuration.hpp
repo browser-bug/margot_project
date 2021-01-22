@@ -15,11 +15,11 @@ enum class PluginType { DOE, Model, Cluster, Prediction };
 
 struct PluginConfiguration
 {
-  PluginConfiguration(const application_id &application_id)
-      : app_id(application_id)
-  {}
-  PluginConfiguration(const application_id &application_id, const std::string &metric_name, const int &iteration_number)
-      : app_id(application_id), metric_name(metric_name), iteration_number(iteration_number)
+  PluginConfiguration() {}
+  PluginConfiguration(const std::string &name, const application_id &application_id) : name(name), app_id(application_id) {}
+  PluginConfiguration(const std::string &name, const application_id &application_id, const std::string &metric_name,
+                      const int &iteration_number)
+      : name(name + "_" + metric_name), app_id(application_id), metric_name(metric_name), iteration_number(iteration_number)
   {}
 
   // get the properties list with a environmental file compatible format
@@ -38,7 +38,10 @@ struct PluginConfiguration
   // this map represents a {key,value} sorted list of the configuration file
   std::map<std::string, std::string> properties;
 
-  const application_id app_id;
+  // the plugin configuration file_name
+  std::string name;
+
+  application_id app_id;
 
   // this gets assigned only if we have a configuration for a Model plugin type
   std::string metric_name;

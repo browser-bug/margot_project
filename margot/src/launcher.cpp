@@ -10,7 +10,7 @@ namespace agora {
 namespace fs = std::filesystem;
 
 Launcher::Launcher(const LauncherConfiguration &configuration, const std::string &plugin_name)
-    : config_file_name(configuration.config_file_name), script_file_name(configuration.script_file_name)
+    : script_file_name(configuration.script_file_name)
 {
   ApplicationManager &am = ApplicationManager::get_instance();
   logger = am.get_logger();
@@ -39,15 +39,15 @@ pid_t Launcher::start_plugin(const fs::path &exec_script_path, const fs::path &c
   return plugin_pid;
 }
 
-void Launcher::wait() const
+void Launcher::wait(pid_t plugin_pid) const
 {
   int plugin_return_code = 0;
-  auto rc = waitpid(current_pid, &plugin_return_code, 0);
+  auto rc = waitpid(plugin_pid, &plugin_return_code, 0);
 
   if (rc < 0)
   {
-    logger->warning("Launcher: unable to wait the child \"", current_pid, "\", errno=", errno);
-    throw std::runtime_error("Launcher: unable to wait the child \"" + std::to_string(current_pid) + "\" errno=" + std::to_string(errno));
+    logger->warning("Launcher: unable to wait the child \"", plugin_pid, "\", errno=", errno);
+    throw std::runtime_error("Launcher: unable to wait the child \"" + std::to_string(plugin_pid) + "\" errno=" + std::to_string(errno));
   }
 
   if (plugin_return_code != 0)
@@ -95,7 +95,7 @@ void Launcher::initialize_workspace(const application_id &app_id)
   plugin_working_dir = plugin_destination_path;
 }
 
-void Launcher::set_plugin_configuration(const PluginConfiguration &env_configuration)
+void Launcher::set_plugin_configuration(const PluginConfiguration &env_configuration, const std::filesystem::path &config_path)
 {
   if (!fs::exists(plugin_working_dir))
   {
@@ -105,31 +105,47 @@ void Launcher::set_plugin_configuration(const PluginConfiguration &env_configura
 
   // write the configuration file into the plugin workspace directory
   std::ofstream config_file;
-  config_file.open(get_config_path(), std::ios::out | std::ios::trunc);
+  config_file.open(config_path, std::ios::out | std::ios::trunc);
   config_file << env_configuration.print_properties();
 
   // add the working directory path and the config_file path
   config_file << "WORKING_DIRECTORY=\"" << plugin_working_dir.string() << "\"\n";
-  config_file << "CONFIG_FILE_PATH=\"" << get_config_path().string() << "\"\n";
+  config_file << "CONFIG_FILE_PATH=\"" << config_path.string() << "\"\n";
 
   config_file.close();
 }
 
-void Launcher::launch()
+pid_t Launcher::launch(const PluginConfiguration &env_configuration)
 {
   // get the required paths to launch the plugin
   const auto script_path = get_script_path();
-  const auto config_path = get_config_path();
-  if (!fs::exists(script_path) || !fs::exists(config_path))
+  const auto config_path = get_config_path(env_configuration.name);
+  if (!fs::exists(script_path))
   {
-    logger->warning("Launcher: the plugin sript or the configuration file cannot be found. Have you initiliazed the plugin launcher and "
-                    "set a configuration file first?");
-    throw std::runtime_error("Launcher: the plugin sript or the configuration file cannot be found. Have you initiliazed the plugin "
-                             "launcher and set a configuration file first?");
+    logger->warning("Launcher: the plugin script file cannot be found. Have you initiliazed the plugin launcher?");
+    throw std::runtime_error("Launcher: the plugin script file cannot be found. Have you initiliazed the plugin launcher?");
   }
 
-  // now we launch the plugin and wait for its completition
-  current_pid = start_plugin(script_path, config_path);
+  set_plugin_configuration(env_configuration, config_path);
+  last_env_configuration = env_configuration;
+
+  // now we launch the plugin
+  return start_plugin(script_path, config_path);
+}
+
+pid_t Launcher::launch()
+{
+  logger->info("Launcher: launching using the last configuration set.");
+  const auto script_path = get_script_path();
+  const auto config_path = get_config_path(last_env_configuration.name);
+  if (!fs::exists(config_path))
+  {
+    logger->warning("Launcher: the environmental configuration file cannot be found. Is this the first time you launch this plugin?");
+    throw std::runtime_error("Launcher: the environmental configuration file cannot be found. Is this the first time you launch this plugin?");
+  }
+
+  // now we launch the plugin
+  return start_plugin(script_path, config_path);
 }
 
 } // namespace agora
