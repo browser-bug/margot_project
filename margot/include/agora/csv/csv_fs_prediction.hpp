@@ -28,16 +28,6 @@ public:
     std::filesystem::path p = prediction_dir / app_id.path() / "predictions.csv";
     return p.string();
   }
-  std::string get_models_path(const application_id &app_id) const override
-  {
-    std::filesystem::path p = model_dir / app_id.path();
-    return p.string();
-  }
-  std::string get_model_name(const application_id &app_id, const std::string &metric_name) const override
-  {
-    std::filesystem::path p = model_dir / app_id.path() / std::string(metric_name + "_model.data");
-    return p.string();
-  }
 
   std::string get_type() const override {
     return "csv";
@@ -46,7 +36,6 @@ public:
 private:
   // this path will contain all the stored information
   std::filesystem::path prediction_dir;
-  std::filesystem::path model_dir;
 
   // configuration variables, for handling csv parsing
   const char csv_separator;

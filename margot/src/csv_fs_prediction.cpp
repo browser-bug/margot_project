@@ -20,9 +20,7 @@ CsvPredictionStorage::CsvPredictionStorage(const FsConfiguration& configuation)
     : FsPrediction(configuation), csv_separator(configuation.csv_separator)
 {
   prediction_dir = configuration.csv_storage_root_path / "predictions";
-  model_dir = configuation.csv_storage_root_path / "models";
   fs::create_directories(prediction_dir);
-  fs::create_directories(model_dir);
 
   // add formatting settings to the csv parser
   format.delimiter(csv_separator);
@@ -144,8 +142,6 @@ void CsvPredictionStorage::safe_rm(const fs::path &file_path)
 void CsvPredictionStorage::erase(const application_id &app_id, const margot::heel::block_model &description)
 {
   safe_rm(get_prediction_name(app_id));
-  for (auto &metric : description.metrics)
-    safe_rm(get_model_name(app_id, metric.name));
 }
 
 } // namespace agora
