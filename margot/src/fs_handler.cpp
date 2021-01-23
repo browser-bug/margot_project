@@ -11,6 +11,7 @@ FsHandler::FsHandler(const FsConfiguration &configuration)
   description_fs = FsDescription::get_instance(configuration);
   doe_fs = FsDoe::get_instance(configuration);
   prediction_fs = FsPrediction::get_instance(configuration);
+  model_fs = FsModel::get_instance(configuration);
   observation_fs = FsObservation::get_instance(configuration);
   cluster_fs = FsCluster::get_instance(configuration);
 }
@@ -65,7 +66,7 @@ template <> void FsHandler::create_env_configuration<PluginType::Model>(PluginCo
   pc.properties.insert({"FEATURES_CONTAINER_NAME", description_fs->get_features_name(pc.app_id)});
   pc.properties.insert({"OBSERVATION_CONTAINER_NAME", observation_fs->get_observation_name(pc.app_id)});
 
-  pc.properties.insert({"MODEL_CONTAINER_NAME", prediction_fs->get_model_name(pc.app_id, pc.metric_name)});
+  pc.properties.insert({"MODEL_CONTAINER_NAME", model_fs->get_model_name(pc.app_id, pc.metric_name)});
   pc.properties.insert({"MODEL_PARAMETERS_CONTAINER_NAME", description_fs->get_model_parameters_name(pc.app_id, pc.metric_name)});
 }
 
@@ -90,7 +91,7 @@ template <> void FsHandler::create_env_configuration<PluginType::Prediction>(Plu
   pc.properties.insert({"CLUSTER_CONTAINER_NAME", cluster_fs->get_cluster_name(pc.app_id)});
   pc.properties.insert({"PREDICTIONS_CONTAINER_NAME", prediction_fs->get_prediction_name(pc.app_id)});
 
-  pc.properties.insert({"MODELS_CONTAINER", prediction_fs->get_models_path(pc.app_id)});
+  pc.properties.insert({"MODELS_CONTAINER", model_fs->get_models_path(pc.app_id)});
 }
 
 } // namespace agora

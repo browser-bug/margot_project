@@ -14,10 +14,15 @@ struct FsConfiguration
         observation_type(StorageType::CSV)
   {}
 
-  inline void set_csv_handler_properties(const std::filesystem::path &root_path, const char &separator)
+  void set_csv_handler_properties(const std::filesystem::path &root_path, const char &separator)
   {
     csv_storage_root_path = root_path;
     csv_separator = separator;
+  }
+
+  void set_model_handler_properties(const std::filesystem::path &root_path)
+  {
+    model_storage_root_path = root_path;
   }
 
   StorageType description_type;
@@ -29,6 +34,9 @@ struct FsConfiguration
   // csv handler
   std::filesystem::path csv_storage_root_path;
   char csv_separator;
+
+  // models handler
+  std::filesystem::path model_storage_root_path;
 };
 
 } // namespace agora

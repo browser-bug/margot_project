@@ -10,6 +10,7 @@
 #include "agora/fs_doe.hpp"
 #include "agora/fs_observation.hpp"
 #include "agora/fs_prediction.hpp"
+#include "agora/fs_model.hpp"
 #include "agora/plugin_configuration.hpp"
 
 namespace agora {
@@ -41,10 +42,11 @@ public:
   {
     return prediction_fs->load_prediction(app_id, description);
   }
-  // TODO: change the name to something like "get_model_path", since we're most probably not storing this inside a database
-  inline const std::string get_model_name(const application_id &app_id, const std::string &metric_name) const
+
+  // model fs
+  inline bool is_model_valid(const application_id &app_id, const std::string &metric_name) const
   {
-    return prediction_fs->get_model_name(app_id, metric_name);
+    return model_fs->is_model_valid(app_id, metric_name);
   }
 
   // doe fs
@@ -105,6 +107,7 @@ private:
   std::unique_ptr<FsDescription> description_fs;
   std::unique_ptr<FsDoe> doe_fs;
   std::unique_ptr<FsPrediction> prediction_fs;
+  std::unique_ptr<FsModel> model_fs;
   std::unique_ptr<FsCluster> cluster_fs;
   std::unique_ptr<FsObservation> observation_fs;
 };
