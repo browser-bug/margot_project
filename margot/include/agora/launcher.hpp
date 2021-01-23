@@ -14,9 +14,9 @@ namespace agora {
 class Launcher {
 
 public:
-  static std::shared_ptr<Launcher> get_instance(const LauncherConfiguration &configuration, const std::string& plugin_name)
+  static std::unique_ptr<Launcher> get_instance(const LauncherConfiguration &configuration, const std::string& plugin_name)
   {
-    return std::shared_ptr<Launcher>(new Launcher(configuration, plugin_name));
+    return std::unique_ptr<Launcher>(new Launcher(configuration, plugin_name));
   }
   static void wait(pid_t plugin_pid);
 

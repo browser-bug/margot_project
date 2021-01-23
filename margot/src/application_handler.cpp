@@ -81,7 +81,7 @@ void RemoteApplicationHandler::welcome_client(const client_id_t &cid, const std:
         continue;
       auto model_launcher = Launcher::get_instance(launcher_configuration, metric.prediction_plugin);
       model_launcher->initialize_workspace(app_id);
-      model_launchers.insert({metric.prediction_plugin, model_launcher});
+      model_launchers.insert({metric.prediction_plugin, std::shared_ptr<Launcher>(std::move(model_launcher))});
     }
 
     logger->info(LOG_HEADER, "storing description informations.");
@@ -286,8 +286,7 @@ void RemoteApplicationHandler::process_observation(const client_id_t &cid, const
   bool are_models_valid = true;
   for (const auto &metric : description.metrics)
   {
-    const auto model_path = fs::path(fs_handler->get_model_name(app_id, metric.name));
-    if (!fs::exists(model_path))
+    if (!fs_handler->is_model_valid(app_id, metric.name))
     {
       are_models_valid = false;
       break;
