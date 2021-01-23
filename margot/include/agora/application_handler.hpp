@@ -18,22 +18,23 @@ using configuration_id_t = std::string;
 using client_list_t = std::unordered_set<client_id_t>;
 using configuration_map_t = std::unordered_map<client_id_t, configuration_id_t>;
 
+
 class RemoteApplicationHandler {
 public:
-  enum class ApplicationStatus : uint_fast8_t {
-    CLUELESS,
-    // RECOVERING, TODO: for new we're assuming no cold/hot restarts
-    INFORMATION,
-    WITH_INFORMATION,
-    EXPLORING,
-    BUILDING_DOE,
-    WITH_DOE,
-    BUILDING_CLUSTER,
-    WITH_CLUSTER,
-    BUILDING_MODEL,
-    WITH_MODEL,
-    BUILDING_PREDICTION,
-    WITH_PREDICTION,
+  enum ApplicationStatus {
+    // RECOVERING = (1u << 0), // TODO: for new we're assuming no cold/hot restarts
+    CLUELESS = (1u << 1),
+    INFORMATION = (1u << 2),
+    WITH_INFORMATION = (1u << 3),
+    EXPLORING = (1u << 4),
+    BUILDING_DOE = (1u << 5),
+    WITH_DOE = (1u << 6),
+    BUILDING_CLUSTER = (1u << 7),
+    WITH_CLUSTER = (1u << 8),
+    BUILDING_MODEL = (1u << 9),
+    WITH_MODEL = (1u << 10),
+    BUILDING_PREDICTION = (1u << 11),
+    WITH_PREDICTION = (1u << 12),
   };
 
   RemoteApplicationHandler(const application_id &application_id, const FsConfiguration &fs_config,
@@ -50,7 +51,8 @@ private:
   const std::string LOG_HEADER;
 
   std::mutex app_mutex;
-  ApplicationStatus status;
+  unsigned int status;
+  //ApplicationStatus status;
   int iteration_number;
   int num_configurations_per_iteration;
   int num_configurations_sent_per_iteration;
@@ -90,7 +92,6 @@ private:
         remote->send_message(
             {MESSAGE_HEADER + "/" + app_id.app_name + "^" + app_id.version + "^" + app_id.block_name + "/" + name + "/explore",
              configuration_to_json(configuration->second)});
-
 
         doe.update_config(configuration->first);
 

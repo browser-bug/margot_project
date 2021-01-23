@@ -9,7 +9,6 @@
 
 using namespace agora;
 namespace pt = boost::property_tree;
-namespace fs = std::filesystem;
 
 RemoteApplicationHandler::RemoteApplicationHandler(const application_id &application_id, const FsConfiguration &fs_config,
                                                    const LauncherConfiguration &launcher_config)
@@ -35,7 +34,7 @@ void RemoteApplicationHandler::welcome_client(const client_id_t &cid, const std:
   active_clients.emplace(cid);
 
   // the handler has just been created, so this is the first client that has been received
-  if (status == ApplicationStatus::CLUELESS)
+  if (status & ApplicationStatus::CLUELESS)
   {
     logger->info(LOG_HEADER, "a new application has joined the pool. Retrieving informations.");
 
@@ -90,7 +89,6 @@ void RemoteApplicationHandler::welcome_client(const client_id_t &cid, const std:
     logger->info(LOG_HEADER, "creating required containers into the storage");
     fs_handler->create_observation_table(app_id, description);
 
-
     // start the doe building phase
     status = ApplicationStatus::BUILDING_DOE;
     lock.unlock();
@@ -123,14 +121,14 @@ void RemoteApplicationHandler::welcome_client(const client_id_t &cid, const std:
     }
 
     logger->info(LOG_HEADER, "starting the Design Space Exploration.");
-    status = ApplicationStatus::EXPLORING;
+    status = ApplicationStatus::EXPLORING | ApplicationStatus::WITH_DOE;
 
     // PRINT DOE
-    //for (auto config : doe.required_explorations)
+    // for (auto config : doe.required_explorations)
     //{
-      //std::cout << "Configuration: " << config.first << std::endl;
-      //for (auto value : config.second)
-        //std::cout << value.first << "\t" << value.second << std::endl;
+    // std::cout << "Configuration: " << config.first << std::endl;
+    // for (auto value : config.second)
+    // std::cout << value.first << "\t" << value.second << std::endl;
     //}
 
     // send the available configurations to the active clients
@@ -143,22 +141,29 @@ void RemoteApplicationHandler::welcome_client(const client_id_t &cid, const std:
   }
 
   // we're building the doe so just wait for a configuration to explore
-  if( status == ApplicationStatus::BUILDING_DOE)
+  if (status & ApplicationStatus::BUILDING_DOE)
   {
     logger->info(LOG_HEADER, "building a new DOE, wait for a configuration to explore.");
     return;
   }
 
   // we have already a configuration available and we can start exploring
-  if (status == ApplicationStatus::EXPLORING)
+  if (status & ApplicationStatus::EXPLORING)
   {
     logger->info(LOG_HEADER, "sending a new configuration to explore.");
     send_configuration(cid);
     return;
   }
 
+  // we're building the models and/or the clusters so just wait for more configs to explore or the predictions
+  if (status & ApplicationStatus::BUILDING_MODEL || status & ApplicationStatus::BUILDING_CLUSTER)
+  {
+    logger->info(LOG_HEADER, "building models and/or cluster, wait for the predictions or more configurations to explore.");
+    return;
+  }
+
   // we already have a prediction available and we can share to the new client the application knowledge
-  if (status == ApplicationStatus::WITH_PREDICTION)
+  if (status & ApplicationStatus::WITH_PREDICTION)
   {
     logger->info(LOG_HEADER, "sending the application knowledge to the new client.");
     send_prediction(cid);
@@ -202,17 +207,13 @@ void RemoteApplicationHandler::process_observation(const client_id_t &cid, const
   std::unique_lock<std::mutex> lock(app_mutex);
 
   // if we're not exploring configurations, we're not interested in this message type
-  if (status != ApplicationStatus::EXPLORING)
+  if ((status & ApplicationStatus::EXPLORING) == false)
   {
     logger->warning(LOG_HEADER, "the DSE phase has ended, ignoring the new observation.");
     return;
   }
 
   fs_handler->insert_observation_entry(app_id, cid, duration_sec, duration_ns, op_description.ops.front());
-
-
-
-  // TODO: check if the configuration received is matched with the configurations assigned to the client?
 
   // if we still have some explorations to do we can't continue yet
   if (!doe.required_explorations.empty() && num_configurations_sent_per_iteration <= num_configurations_per_iteration)
@@ -223,10 +224,7 @@ void RemoteApplicationHandler::process_observation(const client_id_t &cid, const
 
   iteration_number++;
   num_configurations_sent_per_iteration = 0;
-  status = ApplicationStatus::BUILDING_MODEL;
-  //// TODO: this is something that will be issued in parallel with respect to the modeling phase, so in the future with the status bitmask
-  /// we / will do something like this status = BUILDING_MODEL | BUILDING_CLUSTER
-  // status = ApplicationStatus::BUILDING_CLUSTER;
+  status = ApplicationStatus::BUILDING_MODEL | ApplicationStatus::BUILDING_CLUSTER;
   lock.unlock();
 
   logger->info(LOG_HEADER, "starting the model phase.");
@@ -247,8 +245,8 @@ void RemoteApplicationHandler::process_observation(const client_id_t &cid, const
   for (const auto &itr : model_configs)
   {
     auto plugin_name = itr.second.first;
-    const auto& plugin_config = itr.second.second;
-    const auto& model_launcher = model_launchers.at(plugin_name);
+    const auto &plugin_config = itr.second.second;
+    const auto &model_launcher = model_launchers.at(plugin_name);
 
     logger->info(LOG_HEADER, "starting the model generation process for the metric [", plugin_config.metric_name, "].");
     pid_t model_pid_t = model_launcher->launch(plugin_config);
@@ -275,8 +273,6 @@ void RemoteApplicationHandler::process_observation(const client_id_t &cid, const
   // wait for the models generation
   for (const auto &pid : model_pids)
   {
-    // TODO: this is ugly.. maybe we shall turn "wait()" into a static function in the future since it doesn't really matter with plugin
-    // launcher we're using to achieve that now.
     Launcher::wait(pid);
   }
 
@@ -296,7 +292,6 @@ void RemoteApplicationHandler::process_observation(const client_id_t &cid, const
   // if everything went fine, we can generate the application knowledge
   if (are_models_valid)
   {
-
     status = ApplicationStatus::WITH_MODEL;
     lock.unlock();
 
@@ -373,11 +368,11 @@ const std::string RemoteApplicationHandler::configuration_to_json(const configur
   for (const auto &knob : description.knobs)
   {
     json_string << "\"" << knob.name << "\":";
-    if(knob.type == "string")
+    if (knob.type == "string")
     {
       json_string << "\"" << configuration.at(knob.name) << "\",";
-    }
-    else{
+    } else
+    {
       json_string << configuration.at(knob.name) << ",";
     }
   }
