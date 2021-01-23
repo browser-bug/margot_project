@@ -33,6 +33,7 @@ struct application_options
 
   fs::path workspace_dir;
   fs::path plugin_dir;
+  fs::path models_dir;
   agora::LogLevel min_log_level;
   fs::path log_file;
   int number_of_threads;
@@ -44,9 +45,11 @@ po::options_description get_options(application_options &app_opts)
 
   po::options_description desc_opts("Required");
   desc_opts.add_options()("help", "Prints usage informations.")("workspace-directory", po::value<string>()->required(),
-                                                                "Where the application stores logs and temporary files.")(
-      "plugin-directory", po::value<string>()->required(),
-      "The directory with all the available plugins that computes the application model.");
+                                                                "Where the application stores logs and temporary files.")
+    ( "plugin-directory", po::value<string>()->required(),
+      "The directory with all the available plugins that computes the application model.")
+    ( "models-directory", po::value<string>()->required(),
+      "The directory that will store all the fitted models produced during evaluation.");
 
   po::options_description storage_opts("Storage settings");
   storage_opts.add_options()("storage-implementation", po::value<string>()->default_value("csv"),
@@ -151,6 +154,7 @@ int main(int argc, char *argv[])
   // converting path strings to fs::path
   app_opts.workspace_dir = fs::path(vm["workspace-directory"].as<string>());
   app_opts.plugin_dir = fs::path(vm["plugin-directory"].as<string>());
+  app_opts.models_dir = fs::path(vm["models-directory"].as<string>());
   if (vm["log-to-file"].as<bool>())
   {
     app_opts.log_file = fs::path(vm["log-file"].as<string>());
@@ -206,6 +210,7 @@ int main(int argc, char *argv[])
 
   agora::FsConfiguration fs_config;
   fs_config.set_csv_handler_properties(app_opts.storage_address, ',');
+  fs_config.set_model_handler_properties(app_opts.models_dir);
   fs_config.cluster_type = app_opts.storage_implementation;
   fs_config.description_type = app_opts.storage_implementation;
   fs_config.prediction_type = app_opts.storage_implementation;
