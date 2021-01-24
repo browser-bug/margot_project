@@ -161,6 +161,8 @@ set( AGORA_LIBRARY_HEADERS
     "${AGORA_HDR_PATH}/agora/csv/csv_fs_observation.hpp"
     "${AGORA_HDR_PATH}/agora/csv/csv_fs_prediction.hpp"
     "${AGORA_HDR_PATH}/agora/csv/csv.hpp"
+    #utils
+    "${AGORA_HDR_PATH}/agora/utils/bitmask.hpp"
 )
 set( MARGOT_SOURCES
 	"${MARGOT_SRC_PATH}/energy_monitor"
@@ -272,9 +274,9 @@ install(TARGETS ${MARGOT_LIBRARY_NAME}
     #PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/margot
 )
 #TODO: this is temporary, so find a better way to install headers
-install( FILES ${MARGOT_HEADERS} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/margot )
+install( DIRECTORY ${MARGOT_HDR_PATH}/margot DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 if ( WITH_AGORA )
-  install( FILES ${AGORA_LIBRARY_HEADERS} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/agora )
+  install( DIRECTORY ${AGORA_HDR_PATH}/agora DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 endif ( WITH_AGORA )
 
 include(CMakePackageConfigHelpers)

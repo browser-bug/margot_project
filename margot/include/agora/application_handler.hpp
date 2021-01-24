@@ -6,6 +6,8 @@
 #include <string>
 #include <unordered_set>
 
+#include "agora/utils/bitmask.hpp"
+
 #include "agora/fs_handler.hpp"
 #include "agora/launcher.hpp"
 #include "agora/logger.hpp"
@@ -16,13 +18,11 @@ namespace agora {
 using client_id_t = std::string;
 using configuration_id_t = std::string;
 using client_list_t = std::unordered_set<client_id_t>;
-using configuration_map_t = std::unordered_map<client_id_t, configuration_id_t>;
-
 
 class RemoteApplicationHandler {
 public:
-  enum ApplicationStatus {
-    // RECOVERING = (1u << 0), // TODO: for new we're assuming no cold/hot restarts
+  enum class ApplicationStatus : uint_fast16_t {
+    RECOVERING = (1u << 0), // TODO: for now we're assuming no cold/hot restarts
     CLUELESS = (1u << 1),
     INFORMATION = (1u << 2),
     WITH_INFORMATION = (1u << 3),
@@ -35,6 +35,8 @@ public:
     WITH_MODEL = (1u << 10),
     BUILDING_PREDICTION = (1u << 11),
     WITH_PREDICTION = (1u << 12),
+
+    _bitmask_max_element = WITH_PREDICTION
   };
 
   RemoteApplicationHandler(const application_id &application_id, const FsConfiguration &fs_config,
@@ -51,8 +53,8 @@ private:
   const std::string LOG_HEADER;
 
   std::mutex app_mutex;
-  unsigned int status;
-  //ApplicationStatus status;
+  //unsigned int status;
+  bitmask::bitmask<ApplicationStatus> status;
   int iteration_number;
   int num_configurations_per_iteration;
   int num_configurations_sent_per_iteration;
@@ -115,6 +117,8 @@ private:
                           prediction_to_json(prediction)});
   }
 };
+
+BITMASK_DEFINE(RemoteApplicationHandler::ApplicationStatus)
 
 } // namespace agora
 
