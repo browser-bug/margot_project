@@ -29,7 +29,7 @@ public:
   virtual std::string get_model_parameters_name(const application_id &app_id, const std::string &metric_name) const = 0;
   virtual std::string get_clustering_parameters_name(const application_id &app_id) const = 0;
 
-  virtual void erase(const application_id &app_id, const margot::heel::block_model &description) = 0;
+  virtual void erase(const application_id &app_id) = 0;
 
   virtual std::string get_type() const = 0;
 

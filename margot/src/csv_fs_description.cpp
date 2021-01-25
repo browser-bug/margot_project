@@ -339,25 +339,13 @@ margot::heel::block_model CsvDescriptionStorage::load_description(const applicat
   return description;
 }
 
-// declare a function to safely remove a file
-void CsvDescriptionStorage::safe_rm(const fs::path &file_path)
+void CsvDescriptionStorage::erase(const application_id &app_id)
 {
   std::error_code ec;
-  fs::remove(file_path, ec);
+  auto path = description_dir / app_id.path();
+  fs::remove_all(path, ec);
   if (ec.value() != 0)
-    logger->warning("Csv manager: unable to remove the file \"", file_path.string(), "\", err: ", ec.message());
-};
-
-void CsvDescriptionStorage::erase(const application_id &app_id, const margot::heel::block_model &description)
-{
-  safe_rm(get_knobs_name(app_id));
-  safe_rm(get_features_name(app_id));
-  safe_rm(get_metrics_name(app_id));
-  safe_rm(get_properties_name(app_id));
-  safe_rm(get_doe_parameters_name(app_id));
-  for (auto &metric : description.metrics)
-    safe_rm(get_model_parameters_name(app_id, metric.name));
-  safe_rm(get_clustering_parameters_name(app_id));
+    logger->warning("Csv manager: unable to remove \"", path.string(), "\", err: ", ec.message());
 }
 
 } // namespace agora

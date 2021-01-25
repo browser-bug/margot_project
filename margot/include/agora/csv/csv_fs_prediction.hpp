@@ -20,7 +20,7 @@ public:
   void store_prediction(const application_id &app_id,const margot::heel::block_model &description, const prediction_model &model) override;
   prediction_model load_prediction(const application_id &app_id,const margot::heel::block_model &description) override;
 
-  void erase(const application_id &app_id, const margot::heel::block_model &description) override;
+  void erase(const application_id &app_id) override;
 
   // the followings get the relative path for each specific table
   std::string get_prediction_name(const application_id &app_id) const override
@@ -40,8 +40,6 @@ private:
   // configuration variables, for handling csv parsing
   const char csv_separator;
   csv::CSVFormat format;
-
-  void safe_rm(const std::filesystem::path &file_path);
 };
 
 } // namespace agora

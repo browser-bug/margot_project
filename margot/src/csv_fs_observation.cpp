@@ -86,18 +86,13 @@ void CsvObservationStorage::insert_observation_entry(const application_id &app_i
   out << "\n";
 }
 
-// declare a function to safely remove a file
-void CsvObservationStorage::safe_rm(const fs::path &file_path)
-{
-  std::error_code ec;
-  fs::remove(file_path, ec);
-  if (ec.value() != 0)
-    logger->warning("Csv manager: unable to remove the file \"", file_path.string(), "\", err: ", ec.message());
-};
-
 void CsvObservationStorage::erase(const application_id &app_id)
 {
-  safe_rm(get_observation_name(app_id));
+  std::error_code ec;
+  auto path = observation_dir / app_id.path();
+  fs::remove_all(path, ec);
+  if (ec.value() != 0)
+    logger->warning("Csv manager: unable to remove \"", path.string(), "\", err: ", ec.message());
 }
 
 } // namespace agora

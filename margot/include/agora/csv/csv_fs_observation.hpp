@@ -39,8 +39,6 @@ private:
   // configuration variables, for handling csv parsing
   const char csv_separator;
   csv::CSVFormat format;
-
-  void safe_rm(const std::filesystem::path &file_path);
 };
 
 } // namespace agora

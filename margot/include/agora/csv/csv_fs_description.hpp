@@ -57,7 +57,7 @@ public:
     return p.string();
   }
 
-  void erase(const application_id &app_id, const margot::heel::block_model &description) override;
+  void erase(const application_id &app_id) override;
 
   // the followings get the relative path for each specific table
 
@@ -70,8 +70,6 @@ private:
   // configuration variables, for handling csv parsing
   const char csv_separator;
   csv::CSVFormat format;
-
-  void safe_rm(const std::filesystem::path &file_path);
 };
 
 } // namespace agora

@@ -88,11 +88,12 @@ public:
     return cluster_fs->load_cluster(app_id, description);
   }
 
-  inline void erase(const application_id &app_id, const margot::heel::block_model &description)
+  inline void erase(const application_id &app_id)
   {
-    description_fs->erase(app_id, description);
+    description_fs->erase(app_id);
     doe_fs->erase(app_id);
-    prediction_fs->erase(app_id, description);
+    prediction_fs->erase(app_id);
+    model_fs->erase(app_id);
     observation_fs->erase(app_id);
     cluster_fs->erase(app_id);
   }

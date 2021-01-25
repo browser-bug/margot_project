@@ -48,8 +48,6 @@ private:
   std::filesystem::path model_dir;
 
   std::shared_ptr<Logger> logger;
-
-  void safe_rm(const std::filesystem::path &file_path);
 };
 
 } // namespace agora

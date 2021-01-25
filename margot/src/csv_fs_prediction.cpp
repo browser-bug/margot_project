@@ -129,19 +129,13 @@ prediction_model CsvPredictionStorage::load_prediction(const application_id &app
   return output_prediction;
 }
 
-
-// declare a function to safely remove a file
-void CsvPredictionStorage::safe_rm(const fs::path &file_path)
+void CsvPredictionStorage::erase(const application_id &app_id)
 {
   std::error_code ec;
-  fs::remove(file_path, ec);
+  auto path = prediction_dir / app_id.path();
+  fs::remove_all(path, ec);
   if (ec.value() != 0)
-    logger->warning("Csv manager: unable to remove the file \"", file_path.string(), "\", err: ", ec.message());
-};
-
-void CsvPredictionStorage::erase(const application_id &app_id, const margot::heel::block_model &description)
-{
-  safe_rm(get_prediction_name(app_id));
+    logger->warning("Csv manager: unable to remove \"", path.string(), "\", err: ", ec.message());
 }
 
 } // namespace agora
