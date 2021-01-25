@@ -32,20 +32,20 @@ public:
     remote = RemoteHandler::get_instance(config);
   }
 
-  inline void set_filesystem_configuration(const FsConfiguration &config) { fs_configuration = config; }
-  inline void set_launcher_configuration(const LauncherConfiguration &config) { launcher_configuration = config; }
+  void set_filesystem_configuration(const FsConfiguration &config) { fs_configuration = config; }
+  void set_launcher_configuration(const LauncherConfiguration &config) { launcher_configuration = config; }
 
-  inline const std::shared_ptr<Logger> get_logger() const
+  const std::shared_ptr<Logger> get_logger() const
   {
     return logger;
   }
 
-  inline const std::shared_ptr<RemoteHandler> get_remote_handler() const
+  const std::shared_ptr<RemoteHandler> get_remote_handler() const
   {
     return remote;
   }
 
-  inline std::shared_ptr<RemoteApplicationHandler> get_application_handler(const application_id &app_handler_id)
+  std::shared_ptr<RemoteApplicationHandler> get_application_handler(const application_id &app_handler_id)
   {
     std::lock_guard<std::mutex> lock(global_mutex);
     auto iterator = apps.find(app_handler_id.str());
@@ -62,7 +62,7 @@ public:
     return iterator->second;
   }
 
-  inline void remove_application_handler(const application_id &app_handler_id)
+  void remove_application_handler(const application_id &app_handler_id)
   {
     std::lock_guard<std::mutex> lock(global_mutex);
     auto iterator = apps.find(app_handler_id.str());
@@ -78,11 +78,12 @@ public:
 
 private:
   ApplicationManager() {}
+
   std::mutex global_mutex;
-  std::unordered_map<std::string, std::shared_ptr<RemoteApplicationHandler>> apps;
 
   std::shared_ptr<Logger> logger;
   std::shared_ptr<RemoteHandler> remote;
+  std::unordered_map<std::string, std::shared_ptr<RemoteApplicationHandler>> apps;
 
   FsConfiguration fs_configuration;
   LauncherConfiguration launcher_configuration;
