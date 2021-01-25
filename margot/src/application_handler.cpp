@@ -24,18 +24,32 @@ RemoteApplicationHandler::RemoteApplicationHandler(const application_id &applica
   // set a general configuration for every type of plugin launcher
   launcher_configuration = launcher_config;
 }
+
 RemoteApplicationHandler::~RemoteApplicationHandler()
 {
   fs_handler->erase(app_id);
 
-  doe_launcher->clear_workspace();
-  prediction_launcher->clear_workspace();
+  if (doe_launcher)
+  {
+    doe_launcher->clear_workspace();
+  }
+  if (prediction_launcher)
+  {
+    prediction_launcher->clear_workspace();
+  }
   if (!description.features.fields.empty())
   {
-    cluster_launcher->clear_workspace();
+    if (cluster_launcher)
+    {
+      cluster_launcher->clear_workspace();
+    }
   }
-  for(const auto& launcher : model_launchers){
-    launcher.second->clear_workspace();
+  for (const auto &launcher : model_launchers)
+  {
+    if (launcher.second)
+    {
+      launcher.second->clear_workspace();
+    }
   }
 }
 
@@ -484,14 +498,15 @@ const std::string RemoteApplicationHandler::prediction_to_json(const prediction_
   return json_string.str();
 }
 
-doe_model RemoteApplicationHandler::build_doe() {
-    logger->info(LOG_HEADER, "creating the doe plugin configuration file.");
-    PluginConfiguration doe_config("plugin_config.env", app_id);
-    fs_handler->create_env_configuration<PluginType::DOE>(doe_config);
+doe_model RemoteApplicationHandler::build_doe()
+{
+  logger->info(LOG_HEADER, "creating the doe plugin configuration file.");
+  PluginConfiguration doe_config("plugin_config.env", app_id);
+  fs_handler->create_env_configuration<PluginType::DOE>(doe_config);
 
-    logger->info(LOG_HEADER, "starting the DOE generation process.");
-    pid_t doe_pid_t = doe_launcher->launch(doe_config);
-    Launcher::wait(doe_pid_t);
+  logger->info(LOG_HEADER, "starting the DOE generation process.");
+  pid_t doe_pid_t = doe_launcher->launch(doe_config);
+  Launcher::wait(doe_pid_t);
 
-    return fs_handler->load_doe(app_id, description);
+  return fs_handler->load_doe(app_id, description);
 }
