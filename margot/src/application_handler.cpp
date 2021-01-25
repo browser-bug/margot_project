@@ -24,6 +24,20 @@ RemoteApplicationHandler::RemoteApplicationHandler(const application_id &applica
   // set a general configuration for every type of plugin launcher
   launcher_configuration = launcher_config;
 }
+RemoteApplicationHandler::~RemoteApplicationHandler()
+{
+  fs_handler->erase(app_id);
+
+  doe_launcher->clear_workspace();
+  prediction_launcher->clear_workspace();
+  if (!description.features.fields.empty())
+  {
+    cluster_launcher->clear_workspace();
+  }
+  for(const auto& launcher : model_launchers){
+    launcher.second->clear_workspace();
+  }
+}
 
 void RemoteApplicationHandler::welcome_client(const client_id_t &cid, const std::string &info)
 {
@@ -31,7 +45,7 @@ void RemoteApplicationHandler::welcome_client(const client_id_t &cid, const std:
   std::unique_lock<std::mutex> lock(app_mutex);
 
   // this is a new client so we register it
-  active_clients.emplace(cid);
+  active_clients.insert(cid);
 
   // the handler has just been created, so this is the first client that has been received
   if (status & ApplicationStatus::CLUELESS)
@@ -58,6 +72,13 @@ void RemoteApplicationHandler::welcome_client(const client_id_t &cid, const std:
       }
     }
 
+    logger->info(LOG_HEADER, "storing description informations.");
+    fs_handler->store_description(app_id, description);
+
+    logger->info(LOG_HEADER, "creating required containers into the storage");
+    fs_handler->create_observation_table(app_id, description);
+
+    logger->info(LOG_HEADER, "creating new plugin launchers");
     // setup the plugin launchers with the information received
     doe_launcher = Launcher::get_instance(launcher_configuration, description.agora.doe_plugin);
     doe_launcher->initialize_workspace(app_id);
@@ -68,7 +89,7 @@ void RemoteApplicationHandler::welcome_client(const client_id_t &cid, const std:
       cluster_launcher->initialize_workspace(app_id);
     }
 
-    // TODO: this is a value that needs to be specified on margot_heel configuration file, for now let's use a default
+    // TODO: "predict" is a value that needs to be specified on margot_heel configuration file, for now let's use a default
     prediction_launcher = Launcher::get_instance(launcher_configuration, "predict");
     prediction_launcher->initialize_workspace(app_id);
 
@@ -83,28 +104,13 @@ void RemoteApplicationHandler::welcome_client(const client_id_t &cid, const std:
       model_launchers.insert({metric.prediction_plugin, std::shared_ptr<Launcher>(std::move(model_launcher))});
     }
 
-    logger->info(LOG_HEADER, "storing description informations.");
-    fs_handler->store_description(app_id, description);
-
-    logger->info(LOG_HEADER, "creating required containers into the storage");
-    fs_handler->create_observation_table(app_id, description);
-
     // start the doe building phase
+    logger->info(LOG_HEADER, "starting the DOE building phase");
     status = ApplicationStatus::BUILDING_DOE;
     lock.unlock();
 
-    // creating the doe plugin configuratin file
-    logger->info(LOG_HEADER, "creating the doe plugin configuration file.");
-    PluginConfiguration doe_config("plugin_config.env", app_id);
-    fs_handler->create_env_configuration<PluginType::DOE>(doe_config);
-
-    // call the doe plugin and wait for its completion
-    logger->info(LOG_HEADER, "starting the DOE generation process.");
-    pid_t doe_pid_t = doe_launcher->launch(doe_config);
-    Launcher::wait(doe_pid_t);
-
     // retrieve the doe informations produced
-    doe = fs_handler->load_doe(app_id, description);
+    doe = build_doe();
 
     // start the DSE phase
     lock.lock();
@@ -156,7 +162,7 @@ void RemoteApplicationHandler::welcome_client(const client_id_t &cid, const std:
   }
 
   // we're building the models and/or the clusters so just wait for more configs to explore or the predictions
-  if (status & ApplicationStatus::BUILDING_MODEL || status & ApplicationStatus::BUILDING_CLUSTER)
+  if (status & (ApplicationStatus::BUILDING_MODEL | ApplicationStatus::BUILDING_CLUSTER))
   {
     logger->info(LOG_HEADER, "building models and/or cluster, wait for the predictions or more configurations to explore.");
     return;
@@ -176,10 +182,18 @@ void RemoteApplicationHandler::bye_client(const client_id_t &cid)
   logger->info(LOG_HEADER, "terminating connection with client \"", cid, "\".");
 
   std::unique_lock<std::mutex> lock(app_mutex);
-
   active_clients.erase(cid);
 
-  // TODO: if it was the last client do things
+  // it was the last client and we can safely clear everything
+  if (active_clients.empty() &&
+      !(status & (ApplicationStatus::BUILDING_CLUSTER | ApplicationStatus::BUILDING_MODEL | ApplicationStatus::BUILDING_DOE |
+                  ApplicationStatus::BUILDING_PREDICTION | ApplicationStatus::RECOVERING)))
+  {
+    logger->info(LOG_HEADER, cid, " was the last client and I'm not busy. Clearing internal data infos.");
+    status = ApplicationStatus::CLUELESS;
+    iteration_number = 0;
+    num_configurations_sent_per_iteration = 0;
+  }
 }
 
 void RemoteApplicationHandler::process_observation(const client_id_t &cid, const long duration_sec, const long duration_ns,
@@ -468,4 +482,16 @@ const std::string RemoteApplicationHandler::prediction_to_json(const prediction_
   json_string << "]}"; // block
 
   return json_string.str();
+}
+
+doe_model RemoteApplicationHandler::build_doe() {
+    logger->info(LOG_HEADER, "creating the doe plugin configuration file.");
+    PluginConfiguration doe_config("plugin_config.env", app_id);
+    fs_handler->create_env_configuration<PluginType::DOE>(doe_config);
+
+    logger->info(LOG_HEADER, "starting the DOE generation process.");
+    pid_t doe_pid_t = doe_launcher->launch(doe_config);
+    Launcher::wait(doe_pid_t);
+
+    return fs_handler->load_doe(app_id, description);
 }

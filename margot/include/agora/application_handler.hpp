@@ -41,6 +41,7 @@ public:
 
   RemoteApplicationHandler(const application_id &application_id, const FsConfiguration &fs_config,
                            const LauncherConfiguration &launcher_config);
+  ~RemoteApplicationHandler();
 
   void welcome_client(const std::string &client_id, const std::string &info);
 
@@ -83,8 +84,11 @@ private:
   const std::string configuration_to_json(const configuration_model &configuration) const;
   const std::string prediction_to_json(const prediction_model &prediction) const;
 
+  // building functions
+  doe_model build_doe();
+
   // send a configuration to the client
-  inline void send_configuration(const client_id_t &name)
+  void send_configuration(const client_id_t &name)
   {
     if (num_configurations_sent_per_iteration <= num_configurations_per_iteration)
     {
@@ -103,7 +107,7 @@ private:
   }
 
   // send the prediction to a specific client
-  inline void send_prediction(const client_id_t &name) const
+  void send_prediction(const client_id_t &name) const
   {
     remote->send_message(
         {MESSAGE_HEADER + "/" + app_id.app_name + "^" + app_id.version + "^" + app_id.block_name + "/" + name + "/prediction",
@@ -111,7 +115,7 @@ private:
   }
 
   // send the prediction to everybody
-  inline void broadcast_prediction() const
+  void broadcast_prediction() const
   {
     remote->send_message({MESSAGE_HEADER + "/" + app_id.app_name + "^" + app_id.version + "^" + app_id.block_name + "/prediction",
                           prediction_to_json(prediction)});
