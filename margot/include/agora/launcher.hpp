@@ -20,8 +20,9 @@ public:
   }
   static void wait(pid_t plugin_pid);
 
-  // create the workspace directory
+  // manage the workspace directory
   void initialize_workspace(const application_id &app_id);
+  void clear_workspace();
 
   // (async) call the plugin launcher with the latest configuration set
   pid_t launch(const PluginConfiguration &env_configuration);

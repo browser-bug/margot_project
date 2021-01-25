@@ -114,6 +114,14 @@ void Launcher::initialize_workspace(const application_id &app_id)
   plugin_working_dir = plugin_destination_path;
 }
 
+void Launcher::clear_workspace()
+{
+  std::error_code ec;
+  fs::remove_all(plugin_working_dir, ec);
+  if (ec.value() != 0)
+    logger->warning("Launcher: unable to remove \"", plugin_working_dir.string(), "\", err: ", ec.message());
+}
+
 pid_t Launcher::launch(const PluginConfiguration &env_configuration)
 {
   // get the required paths to launch the plugin
