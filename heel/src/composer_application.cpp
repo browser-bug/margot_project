@@ -31,7 +31,7 @@ namespace heel {
 void compose(boost::property_tree::ptree& root_node, const application_model& app) {
   // insert the basic information about the application
   root_node.put(tag::name(), app.name);
-  root_node.put(tag::version(), app.name);
+  root_node.put(tag::version(), app.version);
 
   // add the list of blocks
   add_list(root_node, app.blocks, tag::blocks());
