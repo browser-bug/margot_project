@@ -14,61 +14,54 @@ Worker::Worker(const std::string &name) : name(name), finished(false), worker_ti
   remote = am.get_remote_handler();
 }
 
-Worker::~Worker() { stop(); }
+Worker::~Worker()
+{
+  if(!finished)
+  {
+    stop();
+  }
+  if (worker_thd.joinable())
+  {
+    worker_thd.join();
+  }
+}
 
 void Worker::start()
 {
-  std::unique_lock<std::mutex> lock(worker_mutex);
+  std::unique_lock<std::mutex> lock(worker_mtx);
 
   logger->debug("Worker thread [", get_name(), "] is starting.");
 
-  worker_thread = std::thread(&Worker::task, this);
-
-  // since we always exprect all the workers to terminate on agora termination
-  // there's no need to sync on termination and so we can detach.
-  worker_thread.detach();
+  worker_thd = std::thread(&Worker::task, this);
 }
 
 void Worker::stop()
 {
   logger->debug("Thread ", get_tid(), " on retirement.");
 
-  std::unique_lock<std::mutex> lock(worker_mutex);
+  std::unique_lock<std::mutex> lock(worker_mtx);
   if (finished)
   {
     logger->warning("Thread ", get_tid(), "is already terminated.");
     return;
   }
   finished = true;
-
   worker_cv.notify_all();
-
-  assert(get_tid() != 0); // checking that we're not terminating a thread that has not even started
-  ::kill(get_tid(), SIGUSR1);
-
-  logger->debug("Worker thread [", get_name(), "] has terminated succesfully.");
 }
 
 bool Worker::wait()
 {
-  std::unique_lock<std::mutex> lock(worker_mutex);
+  std::unique_lock<std::mutex> lock(worker_mtx);
 
   logger->debug("Waiting on thread ", get_tid());
   worker_cv.wait(lock);
+  logger->debug("Worker thread [", get_name(), "] has terminated succesfully.");
   return !finished;
-}
-
-void Worker::notify()
-{
-  std::unique_lock<std::mutex> lock(worker_mutex);
-
-  logger->debug("Thread ", get_tid(), " notifying.");
-  worker_cv.notify_all();
 }
 
 void Worker::task()
 {
-  set_tid(sys_get_tid());
+  set_tid(syscall(SYS_gettid));
 
   // notify that we are a new thread
   logger->debug("Thread ", get_tid(), " on duty.");
@@ -105,6 +98,8 @@ void Worker::handle_system_message(const std::string &client_id, const std::stri
   switch (resolve_system_command_type(command_type))
   {
   case AgoraSystemCommandType::Shutdown:
+    // send a message to any other alive threads and then terminate
+    remote->send_message({agora::MESSAGE_HEADER + "/system/" + std::to_string(get_tid()), "shutdown"});
     stop();
     break;
   case AgoraSystemCommandType::TestConnection: {
@@ -161,7 +156,7 @@ void Worker::handle_incoming_message(const message_model &new_message)
     logger->pedantic("Thread ", get_tid(), ": connection lost with client \"", client_id, "\" for application \"", app_id.str(),
                      "\". Reason: ", reason);
 
-    //application_handler->bye_client(client_id);
+    application_handler->bye_client(client_id);
     break;
   }
   case AgoraMessageType::Observation: {

@@ -40,7 +40,9 @@ public:
   {
     for (auto &worker : threads)
     {
-      worker->wait();
+      if(worker->is_running()){
+        worker->wait();
+      }
     }
   }
 
