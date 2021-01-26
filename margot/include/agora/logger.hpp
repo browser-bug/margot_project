@@ -21,6 +21,8 @@ class Logger {
 public:
   static std::unique_ptr<Logger> get_instance(const LoggerConfiguration &configuration);
 
+  virtual ~Logger(){};
+
   Logger(Logger const &) = delete;
   void operator=(Logger const &) = delete;
 

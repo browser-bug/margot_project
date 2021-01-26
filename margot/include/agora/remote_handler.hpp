@@ -16,6 +16,8 @@ class RemoteHandler {
 public:
   static std::unique_ptr<RemoteHandler> get_instance(const RemoteConfiguration &configuration);
 
+  virtual ~RemoteHandler() {};
+
   // this class should not be copied or moved around
   RemoteHandler(const RemoteHandler &) = delete;
   RemoteHandler(RemoteHandler &&) = delete;
