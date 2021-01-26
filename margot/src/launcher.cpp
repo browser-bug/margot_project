@@ -106,7 +106,7 @@ void Launcher::initialize_workspace(const application_id &app_id)
   fs::path plugin_destination_path = workspace_path / app_id.path() / plugin_path.filename();
 
   if (fs::exists(plugin_destination_path))
-    logger->warning("Launcher: the pluging working directory already exists.");
+    logger->warning("Launcher: the plugin working directory already exists.");
 
   copy_plugin_directory(plugin_path, plugin_destination_path);
 
@@ -129,8 +129,8 @@ pid_t Launcher::launch(const PluginConfiguration &env_configuration)
   const auto config_path = get_config_path(env_configuration.name);
   if (!fs::exists(script_path))
   {
-    logger->warning("Launcher: the plugin script file cannot be found. Have you initiliazed the plugin launcher?");
-    throw std::runtime_error("Launcher: the plugin script file cannot be found. Have you initiliazed the plugin launcher?");
+    logger->warning("Launcher: the plugin script file [", script_path.string(), "] cannot be found. Have you initiliazed the plugin launcher?");
+    throw std::runtime_error("Launcher: the plugin script file [" + script_path.string() + "] cannot be found. Have you initiliazed the plugin launcher?");
   }
 
   set_plugin_configuration(env_configuration, config_path);
