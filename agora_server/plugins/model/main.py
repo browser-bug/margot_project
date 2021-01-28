@@ -97,7 +97,9 @@ def main():
     #TODO: discard incomplete observations? (e.g. with NA values)
 
     # Label encoding for every knobs/features that are of the "string" type
+    # Save a local copy
     encoders = load("../encoders.joblib")
+    dump(encoders, "encoders.joblib")
     for k_name, k_type in k_types.items():
         if k_type == 'string':
             data[k_name] = encoders[k_name].transform(data[k_name])

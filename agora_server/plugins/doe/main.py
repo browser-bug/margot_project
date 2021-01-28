@@ -117,7 +117,7 @@ def main():
         if limit_query:
             total_configs_df = total_configs_df.query(limit_query)
 
-        # create a LabelEncoder for each knob string type and save it for later use
+        # create a LabelEncoder for each knob string type and save it globally
         encoders = utils.encode_data(total_configs_df, k_types)
         dump(encoders, "../encoders.joblib")
 

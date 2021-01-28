@@ -3,7 +3,7 @@ import sys
 import argparse
 import pandas as pd
 from pathlib import Path
-from joblib import load
+from joblib import dump, load
 from dotenv import load_dotenv
 import uuid
 
@@ -99,7 +99,11 @@ def main():
         del samples_df['centroid_id']
 
     # Label encoding for every knobs that are of the "string" type
+    # Save a local copy and destroy the global one
     encoders = load("../encoders.joblib")
+    Path("../encoders.joblib").unlink(missing_ok=True)
+    dump(encoders, "encoders.joblib")
+
     for k_name, k_type in k_types.items():
         if k_type == 'string':
             samples_df[k_name] = encoders[k_name].transform(samples_df[k_name])
