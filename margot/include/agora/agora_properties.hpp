@@ -94,7 +94,7 @@ struct application_id
   {
     return app_name == rhs.app_name && version == rhs.version && block_name == rhs.block_name;
   }
-  inline std::string str() const { return std::string(app_name + "|" + version + "|" + block_name); }
+  inline std::string str() const { return std::string(app_name + "^" + version + "^" + block_name); }
   inline std::filesystem::path path() const { return std::filesystem::path(app_name) / version / block_name; }
 };
 
