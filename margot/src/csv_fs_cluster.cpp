@@ -57,20 +57,26 @@ cluster_model CsvClusterStorage::load_cluster(const application_id &app_id,const
   // declare the output cluster
   cluster_model output_cluster;
 
-  // open the table of the cluster
-  csv::CSVReader cluster_parser(get_cluster_name(app_id), format);
-
-  // go through each line of cluster
-  for (auto &row : cluster_parser)
+  try
   {
-    const std::string id = row["centroid_id"].get();
+    // open the table of the cluster
+    csv::CSVReader cluster_parser(get_cluster_name(app_id), format);
 
-    centroid_model centroid;
-    for(const auto& feature : description.features.fields)
+    // go through each line of cluster
+    for (auto &row : cluster_parser)
     {
-      centroid.push_back(row[feature.name].get());
+      const std::string id = row["centroid_id"].get();
+
+      centroid_model centroid;
+      for (const auto &feature : description.features.fields)
+      {
+        centroid.push_back(row[feature.name].get());
+      }
+      output_cluster.add_centroid(id, centroid);
     }
-    output_cluster.add_centroid(id, centroid);
+  } catch (const std::exception &e)
+  {
+    logger->warning("Csv cluster: error [", e.what(), "]. Returning an empty cluster.");
   }
 
   return output_cluster;

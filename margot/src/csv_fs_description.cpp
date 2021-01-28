@@ -53,8 +53,8 @@ void CsvDescriptionStorage::store_description(const application_id &app_id, cons
     }
   } else
   {
-    logger->warning("Csv manager: unable to open/create file \"", get_knobs_name(app_id), "\"");
-    throw std::runtime_error("Csv manager: unable to open/create file \"" + get_knobs_name(app_id) + "\"");
+    logger->warning("Csv description: unable to open/create file \"", get_knobs_name(app_id), "\"");
+    throw std::runtime_error("Csv description: unable to open/create file \"" + get_knobs_name(app_id) + "\"");
   }
 
   out.close();
@@ -74,8 +74,8 @@ void CsvDescriptionStorage::store_description(const application_id &app_id, cons
     }
   } else
   {
-    logger->warning("Csv manager: unable to open/create file \"", get_metrics_name(app_id), "\"");
-    throw std::runtime_error("Csv manager: unable to open/create file \"" + get_metrics_name(app_id) + "\"");
+    logger->warning("Csv description: unable to open/create file \"", get_metrics_name(app_id), "\"");
+    throw std::runtime_error("Csv description: unable to open/create file \"" + get_metrics_name(app_id) + "\"");
   }
 
   out.close();
@@ -95,8 +95,8 @@ void CsvDescriptionStorage::store_description(const application_id &app_id, cons
     }
   } else
   {
-    logger->warning("Csv manager: unable to open/create file \"", get_features_name(app_id), "\"");
-    throw std::runtime_error("Csv manager: unable to open/create file \"" + get_features_name(app_id) + "\"");
+    logger->warning("Csv description: unable to open/create file \"", get_features_name(app_id), "\"");
+    throw std::runtime_error("Csv description: unable to open/create file \"" + get_features_name(app_id) + "\"");
   }
 
   out.close();
@@ -117,8 +117,8 @@ void CsvDescriptionStorage::store_description(const application_id &app_id, cons
     out << "max_number_iteration," << description.agora.max_number_iteration << "\n";
   } else
   {
-    logger->warning("Csv manager: unable to open/create file \"", get_properties_name(app_id), "\"");
-    throw std::runtime_error("Csv manager: unable to open/create file \"" + get_properties_name(app_id) + "\"");
+    logger->warning("Csv description: unable to open/create file \"", get_properties_name(app_id), "\"");
+    throw std::runtime_error("Csv description: unable to open/create file \"" + get_properties_name(app_id) + "\"");
   }
 
   out.close();
@@ -139,8 +139,8 @@ void CsvDescriptionStorage::store_description(const application_id &app_id, cons
           out << param.key << ',' << param.value << "\n";
       } else
       {
-        logger->warning("Csv manager: unable to open/create file \"", get_model_parameters_name(app_id, metric.name), "\"");
-        throw std::runtime_error("Csv manager: unable to open/create file \"" + get_model_parameters_name(app_id, metric.name) + "\"");
+        logger->warning("Csv description: unable to open/create file \"", get_model_parameters_name(app_id, metric.name), "\"");
+        throw std::runtime_error("Csv description: unable to open/create file \"" + get_model_parameters_name(app_id, metric.name) + "\"");
       }
       out.close();
     }
@@ -159,8 +159,8 @@ void CsvDescriptionStorage::store_description(const application_id &app_id, cons
       out << param.key << ',' << param.value << "\n";
   } else
   {
-    logger->warning("Csv manager: unable to open/create file \"", get_doe_parameters_name(app_id), "\"");
-    throw std::runtime_error("Csv manager: unable to open/create file \"" + get_doe_parameters_name(app_id) + "\"");
+    logger->warning("Csv description: unable to open/create file \"", get_doe_parameters_name(app_id), "\"");
+    throw std::runtime_error("Csv description: unable to open/create file \"" + get_doe_parameters_name(app_id) + "\"");
   }
 
   out.close();
@@ -178,8 +178,8 @@ void CsvDescriptionStorage::store_description(const application_id &app_id, cons
       out << param.key << ',' << param.value << "\n";
   } else
   {
-    logger->warning("Csv manager: unable to open/create file \"", get_clustering_parameters_name(app_id), "\"");
-    throw std::runtime_error("Csv manager: unable to open/create file \"" + get_clustering_parameters_name(app_id) + "\"");
+    logger->warning("Csv description: unable to open/create file \"", get_clustering_parameters_name(app_id), "\"");
+    throw std::runtime_error("Csv description: unable to open/create file \"" + get_clustering_parameters_name(app_id) + "\"");
   }
 
   out.close();
@@ -191,149 +191,156 @@ margot::heel::block_model CsvDescriptionStorage::load_description(const applicat
   margot::heel::block_model description;
   description.name = app_id.block_name;
 
-  // open the table of the knobs
-  csv::CSVReader knob_parser(get_knobs_name(app_id), format);
-
-  // loop over the lines of the knobs
-  for (auto &row : knob_parser)
+  try
   {
-    // get the knob name and type, prepare the stream for values
-    const std::string knob_name = row["name"].get();
-    const std::string knob_type = row["type"].get();
-    std::stringstream knob_values_stream(row["values"].get());
-    std::vector<std::string> knob_values;
-    std::string knob_value;
+    // open the table of the knobs
+    csv::CSVReader knob_parser(get_knobs_name(app_id), format);
 
-    // parse all the possible values for the stream
-    while (std::getline(knob_values_stream, knob_value, ';'))
+    // loop over the lines of the knobs
+    for (auto &row : knob_parser)
     {
-      knob_values.push_back(knob_value);
+      // get the knob name and type, prepare the stream for values
+      const std::string knob_name = row["name"].get();
+      const std::string knob_type = row["type"].get();
+      std::stringstream knob_values_stream(row["values"].get());
+      std::vector<std::string> knob_values;
+      std::string knob_value;
+
+      // parse all the possible values for the stream
+      while (std::getline(knob_values_stream, knob_value, ';'))
+      {
+        knob_values.push_back(knob_value);
+      }
+
+      // emplace the knob
+      margot::heel::knob_model knob = {knob_name, knob_type, knob_values};
+      description.knobs.push_back(knob);
     }
 
-    // emplace the knob
-    margot::heel::knob_model knob = {knob_name, knob_type, knob_values};
-    description.knobs.push_back(knob);
-  }
+    // open the table of the features
+    csv::CSVReader feature_parser(get_features_name(app_id), format);
 
-  // open the table of the features
-  csv::CSVReader feature_parser(get_features_name(app_id), format);
-
-  // loop over the lines of the features
-  for (auto &row : feature_parser)
-  {
-    // get the feature name and type, prepare the stream for values
-    const std::string feature_name = row["name"].get();
-    const std::string feature_type = row["type"].get();
-
-    // emplace the feature
-    margot::heel::feature_model feature = {feature_name, feature_type};
-    description.features.fields.push_back(feature);
-  }
-
-  // open the table of the metrics
-  csv::CSVReader metric_parser(get_metrics_name(app_id), format);
-
-  // loop over the lines of the knobs
-  for (auto &row : metric_parser)
-  {
-    // get the metric name, type, prediction method and prediction parameters
-    const std::string metric_name = row["name"].get();
-    const std::string metric_type = row["type"].get();
-    const std::string metric_predictor = row["prediction"].get();
-
-    // emplace the metric
-    margot::heel::metric_model metric;
-    metric.name = metric_name;
-    metric.type = metric_type;
-    metric.prediction_plugin = metric_predictor;
-    description.metrics.push_back(metric);
-  }
-
-  // open the table of the doe info
-  csv::CSVReader properties_parser(get_properties_name(app_id), format);
-
-  // loop over the lines of the properties information
-  for (auto &row : properties_parser)
-  {
-    // read the property
-    const std::string property_name = row["property_name"].get();
-    const std::string property_value = row["value"].get();
-
-    // assign the correct value
-    switch (resolve_setting_type(property_name))
+    // loop over the lines of the features
+    for (auto &row : feature_parser)
     {
-    case AgoraSettingType::Number_Config_Per_Iter:
-      description.agora.number_configurations_per_iteration = property_value;
-      break;
-    case AgoraSettingType::Number_Obs_Per_Config:
-      description.agora.number_observations_per_configuration = property_value;
-      break;
-    case AgoraSettingType::Max_Number_Iter:
-      description.agora.max_number_iteration = property_value;
-      break;
-    case AgoraSettingType::Doe_Plugin:
-      description.agora.doe_plugin = property_value;
-      break;
-    case AgoraSettingType::Clustering_Plugin:
-      description.agora.clustering_plugin = property_value;
-      break;
-    // case AgoraProperties::Storage_Type:
-    // description.agora.storage_type = property_value;
-    // break;
-    // case AgoraProperties::Storage_Address:
-    // description.agora.storage_address = property_value;
-    // break;
-    // case AgoraProperties::Storage_Username:
-    // description.agora.storage_username = property_value;
-    // break;
-    // case AgoraProperties::Storage_Password:
-    // description.agora.storage_password = property_value;
-    // break;
-    default:
-      logger->warning("Csv manager: unknown agora property \"", property_name, "\" with value \"", property_value, "\"");
+      // get the feature name and type, prepare the stream for values
+      const std::string feature_name = row["name"].get();
+      const std::string feature_type = row["type"].get();
+
+      // emplace the feature
+      margot::heel::feature_model feature = {feature_name, feature_type};
+      description.features.fields.push_back(feature);
     }
-  }
 
-  // open the table of the model parameters for each metric
-  for (auto &metric : description.metrics)
-  {
-    csv::CSVReader model_parameters_parser(get_model_parameters_name(app_id, metric.name), format);
+    // open the table of the metrics
+    csv::CSVReader metric_parser(get_metrics_name(app_id), format);
 
-    for (auto &row : model_parameters_parser)
+    // loop over the lines of the knobs
+    for (auto &row : metric_parser)
+    {
+      // get the metric name, type, prediction method and prediction parameters
+      const std::string metric_name = row["name"].get();
+      const std::string metric_type = row["type"].get();
+      const std::string metric_predictor = row["prediction"].get();
+
+      // emplace the metric
+      margot::heel::metric_model metric;
+      metric.name = metric_name;
+      metric.type = metric_type;
+      metric.prediction_plugin = metric_predictor;
+      description.metrics.push_back(metric);
+    }
+
+    // open the table of the doe info
+    csv::CSVReader properties_parser(get_properties_name(app_id), format);
+
+    // loop over the lines of the properties information
+    for (auto &row : properties_parser)
+    {
+      // read the property
+      const std::string property_name = row["property_name"].get();
+      const std::string property_value = row["value"].get();
+
+      // assign the correct value
+      switch (resolve_setting_type(property_name))
+      {
+      case AgoraSettingType::Number_Config_Per_Iter:
+        description.agora.number_configurations_per_iteration = property_value;
+        break;
+      case AgoraSettingType::Number_Obs_Per_Config:
+        description.agora.number_observations_per_configuration = property_value;
+        break;
+      case AgoraSettingType::Max_Number_Iter:
+        description.agora.max_number_iteration = property_value;
+        break;
+      case AgoraSettingType::Doe_Plugin:
+        description.agora.doe_plugin = property_value;
+        break;
+      case AgoraSettingType::Clustering_Plugin:
+        description.agora.clustering_plugin = property_value;
+        break;
+      // case AgoraProperties::Storage_Type:
+      // description.agora.storage_type = property_value;
+      // break;
+      // case AgoraProperties::Storage_Address:
+      // description.agora.storage_address = property_value;
+      // break;
+      // case AgoraProperties::Storage_Username:
+      // description.agora.storage_username = property_value;
+      // break;
+      // case AgoraProperties::Storage_Password:
+      // description.agora.storage_password = property_value;
+      // break;
+      default:
+        logger->warning("Csv description: unknown agora property \"", property_name, "\" with value \"", property_value, "\"");
+      }
+    }
+
+    // open the table of the model parameters for each metric
+    for (auto &metric : description.metrics)
+    {
+      csv::CSVReader model_parameters_parser(get_model_parameters_name(app_id, metric.name), format);
+
+      for (auto &row : model_parameters_parser)
+      {
+        // read the parameter
+        margot::heel::pair_property param;
+        param.key = row["parameter_name"].get();
+        param.value = row["value"].get();
+
+        metric.prediction_parameters.push_back(param);
+      }
+    }
+
+    // open the table of the doe parameters
+    csv::CSVReader doe_parameters_parser(get_doe_parameters_name(app_id), format);
+
+    for (auto &row : doe_parameters_parser)
     {
       // read the parameter
       margot::heel::pair_property param;
       param.key = row["parameter_name"].get();
       param.value = row["value"].get();
 
-      metric.prediction_parameters.push_back(param);
+      description.agora.doe_parameters.push_back(param);
     }
-  }
 
-  // open the table of the doe parameters
-  csv::CSVReader doe_parameters_parser(get_doe_parameters_name(app_id), format);
+    // open the table of the clustering parameters
+    csv::CSVReader clustering_parameters_parser(get_clustering_parameters_name(app_id), format);
 
-  for (auto &row : doe_parameters_parser)
+    for (auto &row : clustering_parameters_parser)
+    {
+      // read the parameter
+      margot::heel::pair_property param;
+      param.key = row["parameter_name"].get();
+      param.value = row["value"].get();
+
+      description.agora.clustering_parameters.push_back(param);
+    }
+  } catch (const std::exception &e)
   {
-    // read the parameter
-    margot::heel::pair_property param;
-    param.key = row["parameter_name"].get();
-    param.value = row["value"].get();
-
-    description.agora.doe_parameters.push_back(param);
-  }
-
-  // open the table of the clustering parameters
-  csv::CSVReader clustering_parameters_parser(get_clustering_parameters_name(app_id), format);
-
-  for (auto &row : clustering_parameters_parser)
-  {
-    // read the parameter
-    margot::heel::pair_property param;
-    param.key = row["parameter_name"].get();
-    param.value = row["value"].get();
-
-    description.agora.clustering_parameters.push_back(param);
+    //TODO: this is a bit too general. In the future we could specify this more.
+    logger->warning("Csv description: error [", e.what(), "]. Returning an empty description.");
   }
 
   return description;
@@ -345,7 +352,7 @@ void CsvDescriptionStorage::erase(const application_id &app_id)
   auto path = description_dir / app_id.path();
   fs::remove_all(path, ec);
   if (ec.value() != 0)
-    logger->warning("Csv manager: unable to remove \"", path.string(), "\", err: ", ec.message());
+    logger->warning("Csv description: unable to remove \"", path.string(), "\", err: ", ec.message());
 }
 
 } // namespace agora

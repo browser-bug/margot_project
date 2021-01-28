@@ -62,28 +62,34 @@ doe_model CsvDoeStorage::load_doe(const application_id &app_id, const margot::he
   doe_model output_doe;
 
   // open the table of the doe
-  csv::CSVReader doe_parser(get_doe_name(app_id), format);
-
-  // go through each line of the model
-  for (auto &row : doe_parser)
+  try
   {
-    const std::string id = row["config_id"].get();
-    const int counter = std::stoi(row["counter"].get());
+    csv::CSVReader doe_parser(get_doe_name(app_id), format);
 
-    // insert the configuration only if still required
-    if (counter > 0)
+    // go through each line of the model
+    for (auto &row : doe_parser)
     {
-      configuration_model config;
-      for(const auto& knob : description.knobs)
-      {
-        config.insert({knob.name, row[knob.name].get()});
-      }
+      const std::string id = row["config_id"].get();
+      const int counter = std::stoi(row["counter"].get());
 
-      if (output_doe.add_config(id, config, counter))
+      // insert the configuration only if still required
+      if (counter > 0)
       {
-        logger->warning("CSV Doe: the configuration with ID ", id, " was already present. Replacing it.");
+        configuration_model config;
+        for (const auto &knob : description.knobs)
+        {
+          config.insert({knob.name, row[knob.name].get()});
+        }
+
+        if (output_doe.add_config(id, config, counter))
+        {
+          logger->warning("Csv doe: the configuration with ID ", id, " was already present. Replacing it.");
+        }
       }
     }
+  } catch (const std::exception &e)
+  {
+    logger->warning("Csv doe: error [", e.what(), "]. Returning an empty doe.");
   }
 
   return output_doe;
@@ -124,7 +130,7 @@ void CsvDoeStorage::erase(const application_id& app_id)
   auto path = doe_dir / app_id.path();
   fs::remove_all(path, ec);
   if (ec.value() != 0)
-    logger->warning("Csv manager: unable to remove \"", path.string(), "\", err: ", ec.message());
+    logger->warning("Csv doe: unable to remove \"", path.string(), "\", err: ", ec.message());
 }
 
 } // namespace agora

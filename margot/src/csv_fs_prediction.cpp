@@ -95,34 +95,40 @@ prediction_model CsvPredictionStorage::load_prediction(const application_id &app
   // declare the output prediction
   prediction_model output_prediction;
 
-  // open the table of the prediction
-  csv::CSVReader prediction_parser(get_prediction_name(app_id), format);
-
-  // loop over the lines of the prediction
-  for (auto &row : prediction_parser)
+  try
   {
-    configuration_model config;
-    features_model features;
-    result_model output;
+    // open the table of the prediction
+    csv::CSVReader prediction_parser(get_prediction_name(app_id), format);
 
-    for(const auto& knob : description.knobs)
+    // loop over the lines of the prediction
+    for (auto &row : prediction_parser)
     {
-      config.insert_or_assign(knob.name,row[knob.name].get());
-    }
+      configuration_model config;
+      features_model features;
+      result_model output;
 
-    for(const auto& feature : description.features.fields)
-    {
-      features.insert_or_assign(feature.name, row[feature.name].get());
-    }
+      for (const auto &knob : description.knobs)
+      {
+        config.insert_or_assign(knob.name, row[knob.name].get());
+      }
 
-    for(const auto& metric : description.metrics)
-    {
-      metric_value_model value = {row[metric.name + "_avg"].get(), row[metric.name + "_std"].get()};
-      output.insert_or_assign(metric.name, value);
-    }
+      for (const auto &feature : description.features.fields)
+      {
+        features.insert_or_assign(feature.name, row[feature.name].get());
+      }
 
-    // add the prediction output
-    output_prediction.add_result(row["pred_id"].get(), config, features, output);
+      for (const auto &metric : description.metrics)
+      {
+        metric_value_model value = {row[metric.name + "_avg"].get(), row[metric.name + "_std"].get()};
+        output.insert_or_assign(metric.name, value);
+      }
+
+      // add the prediction output
+      output_prediction.add_result(row["pred_id"].get(), config, features, output);
+    }
+  } catch (const std::exception &e)
+  {
+    logger->warning("Csv prediction: error [", e.what(), "]. Returning an empty prediction.");
   }
 
   // return the model
