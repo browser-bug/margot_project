@@ -1000,6 +1000,10 @@ class DataAwareAsrtm {
       {
         // send a welcome message to restore the communication
         remote->send_message({agora::MESSAGE_HEADER + "/" + app_id + "/welcome/" + my_client_id, application_description});
+      } else if (message_type == "/abort") // handle the case where we have an undefined behaviour and we cannot proceed
+      {
+        //TODO: how to abort the online autotuning session?
+        logger->warning("Undefined behaviour. Aborting the online autotuning procedure.");
       } else
       {
         logger->warning("Uknown message type received. Ignoring it.");
