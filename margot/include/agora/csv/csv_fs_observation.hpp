@@ -35,10 +35,13 @@ public:
 private:
   // this path will contain all the stored information
   std::filesystem::path observation_dir;
+  std::mutex mtx;
 
   // configuration variables, for handling csv parsing
   const char csv_separator;
   csv::CSVFormat format;
+
+  std::string get_header(const application_id &app_id, const margot::heel::block_model &description);
 };
 
 } // namespace agora

@@ -30,60 +30,73 @@ void CsvObservationStorage::create_observation_table(const application_id &app_i
 {
   fs::create_directories(observation_dir / app_id.path());
 
+  std::ostringstream ss;
+  ss << get_header(app_id, description);
+
   // open the file for the obseration table
   std::ofstream out;
+  std::lock_guard<std::mutex> lock(mtx);
   out.open(get_observation_name(app_id), std::ios::out | std::ios::trunc);
-
-  // write the common part of the header
-  out << "sec,nanosec,client_id";
-
-  // write the software knobs
-  for (const auto &knob : description.knobs)
-  {
-    out << ',' << knob.name;
-  }
-
-  // write the input features
-  for (const auto &feature : description.features.fields)
-  {
-    out << ',' << feature.name;
-  }
-
-  // write the metrics
-  for (const auto &metric : description.metrics)
-  {
-    out << ',' << metric.name;
-  }
-
-  out << "\n";
+  out << ss.str();
 }
 
 void CsvObservationStorage::insert_observation_entry(const application_id &app_id, const std::string &client_id,
                                                      const long duration_sec, const long duration_ns,
                                                      const margot::heel::operating_point_model &operating_point)
 {
-  // open the file for the observation table and here we're just appending to avoid the annoying csv entire rewrite
-  std::ofstream out;
-  out.open(get_observation_name(app_id), std::ios::out | std::ios::app);
-
-  out << duration_sec << ',' << duration_ns << ',' << client_id;
+  std::ostringstream ss;
+  ss << duration_sec << ',' << duration_ns << ',' << client_id;
 
   for(const auto &knob : operating_point.knobs)
   {
-    out << ',' << knob.mean;
+    ss << ',' << knob.mean;
   }
 
   for(const auto &feature : operating_point.features)
   {
-    out << ',' << feature.mean;
+    ss << ',' << feature.mean;
   }
 
   for(const auto &metric : operating_point.metrics)
   {
-    out << ',' << metric.mean;
+    ss << ',' << metric.mean;
   }
 
-  out << "\n";
+  ss << "\n";
+
+  // open the file for the observation table and here we're just appending to avoid the annoying csv entire rewrite
+  std::ofstream out;
+  std::lock_guard<std::mutex> lock(mtx);
+  out.open(get_observation_name(app_id), std::ios::out | std::ios::app);
+  out << ss.str();;
+}
+
+std::string CsvObservationStorage::get_header(const application_id &app_id, const margot::heel::block_model &description)
+{
+  std::ostringstream ss;
+
+  // write the common part of the header
+  ss << "sec,nanosec,client_id";
+  // write the software knobs
+  for (const auto &knob : description.knobs)
+  {
+    ss << ',' << knob.name;
+  }
+
+  // write the input features
+  for (const auto &feature : description.features.fields)
+  {
+    ss << ',' << feature.name;
+  }
+
+  // write the metrics
+  for (const auto &metric : description.metrics)
+  {
+    ss << ',' << metric.name;
+  }
+  ss << "\n";
+
+  return ss.str();
 }
 
 void CsvObservationStorage::erase(const application_id &app_id)
