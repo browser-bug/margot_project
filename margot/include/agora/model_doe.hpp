@@ -18,7 +18,7 @@ struct doe_model
 {
   doe_model() {}
   doe_model(const doe_model &other_doe)
-      : required_explorations(other_doe.required_explorations), next(required_explorations.end()),
+      : required_explorations(other_doe.required_explorations), it(required_explorations.end()),
         number_of_explorations(other_doe.number_of_explorations)
   {
   }
@@ -27,7 +27,7 @@ struct doe_model
   {
     required_explorations = ldoe.required_explorations;
     number_of_explorations = ldoe.number_of_explorations;
-    next = required_explorations.end();
+    it = required_explorations.end();
     return *this;
   }
 
@@ -35,7 +35,7 @@ struct doe_model
   {
     bool assignment_took_place = !required_explorations.insert_or_assign(config_id, config).second ||
                                  !number_of_explorations.insert_or_assign(config_id, required_number_of_observations).second;
-    next = required_explorations.end();
+    it = required_explorations.begin();
     return assignment_took_place;
   }
 
@@ -50,26 +50,26 @@ struct doe_model
   {
     required_explorations.erase(config_id);
     number_of_explorations.erase(config_id);
-    next = required_explorations.end();
+    it = required_explorations.begin();
   }
 
   // this method returns the next configuration to explore
   // NOTE: the caller MUST check the iterator returned (it != required_explorations.end()) before dereferencing it
   std::map<std::string, configuration_model>::iterator get_next()
   {
-    // we may have an empty map or one with only a single configuration left
-    if (required_explorations.empty() || next == required_explorations.end())
+    // check if we have an empty map or if we reached the end of it
+    if (required_explorations.empty() || std::next(it) == required_explorations.end())
     {
-      next = required_explorations.begin();
-      return next;
+      it = required_explorations.begin();
+      return it;
     }
 
-    return ++next;
+    return ++it;
   }
 
   // key is the configuration_id
   std::map<std::string, configuration_model> required_explorations;
-  std::map<std::string, configuration_model>::iterator next;
+  std::map<std::string, configuration_model>::iterator it;
   std::map<std::string, int> number_of_explorations;
 };
 
