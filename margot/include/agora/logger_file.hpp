@@ -10,7 +10,7 @@ class FileLogger : public Logger {
 public:
   FileLogger(const LoggerConfiguration &configuration) : Logger(configuration)
   {
-    log_file.open(configuration.log_file, std::ios::out | std::ios::app);
+    log_file.open(configuration.log_file, std::ios::out | std::ios::trunc);
   };
 
   ~FileLogger()

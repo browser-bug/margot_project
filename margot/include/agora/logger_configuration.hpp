@@ -13,10 +13,8 @@ struct LoggerConfiguration
 {
   LoggerConfiguration(LogLevel priority = LogLevel::DEBUG, LoggerType type = LoggerType::Console) : priority(priority), type(type) {}
 
-  inline void set_file_logger_properties(const std::filesystem::path &log_file_path)
+  void set_file_logger_properties(const std::filesystem::path &log_file_path)
   {
-    if (!std::filesystem::exists(log_file_path))
-      throw std::invalid_argument("Logger: log_file path \"" + log_file_path.string() + "\" does not exist");
     log_file = log_file_path;
   }
 
