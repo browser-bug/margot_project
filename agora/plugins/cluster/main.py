@@ -6,7 +6,7 @@ import uuid
 from pathlib import Path
 from dotenv import load_dotenv
 
-from create_cluster import create_cluster
+from cluster import create_cluster
 import utils
 
 __author__ = "Bernardo Menicagli"
@@ -36,10 +36,6 @@ def main():
     os.chdir(plugin_working_dir)
 
     # Accessing env variables
-    app_name = os.getenv('APPLICATION_NAME')
-    block_name = os.getenv('BLOCK_NAME')
-    # version = os.getenv('VERSION')
-
     description_fs_type = os.getenv('DESCRIPTION_FS_TYPE')
     cluster_fs_type = os.getenv('CLUSTER_FS_TYPE')
     observation_fs_type = os.getenv('OBSERVATION_FS_TYPE')
@@ -54,14 +50,6 @@ def main():
     observation_container = os.getenv('OBSERVATION_CONTAINER_NAME')
     cluster_container = os.getenv('CLUSTER_CONTAINER_NAME')
     cluster_parameters_container = os.getenv('CLUSTER_PARAMETERS_CONTAINER_NAME')
-
-    # Printing env variables (debug)
-    # print(app_name)
-    # print(block_name)
-    # print(description_fs_type)
-    # print(cluster_fs_type)
-    # print(cluster_container)
-    # print(cluster_parameters_container)
 
     agora_properties_df = pd.DataFrame()
     features_df = pd.DataFrame()
@@ -82,7 +70,6 @@ def main():
     cluster_params = cluster_params_dict[0] if cluster_params_dict else {}
     agora_properties_dict = agora_properties_df.set_index('property_name').T.to_dict('records')
     agora_properties = agora_properties_dict[0] if agora_properties_dict else {}
-    print(cluster_params)
 
     # Create a dictionary: {feature_name, feature_type}
     f_types = {}

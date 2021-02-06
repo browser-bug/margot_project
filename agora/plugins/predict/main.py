@@ -7,7 +7,7 @@ from joblib import dump, load
 from dotenv import load_dotenv
 import uuid
 
-from create_predictions import create_predictions
+from predict import create_predictions
 
 __author__ = "Bernardo Menicagli"
 __copyright__ = ""
@@ -36,10 +36,6 @@ def main():
     os.chdir(plugin_working_dir)
 
     # Accessing env variables
-    app_name = os.getenv('APPLICATION_NAME')
-    block_name = os.getenv('BLOCK_NAME')
-    # version = os.getenv('VERSION')
-
     description_fs_type = os.getenv('DESCRIPTION_FS_TYPE')
     doe_fs_type = os.getenv('DOE_FS_TYPE')
     cluster_fs_type = os.getenv('CLUSTER_FS_TYPE')
@@ -100,9 +96,14 @@ def main():
 
     # Label encoding for every knobs that are of the "string" type
     # Save a local copy and destroy the global one
-    encoders = load("../encoders.joblib")
-    Path("../encoders.joblib").unlink(missing_ok=True)
-    dump(encoders, "encoders.joblib")
+    encoders_path = Path("encoders.joblib")
+    if not encoders_path.exists():
+        global_encoders_path = Path("../encoders.joblib")
+        encoders = load(global_encoders_path)
+        global_encoders_path.unlink(missing_ok=True)
+        dump(encoders, "encoders.joblib")
+    else:
+        encoders = load(encoders_path)
 
     for k_name, k_type in k_types.items():
         if k_type == 'string':

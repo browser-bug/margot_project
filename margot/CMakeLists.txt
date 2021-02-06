@@ -9,15 +9,13 @@ project( core VERSION 3.0 LANGUAGES CXX)
 #### Add further option to drive the compilation of the mARGOt library
 #########################################################################
 
-option( LIB_STATIC "Build a static version of the mARGOt library" ON)
+option( LIB_STATIC "Build a static version of the mARGOt library" OFF)
 option( GEN_DOC "Generate the mARGOt Doxygen documentation" OFF)
 option( WITH_TEST "Build a test unit application for mARGOt" OFF)
 option( WITH_BENCHMARK "Build a benchmark to evaluate the mARGOt overheads" OFF)
 option( WITH_COLLECTOR_MONITOR "Build the collector monitor" OFF)
 option( WITH_PAPI_MONITOR "Build the PAPI monitor" OFF)
 option( WITH_TEMPERATURE_MONITOR "Build the temperature monitor" OFF)
-option( WITH_AGORA "Build with the agora online autotuning framework" ON)
-
 
 #########################################################################
 #### Look for required external libraries, according to the options
@@ -68,12 +66,6 @@ if ( WITH_TEMPERATURE_MONITOR )
 	set_gentle_hint(SENSORS_ROOT_DIR)
 	find_package( SENSORS REQUIRED)
 endif( WITH_TEMPERATURE_MONITOR )
-if( WITH_AGORA )
-	find_package(eclipse-paho-mqtt-c REQUIRED)
-	find_package(Boost REQUIRED COMPONENTS program_options)
-endif( WITH_AGORA )
-
-
 
 #########################################################################
 #### Define the mARGOt framework target
@@ -83,9 +75,6 @@ endif( WITH_AGORA )
 set( MARGOT_LIBRARY_NAME "margot_core")
 set( MARGOT_HDR_PATH "${CMAKE_CURRENT_SOURCE_DIR}/include" )
 set( MARGOT_SRC_PATH "${CMAKE_CURRENT_SOURCE_DIR}/src")
-set( AGORA_HDR_PATH "${CMAKE_CURRENT_SOURCE_DIR}/include" )
-set( AGORA_SRC_PATH "${CMAKE_CURRENT_SOURCE_DIR}/src")
-
 
 # set the headers and source files of the mARGOt library
 set( MARGOT_HEADERS
@@ -125,45 +114,6 @@ set( MARGOT_HEADERS
 	"${MARGOT_HDR_PATH}/margot/virtual_channel_impl_paho.hpp"
 	"${MARGOT_HDR_PATH}/margot/virtual_channel_interface.hpp"
 	)
-set( AGORA_LIBRARY_HEADERS
-    "${AGORA_HDR_PATH}/agora/application_handler.hpp"
-    "${AGORA_HDR_PATH}/agora/application_manager.hpp"
-    "${AGORA_HDR_PATH}/agora/agora_properties.hpp"
-    "${AGORA_HDR_PATH}/agora/model_message.hpp"
-    "${AGORA_HDR_PATH}/agora/model_doe.hpp"
-    "${AGORA_HDR_PATH}/agora/model_cluster.hpp"
-    "${AGORA_HDR_PATH}/agora/model_prediction.hpp"
-    "${AGORA_HDR_PATH}/agora/logger.hpp"
-    "${AGORA_HDR_PATH}/agora/logger_configuration.hpp"
-    "${AGORA_HDR_PATH}/agora/logger_console.hpp"
-    "${AGORA_HDR_PATH}/agora/logger_file.hpp"
-    "${AGORA_HDR_PATH}/agora/fs_handler.hpp"
-    "${AGORA_HDR_PATH}/agora/fs_configuration.hpp"
-    "${AGORA_HDR_PATH}/agora/fs_description.hpp"
-    "${AGORA_HDR_PATH}/agora/fs_doe.hpp"
-    "${AGORA_HDR_PATH}/agora/fs_prediction.hpp"
-    "${AGORA_HDR_PATH}/agora/fs_model.hpp"
-    "${AGORA_HDR_PATH}/agora/fs_cluster.hpp"
-    "${AGORA_HDR_PATH}/agora/fs_observation.hpp"
-    "${AGORA_HDR_PATH}/agora/launcher.hpp"
-    "${AGORA_HDR_PATH}/agora/launcher_configuration.hpp"
-    "${AGORA_HDR_PATH}/agora/plugin_configuration.hpp"
-    "${AGORA_HDR_PATH}/agora/remote_handler.hpp"
-    "${AGORA_HDR_PATH}/agora/remote_configuration.hpp"
-    "${AGORA_HDR_PATH}/agora/paho_remote_handler.hpp"
-    "${AGORA_HDR_PATH}/agora/safe_queue.hpp"
-    "${AGORA_HDR_PATH}/agora/threadpool.hpp"
-    "${AGORA_HDR_PATH}/agora/worker.hpp"
-    # csv_storage
-    "${AGORA_HDR_PATH}/agora/csv/csv_fs_cluster.hpp"
-    "${AGORA_HDR_PATH}/agora/csv/csv_fs_description.hpp"
-    "${AGORA_HDR_PATH}/agora/csv/csv_fs_doe.hpp"
-    "${AGORA_HDR_PATH}/agora/csv/csv_fs_observation.hpp"
-    "${AGORA_HDR_PATH}/agora/csv/csv_fs_prediction.hpp"
-    "${AGORA_HDR_PATH}/agora/csv/csv.hpp"
-    #utils
-    "${AGORA_HDR_PATH}/agora/utils/bitmask.hpp"
-)
 set( MARGOT_SOURCES
 	"${MARGOT_SRC_PATH}/energy_monitor"
 	"${MARGOT_SRC_PATH}/frequency_monitor"
@@ -176,40 +126,12 @@ set( MARGOT_SOURCES
 	"${MARGOT_SRC_PATH}/time_monitor"
 	"${MARGOT_SRC_PATH}/virtual_channel_impl_paho"
 )
-set( AGORA_LIBRARY_SOURCES
-    "${AGORA_SRC_PATH}/application_handler.cpp"
-    "${AGORA_SRC_PATH}/fs_handler.cpp"
-    "${AGORA_SRC_PATH}/fs_description.cpp"
-    "${AGORA_SRC_PATH}/fs_doe.cpp"
-    "${AGORA_SRC_PATH}/fs_prediction.cpp"
-    "${AGORA_SRC_PATH}/fs_model.cpp"
-    "${AGORA_SRC_PATH}/fs_observation.cpp"
-    "${AGORA_SRC_PATH}/fs_cluster.cpp"
-    "${AGORA_SRC_PATH}/csv_fs_cluster.cpp"
-    "${AGORA_SRC_PATH}/csv_fs_description.cpp"
-    "${AGORA_SRC_PATH}/csv_fs_doe.cpp"
-    "${AGORA_SRC_PATH}/csv_fs_observation.cpp"
-    "${AGORA_SRC_PATH}/csv_fs_prediction.cpp"
-    "${AGORA_SRC_PATH}/logger.cpp"
-    "${AGORA_SRC_PATH}/launcher.cpp"
-    "${AGORA_SRC_PATH}/remote_handler.cpp"
-    "${AGORA_SRC_PATH}/paho_remote_handler.cpp"
-    "${AGORA_SRC_PATH}/worker.cpp"
-)
-
-if ( WITH_AGORA )
-	set( MARGOT_FINAL_HEADERS ${MARGOT_HEADERS} ${AGORA_LIBRARY_HEADERS} )
-	set( MARGOT_FINAL_SOURCES ${MARGOT_SOURCES} ${AGORA_LIBRARY_SOURCES} )
-else ( WITH_AGORA )
-	set( MARGOT_FINAL_HEADERS ${MARGOT_HEADERS} )
-	set( MARGOT_FINAL_SOURCES ${MARGOT_SOURCES} )
-endif ( WITH_AGORA )
 
 # add the target
 if ( LIB_STATIC )
-	add_library( ${MARGOT_LIBRARY_NAME} STATIC ${MARGOT_FINAL_SOURCES} )
+  add_library( ${MARGOT_LIBRARY_NAME} STATIC ${MARGOT_SOURCES} )
 else ( LIB_STATIC )
-	add_library( ${MARGOT_LIBRARY_NAME} SHARED ${MARGOT_FINAL_SOURCES} )
+  add_library( ${MARGOT_LIBRARY_NAME} SHARED ${MARGOT_SOURCES} )
 endif ( LIB_STATIC )
 add_library(margot::${MARGOT_LIBRARY_NAME} ALIAS ${MARGOT_LIBRARY_NAME})
 
@@ -220,7 +142,7 @@ target_include_directories( ${MARGOT_LIBRARY_NAME}
 		$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}> # for clients in install mode
 )
 #TODO: use this if you need to install headers with the include(GNUInstallDirs)
-#set_target_properties(${MARGOT_LIBRARY_NAME} PROPERTIES PUBLIC_HEADER "${MARGOT_FINAL_HEADERS}" )
+set_target_properties(${MARGOT_LIBRARY_NAME} PROPERTIES PUBLIC_HEADER "${MARGOT_HEADERS}" )
 
 # define the linker options
 target_link_libraries(${MARGOT_LIBRARY_NAME} PUBLIC
@@ -240,10 +162,6 @@ endif( WITH_PAPI_MONITOR )
 if ( WITH_TEMPERATURE_MONITOR )
 	target_link_libraries( ${MARGOT_LIBRARY_NAME} PUBLIC Sensors::Sensors )
 endif( WITH_TEMPERATURE_MONITOR )
-if ( WITH_AGORA )
-  target_link_libraries( ${MARGOT_LIBRARY_NAME} PUBLIC ${HEEL_LIBRARY_NAME} eclipse-paho-mqtt-c::paho-mqtt3c )
-endif( WITH_AGORA )
-
 
 
 #########################################################################
@@ -271,13 +189,8 @@ include(GNUInstallDirs)
 install(TARGETS ${MARGOT_LIBRARY_NAME}
 	EXPORT ${MARGOT_LIBRARY_NAME}Targets
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    #PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/margot
+    PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/margot
 )
-#TODO: this is temporary, so find a better way to install headers
-install( DIRECTORY ${MARGOT_HDR_PATH}/margot DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
-if ( WITH_AGORA )
-  install( DIRECTORY ${AGORA_HDR_PATH}/agora DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
-endif ( WITH_AGORA )
 
 include(CMakePackageConfigHelpers)
 write_basic_package_version_file(
@@ -333,6 +246,5 @@ message ( STATUS "Build benchmark application......: ${WITH_BENCHMARK} (CMake op
 message ( STATUS "Generate Doxygen documentation...: ${GEN_DOC} (CMake option GEN_DOC)" )
 message ( STATUS "With PAPI monitors...............: ${WITH_PAPI_MONITOR} (CMake option WITH_PAPI_MONITOR)" )
 message ( STATUS "With temperature monitors........: ${WITH_TEMPERATURE_MONITOR} (CMake option WITH_TEMPERATURE_MONITOR)")
-message ( STATUS "With Agora online autotuner......: ${WITH_AGORA} (CMake option WITH_AGORA)")
 message ( STATUS "//===------------------------===//" )
 message ( STATUS "" )

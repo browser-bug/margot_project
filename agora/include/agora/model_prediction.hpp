@@ -38,7 +38,7 @@ using result_model = std::unordered_map<std::string, metric_value_model>;
 struct prediction_model
 {
   // this method adds a prediction
-  inline bool add_result(const std::string &pred_id, const configuration_model &config, const features_model &feat, const result_model &result)
+  bool add_result(const std::string &pred_id, const configuration_model &config, const features_model &feat, const result_model &result)
   {
     if (!feat.empty())
       return !configurations.insert_or_assign(pred_id, config).second || !features.insert_or_assign(pred_id, feat).second ||
@@ -48,11 +48,17 @@ struct prediction_model
   }
 
   // this method removes a prediction
-  inline void remove_result(const std::string &prediction_id)
+  void remove_result(const std::string &prediction_id)
   {
     configurations.erase(prediction_id);
     features.erase(prediction_id);
     predicted_results.erase(prediction_id);
+  }
+
+  void clear() {
+    configurations.clear();
+    features.clear();
+    predicted_results.clear();
   }
 
   std::unordered_map<std::string, configuration_model> configurations;

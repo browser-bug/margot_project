@@ -34,6 +34,7 @@ struct application_options
   fs::path workspace_dir;
   fs::path plugin_dir;
   fs::path models_dir;
+  agora::LoggerType log_implementation;
   agora::LogLevel min_log_level;
   fs::path log_file;
   int number_of_threads;
@@ -90,13 +91,13 @@ po::options_description get_options(application_options &app_opts)
 }
 
 inline auto resolve_log_level = [](std::string log_level) -> agora::LogLevel {
-  static const std::unordered_map<std::string, agora::LogLevel> log_levels = {
+  static const std::unordered_map<std::string, agora::LogLevel> log_implementations = {
       {"disabled", agora::LogLevel::DISABLED}, {"info", agora::LogLevel::INFO},       {"debug", agora::LogLevel::DEBUG},
       {"pedantic", agora::LogLevel::PEDANTIC}, {"warning", agora::LogLevel::WARNING},
   };
 
-  auto itr = log_levels.find(log_level);
-  if (itr != log_levels.end())
+  auto itr = log_implementations.find(log_level);
+  if (itr != log_implementations.end())
     return itr->second;
   throw std::invalid_argument("Invalid log level \"" + log_level + "\", should be one of [disabled, warning, info, pedantic, debug]");
 };
@@ -155,8 +156,11 @@ int main(int argc, char *argv[])
   app_opts.workspace_dir = fs::path(vm["workspace-directory"].as<string>());
   app_opts.plugin_dir = fs::path(vm["plugin-directory"].as<string>());
   app_opts.models_dir = fs::path(vm["models-directory"].as<string>());
+
+  app_opts.log_implementation = agora::LoggerType::Console;
   if (vm["log-to-file"].as<bool>())
   {
+    app_opts.log_implementation = agora::LoggerType::File;
     app_opts.log_file = fs::path(vm["log-file"].as<string>());
   }
 
@@ -179,7 +183,11 @@ int main(int argc, char *argv[])
   agora::ApplicationManager &app_manager = agora::ApplicationManager::get_instance();
 
   // setup the logger
-  agora::LoggerConfiguration log_config(app_opts.min_log_level);
+  agora::LoggerConfiguration log_config(app_opts.min_log_level, app_opts.log_implementation);
+  if(vm["log-to-file"].as<bool>())
+  {
+    log_config.set_file_logger_properties(app_opts.log_file);
+  }
   app_manager.setup_logger(log_config);
 
   auto logger = app_manager.get_logger();
@@ -226,7 +234,7 @@ int main(int argc, char *argv[])
   app_manager.set_launcher_configuration(launcher_config);
 
   // start the thread pool of worker that manage the plugin_dir
-  logger->info("Agora main: bootstrap step 4: hiring the oompa loompas");
+  logger->info("Agora main: bootstrap step 4: hiring ", app_opts.number_of_threads, " oompa loompas");
   agora::ThreadPool workers(app_opts.number_of_threads);
   workers.start_workers();
 

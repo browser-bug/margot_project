@@ -67,6 +67,12 @@ struct doe_model
     return ++it;
   }
 
+  void clear() {
+    required_explorations.clear();
+    number_of_explorations.clear();
+    it = required_explorations.begin();
+  }
+
   // key is the configuration_id
   std::map<std::string, configuration_model> required_explorations;
   std::map<std::string, configuration_model>::iterator it;

@@ -7,13 +7,10 @@ project( AGORA VERSION 2.0 LANGUAGES CXX)
 #########################################################################
 #### Look for required external libraries
 #########################################################################
-
-#set(THREADS_PREFER_PTHREAD_FLAG ON)
-#find_package(Threads REQUIRED)
-
-#find_package(eclipse-paho-mqtt-c REQUIRED)
-
 find_package(Boost REQUIRED COMPONENTS program_options)
+
+# include standard gnu path (to make sure to have them when needed)
+include(GNUInstallDirs)
 
 #########################################################################
 #### Define the Agora server executable
@@ -37,7 +34,7 @@ add_executable( ${AGORA_BINARY_NAME} ${AGORA_BINARY_SOURCES} ${AGORA_BINARY_HEAD
 add_executable( margot::${AGORA_BINARY_NAME} ALIAS ${AGORA_BINARY_NAME} )
 
 # set the executable dependencies
-target_link_libraries( ${AGORA_BINARY_NAME} PUBLIC margot::margot_core margot::margot_heel Boost::program_options)
+target_link_libraries( ${AGORA_BINARY_NAME} PUBLIC margot::agora_common Boost::program_options)
 
 # set the runtime library path for executing it anywhere
 set_target_properties(${AGORA_BINARY_NAME} PROPERTIES INSTALL_RPATH_USE_LINK_PATH TRUE)
@@ -72,7 +69,7 @@ add_executable( ${AGORA_CLIENT_BINARY_NAME} ${AGORA_CLIENT_BINARY_SOURCES} ${AGO
 add_executable( margot::${AGORA_CLIENT_BINARY_NAME} ALIAS ${AGORA_CLIENT_BINARY_NAME} )
 
 # set the executable dependencies
-target_link_libraries( ${AGORA_CLIENT_BINARY_NAME} PUBLIC margot::margot_core margot::margot_heel Boost::program_options)
+target_link_libraries( ${AGORA_CLIENT_BINARY_NAME} PUBLIC margot::agora_common Boost::program_options)
 
 # set the runtime library path for executing it anywhere
 set_target_properties(${AGORA_CLIENT_BINARY_NAME} PROPERTIES INSTALL_RPATH_USE_LINK_PATH TRUE)
@@ -98,4 +95,17 @@ endif()
 install(TARGETS ${AGORA_BINARY_NAME}
     EXPORT  ${AGORA_BINARY_NAME}Targets
         RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+)
+
+# generate the config files to find the executable
+include(CMakePackageConfigHelpers)
+write_basic_package_version_file(
+  ${AGORA_BINARY_NAME}ConfigVersion.cmake
+    VERSION ${PACKAGE_VERSION}
+    COMPATIBILITY ExactVersion
+)
+install(EXPORT ${AGORA_BINARY_NAME}Targets
+  FILE ${AGORA_BINARY_NAME}Targets.cmake
+    NAMESPACE margot::
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/margot
 )

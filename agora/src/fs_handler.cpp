@@ -23,12 +23,7 @@ void FsHandler::env_configuration_preamble(PluginConfiguration &pc)
 {
   pc.properties.clear();
 
-  // global configration properties
-  pc.properties.insert({"APPLICATION_NAME", pc.app_id.app_name});
-  pc.properties.insert({"BLOCK_NAME", pc.app_id.block_name});
-  // pc.properties.insert({"VERSION", pc.version});
-  pc.properties.insert(
-      {"AGORA_PROPERTIES_CONTAINER_NAME", description_fs->get_properties_name(pc.app_id)});
+  pc.properties.insert({"AGORA_PROPERTIES_CONTAINER_NAME", description_fs->get_properties_name(pc.app_id)});
 
   pc.properties.insert({"DESCRIPTION_FS_TYPE", get_type_identifier(description_fs)});
   pc.properties.insert({"DOE_FS_TYPE", get_type_identifier(doe_fs)});

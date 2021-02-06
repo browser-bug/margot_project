@@ -19,7 +19,7 @@ struct PluginConfiguration
   PluginConfiguration(const std::string &name, const application_id &application_id) : name(name), app_id(application_id) {}
   PluginConfiguration(const std::string &name, const application_id &application_id, const std::string &metric_name,
                       const int &iteration_number)
-      : name(name + "_" + metric_name), app_id(application_id), metric_name(metric_name), iteration_number(iteration_number)
+      : name(metric_name + "_" + name), app_id(application_id), metric_name(metric_name), iteration_number(iteration_number)
   {}
 
   // get the properties list with a environmental file compatible format

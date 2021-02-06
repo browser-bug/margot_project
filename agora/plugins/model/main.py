@@ -6,7 +6,7 @@ from joblib import dump, load
 from dotenv import load_dotenv
 from pathlib import Path
 
-from create_model import create_model
+from model import create_model
 
 __author__ = "Bernardo Menicagli"
 __copyright__ = ""
@@ -35,10 +35,6 @@ def main():
     os.chdir(plugin_working_dir)
 
     # Accessing env variables
-    app_name = os.getenv('APPLICATION_NAME')
-    block_name = os.getenv('BLOCK_NAME')
-    # version = os.getenv('VERSION')
-
     description_fs_type = os.getenv('DESCRIPTION_FS_TYPE')
     observation_fs_type = os.getenv('OBSERVATION_FS_TYPE')
 
@@ -94,12 +90,14 @@ def main():
         print("No training data or target values available, stopping the model plugin.")
         return
 
-    #TODO: discard incomplete observations? (e.g. with NA values)
-
     # Label encoding for every knobs/features that are of the "string" type
     # Save a local copy
-    encoders = load("../encoders.joblib")
-    dump(encoders, "encoders.joblib")
+    encoders_path = Path("encoders.joblib")
+    if not encoders_path.exists():
+        encoders = load("../encoders.joblib")
+        dump(encoders, encoders_path)
+    else:
+        encoders = load(encoders_path)
     for k_name, k_type in k_types.items():
         if k_type == 'string':
             data[k_name] = encoders[k_name].transform(data[k_name])
@@ -108,7 +106,7 @@ def main():
     print("Finding a new model for metric:", metric_name)
     is_good,model = create_model(model_params, data, target)
 
-    if is_good or iteration_number >= int(agora_properties['max_number_iteration']):
+    if is_good or iteration_number > int(agora_properties['max_number_iteration']):
         if is_good:
             print("Model is good! Dumping estimator data on disk.")
         if iteration_number >= int(agora_properties['max_number_iteration']) and not is_good:

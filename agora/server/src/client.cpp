@@ -133,8 +133,8 @@ int main(int argc, char *argv[])
   std::string thread_id = ss.str();
 
   remote->subscribe(agora::MESSAGE_HEADER + "/" + thread_id + "/test");
-  remote->send_message({agora::MESSAGE_HEADER + "/system/" + thread_id, "test@Hello from a local client thread."});
-  //remote->send_message({agora::MESSAGE_HEADER + "/system/" + thread_id, "shutdown"});
+  //remote->send_message({agora::MESSAGE_HEADER + "/system/" + thread_id, "test@Hello from a local client thread."});
+  remote->send_message({agora::MESSAGE_HEADER + "/system/" + thread_id, "shutdown"});
 
   std::chrono::seconds sleep_duration(3);
   while(true)

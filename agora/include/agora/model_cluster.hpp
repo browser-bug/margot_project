@@ -18,13 +18,19 @@ using centroid_model = std::vector<std::string>;
 struct cluster_model
 {
   // this method adds a centroid
-  inline bool add_centroid(const std::string &centroid_id, const centroid_model &centroid)
+  bool add_centroid(const std::string &centroid_id, const centroid_model &centroid)
   {
-    return !centroids.insert_or_assign(centroid_id, centroid).second || !centroids.insert_or_assign(centroid_id, centroid).second;
+    bool assignment_took_place = !centroids.insert_or_assign(centroid_id, centroid).second || !centroids.insert_or_assign(centroid_id, centroid).second;
+    return assignment_took_place;
   }
 
   // this method removes a centroid
-  inline void remove_centroid(const std::string &centroid_id) { centroids.erase(centroid_id); }
+  void remove_centroid(const std::string &centroid_id) { centroids.erase(centroid_id); }
+
+  void clear()
+  {
+    centroids.clear();
+  }
 
   std::unordered_map<std::string, centroid_model> centroids;
 };

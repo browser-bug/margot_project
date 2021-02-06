@@ -4,9 +4,6 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.cluster import KMeans, DBSCAN
 
 def create_cluster(cluster_params, features_matrix):
-    print("Original features matrix")
-    print(features_matrix)
-
     do_preprocessing = int(cluster_params['preprocessing']) if 'preprocessing' in cluster_params.keys() else True
     algorithm = cluster_params['algorithm'] if 'algorithm' in cluster_params.keys() else 'kmeans'
 
@@ -15,7 +12,6 @@ def create_cluster(cluster_params, features_matrix):
     if do_preprocessing:
         print("Scaling features matrix")
         features_matrix = scal.fit_transform(features_matrix)
-        print(features_matrix)
 
     result = np.empty([0,features_matrix.shape[1]])
 

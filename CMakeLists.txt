@@ -35,8 +35,7 @@ set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}")
 # add the two main component of the margot framework
 add_subdirectory( margot )
 add_subdirectory( heel )
-#add_subdirectory( agora )
-add_subdirectory( agora_server )
+add_subdirectory( agora )
 
 #########################################################################
 #### Write a summary with the build information
