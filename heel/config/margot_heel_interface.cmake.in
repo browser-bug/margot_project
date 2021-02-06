@@ -20,10 +20,6 @@ if (NOT TARGET margot::margot_heel_generator)
 	set(margot_heel_generator_DIR "${MARGOT_FINDERS_PATH}")
 	find_package(margot_heel_generator REQUIRED)
 endif (NOT TARGET margot::margot_heel_generator)
-if (NOT TARGET margot::agora_common)
-	set(agora_common_DIR "${MARGOT_FINDERS_PATH}")
-	find_package(agora_common REQUIRED)
-endif (NOT TARGET margot::agora_common)
 
 # and we need also boost for the Operating Points parser. We actually need
 # boost only if we use agora, but at this point we can't tell the content
@@ -80,7 +76,7 @@ target_include_directories( ${MARGOT_HEEL_INTERFACE_NAME}
 set_property(SOURCE ${MARGOT_HI_HEADERS} ${MARGOT_HI_SOURCES} PROPERTY GENERATED  )
 
 # define the linker options
-target_link_libraries(${MARGOT_HEEL_INTERFACE_NAME} PUBLIC Boost::boost Threads::Threads margot::margot_core margot::agora_common)
+target_link_libraries(${MARGOT_HEEL_INTERFACE_NAME} PUBLIC Boost::boost Threads::Threads margot::margot_core )
 
 
 #########################################################################

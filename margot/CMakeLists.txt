@@ -149,8 +149,8 @@ target_link_libraries(${MARGOT_LIBRARY_NAME} PUBLIC
         OpenSSL::SSL
         OpenSSL::Crypto
         Threads::Threads
+        margot::agora_common
 )
-
 
 # also according to the target
 if ( WITH_COLLECTOR_MONITOR )
@@ -162,7 +162,6 @@ endif( WITH_PAPI_MONITOR )
 if ( WITH_TEMPERATURE_MONITOR )
 	target_link_libraries( ${MARGOT_LIBRARY_NAME} PUBLIC Sensors::Sensors )
 endif( WITH_TEMPERATURE_MONITOR )
-
 
 #########################################################################
 #### Setting the compiler options according to the build type
