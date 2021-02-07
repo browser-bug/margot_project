@@ -110,9 +110,6 @@ set( MARGOT_HEADERS
 	"${MARGOT_HDR_PATH}/margot/da_asrtm.hpp"
 	"${MARGOT_HDR_PATH}/margot/debug.hpp"
 	"${MARGOT_HDR_PATH}/margot/data_features.hpp"
-	"${MARGOT_HDR_PATH}/margot/virtual_channel.hpp"
-	"${MARGOT_HDR_PATH}/margot/virtual_channel_impl_paho.hpp"
-	"${MARGOT_HDR_PATH}/margot/virtual_channel_interface.hpp"
 	)
 set( MARGOT_SOURCES
 	"${MARGOT_SRC_PATH}/energy_monitor"
@@ -124,7 +121,6 @@ set( MARGOT_SOURCES
 	"${MARGOT_SRC_PATH}/system_cpu_usage_monitor"
 	"${MARGOT_SRC_PATH}/throughput_monitor"
 	"${MARGOT_SRC_PATH}/time_monitor"
-	"${MARGOT_SRC_PATH}/virtual_channel_impl_paho"
 )
 
 # add the target
@@ -141,7 +137,6 @@ target_include_directories( ${MARGOT_LIBRARY_NAME}
 		$<BUILD_INTERFACE:${MARGOT_HDR_PATH}> # for headers when building
 		$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}> # for clients in install mode
 )
-#TODO: use this if you need to install headers with the include(GNUInstallDirs)
 set_target_properties(${MARGOT_LIBRARY_NAME} PROPERTIES PUBLIC_HEADER "${MARGOT_HEADERS}" )
 
 # define the linker options
