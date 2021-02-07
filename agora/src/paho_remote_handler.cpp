@@ -19,8 +19,6 @@ extern "C" {
 
 int recv_callback_function(void *recv_buffer, char *topic_c_str, int topic_size, MQTTClient_message *message)
 {
-
-  // fix the string if it is broken and convert it to a std::string
   // NOTE: 	The length of the topic if there are one more NULL characters embedded in topicName, otherwise topicLen is 0. If topicLen is
   // 0, the value returned by strlen(topicName) can be trusted. If topicLen is greater than 0, the full topic name can be retrieved by
   // accessing topicName as a byte array of length topicLen.
