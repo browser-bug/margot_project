@@ -142,7 +142,7 @@ void RemoteApplicationHandler::process_observation(const client_id_t &cid, const
   margot::heel::block_model op_description;
   if (!parse_observation(observation_values, op_description))
   {
-    logger->warning(LOG_HEADER, "the operating point received failed to be parsed.");
+    logger->warning(LOG_HEADER, "parsing error, ignoring the new observation.");
     return;
   }
 
@@ -435,12 +435,19 @@ bool RemoteApplicationHandler::parse_observation(const std::string &observation_
   op_description.features.fields = description.features.fields;
   op_description.metrics = description.metrics;
 
-  pt::ptree op_node;
-  std::stringstream op_stream(observation_values);
-  pt::read_json(op_stream, op_node);
-  margot::heel::parse_operating_points(op_description, op_node);
+  try
+  {
+    pt::ptree op_node;
+    std::stringstream op_stream(observation_values);
+    pt::read_json(op_stream, op_node);
+    margot::heel::parse_operating_points(op_description, op_node);
 
-  return !op_description.ops.empty();
+    return !op_description.ops.empty();
+  } catch (const std::exception &e)
+  {
+    logger->warning(LOG_HEADER, "there was a problem parsing the observation -> ", e.what());
+    return false;
+  }
 }
 
 std::string RemoteApplicationHandler::configuration_to_json(const configuration_model &configuration) const
