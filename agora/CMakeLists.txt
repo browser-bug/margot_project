@@ -1,4 +1,4 @@
-# check the minimum version
+#check the minimum version
 cmake_minimum_required( VERSION 3.14 )
 
 # the project name
@@ -98,8 +98,6 @@ target_include_directories( ${AGORA_LIBRARY_NAME}
 		$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}> # for clients in install mode
 )
 
-set_target_properties( ${AGORA_LIBRARY_NAME} PROPERTIES PUBLIC_HEADER "${AGORA_LIBRARY_HEADERS}" )
-
 # set the executable dependencies
 target_link_libraries( ${AGORA_LIBRARY_NAME} PUBLIC margot::margot_heel Threads::Threads eclipse-paho-mqtt-c::paho-mqtt3c Boost::headers)
 
@@ -127,9 +125,8 @@ install(TARGETS ${AGORA_LIBRARY_NAME}
   EXPORT ${AGORA_LIBRARY_NAME}Targets
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
         ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-        INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/agora
-        PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/agora
 )
+install(DIRECTORY ${AGORA_HDR_PATH}/agora DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
 # generate the config files to find the library and the executable
 include(CMakePackageConfigHelpers)
