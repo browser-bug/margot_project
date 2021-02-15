@@ -112,9 +112,10 @@ void RemoteApplicationHandler::welcome_client(const client_id_t &cid, const std:
 
 void RemoteApplicationHandler::bye_client(const client_id_t &cid)
 {
+  std::unique_lock<std::mutex> lock(app_mutex);
+
   logger->info(LOG_HEADER, "terminating connection with client \"", cid, "\".");
 
-  std::unique_lock<std::mutex> lock(app_mutex);
   remove_client(cid);
   if (active_clients.empty())
   {
@@ -177,6 +178,7 @@ void RemoteApplicationHandler::process_observation(const client_id_t &cid, const
   {
     Launcher::wait(pid);
   }
+  lock.lock();
 
   // check the data produced
   if (are_models_valid())
@@ -199,7 +201,9 @@ void RemoteApplicationHandler::process_observation(const client_id_t &cid, const
     // launch the prediction plugin
     logger->info(LOG_HEADER, "starting the prediction phase.");
     pid_t prediction_pid = start_prediction();
+    lock.unlock();
     Launcher::wait(prediction_pid);
+    lock.lock();
     prediction = fs_handler->load_prediction(app_id, description);
 
     if (is_prediction_valid())
@@ -221,17 +225,19 @@ void RemoteApplicationHandler::process_observation(const client_id_t &cid, const
     // call the doe plugin (with the last configuration used) and wait for its completion
     logger->info(LOG_HEADER, "starting the DOE generation process once again.");
     pid_t doe_pid_t = start_doe();
+    lock.unlock();
     Launcher::wait(doe_pid_t);
+    lock.lock();
     doe = fs_handler->load_doe(app_id, description);
+    if (!is_doe_valid())
+    {
+      logger->warning(LOG_HEADER, "no configuration to explore.");
+      set_state(InternalStatus::UNDEFINED);
+      return;
+    }
   }
 
   // start the DSE phase
-  if (!is_doe_valid())
-  {
-    logger->warning(LOG_HEADER, "no configuration to explore.");
-    set_state(InternalStatus::UNDEFINED);
-    return;
-  }
   set_state(InternalStatus::WITH_DOE | InternalStatus::EXPLORING);
 
   logger->info(LOG_HEADER, "starting the Design Space Exploration.");
@@ -406,37 +412,42 @@ pid_t RemoteApplicationHandler::start_prediction()
 
 bool RemoteApplicationHandler::parse_informations(const std::string &info, margot::heel::block_model& description)
 {
-  logger->info(LOG_HEADER, "parsing new app informations.");
-
-  margot::heel::application_model app_description;
-  pt::ptree app_description_node;
-  std::stringstream info_stream(info);
-  pt::read_json(info_stream, app_description_node);
-  margot::heel::parse(app_description, app_description_node);
-
-  // store informations into the relative block description object
-  auto block_itr = std::find_if(app_description.blocks.begin(), app_description.blocks.end(), [&](const auto &block) {
-    return (app_description.name == app_id.app_name && app_description.version == app_id.version && block.name == app_id.block_name);
-  });
-  if (block_itr == app_description.blocks.end())
+  try
   {
+    margot::heel::application_model app_description;
+    pt::ptree app_description_node;
+    std::stringstream info_stream(info);
+    pt::read_json(info_stream, app_description_node);
+    margot::heel::parse(app_description, app_description_node);
+
+    // store informations into the relative block description object
+    auto block_itr = std::find_if(app_description.blocks.begin(), app_description.blocks.end(), [&](const auto &block) {
+      return (app_description.name == app_id.app_name && app_description.version == app_id.version && block.name == app_id.block_name);
+    });
+    if (block_itr != app_description.blocks.end())
+    {
+      description = *block_itr;
+      const_cast<int &>(num_configurations_per_iteration) = std::stoi(description.agora.number_configurations_per_iteration);
+      set_state(InternalStatus::WITH_INFORMATION);
+      return true;
+    }
+    return false;
+  } catch (const std::exception &e)
+  {
+    logger->warning(LOG_HEADER, "there was a problem parsing the information -> ", e.what());
     return false;
   }
-  description = *block_itr;
-  const_cast<int&>(num_configurations_per_iteration) = std::stoi(description.agora.number_configurations_per_iteration);
-  set_state(InternalStatus::WITH_INFORMATION);
-  return true;
 }
 
 bool RemoteApplicationHandler::parse_observation(const std::string &observation_values, margot::heel::block_model &op_description)
 {
-  op_description.name = description.name;
-  op_description.knobs = description.knobs;
-  op_description.features.fields = description.features.fields;
-  op_description.metrics = description.metrics;
-
   try
   {
+    op_description.name = description.name;
+    op_description.knobs = description.knobs;
+    op_description.features.fields = description.features.fields;
+    op_description.metrics = description.metrics;
+
     pt::ptree op_node;
     std::stringstream op_stream(observation_values);
     pt::read_json(op_stream, op_node);

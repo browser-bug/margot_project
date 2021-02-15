@@ -59,13 +59,7 @@ private:
   bitmask::bitmask<InternalStatus> handler_status;
   void set_state(bitmask::bitmask<InternalStatus> state, bool clear = true)
   {
-    if (clear)
-    {
-      handler_status = state;
-    }
-    else {
-      handler_status |= state;
-    }
+    handler_status = clear ? state : (handler_status | state);
   }
   void unset_state(bitmask::bitmask<InternalStatus> state) {
     handler_status &= ~state;
@@ -166,13 +160,6 @@ private:
   }
   bool send_configuration(const client_id_t &cid)
   {
-    // print available configurations
-    //for (auto configuration : doe.required_explorations)
-    //{
-      //std::cout << configuration.first << "\t";
-      //for (auto value : configuration.second)
-        //std::cout << value.first << "\t" << value.second << "\t" << doe.number_of_explorations.at(configuration.first) << std::endl;
-    //}
     auto configuration = doe.get_next();
     if (configuration != doe.required_explorations.end())
     {
