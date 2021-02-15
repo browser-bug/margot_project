@@ -15,7 +15,7 @@ The repository is organized as follow:
 ├── doc/        -> The mARGOt user manuals
 ├── heel/       -> mARGOt heel source files (lib + exe)
 ├── margot/     -> the autotuner source files
-└── scripts/    -> helper scripts to download dependecies
+└── agora/      -> AGORA online learning module source files (lib + exe)
 ```
 
 ### Compiling instructions
@@ -28,11 +28,11 @@ $ cmake -DCMAKE_INSTALL_PREFIX:PATH=<path> ..
 $ make
 $ make install
 ~~~
-The mARGOt autotuning framework is written in C++11. However, it requires the Paho MQTT C client to enable the online learning of the application knowledge.
-The mARGOt heel libraries and executables requires C++17 for the std::filesystem features, and boost::program_options. We recommend the user to provide these libraries. However, we provide some scripts that automatize the building of OpenSSL and MQTT.
+The mARGOt autotuning framework is written in C++11. However, it requires the Paho MQTT C client to enable the online learning of the application knowledge (Agora).
+The mARGOt heel libraries and executables requires C++17 for the std::filesystem features, and boost::program_options. We recommend the user to provide these libraries.
 The framework itself is platform-agnostic. However, several monitors parse the /proc metafiles, assuming a unix-like environment.
 
-NOTE: if no install prefix is specified, we set the default value to the current directory.
+NOTE: if no install prefix is specified, we set the default value to the current project directory.
 
 
 
