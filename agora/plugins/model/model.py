@@ -11,7 +11,7 @@ def create_model(model_params, data, target):
     print(model_params)
     algorithm = model_params['algorithm'] if 'algorithm' in model_params.keys() else 'linear'
     hyper_parameters = json.loads(model_params['hyper_parameters'].replace("'", "\"")) if 'hyper_parameters' in model_params.keys() else ''
-    scoring_thresholds = json.loads(model_params['quality_threshold'].replace("'", "\"")) if 'quality_threshold' in model_params.keys() else {'r2':0.5, 'explained_variance':0.5, 'neg_mean_absolute_error':-0.2}
+    scoring_thresholds = json.loads(model_params['quality_threshold'].replace("'", "\"")) if 'quality_threshold' in model_params.keys() else {'r2':0.7, 'explained_variance':0.7, 'neg_mean_absolute_error':-0.2}
 
     # create the estimator based on the algorithm
     estimator = RegressorMixin()
