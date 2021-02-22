@@ -20,8 +20,8 @@ def create_model(model_params, data, target):
         estimator = LinearRegression()
     elif algorithm == 'ridge':
         print("Using a Ridge regression estimator")
-        alpha = model_params['alpha'] if 'alpha' in model_params.keys() else 1.0
-        solver = model_params['solver'] if 'solver' in model_params.keys() else 'auto'
+        alpha = float(hyper_parameters['alpha']) if 'alpha' in hyper_parameters.keys() else 1.0
+        solver = hyper_parameters['solver'] if 'solver' in hyper_parameters.keys() else 'auto'
         estimator = Ridge(alpha=alpha,solver=solver)
     else:
         print("Unknown estimator name, returning empty object.")
