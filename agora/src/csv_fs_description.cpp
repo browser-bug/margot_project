@@ -135,8 +135,9 @@ void CsvDescriptionStorage::store_description(const application_id &app_id, cons
         out << "parameter_name,value\n";
 
         // print the values
+        // NOTE: since we're potentially injecting python dictonary format values, we need to escape the content with double quotes
         for (const auto &param : metric.prediction_parameters)
-          out << param.key << ',' << param.value << "\n";
+          out << param.key << ',' << "\"" << param.value << "\"" << "\n";
       } else
       {
         logger->warning("Csv description: unable to open/create file \"", get_model_parameters_name(app_id, metric.name), "\"");
@@ -155,8 +156,10 @@ void CsvDescriptionStorage::store_description(const application_id &app_id, cons
     out << "parameter_name,value\n";
 
     // print the values
+    // NOTE: since we're potentially injecting python dictonary format values, we need to escape the content with double quotes
     for (const auto &param : description.agora.doe_parameters)
-      out << param.key << ',' << param.value << "\n";
+      out << param.key << ',' << "\"" << param.value << "\""
+          << "\n";
   } else
   {
     logger->warning("Csv description: unable to open/create file \"", get_doe_parameters_name(app_id), "\"");
@@ -174,8 +177,10 @@ void CsvDescriptionStorage::store_description(const application_id &app_id, cons
     out << "parameter_name,value\n";
 
     // print the values
+    // NOTE: since we're potentially injecting python dictonary format values, we need to escape the content with double quotes
     for (const auto &param : description.agora.clustering_parameters)
-      out << param.key << ',' << param.value << "\n";
+      out << param.key << ',' << "\"" << param.value << "\""
+          << "\n";
   } else
   {
     logger->warning("Csv description: unable to open/create file \"", get_clustering_parameters_name(app_id), "\"");
