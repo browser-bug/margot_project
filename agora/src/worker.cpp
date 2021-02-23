@@ -106,7 +106,7 @@ void Worker::handle_system_message(const std::string &client_id, const std::stri
     const auto client_msg = (command_msg_tokens.size() == 2) ? command_msg_tokens.at(1) : "";
 
     logger->info("TestConnection: server just received a new message {", client_msg, "} from client [", client_id, "].");
-    remote->send_message({MESSAGE_HEADER + "/" + client_id + "/test", "Hello from server " + client_id});
+    remote->send_message({agora::MESSAGE_HEADER + "/" + client_id + "/test", "Hello from server " + client_id});
     break;
   }
   case AgoraSystemCommandType::Invalid_Command:
