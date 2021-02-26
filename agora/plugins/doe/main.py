@@ -121,6 +121,7 @@ def main():
         doe_df.to_csv(doe_container, index=False)
 
     print("A new DOE has been created.")
+    print(doe_df)
 
 if __name__ == '__main__':
     main()

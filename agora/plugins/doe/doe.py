@@ -36,7 +36,6 @@ def create_doe(agora_properties, doe_params, k_values):
     else:
         print("Uknown doe algorithm, returning an empty doe")
 
-    print(df)
     return df
 
 def create_total_configuration_table(k_values):
