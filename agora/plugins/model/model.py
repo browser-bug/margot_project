@@ -3,6 +3,8 @@ import numpy as np
 from sklearn.base import RegressorMixin
 from sklearn.linear_model import LinearRegression, Ridge
 from sklearn.model_selection import cross_validate, cross_val_score, KFold, LeavePOut
+from sklearn.preprocessing import PolynomialFeatures
+from sklearn.pipeline import Pipeline
 
 # testing
 from sklearn.datasets import make_regression
@@ -10,19 +12,19 @@ from sklearn.datasets import make_regression
 def create_model(model_params, data, target):
     print(model_params)
     algorithm = model_params['algorithm'] if 'algorithm' in model_params.keys() else 'linear'
-    hyper_parameters = json.loads(model_params['hyper_parameters'].replace("'", "\"")) if 'hyper_parameters' in model_params.keys() else ''
+    hyper_parameters = json.loads(model_params['hyper_parameters'].replace("'", "\"")) if 'hyper_parameters' in model_params.keys() else {}
     scoring_thresholds = json.loads(model_params['quality_threshold'].replace("'", "\"")) if 'quality_threshold' in model_params.keys() else {'r2':0.7, 'explained_variance':0.7, 'neg_mean_absolute_error':-0.2}
 
     # create the estimator based on the algorithm
     estimator = RegressorMixin()
     if algorithm == 'linear':
         print("Using an ordinary least squares linear regression estimator")
-        estimator = LinearRegression()
+        estimator = Pipeline([('poly', PolynomialFeatures(degree=5)), ('linear', LinearRegression())])
     elif algorithm == 'ridge':
         print("Using a Ridge regression estimator")
         alpha = float(hyper_parameters['alpha']) if 'alpha' in hyper_parameters.keys() else 1.0
         solver = hyper_parameters['solver'] if 'solver' in hyper_parameters.keys() else 'auto'
-        estimator = Ridge(alpha=alpha,solver=solver)
+        estimator = Pipeline([('poly', PolynomialFeatures(degree=5)), ('linear', Ridge(alpha=alpha,solver=solver))])
     else:
         print("Unknown estimator name, returning empty object.")
         return False, estimator
