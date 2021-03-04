@@ -104,14 +104,13 @@ def main():
 
     # Create the Model
     print("Finding a new model for metric:", metric_name)
-    is_good,model = create_model(model_params, data, target)
+    is_good,model = create_model(metric_name, iteration_number, model_params, data, target)
 
     if is_good or iteration_number > int(agora_properties['max_number_iteration']):
         if is_good:
             print("Model is good! Dumping estimator data on disk.")
         if iteration_number >= int(agora_properties['max_number_iteration']) and not is_good:
             print("Max. number of iterations reached. Using the best model I've found. Dumping estimator data on disk.")
-        model.fit(data, target)
         output_dir = Path(model_container).parent
         if not output_dir.exists():
             output_dir.mkdir(parents=True, exist_ok=True)
