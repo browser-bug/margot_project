@@ -4,7 +4,7 @@ import pandas as pd
 import numpy as np
 from pathlib import Path
 
-def store_stats(metric_name, num_iteration, cv_results, data, target):
+def store_stats(metric_name, num_iteration, cv_results, scores, data, target):
     def split_all(path):
         allparts = []
         while True:
@@ -33,18 +33,24 @@ def store_stats(metric_name, num_iteration, cv_results, data, target):
     data.to_csv(data_path, index=False)
     target.to_csv(target_path, index=False)
 
-    # add the stats row to the stats file
+    # compute the header of the file
     model_stats_path = stats_directory / f"model_{metric_name}_stats.csv"
     if model_stats_path.exists():
         model_stats_df = pd.read_csv(model_stats_path)
     else:
-        model_stats_df = pd.DataFrame(columns=['timestamp','nr_iter','nr_configs','r2_mean','mae_mean','r2_full','mae_full'])
+        header = ['timestamp','nr_iter','nr_configs']
+        for score in scores:
+            header.append(f"{score}_mean")
+            header.append(f"{score}_full")
+        model_stats_df = pd.DataFrame(columns=header)
 
-    nr_configs = len(data)
-    r2_full = ";".join(str(v) for v in cv_results['test_r2'])
-    r2_mean = np.mean(cv_results['test_r2'])
-    mae_full = ";".join(str(v) for v in cv_results['test_neg_mean_absolute_error'])
-    mae_mean = np.mean(cv_results['test_neg_mean_absolute_error'])
+    # add the stats row to the stats file
+    row = [time.time(), num_iteration, len(data)]
+    for score in scores:
+        mean = np.mean(cv_results[f"test_{score}"])
+        full = ";".join(str(v) for v in cv_results[f"test_{score}"])
+        row.append(mean)
+        row.append(full)
 
-    model_stats_df = model_stats_df.append(pd.Series([time.time(), num_iteration, nr_configs, r2_mean, mae_mean, r2_full, mae_full], index=model_stats_df.columns), ignore_index=True)
+    model_stats_df = model_stats_df.append(pd.Series(row, index=model_stats_df.columns), ignore_index=True)
     model_stats_df.to_csv(model_stats_path, index=False)

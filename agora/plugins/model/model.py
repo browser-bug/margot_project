@@ -60,7 +60,7 @@ def create_model(metric_name, num_iterations, model_params, data, target):
     print(cv_results)
 
     # store statistics on file
-    store_stats(metric_name, num_iterations, cv_results, data, target)
+    store_stats(metric_name, num_iterations, cv_results, scores_list, data, target)
 
     # check if the score thresholds are verified
     best_estimator = [0] * num_cv_folds
