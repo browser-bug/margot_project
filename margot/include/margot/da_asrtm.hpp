@@ -840,6 +840,23 @@ class DataAwareAsrtm {
     remote->send_message({agora::MESSAGE_HEADER + "/" + app_id + "/observation/" + my_client_id, observation_msg});
   }
 
+  inline void send_delta(const std::string &message)
+  {
+    std::lock_guard<std::mutex> lock(asrtm_mutex);
+
+    // get the timestamp of now
+    auto now = std::chrono::system_clock::now();
+
+    // convert the measure in seconds since epoch and
+    // nanosec since second
+    const auto sec_since_now = std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch());
+    const auto almost_epoch = now - sec_since_now;
+    const auto ns_since_sec = std::chrono::duration_cast<std::chrono::nanoseconds>(almost_epoch.time_since_epoch());
+
+    logger->info("Sending delta with payload: ", message);
+    remote->send_message({agora::MESSAGE_HEADER + "/" + app_id + "/delta/" + my_client_id, message});
+  }
+
   /**
    * @brief starts the support thread that communicate with the remote application handler
    *

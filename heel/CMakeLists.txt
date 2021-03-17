@@ -143,7 +143,7 @@ target_include_directories( ${HEEL_LIBRARY_NAME}
 set_target_properties( ${HEEL_LIBRARY_NAME} PROPERTIES PUBLIC_HEADER "${HEEL_LIBRARY_HEADERS}" )
 
 # set the executable dependencies
-target_link_libraries( ${HEEL_LIBRARY_NAME} PUBLIC Boost::headers )
+target_link_libraries( ${HEEL_LIBRARY_NAME} PUBLIC Boost::boost )
 
 # define its compiler options
 target_compile_features( ${HEEL_LIBRARY_NAME} PRIVATE cxx_std_17 ) # for the filesystem component

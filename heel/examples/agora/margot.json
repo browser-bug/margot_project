@@ -75,7 +75,7 @@
 
 			"agora":
 			{
-				"borker_url": "127.0.0.1:1883",
+				"broker_url": "127.0.0.1:1883",
 				"broker_username": "margot",
 				"broker_password": "margot",
 				"broker_qos": 2,

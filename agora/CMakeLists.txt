@@ -1,5 +1,5 @@
 #check the minimum version
-cmake_minimum_required( VERSION 3.14 )
+cmake_minimum_required( VERSION 3.10 )
 
 # the project name
 project( AGORA VERSION 2.0 LANGUAGES CXX)
@@ -99,7 +99,7 @@ target_include_directories( ${AGORA_LIBRARY_NAME}
 )
 
 # set the executable dependencies
-target_link_libraries( ${AGORA_LIBRARY_NAME} PUBLIC margot::margot_heel Threads::Threads eclipse-paho-mqtt-c::paho-mqtt3c Boost::headers)
+target_link_libraries( ${AGORA_LIBRARY_NAME} PUBLIC margot::margot_heel Threads::Threads eclipse-paho-mqtt-c::paho-mqtt3c Boost::boost)
 
 # define its compiler options
 target_compile_features( ${AGORA_LIBRARY_NAME} PRIVATE cxx_std_17 ) # for the filesystem component

@@ -230,6 +230,19 @@ margot::heel::cpp_source_content push_monitor_content(const margot::heel::block_
     c.content << "c.manager.send_observation(p("
               << margot::heel::cpp_parser_gen::usage(block.features.fields, block.knobs, block.metrics)
               << "));" << std::endl;
+    c.content << "c.manager.send_delta(\"{\\\"delta\\\":[";
+    bool first = true;
+    for (const auto& metric : block.metrics) {
+      if(!first){
+        c.content << ", ";
+      }
+      first = false;
+      c.content << "{\\\"" << metric.name << "\\\":\"" << " + (c.manager.in_design_space_exploration() ? \"\\\"N/A\\\"\" : "
+      "std::string(\"[\" + std::to_string(c.manager.get_mean<margot::OperatingPointSegments::METRICS,"
+      << margot::heel::generate_field_getter(margot::heel::subject_kind::METRIC, metric.name, block.name)
+      << ">()) + \",\" + std::to_string(c.monitors." + metric.monitor_name + ".last()) + \"]\")) + \"}";
+    }
+    c.content << "]}\");" << std::endl;
   }
   return c;
 }
@@ -263,7 +276,7 @@ margot::heel::cpp_source_content log_content(const margot::heel::block_model& bl
       c.content << "<< \"[ " << feature.name << " = \" << c.features." << feature.name << " << \" ]\" ";
     }
     c.content << "<< std::endl;" << std::endl;
-    c.content << "std::cout << \"|\" << std::endl << \"| Knob values:\" << std::endl;" << std::endl;
+    c.content << "std::cout << \"|\" << std::endl << \"| Knobba values:\" << std::endl;" << std::endl;
     c.content << "std::cout << \"| \" ";
     for (const auto& knob : block.knobs) {
       c.content << "<< \"[ " << knob.name << " = \" << c.knobs." << knob.name << " << \" ]\" ";
