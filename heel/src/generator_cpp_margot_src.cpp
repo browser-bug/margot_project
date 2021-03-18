@@ -276,7 +276,7 @@ margot::heel::cpp_source_content log_content(const margot::heel::block_model& bl
       c.content << "<< \"[ " << feature.name << " = \" << c.features." << feature.name << " << \" ]\" ";
     }
     c.content << "<< std::endl;" << std::endl;
-    c.content << "std::cout << \"|\" << std::endl << \"| Knobba values:\" << std::endl;" << std::endl;
+    c.content << "std::cout << \"|\" << std::endl << \"| Knob values:\" << std::endl;" << std::endl;
     c.content << "std::cout << \"| \" ";
     for (const auto& knob : block.knobs) {
       c.content << "<< \"[ " << knob.name << " = \" << c.knobs." << knob.name << " << \" ]\" ";
