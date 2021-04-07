@@ -42,10 +42,6 @@ set_target_properties(${AGORA_BINARY_NAME} PROPERTIES INSTALL_RPATH_USE_LINK_PAT
 
 # define its compiler options
 target_compile_features( ${AGORA_BINARY_NAME} PRIVATE cxx_std_17 ) # for the filesystem component
-target_compile_options( ${AGORA_BINARY_NAME} PRIVATE "-Wall" )
-target_compile_options( ${AGORA_BINARY_NAME} PRIVATE $<$<CONFIG:DEBUG>: -g -O0 >)
-target_compile_options( ${AGORA_BINARY_NAME} PRIVATE $<$<CONFIG:RELWITHDEBINFO>: -march=native -mtune=native -g -O2 >)
-target_compile_options( ${AGORA_BINARY_NAME} PRIVATE $<$<CONFIG:RELEASE>: -march=native -mtune=native -O3 >)
 include(CheckIPOSupported)
 check_ipo_supported(RESULT result)
 if(result)
@@ -65,7 +61,7 @@ set( AGORA_CLIENT_BINARY_SOURCES
 )
 
 # declare the target
-add_executable( ${AGORA_CLIENT_BINARY_NAME} ${AGORA_CLIENT_BINARY_SOURCES} ${AGORA_CLIENT_BINARY_HEADERS} )
+add_executable( ${AGORA_CLIENT_BINARY_NAME} EXCLUDE_FROM_ALL ${AGORA_CLIENT_BINARY_SOURCES} ${AGORA_CLIENT_BINARY_HEADERS} )
 add_executable( margot::${AGORA_CLIENT_BINARY_NAME} ALIAS ${AGORA_CLIENT_BINARY_NAME} )
 
 # set the executable dependencies
@@ -77,10 +73,6 @@ set_target_properties(${AGORA_CLIENT_BINARY_NAME} PROPERTIES INSTALL_RPATH_USE_L
 
 # define its compiler options
 target_compile_features( ${AGORA_CLIENT_BINARY_NAME} PRIVATE cxx_std_17 ) # for the filesystem component
-target_compile_options( ${AGORA_CLIENT_BINARY_NAME} PRIVATE "-Wall" )
-target_compile_options( ${AGORA_CLIENT_BINARY_NAME} PRIVATE $<$<CONFIG:DEBUG>: -g -O0 >)
-target_compile_options( ${AGORA_CLIENT_BINARY_NAME} PRIVATE $<$<CONFIG:RELWITHDEBINFO>: -march=native -mtune=native -g -O2 >)
-target_compile_options( ${AGORA_CLIENT_BINARY_NAME} PRIVATE $<$<CONFIG:RELEASE>: -march=native -mtune=native -O3 >)
 include(CheckIPOSupported)
 check_ipo_supported(RESULT result)
 if(result)

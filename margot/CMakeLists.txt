@@ -1,10 +1,6 @@
 # check the minimum version
 cmake_minimum_required( VERSION 3.4.3 ) # for the imported targets
 
-# the project name
-project( core VERSION 3.0 LANGUAGES CXX)
-
-
 #########################################################################
 #### Add further option to drive the compilation of the mARGOt library
 #########################################################################
@@ -24,9 +20,6 @@ option( WITH_TEMPERATURE_MONITOR "Build the temperature monitor" OFF)
 # add the path to the custom finders in the mARGOt repository
 set( MARGOT_CUSTOM_FINDERS_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 list (APPEND CMAKE_MODULE_PATH "${MARGOT_CUSTOM_FINDERS_PATH}")
-
-# include standard gnu path (to make sure to have them when needed)
-include(GNUInstallDirs)
 
 # define a macro to try to use the internal built version fo stuff (if not alredy set)
 macro( set_gentle_hint TARGET_ROOT_VARIABLE )
@@ -164,15 +157,6 @@ endif( WITH_TEMPERATURE_MONITOR )
 
 # to compile the application we need at least C++17
 target_compile_features( ${MARGOT_LIBRARY_NAME} PRIVATE cxx_std_17 )
-
-# turn on compiler warings regardless of the build type
-target_compile_options(${MARGOT_LIBRARY_NAME} PRIVATE "-Wall")
-
-# now we can define compiler options for each build target
-target_compile_options(${MARGOT_LIBRARY_NAME} PRIVATE $<$<CONFIG:DEBUG>: -g -O0 >)
-target_compile_options(${MARGOT_LIBRARY_NAME} PRIVATE $<$<CONFIG:RELWITHDEBINFO>: -march=native -mtune=native -g -O2 >)
-target_compile_options(${MARGOT_LIBRARY_NAME} PRIVATE $<$<CONFIG:RELEASE>: -march=native -mtune=native -O3 >)
-
 
 
 #########################################################################
