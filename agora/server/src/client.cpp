@@ -38,6 +38,7 @@ struct application_options
   agora::LogLevel min_log_level;
   fs::path log_file;
   int number_of_threads;
+  long int sleep_time_ms;
 };
 
 po::options_description get_options(application_options &app_opts)
@@ -60,7 +61,10 @@ po::options_description get_options(application_options &app_opts)
       "The path to the client certificate (e.g. client.crt), if any.")("client-private-key",
                                                                        po::value<string>(&app_opts.client_key)->default_value(""),
                                                                        "The path to the private key (e.g. client.key), if any.")(
-      "qos", po::value<int>(&app_opts.mqtt_qos)->default_value(2), "The MQTT quality of service level [0,2].");
+      "qos", po::value<int>(&app_opts.mqtt_qos)->default_value(0), "The MQTT quality of service level [0,2].")(
+      "sleep", po::value<long int>(&app_opts.sleep_time_ms)->default_value(1000),
+      "The sleep time (in MICROSECONDS) that the client has to wait before sending a new message.")(
+      "num_threads", po::value<int>(&app_opts.number_of_threads)->default_value(1), "Number of threads to run on client side.");
 
   options.add(desc_opts).add(communication_opts);
 
@@ -77,6 +81,28 @@ inline auto resolve_mqtt_implementation = [](std::string mqtt_implementation) ->
     return itr->second;
   throw std::invalid_argument("Invalid MQTT implementation \"" + mqtt_implementation + "\", should be one of [paho]");
 };
+
+void task(long int sleep_time_ms, const shared_ptr<agora::RemoteHandler> remote)
+{
+  std::ostringstream ss;
+  ss << std::this_thread::get_id();
+  std::string thread_id = ss.str();
+
+  remote->subscribe(agora::MESSAGE_HEADER + "/" + thread_id + "/test");
+  remote->send_message({agora::MESSAGE_HEADER + "/system/" + thread_id, "test@Hello from a local client thread."});
+  // remote->send_message({agora::MESSAGE_HEADER + "/system/" + thread_id, "shutdown"});
+
+  std::chrono::microseconds sleep_duration(sleep_time_ms);
+  while (true)
+  {
+     agora::message_model new_incoming_message;
+     if (!remote->recv_message(new_incoming_message))
+       break;
+     std::cout << "Received new message from server: topic [" + new_incoming_message.topic + "] payload [" + new_incoming_message.payload + "]" << std::endl;
+    std::this_thread::sleep_for(sleep_duration);
+    remote->send_message({agora::MESSAGE_HEADER + "/system/" + thread_id, "test@Hello from a local client thread."});
+  }
+}
 
 int main(int argc, char *argv[])
 {
@@ -128,23 +154,16 @@ int main(int argc, char *argv[])
 
   auto remote = app_manager.get_remote_handler();
 
-  std::ostringstream ss;
-  ss << std::this_thread::get_id();
-  std::string thread_id = ss.str();
-
-  remote->subscribe(agora::MESSAGE_HEADER + "/" + thread_id + "/test");
-  remote->send_message({agora::MESSAGE_HEADER + "/system/" + thread_id, "test@Hello from a local client thread."});
-  //remote->send_message({agora::MESSAGE_HEADER + "/system/" + thread_id, "shutdown"});
-
-  std::chrono::milliseconds sleep_duration(100);
-  while(true)
+  std::vector<std::thread> threads;
+  threads.reserve(app_opts.number_of_threads);
+  for (int i = 0; i < app_opts.number_of_threads; i++)
   {
-    agora::message_model new_incoming_message;
-    if (!remote->recv_message(new_incoming_message))
-      break;
-    logger->info("Received new message from server: topic [", new_incoming_message.topic, "] payload [", new_incoming_message.payload, "]");
-    std::this_thread::sleep_for(sleep_duration);
-    remote->send_message({agora::MESSAGE_HEADER + "/system/" + thread_id, "test@Hello from a local client thread."});
+    threads.emplace_back(task, app_opts.sleep_time_ms, remote);
+  }
+  for (auto &t : threads)
+  {
+    if (t.joinable())
+      t.join();
   }
 
   return EXIT_SUCCESS;
