@@ -7,7 +7,7 @@ source $ENVIRONMENTAL_FILE
 #-------------------------------------------------------------------------------
 #
 # The environmental file provides to this script variables to handle the
-# generation of the Design of Experiments.
+# generation of the final predictions for each EFP.
 #   - APPLICATION_NAME -> the name of the application
 #   - BLOCK_NAME -> the name of the block of code managed
 #   - VERSION -> the version number of the application
@@ -61,7 +61,7 @@ source $ENVIRONMENTAL_FILE
 # exit if fail
 set -e
 
-# load data, generate the DOE and write the results based on the storage implementation being used.
+# load data, generate the final predictions and write the results based on the storage implementation being used.
 python3 $WORKING_DIRECTORY/main.py $CONFIG_FILE_PATH
 # if we want to log into files
 #python3 $WORKING_DIRECTORY/main.py $CONFIG_FILE_PATH >> $WORKING_DIRECTORY/doe.log 2>> $WORKING_DIRECTORY/doe_err.log

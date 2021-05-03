@@ -7,7 +7,7 @@ source $ENVIRONMENTAL_FILE
 #-------------------------------------------------------------------------------
 #
 # The environmental file provides to this script variables to handle the
-# generation of the Design of Experiments.
+# generation of a suitable predicting model for the target metric.
 #   - APPLICATION_NAME -> the name of the application
 #   - BLOCK_NAME -> the name of the block of code managed
 #   - VERSION -> the version number of the application
