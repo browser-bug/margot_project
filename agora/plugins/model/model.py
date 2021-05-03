@@ -10,7 +10,7 @@ def create_model(metric_name, num_iterations, model_params, data, target):
     print(model_params)
     algorithm = model_params['algorithm'] if 'algorithm' in model_params.keys() else 'linear'
     hyper_parameters = json.loads(model_params['hyper_parameters'].replace("'", "\"")) if 'hyper_parameters' in model_params.keys() else {}
-    scoring_thresholds = json.loads(model_params['quality_threshold'].replace("'", "\"")) if 'quality_threshold' in model_params.keys() else {'r2':0.7, 'explained_variance':0.7, 'neg_mean_absolute_error':-0.2}
+    scoring_thresholds = json.loads(model_params['quality_threshold'].replace("'", "\"")) if 'quality_threshold' in model_params.keys() else {'r2':0.8, 'neg_mean_absolute_percentage_error':-0.1}
 
     # create the estimator based on the algorithm
     estimator = RegressorMixin()
@@ -37,7 +37,7 @@ def create_model(metric_name, num_iterations, model_params, data, target):
     splits_iterator = cv_strategy.split(data, target)
 
     scores_list = list(scoring_thresholds.keys())
-    cv_results = cross_validate(estimator, data, target, cv=splits_iterator,return_estimator=True, scoring=scores_list, verbose=1, n_jobs=-1)
+    cv_results = cross_validate(estimator, data, target, cv=splits_iterator,return_estimator=True, scoring=scores_list, verbose=0, n_jobs=4)
     print(cv_results)
 
     # check if the score thresholds are verified

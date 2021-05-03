@@ -56,7 +56,7 @@ source $ENVIRONMENTAL_FILE
 # exit if fail
 set -e
 
-# load data, generate the DOE and write the results based on the storage implementation being used.
+# load data, generate the model and, if eligible, store it inside the models directory.
 python3 $WORKING_DIRECTORY/main.py $CONFIG_FILE_PATH
 # if we want to log into files
 #python3 $WORKING_DIRECTORY/main.py $CONFIG_FILE_PATH >> $WORKING_DIRECTORY/doe.log 2>> $WORKING_DIRECTORY/doe_err.log
