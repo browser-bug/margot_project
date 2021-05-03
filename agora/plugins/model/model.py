@@ -29,7 +29,10 @@ def create_model(metric_name, num_iterations, model_params, data, target):
     # produce the cross validation
     num_cv_folds = int(model_params['num_cv_folds']) if 'num_cv_folds' in model_params.keys() else 5
     num_samples = len(data)
-    if num_samples <= num_cv_folds:
+    ratio_threshold = 0.6
+    set_ratio = (num_samples - num_cv_folds) / num_samples
+    if set_ratio < ratio_threshold:
+        print(f"Not enough samples [{num_samples}] to perform a full CV. Using Leave2Out stategy instead...")
         p = 2
         cv_strategy = LeavePOut(p) if p < num_samples else LeavePOut(1)
     else:
@@ -38,17 +41,16 @@ def create_model(metric_name, num_iterations, model_params, data, target):
 
     scores_list = list(scoring_thresholds.keys())
     cv_results = cross_validate(estimator, data, target, cv=splits_iterator,return_estimator=True, scoring=scores_list, verbose=0, n_jobs=4)
-    print(cv_results)
 
     # check if the score thresholds are verified
-    best_estimator = [0] * num_cv_folds
+    best_estimator = [0] * len(cv_results['estimator'])
     is_model_good = True
     for scoring, threshold in scoring_thresholds.items():
         scores_max_pos = np.argmax(cv_results['test_' + scoring])
         best_estimator[scores_max_pos] += 1
         scores_mean = np.mean(cv_results['test_' + scoring])
-        print("Comparing "+scoring,cv_results['test_'+scoring]," MEAN[",scores_mean,"] with",threshold)
-        if not scores_mean >= threshold:
+        print("Comparing "+scoring, " MEAN[", scores_mean, "] with", threshold)
+        if scores_mean < threshold:
             print("The scoring", scoring, "has not verified the threshold limit.")
             is_model_good = False
 

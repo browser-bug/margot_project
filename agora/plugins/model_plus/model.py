@@ -6,7 +6,7 @@ from sklearn.linear_model import LinearRegression, Ridge, ElasticNet
 from sklearn.svm import SVR
 from sklearn.neighbors import KNeighborsRegressor
 from sklearn.model_selection import cross_validate, KFold, LeavePOut, train_test_split
-from sklearn.metrics import r2_score, mean_absolute_error, mean_absolute_percentage_error
+from sklearn.metrics import r2_score, mean_absolute_percentage_error
 from sklearn.preprocessing import PowerTransformer
 from sklearn.tree import DecisionTreeRegressor
 from sklearn.pipeline import Pipeline
@@ -14,7 +14,7 @@ from sklearn.pipeline import Pipeline
 def cv_splits(num_cv_folds, data_train, target_train):
     # produce the cross validation
     num_samples = len(data_train)
-    ratio_threshold = 0.75
+    ratio_threshold = 0.6
     set_ratio = (num_samples - num_cv_folds) / num_samples
     if set_ratio < ratio_threshold:
         print(f"Not enough samples [{num_samples}] to perform a full CV. Using Leave2Out stategy instead...")
@@ -55,22 +55,20 @@ def create_model(metric_name, num_iterations, model_params, data, target, is_las
             scores_mean = np.mean(cv_results['test_' + scoring])
             if scoring in "neg_mean_absolute_error":
                 scores_mean = scores_mean / abs(np.max(target_train) - np.min(target_train))
-            print("Comparing "+scoring,cv_results['test_'+scoring]," MEAN[",scores_mean,"] with",threshold)
-            if not scores_mean >= threshold:
+            print("Comparing "+scoring," MEAN[",scores_mean,"] with", threshold)
+            if scores_mean < threshold:
                 print("The scoring", scoring, "has not verified the threshold limit.")
                 is_model_good = False
         if is_model_good or is_last_iteration:
             good_estimators[name] = estimator
 
-    estimators_scores = pd.DataFrame(columns=["name", "r2", "mape", "mae_norm"])
+    estimators_scores = pd.DataFrame(columns=["name", "r2", "mape"])
     for name, estimator in good_estimators.items():
         estimator.fit(data_train, target_train)
         test_prediction = estimator.predict(data_test)
         r2 = r2_score(target_test, test_prediction)
         mape = mean_absolute_percentage_error(target_test, test_prediction)
-        mae = mean_absolute_error(target_test, test_prediction)
-        mae_norm = mae / abs(np.max(target) - np.min(target))
-        estimators_scores = estimators_scores.append({'name':name, 'r2':r2, 'mape':mape, 'mae_norm':mae_norm}, ignore_index=True)
+        estimators_scores = estimators_scores.append({'name':name, 'r2':r2, 'mape':mape}, ignore_index=True)
 
     if not estimators_scores.empty:
         if is_last_iteration:
