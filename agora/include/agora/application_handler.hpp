@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <atomic>
 
+#include "agora/model_doe.hpp"
 #include "agora/utils/bitmask.hpp"
 
 #include "agora/fs_handler.hpp"
@@ -148,7 +149,7 @@ private:
   // utility functions
   bool parse_informations(const std::string& info, margot::heel::block_model& description);
   bool parse_observation(const std::string& observation_values, margot::heel::block_model& op);
-  std::string configuration_to_json(const configuration_model &configuration) const;
+  std::string configuration_to_json(const configuration_t &configuration) const;
   std::string prediction_to_json(const prediction_model &prediction) const;
 
   // recovery functions
@@ -160,12 +161,10 @@ private:
   }
   bool send_configuration(const client_id_t &cid)
   {
-    auto configuration = doe.get_next();
-    if (configuration != doe.required_explorations.end())
+    configuration_model doe_entry;
+    if (doe.get_next(doe_entry))
     {
-      remote->send_message({MESSAGE_HEADER + "/" + app_id.str() + "/" + cid + "/explore", configuration_to_json(configuration->second)});
-
-      doe.update_config(configuration->first);
+      remote->send_message({MESSAGE_HEADER + "/" + app_id.str() + "/" + cid + "/explore", configuration_to_json(doe_entry.configuration)});
 
       num_configurations_sent_per_iteration++;
       return true;

@@ -45,13 +45,13 @@ void CsvDoeStorage::store_doe(const application_id &app_id, const margot::heel::
   out << "\n";
 
   // write the all the required explorations
-  for (const auto &configuration : doe.required_explorations)
+  for (const auto &doe_entry : doe.required_explorations)
   {
-    const std::string config_id = configuration.first;
-    const int num_explorations = doe.number_of_explorations.at(config_id);
+    const std::string config_id = doe_entry.configuration_id;
+    const int num_explorations = doe_entry.number_of_explorations;
     out << config_id << ',' << num_explorations;
     for(const auto& knob : description.knobs)
-      out << ',' << configuration.second.at(knob.name);
+      out << ',' << doe_entry.configuration.at(knob.name);
     out << "\n";
   }
 }
@@ -75,16 +75,13 @@ doe_model CsvDoeStorage::load_doe(const application_id &app_id, const margot::he
       // insert the configuration only if still required
       if (counter > 0)
       {
-        configuration_model config;
+        configuration_t config;
         for (const auto &knob : description.knobs)
         {
           config.insert({knob.name, row[knob.name].get()});
         }
 
-        if (output_doe.add_config(id, config, counter))
-        {
-          logger->warning("Csv doe: the configuration with ID ", id, " was already present. Replacing it.");
-        }
+        output_doe.add_config(id, config, counter);
       }
     }
   } catch (const std::exception &e)
@@ -101,7 +98,7 @@ void CsvDoeStorage::update_doe(const application_id &app_id, const margot::heel:
   doe_model output_doe = load_doe(app_id, description);
 
   // update the specific configuration
-  output_doe.update_config(config_id);
+  //output_doe.update_config(config_id);
 
   // rewrite the doe
   store_doe(app_id, description, output_doe);

@@ -103,7 +103,7 @@ prediction_model CsvPredictionStorage::load_prediction(const application_id &app
     // loop over the lines of the prediction
     for (auto &row : prediction_parser)
     {
-      configuration_model config;
+      configuration_t config;
       features_model features;
       result_model output;
 

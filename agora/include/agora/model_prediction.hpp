@@ -31,14 +31,14 @@ struct metric_value_model
 // | M1 | M2 | ... | MN
 //
 // TODO: this can become something more detailed inside heel
-using configuration_model = std::unordered_map<std::string, std::string>;
+using configuration_t = std::unordered_map<std::string, std::string>;
 using features_model = std::unordered_map<std::string, std::string>;
 using result_model = std::unordered_map<std::string, metric_value_model>;
 
 struct prediction_model
 {
   // this method adds a prediction
-  bool add_result(const std::string &pred_id, const configuration_model &config, const features_model &feat, const result_model &result)
+  bool add_result(const std::string &pred_id, const configuration_t &config, const features_model &feat, const result_model &result)
   {
     if (!feat.empty())
       return !configurations.insert_or_assign(pred_id, config).second || !features.insert_or_assign(pred_id, feat).second ||
@@ -61,7 +61,7 @@ struct prediction_model
     predicted_results.clear();
   }
 
-  std::unordered_map<std::string, configuration_model> configurations;
+  std::unordered_map<std::string, configuration_t> configurations;
   std::unordered_map<std::string, features_model> features;
   std::unordered_map<std::string, result_model> predicted_results;
 };

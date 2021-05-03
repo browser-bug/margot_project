@@ -139,6 +139,7 @@ void RemoteApplicationHandler::process_observation(const client_id_t &cid, const
     logger->warning(LOG_HEADER, "the DSE phase has ended, ignoring the new observation.");
     return;
   }
+  lock.unlock();
 
   margot::heel::block_model op_description;
   if (!parse_observation(observation_values, op_description))
@@ -150,7 +151,8 @@ void RemoteApplicationHandler::process_observation(const client_id_t &cid, const
   fs_handler->insert_observation_entry(app_id, cid, duration_sec, duration_ns, op_description.ops.front());
 
   // if we still have some explorations to do we can't continue yet
-  if (is_doe_valid() && num_configurations_sent_per_iteration <= num_configurations_per_iteration)
+  lock.lock();
+  if (is_doe_valid() && num_configurations_sent_per_iteration < num_configurations_per_iteration)
   {
     if(!send_configuration(cid)){
       logger->info(LOG_HEADER, "there was a problem sending configuration to client ", cid, "... trying again.");
@@ -461,7 +463,7 @@ bool RemoteApplicationHandler::parse_observation(const std::string &observation_
   }
 }
 
-std::string RemoteApplicationHandler::configuration_to_json(const configuration_model &configuration) const
+std::string RemoteApplicationHandler::configuration_to_json(const configuration_t &configuration) const
 {
   pt::ptree op;
   pt::ptree knobs;
