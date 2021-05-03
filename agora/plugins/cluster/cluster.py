@@ -30,7 +30,7 @@ def create_cluster(cluster_params, features_matrix):
     elif algorithm == "dbscan":
         method = cluster_params['init_method'] if 'init_method' in cluster_params.keys() else 'auto'
         eps = float(cluster_params['eps']) if 'eps' in cluster_params.keys() else 0.5
-        neighborhood_size = float(cluster_params['neighborhood_size']) if 'neighborhood_size' in cluster_params.keys() else 0.5
+        neighborhood_size = float(cluster_params['neighborhood_size']) if 'neighborhood_size' in cluster_params.keys() else 5
 
         dbscan = DBSCAN(eps=eps, min_samples=neighborhood_size, algorithm=method, n_jobs=-1)
         dbscan_result = dbscan.fit(features_matrix)

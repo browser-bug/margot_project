@@ -45,13 +45,11 @@ def main():
     # db_username = os.getenv('DATABASE_USERNAME')
     # db_password = os.getenv('DATABASE_PASSWORD')
 
-    agora_properties_container = os.getenv('AGORA_PROPERTIES_CONTAINER_NAME')
     features_container = os.getenv('FEATURES_CONTAINER_NAME')
     observation_container = os.getenv('OBSERVATION_CONTAINER_NAME')
     cluster_container = os.getenv('CLUSTER_CONTAINER_NAME')
     cluster_parameters_container = os.getenv('CLUSTER_PARAMETERS_CONTAINER_NAME')
 
-    agora_properties_df = pd.DataFrame()
     features_df = pd.DataFrame()
     observation_df = pd.DataFrame()
     cluster_df = pd.DataFrame()
@@ -59,7 +57,6 @@ def main():
 
     # Read tables
     if description_fs_type == 'csv':
-        agora_properties_df = pd.read_csv(agora_properties_container)
         features_df = pd.read_csv(features_container)
         cluster_params_df = pd.read_csv(cluster_parameters_container)
     if observation_fs_type == 'csv':
@@ -68,8 +65,6 @@ def main():
     # generate a dictionary for all the parameters
     cluster_params_dict = cluster_params_df.set_index('parameter_name').T.to_dict('records')
     cluster_params = cluster_params_dict[0] if cluster_params_dict else {}
-    agora_properties_dict = agora_properties_df.set_index('property_name').T.to_dict('records')
-    agora_properties = agora_properties_dict[0] if agora_properties_dict else {}
 
     # Create a dictionary: {feature_name, feature_type}
     f_types = {}

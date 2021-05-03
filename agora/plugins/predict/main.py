@@ -46,7 +46,6 @@ def main():
     # db_username = os.getenv('DATABASE_USERNAME')
     # db_password = os.getenv('DATABASE_PASSWORD')
 
-    agora_properties_container = os.getenv('AGORA_PROPERTIES_CONTAINER_NAME')
     knobs_container = os.getenv('KNOBS_CONTAINER_NAME')
     features_container = os.getenv('FEATURES_CONTAINER_NAME')
     metrics_container = os.getenv('METRICS_CONTAINER_NAME')
@@ -55,7 +54,6 @@ def main():
     predictions_container = os.getenv('PREDICTIONS_CONTAINER_NAME')
     models_container = os.getenv('MODELS_CONTAINER')
 
-    agora_properties_df = pd.DataFrame()
     knobs_df = pd.DataFrame()
     features_df = pd.DataFrame()
     metrics_df = pd.DataFrame()
@@ -65,7 +63,6 @@ def main():
 
     # Read tables
     if description_fs_type == 'csv':
-        agora_properties_df = pd.read_csv(agora_properties_container)
         knobs_df = pd.read_csv(knobs_container)
         features_df = pd.read_csv(features_container)
         metrics_df = pd.read_csv(metrics_container)
@@ -83,10 +80,6 @@ def main():
     m_types = {}
     for row in metrics_df.itertuples(index=False):
         m_types[row[0]] = row[1]
-
-    # generate a dictionary for all the parameters
-    agora_properties_dict = agora_properties_df.set_index('property_name').T.to_dict('records')
-    agora_properties = agora_properties_dict[0] if agora_properties_dict else {}
 
     # Generate the sample dataset for the final prediction
     samples_df = total_configs_df

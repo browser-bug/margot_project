@@ -3,15 +3,8 @@ import numpy as np
 from sklearn.base import RegressorMixin
 from sklearn.linear_model import LinearRegression, Ridge
 from sklearn.model_selection import cross_validate, KFold, LeavePOut
-from sklearn.preprocessing import PolynomialFeatures, PowerTransformer, StandardScaler
-from sklearn.compose import TransformedTargetRegressor
+from sklearn.preprocessing import PolynomialFeatures
 from sklearn.pipeline import Pipeline
-
-# testing
-from sklearn.datasets import make_regression
-
-# stats
-from statistics import store_stats
 
 def create_model(metric_name, num_iterations, model_params, data, target):
     print(model_params)
@@ -23,18 +16,15 @@ def create_model(metric_name, num_iterations, model_params, data, target):
     estimator = RegressorMixin()
     if algorithm == 'linear':
         print("Using an ordinary least squares linear regression estimator")
-        estimator = Pipeline([('poly', PolynomialFeatures(degree=5)), ('linear', LinearRegression(normalize=True))])
+        estimator = Pipeline([('poly', PolynomialFeatures(degree=4)), ('linear', LinearRegression(normalize=True))])
     elif algorithm == 'ridge':
         print("Using a Ridge regression estimator")
         alpha = float(hyper_parameters['alpha']) if 'alpha' in hyper_parameters.keys() else 1.0
         solver = hyper_parameters['solver'] if 'solver' in hyper_parameters.keys() else 'auto'
-        estimator = Pipeline([('poly', PolynomialFeatures(degree=5)), ('ridge', Ridge(alpha=alpha,normalize=True,solver=solver))])
+        estimator = Pipeline([('poly', PolynomialFeatures(degree=4)), ('ridge', Ridge(alpha=alpha,normalize=True,solver=solver))])
     else:
         print("Unknown estimator name, returning empty object.")
         return False, estimator
-
-    # apply the target transformation
-    estimator = TransformedTargetRegressor(regressor=estimator, transformer=PowerTransformer())
 
     # produce the cross validation
     num_cv_folds = int(model_params['num_cv_folds']) if 'num_cv_folds' in model_params.keys() else 5
@@ -46,21 +36,9 @@ def create_model(metric_name, num_iterations, model_params, data, target):
         cv_strategy = KFold(n_splits=num_cv_folds)
     splits_iterator = cv_strategy.split(data, target)
 
-    #DEBUGGING
-    # print(data)
-    # print(target)
-    # for train, test in cv_strategy.split(data, target):
-        # # print("%s %s" % (train, test))
-        # print(data.loc[train])
-        # print(data.loc[test])
-    ########
-
     scores_list = list(scoring_thresholds.keys())
     cv_results = cross_validate(estimator, data, target, cv=splits_iterator,return_estimator=True, scoring=scores_list, verbose=1, n_jobs=-1)
     print(cv_results)
-
-    # store statistics on file
-    store_stats(metric_name, num_iterations, cv_results, scores_list, data, target)
 
     # check if the score thresholds are verified
     best_estimator = [0] * num_cv_folds
@@ -73,5 +51,6 @@ def create_model(metric_name, num_iterations, model_params, data, target):
         if not scores_mean >= threshold:
             print("The scoring", scoring, "has not verified the threshold limit.")
             is_model_good = False
+
     # since the model is good we can fit it
     return is_model_good, cv_results['estimator'][np.argmax(best_estimator)]
