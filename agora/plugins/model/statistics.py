@@ -4,7 +4,19 @@ import pandas as pd
 import numpy as np
 from pathlib import Path
 
-def store_stats(metric_name, num_iteration, cv_results, scores, data, target):
+def store_stats(metric_name, num_iteration, cv_results, scores, data, target, stats_dir):
+    """
+    Utility module to store some useful statistics data during learning procedure. The data can be manipulated afterwards by the end-user.
+
+    metric_name : name of the EFP of interest
+    num_iteration : number of iterations performed during agora learning process
+    cv_results : dictionary containing for each key (estimator name) the cross validation results
+    scores : list of the score metrics evaluated during the modelling
+    data : pandas dataframe representing the data set (software-knobs and input-features if any)
+    target : pandas dataframe representing the target set (EFP of interest for each configuration in the data set)
+    stats_dir : path of the directory where files will be stored
+    """
+
     def split_all(path):
         allparts = []
         while True:
@@ -20,9 +32,10 @@ def store_stats(metric_name, num_iteration, cv_results, scores, data, target):
                 allparts.insert(0, parts[1])
         return allparts
 
+    # retrieve the application name
     plugin_working_dir = Path.cwd()
     app_name = split_all(plugin_working_dir)[-4]
-    stats_directory = Path("/home/bernardo/Development/margot/benchmark/stats/" + app_name)
+    stats_directory = Path(stats_dir + app_name)
     # create the subdirectory for the application
     if not stats_directory.exists():
         Path.mkdir(stats_directory)
