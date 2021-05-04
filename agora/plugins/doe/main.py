@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 #
 # Copyright (C) 2021 Bernardo Menicagli
 #
@@ -16,6 +17,7 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301
 # USA
 #
+
 import os
 import sys
 import argparse

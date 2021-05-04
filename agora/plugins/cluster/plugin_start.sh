@@ -57,6 +57,6 @@ source $ENVIRONMENTAL_FILE
 set -e
 
 # load data, generate the centroids table and write the results based on the storage implementation being used.
-python3 $WORKING_DIRECTORY/main.py $CONFIG_FILE_PATH
+$WORKING_DIRECTORY/main.py $CONFIG_FILE_PATH
 # if we want to log into files
-#python3 $WORKING_DIRECTORY/main.py $CONFIG_FILE_PATH >> $WORKING_DIRECTORY/doe.log 2>> $WORKING_DIRECTORY/doe_err.log
+#$WORKING_DIRECTORY/main.py $CONFIG_FILE_PATH >> $WORKING_DIRECTORY/doe.log 2>> $WORKING_DIRECTORY/doe_err.log
