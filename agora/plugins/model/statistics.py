@@ -1,3 +1,27 @@
+#
+# Copyright (C) 2021 Bernardo Menicagli
+#
+# This library is free software; you can redistribute it and/or
+# modify it under the terms of the GNU Lesser General Public
+# License as published by the Free Software Foundation; either
+# version 2.1 of the License, or (at your option) any later version.
+#
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public
+# License along with this library; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301
+# USA
+#
+"""Generates some useful statistics data.
+
+This module contains functions to generate statistical data to be collected
+during the learning process as CSV files.
+"""
+
 import os
 import time
 import pandas as pd
@@ -5,18 +29,28 @@ import numpy as np
 from pathlib import Path
 
 def store_stats(metric_name, num_iteration, cv_results, scores, data, target, stats_dir):
-    """
-    Utility module to store some useful statistics data during learning procedure. The data can be manipulated afterwards by the end-user.
+    """Store data files containing statistical infos collected during the learning process.
 
-    metric_name : name of the EFP of interest
-    num_iteration : number of iterations performed during agora learning process
-    cv_results : dictionary containing for each key (estimator name) the cross validation results
-    scores : list of the score metrics evaluated during the modelling
-    data : pandas dataframe representing the data set (software-knobs and input-features if any)
-    target : pandas dataframe representing the target set (EFP of interest for each configuration in the data set)
-    stats_dir : path of the directory where files will be stored
-    """
+    Parameters
+    ----------
+    metric_name : `str`
+        The EFP name.
+    num_iteration : `int`
+        The number of iterations performed.
+    cv_results : `dict`
+        Array of scores of the estimator for each run of the cross validation.
 
+        See https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.cross_validate.html
+        for details.
+    scores : `list` [`str`]
+        A list of the score metrics evaluated during the training phase.
+    data : `pandas.DataFrame`
+        A dataframe representing the matrix of predictors (i.e. software-knobs + input features).
+    target : `pandas.DataFrame`
+        A dataframe representing the matrix of target values (i.e. the metric of interest values).
+    stats_dir : `str`
+        Path of the directory where files will be stored.
+    """
     def split_all(path):
         allparts = []
         while True:

@@ -1,3 +1,27 @@
+#
+# Copyright (C) 2021 Bernardo Menicagli
+#
+# This library is free software; you can redistribute it and/or
+# modify it under the terms of the GNU Lesser General Public
+# License as published by the Free Software Foundation; either
+# version 2.1 of the License, or (at your option) any later version.
+#
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public
+# License along with this library; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301
+# USA
+#
+"""Generates some useful statistics data.
+
+This module contains functions to generate statistical data to be collected
+during the learning process as CSV files.
+"""
+
 import os
 import time
 import pandas as pd
@@ -5,20 +29,32 @@ import numpy as np
 from pathlib import Path
 
 def store_stats(metric_name, num_iteration, final_estimator_name, cv_train_results, holdout_results, score_metric_list, data, target, stats_dir):
-    """
-    Utility module to store some useful statistics data during learning procedure. The data can be manipulated afterwards by the end-user.
+    """Store data files containing statistical infos collected during the learning process.
 
-    metric_name : name of the EFP of interest
-    num_iteration : number of iterations performed during agora learning process
-    final_estimator_name : the name of the best estimator selected
-    cv_train_results : dictionary containing for each key (estimator name) the cross validation (5 folds) results
-    holdout_results : pandas dataframe containing for each row the estimator name and the score metrics computed on the holdout set
-    score_metric_list : list of the score metrics evaluated during the modelling
-    data : pandas dataframe representing the data set (software-knobs and input-features if any)
-    target : pandas dataframe representing the target set (EFP of interest for each configuration in the data set)
-    stats_dir : path of the directory where files will be stored
-    """
+    Parameters
+    ----------
+    metric_name : `str`
+        The EFP name.
+    num_iteration : `int`
+        The number of iterations performed.
+    final_estimator_name : `str`
+        The name of the best estimator found.
+    cv_train_results : `dict` [`str`, `dict`]
+        Array of scores for each run of the cross validation for each estimator tested.
 
+        See https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.cross_validate.html
+        for details.
+    holdout_results : `dict` [`str`, `dict`]
+        For each model, a `dict` containing the final scores computed.
+    score_metric_list : `list` [`str`]
+        A list of the score metrics evaluated during the training phase.
+    data : `pandas.DataFrame`
+        A dataframe representing the matrix of predictors (i.e. software-knobs + input features).
+    target : `pandas.DataFrame`
+        A dataframe representing the matrix of target values (i.e. the metric of interest values).
+    stats_dir : `str`
+        Path of the directory where files will be stored.
+    """
     def split_all(path):
         allparts = []
         while True:
@@ -54,7 +90,8 @@ def store_stats(metric_name, num_iteration, final_estimator_name, cv_train_resul
         if model_stats_path.exists():
             model_stats_df = pd.read_csv(model_stats_path)
         else:
-            header = ['timestamp','nr_iter','nr_configs', 'best_estimator_name', 'r2_final', 'mape_final', 'mae_final', 'mae_norm_final']
+            header = ['timestamp', 'nr_iter', 'nr_configs',
+                      'best_estimator_name', 'r2_final', 'mape_final']
             for score in score_metric_list:
                 header.append(f"{score}_cv_mean")
                 header.append(f"{score}_cv_full")
@@ -63,8 +100,7 @@ def store_stats(metric_name, num_iteration, final_estimator_name, cv_train_resul
         # add the stats row to the stats file
         estimator_holdout_results = holdout_results[holdout_results['name'].str.contains(estimator_name)].reset_index(drop=True)
         row = [time.time(), num_iteration, len(data), final_estimator_name,
-                estimator_holdout_results["r2"][0], estimator_holdout_results["mape"][0],
-                estimator_holdout_results["mae"][0], estimator_holdout_results["mae_norm"][0]]
+                estimator_holdout_results["r2"][0], estimator_holdout_results["mape"][0]]
         for score in score_metric_list:
             mean = np.mean(cv_result[f"test_{score}"])
             full = ";".join(str(v) for v in cv_result[f"test_{score}"])

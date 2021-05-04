@@ -1,3 +1,28 @@
+#
+# Copyright (C) 2021 Bernardo Menicagli
+#
+# This library is free software; you can redistribute it and/or
+# modify it under the terms of the GNU Lesser General Public
+# License as published by the Free Software Foundation; either
+# version 2.1 of the License, or (at your option) any later version.
+#
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public
+# License along with this library; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301
+# USA
+#
+"""Create a predicting model for a specific EFP.
+
+This module contains functions that parse a list of parameters and create
+a model using the method specified by the user. After applying a Cross-Validation
+on it, extracts a list of metric scores and test them against their thresholds.
+"""
+
 import json
 import numpy as np
 from sklearn.base import RegressorMixin
@@ -7,6 +32,35 @@ from sklearn.preprocessing import PolynomialFeatures
 from sklearn.pipeline import Pipeline
 
 def create_model(metric_name, num_iterations, model_params, data, target):
+    """Create a predicting model for the specified metric of interest.
+
+    Parameters
+    ----------
+    metric_name : `str`
+        The EFP name.
+    num_iterations : `int`
+        The number of iterations performed.
+    model_params : `dict` [`str`, `str`]
+        The keys corresponds to the parameter name. The values are the parameter
+        value and they need to be parsed accordingly (e.g. as an `int` or a python `dict`).
+    data : `pandas.DataFrame`
+        A dataframe representing the matrix of predictors (i.e. software-knobs + input features).
+    target : `pandas.DataFrame`
+        A dataframe representing the matrix of target values (i.e. the metric of interest values).
+
+    Returns
+    -------
+    model : `tuple` [`bool`, `sklearn.base.RegressorMixin`]
+        (`True`, model) if a model was successfully found, with the best model returned.
+
+        (`False`, fake_model) if no model was found, returns a fake model.
+
+    Notes
+    -----
+    This function can be extended by adding new methods inside the proper
+    section. It should be pretty straight forward as the cross validation
+    is equal regardless of the hyper_parameters or the method type.
+    """
     print(model_params)
     algorithm = model_params['algorithm'] if 'algorithm' in model_params.keys() else 'linear'
     hyper_parameters = json.loads(model_params['hyper_parameters'].replace("'", "\"")) if 'hyper_parameters' in model_params.keys() else {}
