@@ -30,42 +30,39 @@
 namespace agora {
 
 class CsvDoeStorage : public FsDoe {
-
 public:
-  CsvDoeStorage(const FsConfiguration& configuration);
+    CsvDoeStorage(const FsConfiguration &configuration);
 
-  ~CsvDoeStorage() = default;
+    ~CsvDoeStorage() = default;
 
-  void store_doe(const application_id &app_id, const margot::heel::block_model &description, const doe_model &doe) override;
-  doe_model load_doe(const application_id &app_id, const margot::heel::block_model &description) override;
-  void update_doe(const application_id &app_id, const margot::heel::block_model &description, const std::string &config_id) override;
-  void empty_doe_entries(const application_id &app_id, const margot::heel::block_model &description) override;
+    void store_doe(const application_id &app_id, const margot::heel::block_model &description, const doe_model &doe) override;
+    doe_model load_doe(const application_id &app_id, const margot::heel::block_model &description) override;
+    void update_doe(const application_id &app_id, const margot::heel::block_model &description, const std::string &config_id) override;
+    void empty_doe_entries(const application_id &app_id, const margot::heel::block_model &description) override;
 
-  // the followings get the relative path for each specific table
-  std::string get_doe_name(const application_id& app_id) const override
-  {
-    std::filesystem::path p = doe_dir / app_id.path() / "doe_configs.csv";
-    return p.string();
-  }
-  std::string get_total_configurations_name(const application_id& app_id) const override
-  {
-    std::filesystem::path p = doe_dir / app_id.path() / "total_configs.csv";
-    return p.string();
-  }
+    // the followings get the relative path for each specific table
+    std::string get_doe_name(const application_id &app_id) const override {
+        std::filesystem::path p = doe_dir / app_id.path() / "doe_configs.csv";
+        return p.string();
+    }
+    std::string get_total_configurations_name(const application_id &app_id) const override {
+        std::filesystem::path p = doe_dir / app_id.path() / "total_configs.csv";
+        return p.string();
+    }
 
-  void erase(const application_id& app_id) override;
+    void erase(const application_id &app_id) override;
 
-  std::string get_type() const override { return "csv"; }
+    std::string get_type() const override { return "csv"; }
 
 private:
-  // this path will contain all the stored information
-  std::filesystem::path doe_dir;
+    // this path will contain all the stored information
+    std::filesystem::path doe_dir;
 
-  // configuration variables, for handling csv parsing
-  const char csv_separator;
-  csv::CSVFormat format;
+    // configuration variables, for handling csv parsing
+    const char csv_separator;
+    csv::CSVFormat format;
 };
 
-} // namespace agora
+}  // namespace agora
 
-#endif // CSV_FS_DOE_HPP
+#endif  // CSV_FS_DOE_HPP

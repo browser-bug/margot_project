@@ -33,28 +33,28 @@
 namespace agora {
 
 class FsPrediction {
-
 public:
-  static std::unique_ptr<FsPrediction> get_instance(const FsConfiguration& configuration);
+    static std::unique_ptr<FsPrediction> get_instance(const FsConfiguration &configuration);
 
-  virtual void store_prediction(const application_id &app_id, const margot::heel::block_model &description, const prediction_model &prediction) = 0;
-  virtual prediction_model load_prediction(const application_id &app_id, const margot::heel::block_model &description) = 0;
+    virtual void store_prediction(const application_id &app_id, const margot::heel::block_model &description,
+                                  const prediction_model &prediction) = 0;
+    virtual prediction_model load_prediction(const application_id &app_id, const margot::heel::block_model &description) = 0;
 
-  virtual std::string get_prediction_name(const application_id &app_id) const = 0;
+    virtual std::string get_prediction_name(const application_id &app_id) const = 0;
 
-  virtual void erase(const application_id &app_id) = 0;
+    virtual void erase(const application_id &app_id) = 0;
 
-  virtual std::string get_type() const = 0;
+    virtual std::string get_type() const = 0;
 
-  virtual ~FsPrediction() {}
+    virtual ~FsPrediction() {}
 
 protected:
-  FsPrediction(const FsConfiguration& configuration);
-  FsConfiguration configuration;
+    FsPrediction(const FsConfiguration &configuration);
+    FsConfiguration configuration;
 
-  std::shared_ptr<Logger> logger;
+    std::shared_ptr<Logger> logger;
 };
 
-} // namespace agora
+}  // namespace agora
 
-#endif // FS_PREDICTION_HPP
+#endif  // FS_PREDICTION_HPP

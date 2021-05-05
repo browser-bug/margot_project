@@ -25,30 +25,25 @@
 namespace agora {
 
 class FileLogger : public Logger {
-
 public:
-  FileLogger(const LoggerConfiguration &configuration) : Logger(configuration)
-  {
-    log_file.open(configuration.log_file, std::ios::out | std::ios::trunc);
-  };
+    FileLogger(const LoggerConfiguration &configuration) : Logger(configuration) {
+        log_file.open(configuration.log_file, std::ios::out | std::ios::trunc);
+    };
 
-  ~FileLogger()
-  {
-    if (log_file.is_open())
-      log_file.close();
-  };
+    ~FileLogger() {
+        if (log_file.is_open()) log_file.close();
+    };
 
 private:
-  std::ofstream log_file;
-  std::mutex logger_mutex;
+    std::ofstream log_file;
+    std::mutex logger_mutex;
 
-  void log(const std::string &text) override
-  {
-    std::lock_guard<std::mutex> lock(logger_mutex);
-    log_file << text << std::endl;
-  }
+    void log(const std::string &text) override {
+        std::lock_guard<std::mutex> lock(logger_mutex);
+        log_file << text << std::endl;
+    }
 };
 
-} // namespace agora
+}  // namespace agora
 
-#endif // LOGGER_FILE_HPP
+#endif  // LOGGER_FILE_HPP

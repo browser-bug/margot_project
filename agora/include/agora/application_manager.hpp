@@ -35,79 +35,67 @@ namespace agora {
 
 class ApplicationManager {
 public:
-  static ApplicationManager &get_instance()
-  {
-    static ApplicationManager am;
-    return am;
-  }
-
-  // setup functions for each internal entity
-  void setup_logger(const LoggerConfiguration &config) {
-    std::lock_guard<std::mutex> lock(global_mutex);
-    logger = Logger::get_instance(config);
-  }
-  void setup_remote_handler(const RemoteConfiguration &config) {
-    std::lock_guard<std::mutex> lock(global_mutex);
-    remote = RemoteHandler::get_instance(config);
-  }
-
-  void set_filesystem_configuration(const FsConfiguration &config) { fs_configuration = config; }
-  void set_launcher_configuration(const LauncherConfiguration &config) { launcher_configuration = config; }
-
-  const std::shared_ptr<Logger> get_logger() const
-  {
-    return logger;
-  }
-
-  const std::shared_ptr<RemoteHandler> get_remote_handler() const
-  {
-    return remote;
-  }
-
-  std::shared_ptr<RemoteApplicationHandler> get_application_handler(const application_id &app_handler_id)
-  {
-    std::lock_guard<std::mutex> lock(global_mutex);
-    auto iterator = apps.find(app_handler_id.str());
-
-    if (iterator == apps.end())
-    {
-      auto &&application_ptr = std::make_shared<RemoteApplicationHandler>(app_handler_id, fs_configuration, launcher_configuration);
-      const auto result_pair = apps.emplace(app_handler_id.str(), application_ptr);
-
-      logger->debug("Creating a new application handler with ID [", app_handler_id.str(), "].");
-      return result_pair.first->second;
+    static ApplicationManager &get_instance() {
+        static ApplicationManager am;
+        return am;
     }
 
-    return iterator->second;
-  }
-
-  void remove_application_handler(const application_id &app_handler_id)
-  {
-    std::lock_guard<std::mutex> lock(global_mutex);
-    auto iterator = apps.find(app_handler_id.str());
-
-    if (iterator != apps.end())
-    {
-      apps.erase(iterator);
+    // setup functions for each internal entity
+    void setup_logger(const LoggerConfiguration &config) {
+        std::lock_guard<std::mutex> lock(global_mutex);
+        logger = Logger::get_instance(config);
     }
-    else{
-      logger->warning("Couldn't remove application handler: ID not found [", app_handler_id.str(), "].");
+    void setup_remote_handler(const RemoteConfiguration &config) {
+        std::lock_guard<std::mutex> lock(global_mutex);
+        remote = RemoteHandler::get_instance(config);
     }
-  }
+
+    void set_filesystem_configuration(const FsConfiguration &config) { fs_configuration = config; }
+    void set_launcher_configuration(const LauncherConfiguration &config) { launcher_configuration = config; }
+
+    const std::shared_ptr<Logger> get_logger() const { return logger; }
+
+    const std::shared_ptr<RemoteHandler> get_remote_handler() const { return remote; }
+
+    std::shared_ptr<RemoteApplicationHandler> get_application_handler(const application_id &app_handler_id) {
+        std::lock_guard<std::mutex> lock(global_mutex);
+        auto iterator = apps.find(app_handler_id.str());
+
+        if (iterator == apps.end()) {
+            auto &&application_ptr = std::make_shared<RemoteApplicationHandler>(app_handler_id, fs_configuration, launcher_configuration);
+            const auto result_pair = apps.emplace(app_handler_id.str(), application_ptr);
+
+            logger->debug("Creating a new application handler with ID [", app_handler_id.str(), "].");
+            return result_pair.first->second;
+        }
+
+        return iterator->second;
+    }
+
+    void remove_application_handler(const application_id &app_handler_id) {
+        std::lock_guard<std::mutex> lock(global_mutex);
+        auto iterator = apps.find(app_handler_id.str());
+
+        if (iterator != apps.end()) {
+            apps.erase(iterator);
+        } else {
+            logger->warning("Couldn't remove application handler: ID not found [", app_handler_id.str(), "].");
+        }
+    }
 
 private:
-  ApplicationManager() {}
+    ApplicationManager() {}
 
-  std::mutex global_mutex;
+    std::mutex global_mutex;
 
-  std::shared_ptr<Logger> logger;
-  std::shared_ptr<RemoteHandler> remote;
-  std::unordered_map<std::string, std::shared_ptr<RemoteApplicationHandler>> apps;
+    std::shared_ptr<Logger> logger;
+    std::shared_ptr<RemoteHandler> remote;
+    std::unordered_map<std::string, std::shared_ptr<RemoteApplicationHandler>> apps;
 
-  FsConfiguration fs_configuration;
-  LauncherConfiguration launcher_configuration;
+    FsConfiguration fs_configuration;
+    LauncherConfiguration launcher_configuration;
 };
 
-} // namespace agora
+}  // namespace agora
 
-#endif // APPLICATION_MANAGER_HPP
+#endif  // APPLICATION_MANAGER_HPP
