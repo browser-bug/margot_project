@@ -10,9 +10,6 @@ from sklearn.pipeline import Pipeline
 # testing
 from sklearn.datasets import make_regression
 
-# stats
-from statistics import store_stats
-
 def create_model(metric_name, num_iterations, model_params, data, target):
     print(model_params)
     algorithm = model_params['algorithm'] if 'algorithm' in model_params.keys() else 'linear'
@@ -58,9 +55,6 @@ def create_model(metric_name, num_iterations, model_params, data, target):
     scores_list = list(scoring_thresholds.keys())
     cv_results = cross_validate(estimator, data, target, cv=splits_iterator,return_estimator=True, scoring=scores_list, verbose=1, n_jobs=-1)
     print(cv_results)
-
-    # store statistics on file
-    store_stats(metric_name, num_iterations, cv_results, scores_list, data, target)
 
     # check if the score thresholds are verified
     best_estimator = [0] * num_cv_folds
