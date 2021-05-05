@@ -1,4 +1,11 @@
-FROM gcc:latest
+FROM ubuntu:focal
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update -y && apt-get install -y build-essential git
+RUN gcc --version && sleep 5
+
+RUN apt-get update -y && apt-get install -y python3 python3-dev python3-pip
 
 RUN apt-get update && apt-get install -y cmake wget libgtest-dev libssl-dev && rm -rf /var/lib/apt/lists/*
 
@@ -33,5 +40,8 @@ RUN cd /usr/src/margot \
   && make install \
   && cd ../..
 
-ENTRYPOINT [ "agora" ]
-CMD ["--workspace-directory /usr/src/work/run --plugin-directory /usr/src/margot/core/agora/plugins --models-directory /usr/src/work/run/models/ --qos 0 --storage-address /usr/src/work --min-log-level debug"]
+RUN cd /usr/src/margot/core/agora/plugins \
+  && pip3 install -r requirements.txt
+
+ENTRYPOINT ["agora"]
+CMD ["--workspace-directory", "/usr/src/work/run", "--plugin-directory", "/usr/src/margot/core/agora/plugins", "--models-directory", "/usr/src/work/run/models/", "--qos", "0", "--storage-address", "/usr/src/work", "--min-log-level", "debug"]
