@@ -1,9 +1,6 @@
 #check the minimum version
 cmake_minimum_required( VERSION 3.14 )
 
-# the project name
-project( AGORA VERSION 3.0 LANGUAGES CXX)
-
 #########################################################################
 #### Options
 #########################################################################
@@ -100,10 +97,10 @@ set( AGORA_LIBRARY_SOURCES
 add_library( ${AGORA_LIBRARY_NAME} SHARED ${AGORA_LIBRARY_SOURCES} ${AGORA_LIBRARY_HEADERS} )
 add_library( margot::${AGORA_LIBRARY_NAME} ALIAS ${AGORA_LIBRARY_NAME} )
 
-# define its inerface
+# define its interface
 target_include_directories( ${AGORA_LIBRARY_NAME}
 	PUBLIC
-        $<BUILD_INTERFACE:${AGORA_HDR_PATH}> # for headers when building
+    $<BUILD_INTERFACE:${AGORA_HDR_PATH}> # for headers when building
 		$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}> # for clients in install mode
 )
 
@@ -112,10 +109,6 @@ target_link_libraries( ${AGORA_LIBRARY_NAME} PUBLIC margot::margot_heel Threads:
 
 # define its compiler options
 target_compile_features( ${AGORA_LIBRARY_NAME} PRIVATE cxx_std_17 ) # for the filesystem component
-target_compile_options( ${AGORA_LIBRARY_NAME} PRIVATE "-Wall" )
-target_compile_options( ${AGORA_LIBRARY_NAME} PRIVATE $<$<CONFIG:DEBUG>: -g -O0 >)
-target_compile_options( ${AGORA_LIBRARY_NAME} PRIVATE $<$<CONFIG:RELWITHDEBINFO>: -march=native -mtune=native -g -O2 >)
-target_compile_options( ${AGORA_LIBRARY_NAME} PRIVATE $<$<CONFIG:RELEASE>: -march=native -mtune=native -O3 >)
 
 #########################################################################
 #### Agora server binary

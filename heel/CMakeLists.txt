@@ -1,9 +1,6 @@
 # check the minimum version
 cmake_minimum_required( VERSION 3.9 ) # for the imported targets and lto
 
-# the project name
-project( HEEL VERSION 3.0 LANGUAGES CXX)
-
 #########################################################################
 #### Look for required external libraries
 #########################################################################
@@ -147,10 +144,6 @@ target_link_libraries( ${HEEL_LIBRARY_NAME} PUBLIC Boost::headers )
 
 # define its compiler options
 target_compile_features( ${HEEL_LIBRARY_NAME} PRIVATE cxx_std_17 ) # for the filesystem component
-target_compile_options( ${HEEL_LIBRARY_NAME} PRIVATE "-Wall" )
-target_compile_options( ${HEEL_LIBRARY_NAME} PRIVATE $<$<CONFIG:DEBUG>: -g -O0 >)
-target_compile_options( ${HEEL_LIBRARY_NAME} PRIVATE $<$<CONFIG:RELWITHDEBINFO>: -march=native -mtune=native -g -O2 >)
-target_compile_options( ${HEEL_LIBRARY_NAME} PRIVATE $<$<CONFIG:RELEASE>: -march=native -mtune=native -O3 >)
 
 
 
@@ -184,10 +177,6 @@ set_target_properties(${HEEL_BINARY_NAME} PROPERTIES INSTALL_RPATH_USE_LINK_PATH
 
 # define its compiler options
 target_compile_features( ${HEEL_BINARY_NAME} PRIVATE cxx_std_17 ) # for the filesystem component
-target_compile_options( ${HEEL_BINARY_NAME} PRIVATE "-Wall" )
-target_compile_options( ${HEEL_BINARY_NAME} PRIVATE $<$<CONFIG:DEBUG>: -g -O0 >)
-target_compile_options( ${HEEL_BINARY_NAME} PRIVATE $<$<CONFIG:RELWITHDEBINFO>: -march=native -mtune=native -g -O2 >)
-target_compile_options( ${HEEL_BINARY_NAME} PRIVATE $<$<CONFIG:RELEASE>: -march=native -mtune=native -O3 >)
 include(CheckIPOSupported)
 check_ipo_supported(RESULT result)
 if(result)

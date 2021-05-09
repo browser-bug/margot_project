@@ -19,22 +19,18 @@ The repository is organized as follow:
 ```
 
 ### Compiling instructions
-The building system is based on CMake. Assuming you are in the path path/to/repository/root, the default procedure is as follow:
+The building system is based on CMake. We also provides additional CMake cache file with the most common optimization flags.Assuming you are in the path path/to/repository/root, the default procedure is as follow:
 ~~~
 :::bash
 $ mkdir build
 $ cd build
-$ cmake -DCMAKE_INSTALL_PREFIX:PATH=<path> ..
+$ cmake -C ../cmake/caches/gcc-x86_64.cmake -DCMAKE_INSTALL_PREFIX:PATH=<path> ..
 $ make
 $ make install
 ~~~
 The mARGOt autotuning framework is written in C++11. However, it requires the Paho MQTT C client to enable the online learning of the application knowledge (Agora).
 The mARGOt heel libraries and executables requires C++17 for the std::filesystem features, and boost::program_options. We recommend the user to provide these libraries.
 The framework itself is platform-agnostic. However, several monitors parse the /proc metafiles, assuming a unix-like environment.
-
-NOTE: if no install prefix is specified, we set the default value to the current project directory.
-
-
 
 #### Building option
 The default configuration builds and installs the framework as a static library, using as much monitors as possible.

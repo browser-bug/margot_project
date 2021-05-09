@@ -40,9 +40,7 @@ install(TARGETS ${BENCHMARK_NAME} RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} )
 #### Define the compiler options for this target
 #########################################################################
 
-target_compile_features( ${MARGOT_LIBRARY_NAME} PRIVATE cxx_std_11 )
-target_compile_options(${MARGOT_LIBRARY_NAME} PRIVATE -march=native -mtune=native -O3)
-
+target_compile_features( ${MARGOT_LIBRARY_NAME} PRIVATE cxx_std_17 )
 
 
 
