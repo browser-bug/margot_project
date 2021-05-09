@@ -62,9 +62,13 @@ po::options_description get_options(application_options &app_opts) {
     po::options_description options;
 
     // clang-format off
+  po::options_description generic_opts("Generic");
+  generic_opts.add_options()
+    ("help", "Prints usage informations.");
+
   po::options_description desc_opts("Required");
   desc_opts.add_options()
-    ("help", "Prints usage informations.")("workspace-directory", po::value<string>()->required(), "Where the application stores logs and temporary files.")
+    ("workspace-directory", po::value<string>()->required(), "Where the application stores logs and temporary files.")
     ("plugin-directory", po::value<string>()->required(), "The directory with all the available plugins that computes the application model.")
     ("models-directory", po::value<string>()->required(), "The directory that will store all the fitted models produced during evaluation.");
 
@@ -95,7 +99,7 @@ po::options_description get_options(application_options &app_opts) {
         "The number of workers to process messages.\n NOTE: it is recommended to have at least one worker for each managed application.");
     // clang-format on
 
-    options.add(desc_opts).add(storage_opts).add(communication_opts).add(internal_opts);
+    options.add(generic_opts).add(desc_opts).add(storage_opts).add(communication_opts).add(internal_opts);
 
     return options;
 }
@@ -141,21 +145,28 @@ inline auto resolve_mqtt_implementation = [](std::string mqtt_implementation) ->
 int main(int argc, char *argv[]) {
     // variables to control the application behavior
     application_options app_opts;
+    po::variables_map vm;
 
     // option parsing
     po::options_description cmdline_options = get_options(app_opts);
 
-    po::variables_map vm;
-    po::store(po::parse_command_line(argc, argv, cmdline_options), vm);
+    try {
+        po::store(po::parse_command_line(argc, argv, cmdline_options), vm);
 
-    // first we check that help is set, in which case we don't need to notify for missing required options
-    if (vm.count("help")) {
+        // first we check that help is set, in which case we don't need to notify for missing required options
+        if (vm.count("help")) {
+            cout << "Usage:\nagora --workspace-directory <path> --plugin-directory <path> [options]\n";
+            cout << cmdline_options;
+            return EXIT_SUCCESS;
+        }
+
+        po::notify(vm);
+    } catch (const std::exception &ex) {
+        cerr << ex.what() << endl;
         cout << "Usage:\nagora --workspace-directory <path> --plugin-directory <path> [options]\n";
         cout << cmdline_options;
-        return EXIT_SUCCESS;
+        return EXIT_FAILURE;
     }
-
-    po::notify(vm);
 
     // converting path strings to fs::path
     app_opts.workspace_dir = fs::path(vm["workspace-directory"].as<string>());
@@ -193,8 +204,8 @@ int main(int argc, char *argv[]) {
 
     auto logger = app_manager.get_logger();
 
-    // create a virtual channel to communicate with the applications
-    logger->info("Agora main: bootstrap step 1: estabilish a connection with broker");
+    // create a channel to communicate with the applications
+    logger->info("Agora main: bootstrap step 1: establish a connection with broker");
 
     agora::RemoteConfiguration remote_config(app_opts.mqtt_implementation);
     remote_config.set_paho_handler_properties("agora", app_opts.broker_url, app_opts.mqtt_qos, app_opts.broker_username,
@@ -205,17 +216,16 @@ int main(int argc, char *argv[]) {
     auto remote = app_manager.get_remote_handler();
 
     // subscribe to relevant topics
-    remote->subscribe(agora::MESSAGE_HEADER + "/+/welcome/#");      // to welcome new applications
-    remote->subscribe(agora::MESSAGE_HEADER + "/+/info/#");         // to receive information about the application
+    remote->subscribe(agora::MESSAGE_HEADER + "/+/welcome/#");      // to welcome new applications and receive the application informations
     remote->subscribe(agora::MESSAGE_HEADER + "/+/observation/#");  // to receive the observations from the clients
     remote->subscribe(agora::MESSAGE_HEADER + "/+/kia/#");          // to receive kill/bye commands from a client
-    remote->subscribe(agora::MESSAGE_HEADER + "/system/#");         // to receive external commands
+    remote->subscribe(agora::MESSAGE_HEADER + "/system/#");         // to receive external system commands
 
     // sends a welcome message to clients
     remote->send_message({agora::MESSAGE_HEADER + "/welcome", ""});
 
-    // initialize the virtual fs to store/load the information from hard drive
-    logger->info("Agora main: bootstrap step 2: initializing the virtual file system");
+    // initialize the filesystem handler to store/load the informations
+    logger->info("Agora main: bootstrap step 2: initializing the storage handler");
 
     agora::FsConfiguration fs_config;
     fs_config.set_csv_handler_properties(app_opts.storage_address, ',');
@@ -234,17 +244,17 @@ int main(int argc, char *argv[]) {
     agora::LauncherConfiguration launcher_config(app_opts.plugin_dir, app_opts.workspace_dir);
     app_manager.set_launcher_configuration(launcher_config);
 
-    // start the thread pool of worker that manage the plugin_dir
-    logger->info("Agora main: bootstrap step 4: hiring ", app_opts.number_of_threads, " oompa loompas");
+    // start the thread pool of workers
+    logger->info("Agora main: bootstrap step 4: hiring ", app_opts.number_of_threads, " workers");
     agora::ThreadPool workers(app_opts.number_of_threads);
     workers.start_workers();
 
-    // wain until the workers have done
+    // wait until all the workers have completed their task
     logger->info("Agora main: bootstrap complete, waiting for workers to finish");
     workers.wait_workers();
 
-    // ok, the whole server is down, time to go out of business
-    logger->info("Agora main: all the workers have joined me, farewell my friend");
+    // the server is down, log an exit message and shutdown
+    logger->info("Agora main: all the workers have finished their task");
 
     return EXIT_SUCCESS;
 }

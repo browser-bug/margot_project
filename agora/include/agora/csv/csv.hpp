@@ -6353,7 +6353,6 @@ namespace csv {
 
     protected:
         /**
-         * \defgroup csv_internal CSV Parser Internals
          * @brief Internals of CSVReader. Only maintainers and those looking to
          *        extend the parser should read this.
          * @{

@@ -62,10 +62,11 @@ struct application_options {
 po::options_description get_options(application_options &app_opts) {
     po::options_description options;
 
-    po::options_description desc_opts("Required");
-    desc_opts.add_options()("help", "Prints usage informations.");
-
     // clang-format off
+    po::options_description generic_opts("Generic");
+    generic_opts.add_options()
+      ("help", "Prints usage informations.");
+
     po::options_description communication_opts("Communication settings");
     communication_opts.add_options()
       ("mqtt-implementation", po::value<string>()->default_value("paho"), "The name of the actual MQTT client used by agora [paho].")
@@ -80,7 +81,7 @@ po::options_description get_options(application_options &app_opts) {
       ("num_threads", po::value<int>(&app_opts.number_of_threads)->default_value(1), "Number of threads to run on client side.");
     // clang-format on
 
-    options.add(desc_opts).add(communication_opts);
+    options.add(generic_opts).add(communication_opts);
 
     return options;
 }
@@ -95,6 +96,7 @@ inline auto resolve_mqtt_implementation = [](std::string mqtt_implementation) ->
     throw std::invalid_argument("Invalid MQTT implementation \"" + mqtt_implementation + "\", should be one of [paho]");
 };
 
+// The list of operations that the client working thread needs to perform
 void task(long int sleep_time_ms, const shared_ptr<agora::RemoteHandler> remote) {
     std::ostringstream ss;
     ss << std::this_thread::get_id();
@@ -119,23 +121,29 @@ void task(long int sleep_time_ms, const shared_ptr<agora::RemoteHandler> remote)
 int main(int argc, char *argv[]) {
     // variables to control the application behavior
     application_options app_opts;
+    po::variables_map vm;
 
     // option parsing
     po::options_description cmdline_options = get_options(app_opts);
 
-    po::variables_map vm;
-    po::store(po::parse_command_line(argc, argv, cmdline_options), vm);
+    try {
+        po::store(po::parse_command_line(argc, argv, cmdline_options), vm);
 
-    // first we check that help is set, in which case we don't need to notify for missing required options
-    if (vm.count("help")) {
+        // first we check that help is set, in which case we don't need to notify for missing required options
+        if (vm.count("help")) {
+            cout << "Usage:\nclient [options]\n";
+            cout << cmdline_options;
+            return EXIT_SUCCESS;
+        }
+
+        po::notify(vm);
+    } catch (const std::exception &ex) {
+        cerr << ex.what() << endl;
         cout << "Usage:\nclient [options]\n";
         cout << cmdline_options;
-        return EXIT_SUCCESS;
+        return EXIT_FAILURE;
     }
 
-    po::notify(vm);
-
-    // converting path strings to fs::path
     app_opts.mqtt_implementation = resolve_mqtt_implementation(vm["mqtt-implementation"].as<string>());
 
     if (app_opts.mqtt_qos < 0 || app_opts.mqtt_qos > 2) {
@@ -152,17 +160,18 @@ int main(int argc, char *argv[]) {
 
     auto logger = app_manager.get_logger();
 
-    // create a virtual channel to communicate with the applications
-    logger->info("Client main: bootstrap step 1: estabilish a connection with broker");
+    // create a channel to communicate with the applications
+    logger->info("Client main: bootstrap step 1: establish a connection with broker");
 
     agora::RemoteConfiguration remote_config(app_opts.mqtt_implementation);
-    remote_config.set_paho_handler_properties("app1^1.0^block1", app_opts.broker_url, app_opts.mqtt_qos, app_opts.broker_username,
-                                              app_opts.broker_password, app_opts.broker_certificate, app_opts.client_certificate,
-                                              app_opts.client_key);
+    remote_config.set_paho_handler_properties("fake_app_name^1.0^fake_block_name", app_opts.broker_url, app_opts.mqtt_qos,
+                                              app_opts.broker_username, app_opts.broker_password, app_opts.broker_certificate,
+                                              app_opts.client_certificate, app_opts.client_key);
     app_manager.setup_remote_handler(remote_config);
 
     auto remote = app_manager.get_remote_handler();
 
+    // create a mini thread pool to execute the specified task
     std::vector<std::thread> threads;
     threads.reserve(app_opts.number_of_threads);
     for (int i = 0; i < app_opts.number_of_threads; i++) {
