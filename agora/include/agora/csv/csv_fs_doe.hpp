@@ -64,12 +64,6 @@ public:
      */
     doe_model load_doe(const application_id &app_id, const margot::heel::block_model &description) override;
     /**
-     * @brief Update the specified DOE configuration by decreasing the number of observations that needs to be performed.
-     *
-     * @see FsDoe::update_doe()
-     */
-    void update_doe(const application_id &app_id, const margot::heel::block_model &description, const std::string &config_id) override;
-    /**
      * @brief Remove all the DOE configurations still available.
      *
      * @see FsDoe::empty_doe_entries()

@@ -127,14 +127,6 @@ public:
         return doe_fs->load_doe(app_id, description);
     }
     /**
-     * @brief Wrap the method to update the specified DOE configuration.
-     *
-     * @see FsDoe::update_doe()
-     */
-    void update_doe(const application_id &app_id, const margot::heel::block_model &description, const std::string &config_id) {
-        return doe_fs->update_doe(app_id, description, config_id);
-    }
-    /**
      * @brief Wrap the method to remove all the DOE configurations.
      *
      * @see FsDoe::empty_doe_entries()

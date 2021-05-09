@@ -99,17 +99,6 @@ doe_model CsvDoeStorage::load_doe(const application_id &app_id, const margot::he
     return output_doe;
 }
 
-void CsvDoeStorage::update_doe(const application_id &app_id, const margot::heel::block_model &description, const std::string &config_id) {
-    // load the doe table
-    doe_model output_doe = load_doe(app_id, description);
-
-    // update the specific configuration
-    // output_doe.update_config(config_id);
-
-    // rewrite the doe
-    store_doe(app_id, description, output_doe);
-}
-
 void CsvDoeStorage::empty_doe_entries(const application_id &app_id, const margot::heel::block_model &description) {
     // open the file for the doe
     std::ofstream out;

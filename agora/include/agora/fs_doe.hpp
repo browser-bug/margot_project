@@ -68,17 +68,6 @@ public:
      */
     virtual doe_model load_doe(const application_id &app_id, const margot::heel::block_model &description) = 0;
     /**
-     * @brief Update the specified DOE configuration by decreasing the number of observations that needs to be performed.
-     *
-     * @param [in] app_id The AID corresponding to the application.
-     * @param [in] description The application description containing software-knobs, input features and EFPs.
-     * @param [in] config_id The configuration ID.
-     *
-     * @details
-     * If the number of observations performed reaches zero, then the configuration must be removed.
-     */
-    virtual void update_doe(const application_id &app_id, const margot::heel::block_model &description, const std::string &config_id) = 0;
-    /**
      * @brief Remove all the DOE configurations still available.
      *
      * @param [in] app_id The AID corresponding to the application.
