@@ -2,7 +2,12 @@
 cmake_minimum_required( VERSION 3.14 )
 
 # the project name
-project( AGORA VERSION 2.0 LANGUAGES CXX)
+project( AGORA VERSION 3.0 LANGUAGES CXX)
+
+#########################################################################
+#### Options
+#########################################################################
+option( GEN_DOC "Generate the Agora Doxygen documentation" OFF)
 
 #########################################################################
 #### Look for required external libraries
@@ -13,6 +18,10 @@ find_package(Threads REQUIRED)
 find_package(eclipse-paho-mqtt-c REQUIRED)
 
 find_package(Boost REQUIRED COMPONENTS program_options)
+
+if ( GEN_DOC )
+	find_package( Doxygen REQUIRED)
+endif ( GEN_DOC )
 
 include(GNUInstallDirs)
 
@@ -108,13 +117,17 @@ target_compile_options( ${AGORA_LIBRARY_NAME} PRIVATE $<$<CONFIG:DEBUG>: -g -O0 
 target_compile_options( ${AGORA_LIBRARY_NAME} PRIVATE $<$<CONFIG:RELWITHDEBINFO>: -march=native -mtune=native -g -O2 >)
 target_compile_options( ${AGORA_LIBRARY_NAME} PRIVATE $<$<CONFIG:RELEASE>: -march=native -mtune=native -O3 >)
 
-#### UNIT TEST ####
-#add_subdirectory(test)
-
 #########################################################################
 #### Agora server binary
 #########################################################################
 add_subdirectory(server)
+
+#########################################################################
+#### Build additional stuff
+#########################################################################
+if ( GEN_DOC )
+	add_subdirectory( doc )
+endif ( GEN_DOC )
 
 #########################################################################
 #### Define the install settings for all the stuff
