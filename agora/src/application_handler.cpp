@@ -32,10 +32,10 @@
 using namespace agora;
 namespace pt = boost::property_tree;
 
-RemoteApplicationHandler::RemoteApplicationHandler(const application_id &application_id, const FsConfiguration &fs_config,
+RemoteApplicationHandler::RemoteApplicationHandler(const application_id &app_id, const FsConfiguration &fs_config,
                                                    const LauncherConfiguration &launcher_config)
-        : app_id(application_id),
-          LOG_HEADER("Handler " + application_id.str() + ": "),
+        : app_id(app_id),
+          LOG_HEADER("Handler " + app_id.str() + ": "),
           handler_status(InternalStatus::CLUELESS),
           iteration_number(0),
           num_configurations_per_iteration(0),

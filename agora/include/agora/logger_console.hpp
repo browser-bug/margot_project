@@ -24,13 +24,30 @@
 
 namespace agora {
 
+/**
+ * @brief Implementation of a Logger that outputs messages on the standard output (i.e. console/terminal).
+ */
 class ConsoleLogger : public Logger {
 public:
+    /**
+     * @brief Construct a new instance.
+     *
+     * @param [in] configuration The LoggerConfiguration to use.
+     */
     ConsoleLogger(const LoggerConfiguration &configuration) : Logger(configuration){};
 
 private:
-    // std::cout is thread safe but we need to aboid multiple threads message interleaving on one line.
-    // So only call the stream output operator << once.
+    /**
+     * @brief Log to standard output a text message.
+     *
+     * @param [in] text A string representing the text message.
+     *
+     * @note
+     * std::cout is thread safe but we need to avoid multiple threads messages interleaving on one line.
+     * So only call the stream output operator `<<` once.
+     *
+     * @see Logger::log()
+     */
     void log(const std::string &text) override {
         std::cout << text + "\n";
         std::cout.flush();
@@ -39,4 +56,4 @@ private:
 
 }  // namespace agora
 
-#endif  // LOGGER_CONSOLE_HPP
+#endif // LOGGER_CONSOLE_HPP

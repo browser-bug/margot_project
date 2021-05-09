@@ -25,8 +25,26 @@
 
 namespace agora {
 
+/**
+ * @brief A generic configuration for a plugin Launcher.
+ *
+ * @details
+ * This data structure contains the specification for a generic plugin launcher. This includes:
+ *  - Plugins path: the filesystem directory in which the implementation of each plugin is stored.
+ *  - Workspace path: the filesystem directory in which temporary files and logs of each plugin are stored. This is useful since we're
+ *      sandboxing the plugins execution and we can modify their implementation without stopping the Agora process.
+ */
 struct LauncherConfiguration {
-    LauncherConfiguration(){};  // TODO: add default paths too?
+    // TODO: add default paths too?
+    LauncherConfiguration(){};
+    /**
+     * @brief Construct a new Launcher configuration.
+     *
+     * @param [in] plugins_path The filesystem directory path where the plugins are implemented.
+     * @param [in] workspace_path The filesystem directory path where temporary data and logs are stored.
+     * @param [in] config_file_name The name of the environmental configuration file that will be parsed by the starting script of a plugin.
+     * @param [in] script_file_name The name of the script in charge of starting a plugin (i.e. calling its main function).
+     */
     LauncherConfiguration(std::filesystem::path plugins_path, std::filesystem::path workspace_path,
                           const std::string &config_file_name = "plugin_config.env",
                           const std::string &script_file_name = "plugin_start.sh")
@@ -38,12 +56,24 @@ struct LauncherConfiguration {
             throw std::invalid_argument("Launcher configuration: workspace_path and/or plugin_path do not exist.");
     }
 
+    /**
+     * @brief The filesystem directory path containing the plugins implementation.
+     */
     std::filesystem::path plugins_path;
+    /**
+     * @brief The filesystem directory path in which temporary files will be stored.
+     */
     std::filesystem::path workspace_path;
+    /**
+     * @brief The generic name of a environmental configuration file.
+     */
     std::string config_file_name;
+    /**
+     * @brief The generic name of a starting script file.
+     */
     std::string script_file_name;
 };
 
 }  // namespace agora
 
-#endif  // LAUNCHER_CONFIGURATION_HPP
+#endif // LAUNCHER_CONFIGURATION_HPP

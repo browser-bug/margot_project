@@ -129,7 +129,7 @@ void Launcher::clear_workspace() {
 pid_t Launcher::launch(const PluginConfiguration &env_configuration) {
     // get the required paths to launch the plugin
     const auto script_path = get_script_path();
-    const auto config_path = get_config_path(env_configuration.name);
+    const auto config_path = get_config_path(env_configuration.config_name);
     if (!fs::exists(script_path)) {
         logger->warning("Launcher: the plugin script file [", script_path.string(),
                         "] cannot be found. Have you initiliazed the plugin launcher?");
@@ -147,7 +147,7 @@ pid_t Launcher::launch(const PluginConfiguration &env_configuration) {
 pid_t Launcher::launch() {
     logger->info("Launcher: launching using the last configuration set.");
     const auto script_path = get_script_path();
-    const auto config_path = get_config_path(last_env_configuration.name);
+    const auto config_path = get_config_path(last_env_configuration.config_name);
     if (!fs::exists(config_path)) {
         logger->warning("Launcher: the environmental configuration file cannot be found. Is this the first time you launch this plugin?");
         throw std::runtime_error(

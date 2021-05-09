@@ -17,11 +17,10 @@
  * USA
  */
 
-#ifndef MARGOT_AGORA_MODEL_DOE_HPP
-#define MARGOT_AGORA_MODEL_DOE_HPP
+#ifndef MODEL_DOE_HPP
+#define MODEL_DOE_HPP
 
 #include <deque>
-#include <map>
 #include <unordered_map>
 #include <string>
 
@@ -29,24 +28,55 @@
 
 namespace agora {
 
-// <key = knob_name, value = knob_value>
+/**
+ * @brief A list of software-knobs values.
+ *
+ * @details
+ * Each element is seen as a (key, value) pair:
+ *  - Key: the software-knob name.
+ *  - Value: the software-knob value.
+ */
 using configuration_t = std::unordered_map<std::string, std::string>;
+
+/**
+ * @brief A data structure representing a software-knobs configuration.
+ *
+ * @details
+ * In table format this can be represented as | config_id | number_of_explorations | knob_1 | ... | knob_n |
+ */
 typedef struct configuration_model {
     configuration_model() {}
+    /**
+     * @brief Construct a new software-knobs configuration.
+     *
+     * @param [in] config_id The unique identification number of the configuration.
+     * @param [in] config The configuration values (i.e. a series of software-knobs values).
+     * @param [in] num_explorations The number of explorations required for the configuration.
+     */
     configuration_model(const std::string &config_id, const configuration_t &config, int num_explorations)
             : configuration_id(config_id), configuration(config), number_of_explorations(num_explorations) {}
 
+    /**
+     * @brief Check whether the configuration is empty (i.e. invalid).
+     *
+     * @returns True if the configuration is empty, False otherwise.
+     */
     bool empty() { return configuration.empty(); }
 
+    /// The configuration unique identifier.
     std::string configuration_id;
+    /// The configuration values.
     configuration_t configuration;
+    /// The number of required explorations.
     int number_of_explorations;
 } configuration_model;
 
-// TODO: we could do something cleaner like
-// using doe_row = std::pair<int, configuration_model>
-// where the <int> represents the number of explorations made
-
+/**
+ * @brief A data structure representing the output of the DOE plugin.
+ *
+ * @details
+ * The output is seen as a list of software-knobs configurations.
+ */
 struct doe_model {
     doe_model() {}
     doe_model(const doe_model &other_doe) : required_explorations(other_doe.required_explorations) {}
@@ -56,12 +86,27 @@ struct doe_model {
         return *this;
     }
 
-    // assuming no duplicates will be added
-    void add_config(const std::string &config_id, const configuration_t &config, const int required_number_of_observations) {
-        required_explorations.emplace_front(config_id, config, required_number_of_observations);
+    /**
+     * @brief Add a new configuration.
+     *
+     * @param [in] config_id The unique identification number of the configuration.
+     * @param [in] config The configuration values (i.e. a series of software-knobs values).
+     * @param [in] required_number_of_observations The number of explorations required for the configuration.
+     */
+    void add_config(const std::string &config_id, const configuration_t &config, const int required_number_of_explorations) {
+        required_explorations.emplace_front(config_id, config, required_number_of_explorations);
     }
 
-    // this method returns the next configuration to explore
+    /**
+     * @brief Get the next configuration to explore.
+     *
+     * @param [in, out] ref The next configuration to explore.
+     *
+     * @returns True if a configuration is available, False otherwise.
+     *
+     * @details
+     * The next configuration is extracted in a round-robin fashion, exploiting a std::deque.
+     */
     bool get_next(configuration_model &ref) {
         // check if we have an empty map or if we reached the end of it
         if (!required_explorations.empty()) {
@@ -79,12 +124,17 @@ struct doe_model {
         return false;
     }
 
+    /**
+     * @brief Remove all the configurations.
+     */
     void clear() { required_explorations.clear(); }
 
-    // data
+    /**
+     * @brief A list of software-knobs configurations.
+     */
     std::deque<configuration_model> required_explorations;
 };
 
 }  // namespace agora
 
-#endif  // MODEL_DOE_HPP
+#endif // MODEL_DOE_HPP

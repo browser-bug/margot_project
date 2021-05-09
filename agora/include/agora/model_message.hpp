@@ -17,8 +17,8 @@
  * USA
  */
 
-#ifndef MARGOT_AGORA_MODEL_MESSAGE_HPP
-#define MARGOT_AGORA_MODEL_MESSAGE_HPP
+#ifndef MODEL_MESSAGE_HPP
+#define MODEL_MESSAGE_HPP
 
 #include <cstring>
 #include <string>
@@ -28,17 +28,39 @@
 
 namespace agora {
 
+/**
+ * @brief The message header used by the server and the clients to exchange informations.
+ */
 const std::string MESSAGE_HEADER = "margot";
 
-// this is a generic message going through the agora virtual channel
+/**
+ * @brief A data structure representing a generic message going through the Agora virtual channel.
+ *
+ * @details
+ * A message is composed of a (topic, payload) pair.
+ */
 struct message_model {
     message_model() {}
+    /**
+     * @brief Construct a new message.
+     *
+     * @param [in] topic A string representing the message topic.
+     * @param [in] payload A string representing the message payload.
+     */
     message_model(const std::string &topic, const std::string &payload) : topic(topic), payload(payload) {}
 
     std::string topic;
     std::string payload;
 };
 
+/**
+ * @brief Create a list of tokens by splitting a message using a separator character.
+ *
+ * @param [in] message A string representing the message to tokenize.
+ * @param [in] separator A separator character which delimits the tokens.
+ *
+ * @returns A vector of tokens, each represented by a string.
+ */
 inline std::vector<std::string> tokenize(const std::string &message, const std::string &separator) {
     std::vector<std::string> tokens;
 
@@ -49,4 +71,4 @@ inline std::vector<std::string> tokenize(const std::string &message, const std::
 
 }  // namespace agora
 
-#endif  // MODEL_MESSAGE_HPP
+#endif // MODEL_MESSAGE_HPP

@@ -66,7 +66,7 @@ bool Worker::wait() {
 
     logger->debug("Waiting on thread ", get_tid());
     worker_cv.wait(lock);
-    logger->debug("Worker thread [", get_name(), "] has terminated succesfully.");
+    logger->debug("Worker thread [", get_name(), "] has terminated successfully.");
     return !finished;
 }
 
@@ -192,10 +192,10 @@ void Worker::handle_incoming_message(const message_model &new_message) {
     }
 }
 
-const application_id Worker::get_application_id(const std::string &s, const std::string app_id_separator) {
+const application_id Worker::get_application_id(const std::string &topic, const std::string app_id_separator) {
     // TODO: we're splitting the application_id based on an hardcoded character instead of using topic division
     // (app_name/block_name/version), is this still ok?
-    const auto app_id_tokens = tokenize(s, app_id_separator);
+    const auto app_id_tokens = tokenize(topic, app_id_separator);
     return application_id(app_id_tokens.at(0), app_id_tokens.at(1), app_id_tokens.at(2));
 }
 

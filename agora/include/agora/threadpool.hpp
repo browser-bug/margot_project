@@ -17,8 +17,8 @@
  * USA
  */
 
-#ifndef MARGOT_AGORA_THREADPOOL_HPP
-#define MARGOT_AGORA_THREADPOOL_HPP
+#ifndef THREADPOOL_HPP
+#define THREADPOOL_HPP
 
 #include <vector>
 
@@ -26,8 +26,20 @@
 
 namespace agora {
 
+/**
+ * @brief A thread pool of Agora Worker threads.
+ *
+ * @details
+ * Agora is based on a thread pool design that achieves concurrency of execution inside the system. It maintains multiple threads waiting
+ * for tasks to be allocated. In this way the system increases performance and avoids latency in execution.
+ */
 class ThreadPool {
 public:
+    /**
+     * @brief Create a new thread pool instance.
+     *
+     * @param [in] number_of_workers The number of threads to spawn (defaults to the system hardware max concurrency).
+     */
     ThreadPool(size_t number_of_workers = std::thread::hardware_concurrency()) {
         threads.reserve(number_of_workers);
 
@@ -36,13 +48,18 @@ public:
         }
     }
 
-    // std::thread objects are not copiable so we don't want a thread pool to be copied neither
+    // std::thread objects are not copyable so we don't want a thread pool to be copied neither
     ThreadPool(const ThreadPool &) = delete;
     ThreadPool &operator=(const ThreadPool &) = delete;
 
-    // let's make sure that on destruction we're waiting all workers
+    /**
+     * @brief Destruct the instance waiting all the spawned threads.
+     */
     ~ThreadPool() { wait_workers(); }
 
+    /**
+     * @brief Start the task assigned on all available threads.
+     */
     void start_workers() {
         // spawn all the threads
         for (auto &worker : threads) {
@@ -50,6 +67,9 @@ public:
         }
     }
 
+    /**
+     * @brief Wait the assigned task on all running threads.
+     */
     void wait_workers() {
         for (auto &worker : threads) {
             if (worker->is_running()) {
@@ -58,6 +78,9 @@ public:
         }
     }
 
+    /**
+     * @brief Interrupt the assigned task on all running threads.
+     */
     void stop_workers() {
         for (auto &worker : threads) {
             worker->stop();
@@ -65,8 +88,11 @@ public:
     }
 
 private:
+    /**
+     * @brief A list of available/running threads.
+     */
     std::vector<std::unique_ptr<Worker>> threads;
 };
 }  // namespace agora
 
-#endif  // MARGOT_AGORA_THREADPOOL_HPP
+#endif // THREADPOOL_HPP

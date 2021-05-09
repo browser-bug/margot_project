@@ -50,7 +50,7 @@ void CsvObservationStorage::create_observation_table(const application_id &app_i
     std::ostringstream ss;
     ss << get_header(app_id, description);
 
-    // open the file for the obseration table
+    // open the file for the observation table
     std::ofstream out;
     std::lock_guard<std::mutex> lock(mtx);
     out.open(get_observation_name(app_id), std::ios::out | std::ios::trunc);

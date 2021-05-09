@@ -17,31 +17,41 @@
  * USA
  */
 
-#ifndef MARGOT_AGORA_TYPES_HPP
-#define MARGOT_AGORA_TYPES_HPP
+#ifndef AGORA_PROPERTIES_HPP
+#define AGORA_PROPERTIES_HPP
 
 #include <string>
 #include <unordered_map>
 #include <filesystem>
 
-// Possible types we can have inside agora for each object/concept
-
 namespace agora {
 
+/**
+ * @brief Available settings inside margot::heel configuration file.
+ *
+ * @details
+ * These values are expected inside the 'agora' section of the Heel JSON configuration file.
+ */
 enum class AgoraSettingType {
-    Invalid_Setting,
-    Number_Config_Per_Iter,
-    Number_Obs_Per_Config,
-    Max_Number_Iter,
-    Doe_Plugin,
-    Clustering_Plugin,
-    Storage_Type,
-    Storage_Address,
-    Storage_Username,
-    Storage_Password
+    Invalid_Setting,         ///< Unexpected setting which will be ignored.
+    Number_Config_Per_Iter,  ///< The number of configurations to explore each iteration.
+    Number_Obs_Per_Config,   ///< The number of observation to expect from every configuration.
+    Max_Number_Iter,         ///< The maximum number of iterations to perform during the iterative learning process.
+    Doe_Plugin,              ///< The name of the plugin which performs the Design of Experiments.
+    Clustering_Plugin,       ///< The name of the plugin which performs the clustering of input features.
+    Storage_Type,            ///< The type of storage to use.
+    Storage_Address,         ///< The storage address (e.g. a path for CSVs, a DB address for database storage, ...)
+    Storage_Username,        ///< The storage username (ignored if not needed)
+    Storage_Password         ///< The storage password (ignored if not needed)
 };
 
-// This helps switching on properties while parsing tables
+/**
+ * @brief Helper function used inside `switch` statements to resolve the setting type.
+ *
+ * @param [in] input The input string corresponding to the setting's name.
+ *
+ * @returns The setting type if found, Invalid_Setting otherwise.
+ */
 inline AgoraSettingType resolve_setting_type(const std::string &input) {
     static const std::unordered_map<std::string, AgoraSettingType> setting_types{
             {"number_configurations_per_iteration", AgoraSettingType::Number_Config_Per_Iter},
@@ -61,9 +71,28 @@ inline AgoraSettingType resolve_setting_type(const std::string &input) {
     return AgoraSettingType::Invalid_Setting;
 }
 
-enum class AgoraMessageType { Invalid_Message, System, Welcome, Kia, Observation, Error };
+/**
+ * @brief Available message types which Agora expects to receive.
+ *
+ * @details
+ * These values are expected by the Agora message handler and are managed according to their type.
+ */
+enum class AgoraMessageType {
+    Invalid_Message,  ///< Unexpected message which will be ignored.
+    System,           ///< Used for internal operations.
+    Welcome,          ///< Sent by new clients joining the pool.
+    Kia,              ///< Sent by clients leaving the pool.
+    Observation,      ///< A new observation corresponding to a specific configuration.
+    Error             ///< Error message sent after a whitelist filtering.
+};
 
-// This helps switching on message types when receiving a new one
+/**
+ * @brief Helper function used inside `switch` statements to resolve the message type.
+ *
+ * @param [in] input The input string corresponding to the message's type.
+ *
+ * @returns The message type if found, Invalid_Message otherwise.
+ */
 inline AgoraMessageType resolve_message_type(const std::string &input) {
     static const std::unordered_map<std::string, AgoraMessageType> message_types{
             {"system", AgoraMessageType::System},           {"welcome", AgoraMessageType::Welcome}, {"kia", AgoraMessageType::Kia},
@@ -76,9 +105,26 @@ inline AgoraMessageType resolve_message_type(const std::string &input) {
     return AgoraMessageType::Invalid_Message;
 }
 
-enum class AgoraSystemCommandType { Invalid_Command, Shutdown, TestConnection };
+/**
+ * @brief Available system commands which Agora expects to perform.
+ *
+ * @details
+ * These values are expected by the Agora message handler after receiving a system message. Based on its type, different operations will be
+ * performed.
+ */
+enum class AgoraSystemCommandType {
+    Invalid_Command,  ///< Unexpected command which will be ignored.
+    Shutdown,         ///< This tells Agora to shutdown all its operations.
+    TestConnection    ///< This is used for testing purposes (e.g. testing the connection with a client)
+};
 
-// This helps switching on system message types when receiving a new one
+/**
+ * @brief Helper function used inside `switch` statements to resolve the system message command type.
+ *
+ * @param [in] input The input string corresponding to the system message's type.
+ *
+ * @returns The system message command type if found, Invalid_Command otherwise.
+ */
 inline AgoraSystemCommandType resolve_system_command_type(const std::string &input) {
     static const std::unordered_map<std::string, AgoraSystemCommandType> system_command_types{
             {"shutdown", AgoraSystemCommandType::Shutdown},
@@ -91,9 +137,24 @@ inline AgoraSystemCommandType resolve_system_command_type(const std::string &inp
     return AgoraSystemCommandType::Invalid_Command;
 }
 
-// Application Identifier
+/**
+ * @brief The unique identifier of an application (AID).
+ *
+ * @details
+ * This ID is used to represent a generic application inside Agora. The key is generated based on three elements:
+ *  - Application name
+ *  - Configuration file version
+ *  - Block name
+ */
 struct application_id {
     application_id() {}
+    /**
+     * @brief Construct a new AID.
+     *
+     * @param [in] a_name The application name.
+     * @param [in] v The configuration file version.
+     * @param [in] b_name The block name.
+     */
     application_id(const std::string &a_name, const std::string &v, const std::string &b_name)
             : app_name(a_name), version(v), block_name(b_name) {}
 
@@ -101,13 +162,16 @@ struct application_id {
     std::string version;
     std::string block_name;
 
+    /// Check whether two AID are equal.
     inline bool operator==(const application_id &rhs) const {
         return app_name == rhs.app_name && version == rhs.version && block_name == rhs.block_name;
     }
+    /// Convert the AID to string format.
     inline std::string str() const { return std::string(app_name + "^" + version + "^" + block_name); }
+    /// Convert the AID to filesystem path format.
     inline std::filesystem::path path() const { return std::filesystem::path(app_name) / version / block_name; }
 };
 
 }  // namespace agora
 
-#endif  // MARGOT_TYPES_HPP
+#endif  // AGORA_PROPERTIES_HPP

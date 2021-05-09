@@ -52,7 +52,7 @@ int recv_callback_function(void *recv_buffer, char *topic_c_str, int topic_size,
 
     // push the message in the queue
     // NOTE: this operation is dangerous, because we are assuming that context
-    //       is actually refering to a safe queue in remote_handler.hpp. However,
+    //       is actually referring to a safe queue in remote_handler.hpp. However,
     //       since we are dealing with a c interface... brace yourself!
     static_cast<MessageQueue *>(recv_buffer)->enqueue(incoming_message);
 
@@ -75,15 +75,15 @@ void connlost_callback_function(void *recv_buffer, char *cause) {
 
     // put the message in the inbox
     // NOTE: this operation is dangerous, because we are assuming that context
-    //       is actually refering to a safe queue in remote_handler.hpp. However,
+    //       is actually referring to a safe queue in remote_handler.hpp. However,
     //       since we are dealing with a c interface... brace yourself!
     static_cast<MessageQueue *>(recv_buffer)->enqueue(error_message);
 }
 
 void delivered_callback_function(void *context, MQTTClient_deliveryToken delivered_token) {
-    // since we are not willing to explictly deal with tokens, we log this event to be postprocessed externally.
+    // since we are not willing to explicitly deal with tokens, we log this event to be postprocessed externally.
     ApplicationManager &am = ApplicationManager::get_instance();
-    am.get_logger()->pedantic("MQTT callback: succesfully delivered message with token \"", delivered_token, "\"");
+    am.get_logger()->pedantic("MQTT callback: successfully delivered message with token \"", delivered_token, "\"");
 }
 }
 
@@ -100,7 +100,7 @@ PahoClient::PahoClient(const RemoteConfiguration &configuration)
     std::replace(client_id.begin(), client_id.end(), '.', '_');
     std::replace(client_id.begin(), client_id.end(), '-', '_');
 
-    // create the topic name for the last will and testment
+    // create the topic name for the last will and testament
     goodbye_topic = MESSAGE_HEADER + "/" + configuration.app_identifier + "/kia/" + client_id;
 
     // initialize the connection options
@@ -110,7 +110,7 @@ PahoClient::PahoClient(const RemoteConfiguration &configuration)
     conn_opts.username = configuration.broker_username.empty() ? NULL : configuration.broker_username.c_str();
     conn_opts.password = configuration.broker_password.empty() ? NULL : configuration.broker_password.c_str();
 
-    // initialize the connection with ssl certicates
+    // initialize the connection with ssl certificates
     MQTTClient_SSLOptions ssl = MQTTClient_SSLOptions_initializer;
 
     if (!configuration.broker_certificate.empty()) {
@@ -125,7 +125,7 @@ PahoClient::PahoClient(const RemoteConfiguration &configuration)
 
     logger->info("Broker address: ", configuration.broker_url.c_str());
 
-    // set the last will and testment
+    // set the last will and testament
     MQTTClient_willOptions last_will = MQTTClient_willOptions_initializer;
     last_will.topicName = goodbye_topic.c_str();
     last_will.message = "Client has been disconnected.";
@@ -148,7 +148,7 @@ PahoClient::PahoClient(const RemoteConfiguration &configuration)
         throw std::runtime_error("MQTT client: unable to set callbacks in client structure, err=" + resolve_error_cause(return_code));
     }
 
-    // eventually estabilish the connection with the broker
+    // eventually establish the connection with the broker
     return_code = MQTTClient_connect(client, &conn_opts);
 
     // check the result
@@ -165,7 +165,7 @@ PahoClient::PahoClient(const RemoteConfiguration &configuration)
 }
 
 PahoClient::~PahoClient() {
-    // if we haven't done it yet, we have to disconnet the channel
+    // if we haven't done it yet, we have to disconnect the channel
     disconnect();
 }
 
@@ -191,7 +191,7 @@ void PahoClient::send_message(const message_model &output_message) {
     message.payload = (void *)output_message.payload.c_str();
     message.payloadlen = output_message.payload.size();
     message.qos = qos_level;
-    message.retained = 0;  // change to 1 if we want messages to appear to new subcribers
+    message.retained = 0;  // change to 1 if we want messages to appear to new subscribers
 
     // send the message (in asynchronous way) and it isn't thread safe >.>
     int return_code;
@@ -209,7 +209,7 @@ void PahoClient::send_message(const message_model &output_message) {
 }
 
 void PahoClient::subscribe(const std::string &topic) {
-    // make sure to subscibe while we are actually connected to a broker
+    // make sure to subscribe while we are actually connected to a broker
     // it may happens in the shutdown procedure
     if (!is_connected) {
         logger->warning("MQTT client: attempt to subscribe in a topic while disconnected");
@@ -227,7 +227,7 @@ void PahoClient::subscribe(const std::string &topic) {
 }
 
 void PahoClient::unsubscribe(const std::string &topic) {
-    // make sure to unsubscibe while we are actually connected to a broker
+    // make sure to unsubscribe while we are actually connected to a broker
     // it may happens in the shutdown procedure
     if (!is_connected) {
         logger->warning("MQTT client: attempt to unsubscribe from a topic while disconnected");

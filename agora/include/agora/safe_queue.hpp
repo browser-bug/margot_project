@@ -17,8 +17,8 @@
  * USA
  */
 
-#ifndef MARGOT_AGORA_SAFE_QUEUE_HPP
-#define MARGOT_AGORA_SAFE_QUEUE_HPP
+#ifndef SAFE_QUEUE_HPP
+#define SAFE_QUEUE_HPP
 
 #include <condition_variable>
 #include <deque>
@@ -26,44 +26,69 @@
 
 namespace agora {
 
+/**
+ * @brief A synchronized queue.
+ *
+ * @tparam T The type of data stored in the queue.
+ *
+ * @details
+ * This class is being used primary for message storing but can be extended without effort to any kind of data. All its internal methods are
+ * thread-safe to ensure synchronization.
+ */
 template <class T>
 class Queue {
 public:
     Queue() : signal_terminate(false) {}
 
-    // this queue is designed to be used safely, cannot be moved though
+    // this class should not be copied or moved around
     Queue(const Queue &) = delete;
     Queue &operator=(const Queue &) = delete;
 
     virtual ~Queue() { signal_terminate = true; }
 
-    inline std::size_t size() const {
+    /**
+     * @brief Get the current queue size.
+     *
+     * @returns The number of elements currently stored.
+     */
+    std::size_t size() const {
         std::unique_lock<std::mutex> lock(job_queue_mutex);
         return job_queue.size();
     }
 
-    inline bool empty() const {
+    /**
+     * @brief Check if the queue is empty.
+     *
+     * @returns True if no elements are stored, False otherwise.
+     */
+    bool empty() const {
         std::unique_lock<std::mutex> lock(job_queue_mutex);
         return job_queue.empty();
     }
 
-    inline void send_terminate_signal() {
+    /**
+     * @brief Notify all waiting threads that the queue is inactive and hence to terminate.
+     */
+    void send_terminate_signal() {
         std::unique_lock<std::mutex> lock(job_queue_mutex);
         signal_terminate = true;
         job_queue_cv.notify_all();
     }
 
-    inline void clear_terminate_signal() {
+    /**
+     * @brief Set the queue to active state.
+     */
+    void clear_terminate_signal() {
         std::unique_lock<std::mutex> lock(job_queue_mutex);
         signal_terminate = false;
     }
 
     /**
-     * @brief wait until there some work available or the thread should terminate
+     * @brief Wait until there is some work available or if the thread should terminate.
      *
-     * @param [out] output_job The job assigned to the thread
+     * @param [out] output_job The job that needs to be assigned to the thread.
      *
-     * @return true if the job is really a work to do, otherwise false
+     * @returns True if there is a job available, False otherwise.
      */
     bool dequeue(T &output_job) {
         // get the lock on the operation
@@ -72,7 +97,7 @@ public:
         // look until there is some work to do
         // please, note that spurious wake up happens!
         while (!signal_terminate && job_queue.empty()) {
-            job_queue_cv.wait(lock);  // release lock -> wait for a wake_up -> reaquire lock
+            job_queue_cv.wait(lock);  // release lock -> wait for a wake_up -> require lock
         }
 
         // check if the termination condition is met
@@ -88,6 +113,11 @@ public:
         return true;
     }
 
+    /**
+     * @brief Put a new job in the queue waiting if it is being used.
+     *
+     * @param [in] input_job The job that needs to be put in the queue.
+     */
     void enqueue(const T &input_job) {
         // get the lock on the operation
         std::unique_lock<std::mutex> lock(job_queue_mutex);
@@ -100,8 +130,14 @@ public:
     }
 
 private:
+    /**
+     * @brief The queue storing the available jobs.
+     */
     std::deque<T> job_queue;
 
+    /**
+     * @brief Store True if the queue is active, False otherwise.
+     */
     bool signal_terminate;
 
     // synchronization variables
@@ -111,4 +147,4 @@ private:
 
 }  // namespace agora
 
-#endif  // MARGOT_AGORA_SAFE_QUEUE_HPP
+#endif // SAFE_QUEUE_HPP

@@ -29,35 +29,96 @@
 
 namespace agora {
 
+/**
+ * @brief Implementation of a FsObservation that manages observations data via CSV files.
+ */
 class CsvObservationStorage : public FsObservation {
 public:
+    /**
+     * @brief Construct a new instance.
+     *
+     * @param [in] configuration The FsConfiguration to use.
+     *
+     * @details
+     * This constructor creates a new filesystem directory that will contains the observations data inside the storage root directory
+     * specified in the configuration.
+     */
     CsvObservationStorage(const FsConfiguration &configuration);
 
     ~CsvObservationStorage() = default;
 
+    /**
+     * @brief Create a new CSV file for the observations of the specified application.
+     *
+     * @details
+     * Create a single CSV file with the following header:
+     *  - | sec | nanosec | client_id | knob_1 | ... | knob_n | feature_1 | ... | feature_n | metric_1 | ... | metric_n | ->
+     * observations.csv
+     *
+     * @see FsObservation::create_observation_table()
+     */
     void create_observation_table(const application_id &app_id, const margot::heel::block_model &description) override;
+    /**
+     * @brief Append a new observation to the CSV file.
+     *
+     * @note
+     * Since this is a high frequency operation, the number of accesses to the CSV file can be very high. Appending a row to a CSV file is
+     * not a thread-safe operation, hence a mutex is needed in order to manage the critical section.
+     *
+     * @see FsObservation::insert_observation_entry()
+     */
     void insert_observation_entry(const application_id &app_id, const std::string &client_id, long duration_sec, long duration_ns,
                                   const margot::heel::operating_point_model &operating_point) override;
 
-    void erase(const application_id &app_id) override;
-
-    // the followings get the relative path for each specific table
+    /**
+     * @brief Get the filesystem path to the observations data CSV file.
+     *
+     * @see FsObservation::get_observation_name()
+     */
     std::string get_observation_name(const application_id &app_id) const override {
         std::filesystem::path p = observation_dir / app_id.path() / "observations.csv";
         return p.string();
     }
 
+    /**
+     * @brief Delete the observations data CSV files inside the storage directory.
+     *
+     * @see FsObservation::erase()
+     */
+    void erase(const application_id &app_id) override;
+
+    /**
+     * @brief Get the storage type.
+     *
+     * @returns A string containing "csv".
+     */
     std::string get_type() const override { return "csv"; }
 
 private:
-    // this path will contain all the stored information
+    /**
+     * @brief The directory path containing all observations data.
+     */
     std::filesystem::path observation_dir;
+    /**
+     * @brief The mutex used to enforce a synchronization on the observations insertion.
+     */
     std::mutex mtx;
 
-    // configuration variables, for handling csv parsing
-    const char csv_separator;
+    /**
+     * @brief The format used inside the CSV files.
+     */
     csv::CSVFormat format;
+    /**
+     * @brief The column separator used inside the CSV files.
+     */
+    const char csv_separator;
 
+    /**
+     * @brief Get the observations data CSV file header.
+     *
+     * @param [in] app_id The AID corresponding to the application.
+     * @param [in] description The application description containing software-knobs, input features and EFPs to store.
+     */
     std::string get_header(const application_id &app_id, const margot::heel::block_model &description);
 };
 

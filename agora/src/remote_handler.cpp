@@ -42,15 +42,15 @@ std::unique_ptr<RemoteHandler> RemoteHandler::get_instance(const RemoteConfigura
     return remote_handler;
 }
 
-void RemoteHandler::whitelist(message_model &incoming_string) {
+void RemoteHandler::whitelist(message_model &incoming_message) {
     static const std::string topic_accepted_characters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_/^.";
     static const std::string payload_accepted_characters =
             "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_ -.:,@<>=;()[]{}^*+'\"";
 
-    const auto topic_invalid_idx = incoming_string.topic.find_first_not_of(topic_accepted_characters);
+    const auto topic_invalid_idx = incoming_message.topic.find_first_not_of(topic_accepted_characters);
     const bool is_topic_invalid = topic_invalid_idx != std::string::npos;
 
-    const auto payload_invalid_idx = incoming_string.payload.find_first_not_of(payload_accepted_characters);
+    const auto payload_invalid_idx = incoming_message.payload.find_first_not_of(payload_accepted_characters);
     const bool is_payload_invalid = payload_invalid_idx != std::string::npos;
 
     if (is_topic_invalid || is_payload_invalid) {
@@ -58,16 +58,16 @@ void RemoteHandler::whitelist(message_model &incoming_string) {
 
         if (is_topic_invalid) {
             error_msg += "-> ";
-            error_msg += incoming_string.topic[topic_invalid_idx];
+            error_msg += incoming_message.topic[topic_invalid_idx];
             error_msg += +" <- in the topic of the message.";
         }
         if (is_payload_invalid) {
             error_msg += "-> ";
-            error_msg += incoming_string.payload[payload_invalid_idx];
+            error_msg += incoming_message.payload[payload_invalid_idx];
             error_msg += " <- in the payload of the message.";
         }
 
-        incoming_string.topic = MESSAGE_HEADER + "/error/";
-        incoming_string.payload = error_msg;
+        incoming_message.topic = MESSAGE_HEADER + "/error/";
+        incoming_message.payload = error_msg;
     }
 }

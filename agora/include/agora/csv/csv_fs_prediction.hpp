@@ -29,33 +29,81 @@
 
 namespace agora {
 
+/**
+ * @brief Implementation of a FsPrediction that manages input predictions data via CSV files.
+ */
 class CsvPredictionStorage : public FsPrediction {
 public:
+    /**
+     * @brief Construct a new instance.
+     *
+     * @param [in] configuration The FsConfiguration to use.
+     *
+     * @details
+     * This constructor creates a new filesystem directory that will contains the predictions data inside the storage root directory
+     * specified in the configuration.
+     */
     CsvPredictionStorage(const FsConfiguration &configuration);
 
     ~CsvPredictionStorage() = default;
 
+    /**
+     * @brief Store the predictions data.
+     *
+     * @details
+     * Create a single CSV file with the following header:
+     *  - | pred_id | knob_1 | ... | knob_n | feature_1 | ... | feature_n | metric_1_avg | metric_1_std | ... | metric_n_avg | ... |
+     * metric_n_std | -> predictions.csv
+     *
+     * @see FsPrediction::store_prediction()
+     */
     void store_prediction(const application_id &app_id, const margot::heel::block_model &description,
                           const prediction_model &prediction) override;
+    /**
+     * @brief Load the predictions data.
+     *
+     * @see FsPrediction::load_prediction()
+     */
     prediction_model load_prediction(const application_id &app_id, const margot::heel::block_model &description) override;
 
-    void erase(const application_id &app_id) override;
-
-    // the followings get the relative path for each specific table
+    /**
+     * @brief Get the filesystem path to the predictions data CSV file.
+     *
+     * @see FsPrediction::get_prediction_name()
+     */
     std::string get_prediction_name(const application_id &app_id) const override {
         std::filesystem::path p = prediction_dir / app_id.path() / "predictions.csv";
         return p.string();
     }
 
+    /**
+     * @brief Delete the cluster data CSV files inside the storage directory.
+     *
+     * @see FsPrediction::erase()
+     */
+    void erase(const application_id &app_id) override;
+
+    /**
+     * @brief Get the storage type.
+     *
+     * @returns A string containing "csv".
+     */
     std::string get_type() const override { return "csv"; }
 
 private:
-    // this path will contain all the stored information
+    /**
+     * @brief The directory path containing all predictions data.
+     */
     std::filesystem::path prediction_dir;
 
-    // configuration variables, for handling csv parsing
-    const char csv_separator;
+    /**
+     * @brief The format used inside the CSV files.
+     */
     csv::CSVFormat format;
+    /**
+     * @brief The column separator used inside the CSV files.
+     */
+    const char csv_separator;
 };
 
 }  // namespace agora

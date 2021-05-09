@@ -17,8 +17,8 @@
  * USA
  */
 
-#ifndef MARGOT_AGORA_MODEL_CLUSTER_HPP
-#define MARGOT_AGORA_MODEL_CLUSTER_HPP
+#ifndef MODEL_CLUSTER_HPP
+#define MODEL_CLUSTER_HPP
 
 #include <string>
 #include <unordered_map>
@@ -28,28 +28,57 @@
 
 namespace agora {
 
-//
-// | FEAT1 | FEAT2 | ... | FEATN
-//
-// TODO: this can become something more detailed inside heel
+/**
+ * @brief A vector representing a generic input features cluster centroid.
+ *
+ * @details
+ * In table format this can be represented as | feat_1 | ... | feat_n |
+ */
 using centroid_model = std::vector<std::string>;
 
+/**
+ * @brief A data structure representing the output of the clustering plugin.
+ *
+ * @details
+ * The output is seen as a list of input features cluster centroids.
+ */
 struct cluster_model {
-    // this method adds a centroid
+    /**
+     * @brief Add a new centroid.
+     *
+     * @param [in] centroid_id The unique identification number of the centroid.
+     * @param [in] centroid The centroid values (i.e. a series of input features values).
+     *
+     * @returns True if the centroid_id was seen for the first time, False if the it was already present and hence substituted with a new
+     *  value.
+     */
     bool add_centroid(const std::string &centroid_id, const centroid_model &centroid) {
-        bool assignment_took_place =
-                !centroids.insert_or_assign(centroid_id, centroid).second || !centroids.insert_or_assign(centroid_id, centroid).second;
-        return assignment_took_place;
+        return !centroids.insert_or_assign(centroid_id, centroid).second;
     }
 
-    // this method removes a centroid
+    /**
+     * @brief Remove the specified centroid.
+     *
+     * @param [in] centroid_id The unique identification number of the centroid.
+     */
     void remove_centroid(const std::string &centroid_id) { centroids.erase(centroid_id); }
 
+    /**
+     * @brief Remove all the centroids.
+     */
     void clear() { centroids.clear(); }
 
+    /**
+     * @brief A list of centroids.
+     *
+     * @details
+     * Each element is seen as a (key, value) pair:
+     *  - Key: the centroid ID.
+     *  - Value: the centroid values.
+     */
     std::unordered_map<std::string, centroid_model> centroids;
 };
 
 }  // namespace agora
 
-#endif  // MODEL_CLUSTER_HPP
+#endif // MODEL_CLUSTER_HPP

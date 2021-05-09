@@ -33,69 +33,148 @@
 
 namespace agora {
 
+/**
+ * @brief The implementation of the Application Manager (AM).
+ *
+ * @details
+ * This class is a singleton which is in charge of managing the available resources inside the Agora application. In particular, it stores a
+ * list of RemoteApplicationHandler for each application.
+ *
+ * @note
+ * The main methods are mutex protected in order to enforce a consistent internal state.
+ */
 class ApplicationManager {
 public:
+    /**
+     * @brief Get a singleton instance of this class.
+     */
     static ApplicationManager &get_instance() {
         static ApplicationManager am;
         return am;
     }
 
-    // setup functions for each internal entity
+    /**
+     * @brief Create a new Logger instance based on the specified configuration.
+     *
+     * @param [in] config The Logger configuration to use.
+     */
     void setup_logger(const LoggerConfiguration &config) {
         std::lock_guard<std::mutex> lock(global_mutex);
         logger = Logger::get_instance(config);
     }
+    /**
+     * @brief Create a new RemoteHandler instance based on the specified configuration.
+     *
+     * @param [in] config The RemoteHandler configuration to use.
+     */
     void setup_remote_handler(const RemoteConfiguration &config) {
         std::lock_guard<std::mutex> lock(global_mutex);
         remote = RemoteHandler::get_instance(config);
     }
 
+    /**
+     * @brief Set the configuration that the RemoteApplicationHandler will use to create a FsHandler.
+     *
+     * @param [in] config The FsHandler configuration to use.
+     */
     void set_filesystem_configuration(const FsConfiguration &config) { fs_configuration = config; }
+    /**
+     * @brief Set the configuration that the RemoteApplicationHandler will use to create a plugin Launcher.
+     *
+     * @param [in] config The plugin Launcher configuration to use.
+     */
     void set_launcher_configuration(const LauncherConfiguration &config) { launcher_configuration = config; }
 
+    /**
+     * @brief Get the global Logger of Agora.
+     *
+     * @returns A pointer to the Logger.
+     */
     const std::shared_ptr<Logger> get_logger() const { return logger; }
 
+    /**
+     * @brief Get the global RemoteHandler of Agora.
+     *
+     * @returns A pointer to the RemoteHandler.
+     */
     const std::shared_ptr<RemoteHandler> get_remote_handler() const { return remote; }
 
-    std::shared_ptr<RemoteApplicationHandler> get_application_handler(const application_id &app_handler_id) {
+    /**
+     * @brief Get the RemoteApplicationHandler for the specified application.
+     *
+     * @param [in] app_id The unique identifier of the application.
+     *
+     * @returns A pointer to the RemoteApplicationHandler.
+     *
+     * @details
+     * This method uses lazy instantiation, creating the RemoteApplicationHandler only once if app_id is seen for the first time.
+     */
+    std::shared_ptr<RemoteApplicationHandler> get_application_handler(const application_id &app_id) {
         std::lock_guard<std::mutex> lock(global_mutex);
-        auto iterator = apps.find(app_handler_id.str());
+        auto iterator = apps.find(app_id.str());
 
         if (iterator == apps.end()) {
-            auto &&application_ptr = std::make_shared<RemoteApplicationHandler>(app_handler_id, fs_configuration, launcher_configuration);
-            const auto result_pair = apps.emplace(app_handler_id.str(), application_ptr);
+            auto &&application_ptr = std::make_shared<RemoteApplicationHandler>(app_id, fs_configuration, launcher_configuration);
+            const auto result_pair = apps.emplace(app_id.str(), application_ptr);
 
-            logger->debug("Creating a new application handler with ID [", app_handler_id.str(), "].");
+            logger->debug("Creating a new application handler with ID [", app_id.str(), "].");
             return result_pair.first->second;
         }
 
         return iterator->second;
     }
 
-    void remove_application_handler(const application_id &app_handler_id) {
+    /**
+     * @brief Remove the RemoteApplicationHandler for the specified application.
+     *
+     * @param [in] app_id The unique identifier of the application.
+     */
+    void remove_application_handler(const application_id &app_id) {
         std::lock_guard<std::mutex> lock(global_mutex);
-        auto iterator = apps.find(app_handler_id.str());
+        auto iterator = apps.find(app_id.str());
 
         if (iterator != apps.end()) {
             apps.erase(iterator);
         } else {
-            logger->warning("Couldn't remove application handler: ID not found [", app_handler_id.str(), "].");
+            logger->warning("Couldn't remove application handler: ID not found [", app_id.str(), "].");
         }
     }
 
 private:
     ApplicationManager() {}
 
+    /**
+     * @brief The mutex used to enforce a consistent internal state.
+     */
     std::mutex global_mutex;
 
+    /**
+     * @brief A pointer to the Logger.
+     */
     std::shared_ptr<Logger> logger;
+    /**
+     * @brief A pointer to the RemoteHandler.
+     */
     std::shared_ptr<RemoteHandler> remote;
+    /**
+     * @brief A map of RemoteApplicationHandler pointers.
+     *
+     * @details
+     *  - Key: the application ID.
+     *  - Value: a pointer to the corresponding RemoteApplicationHandler.
+     */
     std::unordered_map<std::string, std::shared_ptr<RemoteApplicationHandler>> apps;
 
+    /**
+     * @brief The FsHandler configuration to use for new instances.
+     */
     FsConfiguration fs_configuration;
+    /**
+     * @brief The plugin Launcher configuration to use for new instances.
+     */
     LauncherConfiguration launcher_configuration;
 };
 
 }  // namespace agora
 
-#endif  // APPLICATION_MANAGER_HPP
+#endif // APPLICATION_MANAGER_HPP

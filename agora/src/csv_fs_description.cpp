@@ -137,7 +137,7 @@ void CsvDescriptionStorage::store_description(const application_id &app_id, cons
                 out << "parameter_name,value\n";
 
                 // print the values
-                // NOTE: since we're potentially injecting python dictonary format values, we need to escape the content with double quotes
+                // NOTE: since we're potentially injecting python dictionary format values, we need to escape the content with double quotes
                 for (const auto &param : metric.prediction_parameters)
                     out << param.key << ',' << "\"" << param.value << "\""
                         << "\n";
@@ -158,7 +158,7 @@ void CsvDescriptionStorage::store_description(const application_id &app_id, cons
         out << "parameter_name,value\n";
 
         // print the values
-        // NOTE: since we're potentially injecting python dictonary format values, we need to escape the content with double quotes
+        // NOTE: since we're potentially injecting python dictionary format values, we need to escape the content with double quotes
         for (const auto &param : description.agora.doe_parameters)
             out << param.key << ',' << "\"" << param.value << "\""
                 << "\n";
@@ -177,7 +177,7 @@ void CsvDescriptionStorage::store_description(const application_id &app_id, cons
         out << "parameter_name,value\n";
 
         // print the values
-        // NOTE: since we're potentially injecting python dictonary format values, we need to escape the content with double quotes
+        // NOTE: since we're potentially injecting python dictionary format values, we need to escape the content with double quotes
         for (const auto &param : description.agora.clustering_parameters)
             out << param.key << ',' << "\"" << param.value << "\""
                 << "\n";
@@ -275,18 +275,6 @@ margot::heel::block_model CsvDescriptionStorage::load_description(const applicat
                 case AgoraSettingType::Clustering_Plugin:
                     description.agora.clustering_plugin = property_value;
                     break;
-                // case AgoraProperties::Storage_Type:
-                // description.agora.storage_type = property_value;
-                // break;
-                // case AgoraProperties::Storage_Address:
-                // description.agora.storage_address = property_value;
-                // break;
-                // case AgoraProperties::Storage_Username:
-                // description.agora.storage_username = property_value;
-                // break;
-                // case AgoraProperties::Storage_Password:
-                // description.agora.storage_password = property_value;
-                // break;
                 default:
                     logger->warning("Csv description: unknown agora property \"", property_name, "\" with value \"", property_value, "\"");
             }

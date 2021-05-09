@@ -30,31 +30,72 @@
 
 namespace agora {
 
+/**
+ * @brief Available plugin implementations.
+ *
+ * @details
+ * These values represents the type of plugin Agora expects, corresponding to each phase of the learning process.
+ */
 enum class PluginType { DOE, Model, Cluster, Prediction };
 
+/**
+ * @brief A generic configuration for a plugin.
+ *
+ * @details
+ * This data structure contains the specification for a generic plugin. This includes a list of properties/parameters which are parsed on
+ * the plugin end to infer informations. A PluginConfiguration is packed by the FsHandler before launching the plugin execution.
+ */
 struct PluginConfiguration {
     PluginConfiguration() {}
-    PluginConfiguration(const std::string &name, const application_id &application_id) : name(name), app_id(application_id) {}
-    PluginConfiguration(const std::string &name, const application_id &application_id, const std::string &metric_name,
+    /**
+     * @brief Construct a new PluginConfiguration.
+     *
+     * @param [in] config_name The environmental configuration file name.
+     * @param [in] app_id The AID corresponding to the application.
+     */
+    PluginConfiguration(const std::string &config_name, const application_id &app_id) : config_name(config_name), app_id(app_id) {}
+    /**
+     * @brief Construct a new PluginConfiguration.
+     *
+     * @param [in] config_name The environmental configuration file name.
+     * @param [in] app_id The AID corresponding to the application.
+     * @param [in] metric_name The name of the EFP to model.
+     * @param [in] iteration_number The current iteration number of the learning process.
+     *
+     * @details
+     * This constructor is used only for Modelling plugins, specifying the metric to model and the iteration number which are two
+     * informations needed inside this type of plugin.
+     */
+    PluginConfiguration(const std::string &config_name, const application_id &app_id, const std::string &metric_name,
                         const int &iteration_number)
-            : name(metric_name + "_" + name), app_id(application_id), metric_name(metric_name), iteration_number(iteration_number) {}
+            : config_name(metric_name + "_" + config_name), app_id(app_id), metric_name(metric_name), iteration_number(iteration_number) {}
 
-    // get the properties list with a environmental file compatible format
-    inline std::string print_properties() const {
+    /**
+     * @brief Get the properties listed in a environmental file compatible format.
+     *
+     * @returns A string containing the formatted list of properties.
+     */
+    std::string print_properties() const {
         std::stringstream content;
         for (const auto &pair : this->properties) content << pair.first << "=\"" << pair.second << "\"\n";
         return content.str();
     }
 
-    // TODO: checks if the config list is valid or not
+    //TODO: checks if the config list is valid or not
     // bool validate_properties() const {
     //}
 
-    // this map represents a {key,value} sorted list of the configuration file
+    /**
+     * @brief A list of properties.
+     *
+     * @details
+     * Each property is seen as a [key, value] pair element where:
+     *  - Key: Property name.
+     *  - Value: Property value.
+     */
     std::map<std::string, std::string> properties;
 
-    // the plugin configuration file_name
-    std::string name;
+    std::string config_name;
 
     application_id app_id;
 
@@ -65,4 +106,4 @@ struct PluginConfiguration {
 
 }  // namespace agora
 
-#endif  // PLUGIN_CONFIGURATION_HPP
+#endif // PLUGIN_CONFIGURATION_HPP
