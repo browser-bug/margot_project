@@ -29,8 +29,9 @@ configure_file(
 add_custom_target(doc ALL
 	${DOXYGEN_EXECUTABLE} ${MY_DOXYGEN_CONF_FILE_PATH}
 	WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-	COMMENT "Generating API documentation with Doxygen" VERBATIM
+  COMMENT "Generating mARGOt API documentation with Doxygen" VERBATIM
 )
 
 
-install( DIRECTORY ${MY_DOXYGEN_OUTPUT_FOLDER} DESTINATION . )
+# copy the content *inside* MY_DOXYGEN_OUTPUT_FOLDER into destination
+install( DIRECTORY ${MY_DOXYGEN_OUTPUT_FOLDER}/ DESTINATION ./doc/margot/ )
