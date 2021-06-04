@@ -1,5 +1,5 @@
 # check the minimum version
-cmake_minimum_required( VERSION 3.14 )
+cmake_minimum_required( VERSION 3.10 )
 
 # the project name
 project( AGORA VERSION 2.0 LANGUAGES CXX)
