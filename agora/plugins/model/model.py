@@ -94,12 +94,7 @@ def create_model(metric_name, num_iterations, model_params, data, target):
     splits_iterator = cv_strategy.split(data, target)
 
     scores_list = list(scoring_thresholds.keys())
-<<<<<<< HEAD
     cv_results = cross_validate(estimator, data, target, cv=splits_iterator,return_estimator=True, scoring=scores_list, verbose=0, n_jobs=4)
-=======
-    cv_results = cross_validate(estimator, data, target, cv=splits_iterator,return_estimator=True, scoring=scores_list, verbose=1, n_jobs=-1)
-    print(cv_results)
->>>>>>> master
 
     # check if the score thresholds are verified
     best_estimator = [0] * len(cv_results['estimator'])
