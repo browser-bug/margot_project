@@ -2,6 +2,11 @@
 cmake_minimum_required( VERSION 3.10 )
 
 #########################################################################
+#### Options
+#########################################################################
+option( GEN_DOC "Generate the Agora Doxygen documentation" OFF)
+
+#########################################################################
 #### Look for required external libraries
 #########################################################################
 set(THREADS_PREFER_PTHREAD_FLAG ON)
@@ -10,6 +15,10 @@ find_package(Threads REQUIRED)
 find_package(eclipse-paho-mqtt-c REQUIRED)
 
 find_package(Boost REQUIRED COMPONENTS program_options)
+
+if ( GEN_DOC )
+	find_package( Doxygen REQUIRED)
+endif ( GEN_DOC )
 
 include(GNUInstallDirs)
 
@@ -88,7 +97,7 @@ set( AGORA_LIBRARY_SOURCES
 add_library( ${AGORA_LIBRARY_NAME} SHARED ${AGORA_LIBRARY_SOURCES} ${AGORA_LIBRARY_HEADERS} )
 add_library( margot::${AGORA_LIBRARY_NAME} ALIAS ${AGORA_LIBRARY_NAME} )
 
-# define its inerface
+# define its interface
 target_include_directories( ${AGORA_LIBRARY_NAME}
 	PUBLIC
     $<BUILD_INTERFACE:${AGORA_HDR_PATH}> # for headers when building
@@ -105,6 +114,13 @@ target_compile_features( ${AGORA_LIBRARY_NAME} PRIVATE cxx_std_17 ) # for the fi
 #### Agora server binary
 #########################################################################
 add_subdirectory(server)
+
+#########################################################################
+#### Build additional stuff
+#########################################################################
+if ( GEN_DOC )
+	add_subdirectory( doc )
+endif ( GEN_DOC )
 
 #########################################################################
 #### Define the install settings for all the stuff

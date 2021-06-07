@@ -44,4 +44,3 @@ target_compile_features( ${MARGOT_LIBRARY_NAME} PRIVATE cxx_std_17 )
 
 
 
-

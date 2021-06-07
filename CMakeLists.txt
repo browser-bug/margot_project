@@ -8,14 +8,6 @@ project( mARGOt VERSION 3.0 LANGUAGES CXX)
 #### Change the default  options
 #########################################################################
 
-# set the default build type if not specified explicitely by the user
-set(MARGOT_DEFAULT_BUILD_TYPE "Release")
-if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
-  message(STATUS "Setting build type to '${MARGOT_DEFAULT_BUILD_TYPE}' as none was specified")
-  set(CMAKE_BUILD_TYPE "${MARGOT_DEFAULT_BUILD_TYPE}" CACHE STRING "The type of build" FORCE)
-  set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release" "RelWithDebInfo")
-endif()
-
 # set the rpath for the generated libraries
 include(GNUInstallDirs)
 set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}")

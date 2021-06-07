@@ -32,9 +32,9 @@ __author__ = "Bernardo Menicagli"
 __license__ = "MIT"
 __version__ = "0.0.1"
 __status__ = "Development"
-__doc__ = "Generate a predicting model for the target EFP using the specified model."
+__doc__ = "Generate a predicting model for the target EFP using the best model selected among a list of them."
 
-parser = argparse.ArgumentParser(description=f'Model Plugin v1. {__doc__}')
+parser = argparse.ArgumentParser(description=f'Modelling Plugin v2. {__doc__}')
 
 # Positional Arguments
 parser.add_argument('plugin_config_path',
@@ -99,7 +99,7 @@ def main():
     agora_properties_dict = agora_properties_df.set_index('property_name').T.to_dict('records')
     agora_properties = agora_properties_dict[0] if agora_properties_dict else {}
 
-    # Shuffle data and extract the training data and the target value
+    # shuffle and extract the training data and the target value
     observation_df = observation_df.sample(frac=1)
     data = observation_df[list(k_types.keys()) + list(f_types.keys())]
     target = observation_df[metric_name]
@@ -107,8 +107,7 @@ def main():
         print("No training data or target values available, stopping the model plugin.")
         return
 
-    # Label encoding for every knobs/features that are of the "string" type
-    # Save a local copy
+    # Label encoding for every knobs that has a "string" type. Then save a local copy.
     encoders_path = Path("encoders.joblib")
     if not encoders_path.exists():
         encoders = load("../encoders.joblib")
@@ -121,12 +120,13 @@ def main():
 
     # Create the Model
     print("Finding a new model for metric:", metric_name)
-    is_good,model = create_model(metric_name, iteration_number, model_params, data, target)
+    is_last_iteration = iteration_number >= int(agora_properties['max_number_iteration'])
+    is_good,model = create_model(metric_name, iteration_number, model_params, data, target, is_last_iteration)
 
-    if is_good or iteration_number > int(agora_properties['max_number_iteration']):
+    if is_good or is_last_iteration:
         if is_good:
             print("Model is good! Dumping estimator data on disk.")
-        if iteration_number >= int(agora_properties['max_number_iteration']) and not is_good:
+        else:
             print("Max. number of iterations reached. Using the best model I've found. Dumping estimator data on disk.")
         output_dir = Path(model_container).parent
         if not output_dir.exists():
@@ -137,3 +137,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+

@@ -1,3 +1,23 @@
+#!/usr/bin/env python3
+#
+# Copyright (C) 2021 Bernardo Menicagli
+#
+# This library is free software; you can redistribute it and/or
+# modify it under the terms of the GNU Lesser General Public
+# License as published by the Free Software Foundation; either
+# version 2.1 of the License, or (at your option) any later version.
+#
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public
+# License along with this library; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301
+# USA
+#
+
 import os
 import sys
 import argparse
@@ -11,15 +31,12 @@ import doe
 import utils
 
 __author__ = "Bernardo Menicagli"
-__copyright__ = ""
-__credits__ = [""]
 __license__ = "MIT"
 __version__ = "0.0.1"
-__maintainer__ = ""
-__email__ = ""
 __status__ = "Development"
+__doc__ = "Generate a list of experiments (configurations) based on the selected design algorithm."
 
-parser = argparse.ArgumentParser(description='DOE Plugin')
+parser = argparse.ArgumentParser(description=f'DOE Plugin. {__doc__}')
 
 # Positional Arguments
 parser.add_argument('plugin_config_path',

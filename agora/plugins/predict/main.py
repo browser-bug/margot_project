@@ -1,3 +1,23 @@
+#!/usr/bin/env python3
+#
+# Copyright (C) 2021 Bernardo Menicagli
+#
+# This library is free software; you can redistribute it and/or
+# modify it under the terms of the GNU Lesser General Public
+# License as published by the Free Software Foundation; either
+# version 2.1 of the License, or (at your option) any later version.
+#
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public
+# License along with this library; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301
+# USA
+#
+
 import os
 import sys
 import argparse
@@ -10,15 +30,12 @@ import uuid
 from predict import create_predictions
 
 __author__ = "Bernardo Menicagli"
-__copyright__ = ""
-__credits__ = [""]
 __license__ = "MIT"
 __version__ = "0.0.1"
-__maintainer__ = ""
-__email__ = ""
 __status__ = "Development"
+__doc__ = "Generate the final predictions for each EFPs based on the best model stored."
 
-parser = argparse.ArgumentParser(description='Predict Plugin')
+parser = argparse.ArgumentParser(description=f'Predict Plugin. {__doc__}')
 
 # Positional Arguments
 parser.add_argument('plugin_config_path',
@@ -46,7 +63,6 @@ def main():
     # db_username = os.getenv('DATABASE_USERNAME')
     # db_password = os.getenv('DATABASE_PASSWORD')
 
-    agora_properties_container = os.getenv('AGORA_PROPERTIES_CONTAINER_NAME')
     knobs_container = os.getenv('KNOBS_CONTAINER_NAME')
     features_container = os.getenv('FEATURES_CONTAINER_NAME')
     metrics_container = os.getenv('METRICS_CONTAINER_NAME')
@@ -55,7 +71,6 @@ def main():
     predictions_container = os.getenv('PREDICTIONS_CONTAINER_NAME')
     models_container = os.getenv('MODELS_CONTAINER')
 
-    agora_properties_df = pd.DataFrame()
     knobs_df = pd.DataFrame()
     features_df = pd.DataFrame()
     metrics_df = pd.DataFrame()
@@ -65,7 +80,6 @@ def main():
 
     # Read tables
     if description_fs_type == 'csv':
-        agora_properties_df = pd.read_csv(agora_properties_container)
         knobs_df = pd.read_csv(knobs_container)
         features_df = pd.read_csv(features_container)
         metrics_df = pd.read_csv(metrics_container)
@@ -83,10 +97,6 @@ def main():
     m_types = {}
     for row in metrics_df.itertuples(index=False):
         m_types[row[0]] = row[1]
-
-    # generate a dictionary for all the parameters
-    agora_properties_dict = agora_properties_df.set_index('property_name').T.to_dict('records')
-    agora_properties = agora_properties_dict[0] if agora_properties_dict else {}
 
     # Generate the sample dataset for the final prediction
     samples_df = total_configs_df

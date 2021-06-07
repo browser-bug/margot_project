@@ -1,0 +1,7 @@
+/**
+\mainpage Agora
+
+## Summary
+
+Agora provides a new online learning module to mARGOt autotuner that enables the framework to discover the application knowledge during production phase, exploiting an iterative learning approach.
+*/
